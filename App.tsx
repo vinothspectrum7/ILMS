@@ -1,28 +1,46 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Toast from 'react-native-toast-message'; // ✅ import Toast
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import LoginScreen from './src/screens/LoginScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import ReceiveScreen from './src/screens/ReceiveScreen';
+import NewReceiveScreen from './src/screens/NewReceiveScreen'; 
+
+const Stack = createNativeStackNavigator();
 
 function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+return (
+<>
+<NavigationContainer>
+<Stack.Navigator initialRouteName="Login">
+<Stack.Screen
+name="Login"
+component={LoginScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Home"
+component={HomeScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Receive"
+component={ReceiveScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="NewReceiveScreen"
+component={NewReceiveScreen}
+options={{ headerShown: false }}
+/>
+</Stack.Navigator>
+</NavigationContainer>
 
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NewAppScreen templateFileName="App.tsx" />
-    </View>
-  );
+  <Toast />
+</>
+);
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
 
 export default App;
