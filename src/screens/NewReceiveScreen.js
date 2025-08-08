@@ -33,13 +33,15 @@ const NewReceiveScreen = () => {
     setItems(prev => prev.map(item => (item.id === id ? { ...item, qtyToReceive: newQty } : item)));
   };
 
-  const handleSave = () => {
-    console.log('Draft Saved:', items.filter(i => selectedItems.includes(i.id)));
-  };
+  const handleSave = () => {};
 
   const handleReceive = () => {
-    console.log('Items Received:', items.filter(i => selectedItems.includes(i.id)));
-    navigation.navigate('ReceiveSummaryScreen');
+    const payload = items
+      .filter(i => selectedItems.includes(i.id))
+      .map(({ id, name, orderedQty, receivedQty, openQty, uom, promisedDate, needByDate, qtyToReceive }) => ({
+        id, name, orderedQty, receivedQty, openQty, uom, promisedDate, needByDate, qtyToReceive,
+      }));
+    navigation.navigate('ReceiveSummaryScreen', { selectedItems: payload });
   };
 
   const buttonsEnabled = selectedItems.length > 0;
@@ -51,9 +53,8 @@ const NewReceiveScreen = () => {
         greetingName="Robert"
         dateText="06-08-2025"
         onBack={() => navigation.goBack()}
-        onMenu={() => console.log('Menu pressed')}
+        onMenu={() => {}}
       />
-
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
           receiptNumber="12300002"
@@ -61,9 +62,7 @@ const NewReceiveScreen = () => {
           poNumber="PO-00002"
           receiptDate="21 Jul 2025"
         />
-
         <ToggleTabsComponent selectedTab={selectedTab} onSelectTab={setSelectedTab} />
-
         <View style={styles.tableHeader}>
           <TableHeaderComponent
             allSelected={selectedItems.length === items.length}
@@ -75,7 +74,6 @@ const NewReceiveScreen = () => {
             }}
           />
         </View>
-
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
@@ -92,10 +90,9 @@ const NewReceiveScreen = () => {
           scrollEnabled={false}
         />
       </ScrollView>
-
       <FooterButtonsComponent
         leftLabel="Draft"
-        rightLabel="Receive Items"
+        rightLabel="Receive"
         onLeftPress={handleSave}
         onRightPress={handleReceive}
         leftEnabled={buttonsEnabled}
