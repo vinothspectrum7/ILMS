@@ -2,24 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 
-const TableHeaderComponent = ({ allSelected, onToggleAll }) => {
+const SummaryTabHdrComponent = ({ allSelected, onToggleAll }) => {
   const handleToggle = () => onToggleAll?.(!allSelected);
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      <View style={styles.section1}>
-        <Pressable
-          onPress={handleToggle}
-          hitSlop={12}
-          style={styles.checkboxTouch}
-        >
-          <CheckBox
-            value={allSelected}
-            onValueChange={handleToggle}
-            tintColors={{ true: '#233E55', false: '#233E55' }}
-          />
-        </Pressable>
-      </View>
       <View style={styles.section2}>
         <Text style={styles.label}>Items</Text>
       </View>
@@ -76,4 +63,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TableHeaderComponent;
+export default SummaryTabHdrComponent;
