@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,48 +9,18 @@ import {
   Dimensions,
 } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
-import { ArrowLeft, Menu, ScanBarcode } from 'lucide-react-native';
+import { ScanBarcode } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+
+import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
 const poData = [
-  {
-    id: '1',
-    poNumber: 'PO-00002',
-    supplier: '3DIng',
-    poDate: '21 JUL 2025',
-    status: 'OPEN',
-    received: 40,
-    billed: 60,
-  },
-  {
-    id: '2',
-    poNumber: 'PO-00003',
-    supplier: 'TechCo',
-    poDate: '22 JUL 2025',
-    status: 'OPEN',
-    received: 55,
-    billed: 80,
-  },
-  {
-    id: '3',
-    poNumber: 'PO-00004',
-    supplier: 'DesignHub',
-    poDate: '23 JUL 2025',
-    status: 'OPEN',
-    received: 70,
-    billed: 75,
-  },
-  {
-    id: '4',
-    poNumber: 'PO-00005',
-    supplier: 'BuildCorp',
-    poDate: '24 JUL 2025',
-    status: 'OPEN',
-    received: 90,
-    billed: 90,
-  },
+  { id: '1', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN', received: 40, billed: 60 },
+  { id: '2', poNumber: 'PO-00003', supplier: 'TechCo',    poDate: '22 JUL 2025', status: 'OPEN', received: 55, billed: 80 },
+  { id: '3', poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN', received: 70, billed: 75 },
+  { id: '4', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN', received: 90, billed: 90 },
 ];
 
 const ReceiveScreen = () => {
@@ -129,15 +99,13 @@ const ReceiveScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft color="#fff" size={24} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Receive</Text>
-        <TouchableOpacity>
-          <Menu color="#fff" size={24} />
-        </TouchableOpacity>
-      </View>
+      <GlobalHeaderComponent
+        title="Receive"
+        greetingName="Robert"
+        dateText="06-08-2025"
+        onBack={() => navigation.goBack()}
+        onMenu={() => {}}
+      />
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -186,22 +154,8 @@ const ReceiveScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f8f8' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#233E55',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    flex: 1,
-    marginLeft: 10,
-  },
+
+
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -217,6 +171,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
+
   card: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -231,40 +186,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  cardLeft: {
-    flex: 1,
-    paddingRight: 6,
-  },
-  cardRight: {
-    flex: 1,
-    paddingLeft: 6,
-  },
+  cardLeft: { flex: 1, paddingRight: 6 },
+  cardRight: { flex: 1, paddingLeft: 6 },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  labelText: {
-    fontSize: 10,
-    color: '#555',
-    flex: 1,
-  },
-  valueText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#1C1C1C',
-    flex: 1,
-    textAlign: 'left',
-  },
-  openText: {
-    color: 'green',
-  },
-  subLabel: {
-    fontSize: 10,
-    color: '#555',
-    marginTop: 4,
-    marginBottom: 2,
-  },
+  labelText: { fontSize: 10, color: '#555', flex: 1 },
+  valueText: { fontSize: 10, fontWeight: 'bold', color: '#1C1C1C', flex: 1, textAlign: 'left' },
+  openText: { color: 'green' },
+  subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
   progressWrapper: {
     backgroundColor: '#E5F8F7',
     borderRadius: 20,

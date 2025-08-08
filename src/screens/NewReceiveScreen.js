@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, FlatList, SafeAreaView } from 'react-native';
-import NavHeaderComponent from '../components/NavHeaderComponent';
+import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
 import ToggleTabsComponent from '../components/ToggleTabsComponent';
 import LineItemListCardComponent from '../components/LineItemListCardComponent';
 import FooterButtonsComponent from '../components/FooterButtonsComponent';
 import TableHeaderComponent from '../components/TableHeaderComponent';
+import { useNavigation } from '@react-navigation/native';
 
 const dummyItems = [
   {
@@ -41,6 +42,7 @@ const dummyItems = [
 ];
 
 const NewReceiveScreen = () => {
+  const navigation = useNavigation();
   const [selectedTab, setSelectedTab] = useState('lineItems');
   const [selectedItems, setSelectedItems] = useState([]);
   const [items, setItems] = useState(dummyItems.map(item => ({ ...item, qtyToReceive: 0 })));
@@ -85,7 +87,13 @@ const NewReceiveScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <NavHeaderComponent />
+      <GlobalHeaderComponent
+       title="Receive"
+       greetingName="Robert"
+       dateText="06-08-2025"
+       onBack={() => navigation.goBack()}
+       onMenu={() => console.log('Menu pressed')}
+     />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
