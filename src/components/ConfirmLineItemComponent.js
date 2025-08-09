@@ -7,19 +7,32 @@ const ConfirmLineItemComponent = ({
   qtyValue,
   readOnly = true,
   onViewDetails = () => {},
+  showReceivedBreakdown = false,
+  receivedQtyOverride,
 }) => {
   const displayQty = String(qtyValue ?? item?.qtyToReceive ?? 0);
+  const receivedQty = String(
+    receivedQtyOverride ?? item?.receivedQty ?? item?.qtyToReceive ?? 0
+  );
 
   return (
     <View style={styles.cardwrapper}>
       <View style={styles.rowContainer}>
         <View style={styles.section2}>
           <Text style={styles.itemName}>{item.name}</Text>
+
           <View style={styles.qtyBreakdownRow}>
             <Text style={styles.metaText}>Ordered Qty: {item.orderedQty}</Text>
             <Text style={styles.metaText}>|</Text>
+            {showReceivedBreakdown && (
+              <>
+                <Text style={styles.metaText}>Received Qty: {receivedQty}</Text>
+                <Text style={styles.metaText}>|</Text>
+              </>
+            )}
             <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
           </View>
+
           <TouchableOpacity onPress={onViewDetails}>
             <Text style={styles.viewDetails}>View Details</Text>
           </TouchableOpacity>
@@ -55,26 +68,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     elevation: 2,
   },
-  rowContainer: {
-    flexDirection: 'row',
-    height: '100%',
-  },
-  section2: {
-    flex: 1,
-    paddingLeft: 8,
-    marginTop: 8,
-  },
-  section3: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    paddingLeft: 8,
-    minWidth: 100,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
+  rowContainer: { flexDirection: 'row', height: '100%' },
+  section2: { flex: 1, paddingLeft: 8, marginTop: 8 },
+  section3: { alignItems: 'flex-end', justifyContent: 'center', paddingLeft: 8, minWidth: 100 },
+  itemName: { fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
   qtyInput: {
     width: 50,
     height: 30,
@@ -86,16 +83,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     color: '#233E55',
   },
-  uomText: {
-    fontSize: 10,
-    color: '#666',
-    marginTop: 4,
-  },
-  qtyBreakdownRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    columnGap: 4,
-  },
+  uomText: { fontSize: 10, color: '#666', marginTop: 4 },
+  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center', columnGap: 4 },
   metaText: {
     fontSize: 10,
     color: '#666',
@@ -104,17 +93,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 5,
   },
-  viewDetails: {
-    fontSize: 10,
-    color: '#0A395D',
-    marginTop: 4,
-    textDecorationLine: 'underline',
-  },
-  dateText: {
-    fontSize: 10,
-    color: '#999',
-    marginTop: 4,
-  },
+  viewDetails: { fontSize: 10, color: '#0A395D', marginTop: 4, textDecorationLine: 'underline' },
+  dateText: { fontSize: 10, color: '#999', marginTop: 4 },
 });
 
 export default ConfirmLineItemComponent;

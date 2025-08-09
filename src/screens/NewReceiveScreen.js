@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { FlatList, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
 import ToggleTabsComponent from '../components/ToggleTabsComponent';
@@ -11,9 +11,9 @@ import ScanItemListCardComponent from '../components/ScanItemListCardComponent';
 import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
 
 const dummyItems = [
-  { id: '1', name: 'Lorem Ipsumum', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
-  { id: '2', name: 'Dolor Sit Item', orderedQty: 14, receivedQty: 1, openQty: 3, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
-  { id: '3', name: 'Dolor Item', orderedQty: 12, receivedQty: 1, openQty: 7, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
+  { id: '1', purchaseReceipt: 'PR-00002', name: 'Lorem Ipsumum', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
+  { id: '2', purchaseReceipt: 'PR-00002', name: 'Dolor Sit Item', orderedQty: 14, receivedQty: 1, openQty: 3, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
+  { id: '3', purchaseReceipt: 'PR-00002', name: 'Dolor Item', orderedQty: 12, receivedQty: 1, openQty: 7, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
 ];
 
 const stripForPayload = ({ id, name, orderedQty, receivedQty, openQty, uom, promisedDate, needByDate, qtyToReceive }) => ({
@@ -22,20 +22,23 @@ const stripForPayload = ({ id, name, orderedQty, receivedQty, openQty, uom, prom
 
 const NewReceiveScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
+  const selectedPO = route?.params?.selectedPO || null;
+
   const [selectedTab, setSelectedTab] = useState('lineItems');
-  const [items, setItems] = useState(dummyItems.map((i) => ({ ...i, qtyToReceive: 0 })));
+  const [items, setItems] = useState(dummyItems.map(i => ({ ...i, qtyToReceive: 0 })));
   const [selectedItems, setSelectedItems] = useState([]);
   const [scannedItems, setScannedItems] = useState([]);
 
   const handleCheckToggle = (item) => {
     const isChecked = selectedItems.includes(item.id);
-    const nextSelected = isChecked ? selectedItems.filter((id) => id !== item.id) : [...selectedItems, item.id];
+    const nextSelected = isChecked ? selectedItems.filter(id => id !== item.id) : [...selectedItems, item.id];
     setSelectedItems(nextSelected);
-    setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, qtyToReceive: isChecked ? 0 : it.openQty } : it)));
+    setItems(prev => prev.map(it => (it.id === item.id ? { ...it, qtyToReceive: isChecked ? 0 : it.openQty } : it)));
   };
 
   const handleQtyChange = (id, newQty) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, qtyToReceive: newQty } : item)));
+    setItems(prev => prev.map(item => (item.id === id ? { ...item, qtyToReceive: newQty } : item)));
   };
 
   const handleSave = () => {};
@@ -43,28 +46,29 @@ const NewReceiveScreen = () => {
   const handleReceive = () => {
     const payload =
       selectedTab === 'lineItems'
-        ? items.filter((i) => selectedItems.includes(i.id) && (i.qtyToReceive ?? 0) > 0).map(stripForPayload)
-        : scannedItems.filter((i) => (i.qtyToReceive ?? 0) > 0).map(stripForPayload);
+        ? items.filter(i => selectedItems.includes(i.id) && (i.qtyToReceive ?? 0) > 0).map(stripForPayload)
+        : scannedItems.filter(i => (i.qtyToReceive ?? 0) > 0).map(stripForPayload);
 
-    navigation.navigate('ReceiveSummaryScreen', { selectedItems: payload });
+    navigation.navigate('ReceiveSummaryScreen', {
+      id: selectedPO?.id ?? null,
+      selectedItems: payload,
+      readonly: false,
+    });
   };
 
-  const hasAnyItems = useMemo(() => {
-    return selectedTab === 'lineItems' ? selectedItems.length > 0 : scannedItems.length > 0;
-  }, [selectedTab, selectedItems.length, scannedItems.length]);
+  const hasAnyItems = useMemo(() => (selectedTab === 'lineItems' ? selectedItems.length > 0 : scannedItems.length > 0), [selectedTab, selectedItems.length, scannedItems.length]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeaderComponent
-        title="Receive"
-        greetingName="Robert"
-        dateText="06-08-2025"
-        onBack={() => navigation.goBack()}
-        onMenu={() => {}}
-      />
+      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText="06-08-2025" onBack={() => navigation.goBack()} onMenu={() => {}} />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        <POinfoCardComponent receiptNumber="12300002" supplier="3DIng" poNumber="PO-00002" receiptDate="21 Jul 2025" />
+        <POinfoCardComponent
+          receiptNumber={selectedPO?.purchaseReceipt || '—'}
+          supplier={selectedPO?.supplier || '—'}
+          poNumber={selectedPO?.poNumber || '—'}
+          receiptDate={selectedPO?.poDate || '—'}
+        />
 
         <ToggleTabsComponent selectedTab={selectedTab} onSelectTab={setSelectedTab} />
 
@@ -74,17 +78,17 @@ const NewReceiveScreen = () => {
               <TableHeaderComponent
                 allSelected={selectedItems.length === items.length}
                 onToggleAll={() => {
-                  const allIds = items.map((i) => i.id);
+                  const allIds = items.map(i => i.id);
                   const shouldSelectAll = selectedItems.length !== items.length;
                   setSelectedItems(shouldSelectAll ? allIds : []);
-                  setItems((prev) => prev.map((it) => ({ ...it, qtyToReceive: shouldSelectAll ? it.openQty : 0 })));
+                  setItems(prev => prev.map(it => ({ ...it, qtyToReceive: shouldSelectAll ? it.openQty : 0 })));
                 }}
               />
             </View>
 
             <FlatList
               data={items}
-              keyExtractor={(item) => item.id}
+              keyExtractor={item => item.id}
               renderItem={({ item }) => (
                 <View style={styles.lineItemWrapper}>
                   <LineItemListCardComponent
