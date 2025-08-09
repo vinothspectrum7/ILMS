@@ -17,12 +17,11 @@ import SearchIcon from '../assets/icons/search.svg';
 const initialLayout = { width: Dimensions.get('window').width };
 
 const poData = [
-  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN', received: 40, billed: 60 },
-  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechCo',    poDate: '22 JUL 2025', status: 'OPEN', received: 55, billed: 80 },
-  { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN', received: 70, billed: 75 },
-  { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN', received: 90, billed: 90 },
+  { id: '1', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN', received: 40, billed: 60 },
+  { id: '2', poNumber: 'PO-00003', supplier: 'TechCo',    poDate: '22 JUL 2025', status: 'OPEN', received: 55, billed: 80 },
+  { id: '3', poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN', received: 70, billed: 75 },
+  { id: '4', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN', received: 90, billed: 90 },
 ];
-
 
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',         receivedDate: '21 Jul 2025', status: 'Fully Received' },
@@ -160,21 +159,32 @@ const ReceiveScreen = () => {
             }
           >
             <View style={styles.rcvCard}>
-              <View style={styles.rcvRow}>
-                <Text style={styles.rcvLabel}>Purchase Receipt</Text>
-                <Text style={[styles.rcvValue, styles.bold]}>{item.purchaseReceipt}</Text>
-                <Text style={[styles.rcvLabel, { marginLeft: 'auto' }]}>PO Number</Text>
-                <Text style={styles.rcvValue}>{item.poNumber}</Text>
-              </View>
-              <View style={styles.rcvRow}>
-                <Text style={styles.rcvLabel}>Supplier</Text>
-                <Text style={styles.rcvValue}>{item.supplier}</Text>
-                <Text style={[styles.rcvLabel, { marginLeft: 'auto' }]}>Received Date</Text>
-                <Text style={styles.rcvValue}>{item.receivedDate}</Text>
-              </View>
-              <View style={styles.rcvRow}>
-                <Text style={styles.rcvLabel}>Status</Text>
-                <Text style={[styles.rcvStatus, { color: statusColor }]}>{item.status}</Text>
+              <View style={styles.rcvCols}>
+                <View style={styles.rcvColLeft}>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>Purchase Receipt</Text>
+                    <Text style={[styles.rcvValue, styles.bold]}>{item.purchaseReceipt}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>Supplier</Text>
+                    <Text style={styles.rcvValue}>{item.supplier}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>Status</Text>
+                    <Text style={[styles.rcvStatus, { color: statusColor }]}>{item.status}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.rcvColRight}>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>PO Number</Text>
+                    <Text style={styles.rcvValue}>{item.poNumber}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>Received Date</Text>
+                    <Text style={styles.rcvValue}>{item.receivedDate}</Text>
+                  </View>
+                </View>
               </View>
             </View>
           </TouchableOpacity>
@@ -242,6 +252,7 @@ const ReceiveScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f8f8' },
+
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -253,6 +264,7 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, height: 40, fontSize: 14, color: '#333' },
 
+  // PO/IR cards
   card: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -290,6 +302,7 @@ const styles = StyleSheet.create({
   },
   progressBar: { height: 8, backgroundColor: '#1C3C55', borderRadius: 20, marginHorizontal: 4 },
 
+  // Received cards (2-column grid)
   rcvCard: {
     backgroundColor: '#fff',
     marginHorizontal: 12,
@@ -302,11 +315,14 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  rcvRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  rcvLabel: { fontSize: 12, color: '#7A7A7A', marginRight: 6 },
-  rcvValue: { fontSize: 12, color: '#1C1C1C', marginRight: 10 },
-  bold: { fontWeight: 'bold' },
+  rcvCols: { flexDirection: 'row' },
+  rcvColLeft: { flex: 1, paddingRight: 10 },
+  rcvColRight: { flex: 1, paddingLeft: 10 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  rcvLabel: { fontSize: 12, color: '#7A7A7A' },
+  rcvValue: { fontSize: 12, color: '#1C1C1C' },
   rcvStatus: { fontSize: 12, fontWeight: '600' },
+  bold: { fontWeight: 'bold' },
 });
 
 export default ReceiveScreen;
