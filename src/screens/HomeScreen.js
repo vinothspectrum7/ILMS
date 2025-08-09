@@ -11,11 +11,8 @@ import {
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { QrCode } from 'lucide-react-native';
-import HeaderComponent from '../components/HeaderComponent';
+import HeaderComponent, { HEADER_METRICS } from '../components/HeaderComponent';
 import { ShippingStatusCard } from '../components/ShippingStatusCard';
-import ReceiveIcon from '../assets/icons/Receive_icon.svg';
-import InventoryIcon from '../assets/icons/Inventory_icon.svg';
-import ShippingIcon from '../assets/icons/Shipping_icon.svg';
 import OrderShippedIcon from '../assets/icons/Order_Shipped_icon.svg';
 import OrderScheduledTodayIcon from '../assets/icons/Order_Scheduled_today_icon.svg';
 import BackOrderedIcon from '../assets/icons/Back_ordered_icon.svg';
@@ -49,8 +46,6 @@ export default function HomeScreen({ navigation }) {
     { value: 75, label: 'Item 7', color: '#F2A091' },
   ];
 
-  const chartHeight = responsiveSize(200);
-
   return (
     <SafeAreaView style={styles.container}>
       <HeaderComponent
@@ -60,77 +55,81 @@ export default function HomeScreen({ navigation }) {
         onCardPress={(screen) => navigation.navigate(screen)}
       />
 
-      <View style={{ height: responsiveSize(200) }} />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={{ height: HEADER_METRICS.CONTENT_SPACER }} />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Shipping Status</Text>
-        <View style={styles.shippingStatusCardsContainer}>
-          <ShippingStatusCard label="Order Shipped" count="8" icon={OrderShippedIcon} iconColor="#033EFF" onPress={() => {}} />
-          <ShippingStatusCard label="Order Scheduled today" count="15" icon={OrderScheduledTodayIcon} iconColor="#10b981" onPress={() => {}} />
-          <ShippingStatusCard label="Backordered" count="9" icon={BackOrderedIcon} iconColor="#f59e0b" onPress={() => {}} />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.chartHeader}>
-          <Text style={styles.sectionTitle}>Inventory Chart</Text>
-          <DropDownPicker
-            open={openInventoryOrgDropdown}
-            value={selectedInventoryOrg}
-            items={inventoryOrganizations}
-            setOpen={setOpenInventoryOrgDropdown}
-            setValue={setSelectedInventoryOrg}
-            containerStyle={styles.inventoryOrgDropdownContainer}
-            style={styles.inventoryOrgDropdownStyle}
-            labelStyle={styles.inventoryOrgDropdownLabel}
-            textStyle={styles.inventoryOrgDropdownText}
-            dropDownContainerStyle={styles.inventoryOrgDropdownMenuContainer}
-            listMode='SCROLLVIEW'
-            renderBadge={() => null}
-            ArrowUpIconComponent={({ style }) => <Text style={[style, { color: '#6b7280' }]}>▲</Text>}
-            ArrowDownIconComponent={({ style }) => <Text style={[style, { color: '#6b7280' }]}>▼</Text>}
-          />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Shipping Status</Text>
+          <View style={styles.shippingStatusCardsContainer}>
+            <ShippingStatusCard label="Order Shipped" count="8" icon={OrderShippedIcon} iconColor="#033EFF" onPress={() => {}} />
+            <ShippingStatusCard label="Order Scheduled today" count="15" icon={OrderScheduledTodayIcon} iconColor="#10b981" onPress={() => {}} />
+            <ShippingStatusCard label="Backordered" count="9" icon={BackOrderedIcon} iconColor="#f59e0b" onPress={() => {}} />
+          </View>
         </View>
 
-        <View style={styles.inventoryChartContainer}>
-          <View style={styles.yAxisWithGrid}>
-            <View style={styles.yAxisLine} />
-            {[90, 80, 70, 60, 50, 40, 30, 20, 10, 0].map((val) => (
-              <View key={val} style={styles.gridRow}>
-                <Text style={styles.yAxisLabel}>{val}</Text>
-                <View style={styles.gridLine} />
-              </View>
-            ))}
-            <Text style={styles.yAxisTitle}>No. of Items</Text>
+        <View style={styles.section}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.sectionTitle}>Inventory Chart</Text>
+            <DropDownPicker
+              open={openInventoryOrgDropdown}
+              value={selectedInventoryOrg}
+              items={inventoryOrganizations}
+              setOpen={setOpenInventoryOrgDropdown}
+              setValue={setSelectedInventoryOrg}
+              containerStyle={styles.inventoryOrgDropdownContainer}
+              style={styles.inventoryOrgDropdownStyle}
+              labelStyle={styles.inventoryOrgDropdownLabel}
+              textStyle={styles.inventoryOrgDropdownText}
+              dropDownContainerStyle={styles.inventoryOrgDropdownMenuContainer}
+              listMode="SCROLLVIEW"
+              renderBadge={() => null}
+              ArrowUpIconComponent={({ style }) => <Text style={[style, { color: '#6b7280' }]}>▲</Text>}
+              ArrowDownIconComponent={({ style }) => <Text style={[style, { color: '#6b7280' }]}>▼</Text>}
+            />
           </View>
 
-          <View style={styles.chartBarsSection}>
-            <View style={styles.chartBarsContainer}>
-              {chartData.map((item, index) => (
-                <View key={index} style={styles.barContainer}>
-                  <View
-                    style={[
-                      styles.bar,
-                      {
-                        height: (item.value / 90) * responsiveSize(160),
-                        backgroundColor: item.color,
-                      },
-                    ]}
-                  />
+          <View style={styles.inventoryChartContainer}>
+            <View style={styles.yAxisWithGrid}>
+              <View style={styles.yAxisLine} />
+              {[90, 80, 70, 60, 50, 40, 30, 20, 10, 0].map((val) => (
+                <View key={val} style={styles.gridRow}>
+                  <Text style={styles.yAxisLabel}>{val}</Text>
+                  <View style={styles.gridLine} />
                 </View>
               ))}
+              <Text style={styles.yAxisTitle}>No. of Items</Text>
             </View>
-            <View style={styles.xAxisLine} />
-            <View style={styles.xAxisLabelsContainer}>
-              {chartData.map((item, index) => (
-                <Text key={index} style={styles.xAxisLabel}>{item.label}</Text>
-              ))}
+
+            <View style={styles.chartBarsSection}>
+              <View style={styles.chartBarsContainer}>
+                {chartData.map((item, index) => (
+                  <View key={index} style={styles.barContainer}>
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: (item.value / 90) * responsiveSize(160),
+                          backgroundColor: item.color,
+                        },
+                      ]}
+                    />
+                  </View>
+                ))}
+              </View>
+              <View style={styles.xAxisLine} />
+              <View style={styles.xAxisLabelsContainer}>
+                {chartData.map((item, index) => (
+                  <Text key={index} style={styles.xAxisLabel}>
+                    {item.label}
+                  </Text>
+                ))}
+              </View>
             </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.bottomSpacing} />
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
 
       <TouchableOpacity style={styles.fab} onPress={handleQrScanPress}>
         <QrCode size={responsiveSize(28)} color="#ffffff" strokeWidth={2} />
@@ -141,17 +140,13 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  scrollView: { flex: 1 },
-  section: {
-    paddingHorizontal: responsiveSize(20),
-    marginBottom: responsiveSize(24),
-  },
+  section: { paddingHorizontal: responsiveSize(20), marginBottom: responsiveSize(24) },
   sectionTitle: {
     fontSize: responsiveSize(16),
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: responsiveSize(16),
-    marginTop: responsiveSize(10),
+    marginTop: responsiveSize(20),
   },
   shippingStatusCardsContainer: {
     flexDirection: 'row',
@@ -166,41 +161,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: responsiveSize(16),
   },
-  inventoryOrgDropdownContainer: {
-    width: responsiveSize(150),
-    height: responsiveSize(30),
-    zIndex: 10,
-  },
+  inventoryOrgDropdownContainer: { width: responsiveSize(150), height: responsiveSize(30), zIndex: 10 },
   inventoryOrgDropdownStyle: {
     backgroundColor: '#FFFFFF',
     borderColor: '#e5e7eb',
     borderRadius: responsiveSize(8),
     minHeight: responsiveSize(30),
   },
-  inventoryOrgDropdownLabel: {
-    color: '#6b7280',
-    fontSize: responsiveSize(14),
-    textAlign: 'right',
-  },
-  inventoryOrgDropdownText: {
-    color: '#6b7280',
-    fontSize: responsiveSize(14),
-  },
+  inventoryOrgDropdownLabel: { color: '#6b7280', fontSize: responsiveSize(14), textAlign: 'right' },
+  inventoryOrgDropdownText: { color: '#6b7280', fontSize: responsiveSize(14) },
   inventoryOrgDropdownMenuContainer: {
     backgroundColor: '#FFFFFF',
     borderColor: '#e5e7eb',
     borderWidth: 1,
     borderRadius: responsiveSize(8),
-  },
-  yAxisContainer: {
-    width: responsiveSize(40),
-    paddingRight: responsiveSize(4),
-    position: 'relative',
-  },
-  yAxisRow: {
-    height: responsiveSize(20),
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   inventoryChartContainer: {
     flexDirection: 'row',
@@ -231,11 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#d1d5db',
     zIndex: 1,
   },
-  gridRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: responsiveSize(18),
-  },
+  gridRow: { flexDirection: 'row', alignItems: 'center', height: responsiveSize(18) },
   yAxisLabel: {
     fontSize: responsiveSize(10),
     color: '#6b7280',
@@ -244,12 +214,7 @@ const styles = StyleSheet.create({
     marginRight: responsiveSize(4),
     marginBottom: responsiveSize(4),
   },
-  gridLine: {
-    height: 1,
-    backgroundColor: '#e5e7eb',
-    flex: 1,
-    marginBottom: 1,
-  },
+  gridLine: { height: 1, backgroundColor: '#e5e7eb', flex: 1, marginBottom: 1 },
   yAxisTitle: {
     position: 'absolute',
     left: responsiveSize(-20),
@@ -261,12 +226,7 @@ const styles = StyleSheet.create({
     width: responsiveSize(90),
     textAlign: 'center',
   },
-  chartBarsSection: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    position: 'relative',
-    paddingBottom: -16,
-  },
+  chartBarsSection: { flex: 1, justifyContent: 'flex-end', position: 'relative', paddingBottom: -16 },
   chartBarsContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -274,40 +234,12 @@ const styles = StyleSheet.create({
     height: responsiveSize(180),
     paddingBottom: 0,
   },
-  barContainer: {
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    width: responsiveSize(32),
-  },
-  bar: {
-    marginStart: 4,
-    width: responsiveSize(12),
-    borderRadius: responsiveSize(4),
-    marginBottom: responsiveSize(3),
-  },
-  xAxisLine: {
-    position: 'absolute',
-    bottom: responsiveSize(16),
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: '#d1d5db',
-  },
-  xAxisLabelsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: responsiveSize(4),
-    paddingHorizontal: responsiveSize(6),
-  },
-  xAxisLabel: {
-    fontSize: responsiveSize(8),
-    color: '#6b7280',
-    textAlign: 'center',
-    width: responsiveSize(32),
-  },
-  bottomSpacing: {
-    height: responsiveSize(100),
-  },
+  barContainer: { alignItems: 'center', justifyContent: 'flex-end', width: responsiveSize(32) },
+  bar: { marginStart: 4, width: responsiveSize(12), borderRadius: responsiveSize(4), marginBottom: responsiveSize(3) },
+  xAxisLine: { position: 'absolute', bottom: responsiveSize(16), left: 0, right: 0, height: 1, backgroundColor: '#d1d5db' },
+  xAxisLabelsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: responsiveSize(4), paddingHorizontal: responsiveSize(6) },
+  xAxisLabel: { fontSize: responsiveSize(8), color: '#6b7280', textAlign: 'center', width: responsiveSize(32) },
+  bottomSpacing: { height: responsiveSize(100) },
   fab: {
     position: 'absolute',
     bottom: responsiveSize(30),
