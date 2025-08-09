@@ -3,13 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-nativ
 
 const ConfirmLineItemComponent = ({
   item,
-  readOnly = false,
-  isSelected = false,
-  onCheckToggle = () => {},
-  onQtyChange = () => {},
+  qtyLabel = 'Qty',
+  qtyValue,
+  readOnly = true,
   onViewDetails = () => {},
 }) => {
-  const qtyDisplay = String(item?.qtyToReceive ?? 0);
+  const displayQty = String(qtyValue ?? item?.qtyToReceive ?? 0);
 
   return (
     <View style={styles.cardwrapper}>
@@ -31,10 +30,10 @@ const ConfirmLineItemComponent = ({
             <TextInput
               style={[styles.qtyInput, { backgroundColor: '#F4F5F6' }]}
               editable={false}
-              value={qtyDisplay}
+              value={displayQty}
             />
           </View>
-          <Text style={styles.uomText}>Qty</Text>
+          <Text style={styles.uomText}>{qtyLabel}</Text>
           <Text style={styles.dateText}>Promised Date: {item.promisedDate}</Text>
           <Text style={styles.dateText}>Need By Date: {item.needByDate}</Text>
         </View>

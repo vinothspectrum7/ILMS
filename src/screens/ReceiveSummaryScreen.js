@@ -25,11 +25,14 @@ const ReceiveSummaryScreen = () => {
     try {
       const response = await createOrderReceipt(items, true);
       if (response?.ok) {
+        navigation.navigate('Receive');
         return { success: true, message: response?.message || 'Order receipt created successfully' };
       } else {
+        navigation.navigate('Receive');
         return { success: false, message: response?.message || 'Failed to create order receipt' };
       }
     } catch (error) {
+        navigation.navigate('Receive');
       return { success: false, message: error?.message || 'Network error. Please try again.' };
     }
   };
@@ -82,15 +85,15 @@ const ReceiveSummaryScreen = () => {
 
         <FlatList
           data={items}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
             <View style={styles.lineItemWrapper}>
               <ConfirmLineItemComponent
                 item={item}
-                readOnly={true}
-                isSelected={true}
-                onCheckToggle={() => {}}
-                onQtyChange={() => {}}
+                qtyLabel="Qty"
+                qtyValue={item.qtyToReceive}
+                readOnly
+                onViewDetails={() => {}}
               />
             </View>
           )}

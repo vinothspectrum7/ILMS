@@ -13,6 +13,7 @@ import { ScanBarcode } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
+import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
@@ -116,7 +117,7 @@ const ReceiveScreen = () => {
           onChangeText={handleSearch}
         />
         <TouchableOpacity onPress={() => navigation.navigate('NewReceiveScreen')}>
-          <ScanBarcode color="#233E55" size={24} />
+          <BarcodeScannerIcon width={24} height={24} fill="#233E55" />
         </TouchableOpacity>
       </View>
 
