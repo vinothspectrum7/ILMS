@@ -156,10 +156,11 @@ const ReceiveSummaryScreen = () => {
     locator: it.locator ?? '',
   });
 
-  const openLineDetailsFromSummary = (item) => {
+  const openLineDetailsFromSummary = (item, readonly = true) => {
     const source = items;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
     const mapped = source.map(toDetailItemFromSummary);
+    console.log('readonly==',readonly);
     navigation.navigate('LineItemDetails', {
       items: mapped,
       startIndex: idx,
@@ -195,7 +196,7 @@ const ReceiveSummaryScreen = () => {
                 qtyLabel="Qty"
                 qtyValue={readonly ? Number(item.receivedQty ?? item.qtyToReceive ?? 0) : Number(item.qtyToReceive ?? 0)}
                 readOnly
-                onViewDetails={() => openLineDetailsFromSummary(item)}
+                onViewDetails={() => openLineDetailsFromSummary(item, true)}
               />
             </View>
           )}
