@@ -11,13 +11,41 @@ import ScanItemListCardComponent from '../components/ScanItemListCardComponent';
 import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
 
 const dummyItems = [
-  { id: '1', purchaseReceipt: 'PR-00002', name: 'Lorem Ipsumum', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
-  { id: '2', purchaseReceipt: 'PR-00002', name: 'Dolor Sit Item', orderedQty: 14, receivedQty: 1, openQty: 3, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
-  { id: '3', purchaseReceipt: 'PR-00002', name: 'Dolor Item', orderedQty: 12, receivedQty: 1, openQty: 7, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
+  { id: '1', purchaseReceipt: 'PR-00002', name: 'Lorem Ipsumum', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
+  { id: '2', purchaseReceipt: 'PR-00002', name: 'Dolor Sit Item', description: 'High quality item with standard packaging.', orderedQty: 14, receivedQty: 1, openQty: 3, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
+  { id: '3', purchaseReceipt: 'PR-00002', name: 'Dolor Item', description: 'Secondary component used in assembly.', orderedQty: 12, receivedQty: 1, openQty: 7, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
 ];
 
-const stripForPayload = ({ id, name, orderedQty, receivedQty, openQty, uom, promisedDate, needByDate, qtyToReceive }) => ({
-  id, name, orderedQty, receivedQty, openQty, uom, promisedDate, needByDate, qtyToReceive,
+const stripForPayload = ({
+  id,
+  purchaseReceipt,
+  name,
+  description,          
+  orderedQty,
+  receivedQty,
+  openQty,
+  uom,
+  promisedDate,
+  needByDate,
+  qtyToReceive,
+  lpn,                  
+  subInventory,         
+  locator,              
+}) => ({
+  id,
+  purchaseReceipt,
+  name,
+  description,          
+  orderedQty,
+  receivedQty,
+  openQty,
+  uom,
+  promisedDate,
+  needByDate,
+  qtyToReceive,
+  lpn,
+  subInventory,
+  locator,
 });
 
 const NewReceiveScreen = () => {
@@ -56,6 +84,29 @@ const NewReceiveScreen = () => {
     });
   };
 
+  const toDetailItem = (it, i) => ({
+    id: String(it.id),
+    poNumber: selectedPO?.poNumber ?? '—',
+    lineNumber: i + 1,
+    itemName: it.name,
+    itemDescription: it.itemDescription ?? it.description ?? '—',
+    orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+    receivingQty: Number(it.qtyToReceive ?? 0),
+    receivingStatus: 'In-progress',
+    lpn: it.lpn ?? '',
+    subInventory: it.subInventory ?? '',
+    locator: it.locator ?? '',
+  });
+
+  const goToLineItemDetails = (startIdx = 0, source = items, readonly = false) => {
+  const mapped = source.map(toDetailItem);
+  navigation.navigate('LineItemDetails', {
+    items: mapped,
+    startIndex: startIdx,
+    readonly, // pass readonly flag
+  });
+  };
+
   const hasAnyItems = useMemo(() => (selectedTab === 'lineItems' ? selectedItems.length > 0 : scannedItems.length > 0), [selectedTab, selectedItems.length, scannedItems.length]);
 
   return (
@@ -89,13 +140,15 @@ const NewReceiveScreen = () => {
             <FlatList
               data={items}
               keyExtractor={item => item.id}
-              renderItem={({ item }) => (
+              renderItem={({ item, index }) => (
                 <View style={styles.lineItemWrapper}>
                   <LineItemListCardComponent
                     item={item}
+                    index={index}
                     isSelected={selectedItems.includes(item.id)}
                     onCheckToggle={handleCheckToggle}
                     onQtyChange={handleQtyChange}
+                    onViewDetails={() => goToLineItemDetails(index, items, false)}
                   />
                 </View>
               )}
@@ -107,6 +160,11 @@ const NewReceiveScreen = () => {
             dummyItems={dummyItems}
             scannedItems={scannedItems}
             onChange={setScannedItems}
+            onViewDetails={(item) => {
+              const source = scannedItems.length ? scannedItems : dummyItems;
+              const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
+              goToLineItemDetails(idx, source, true);
+            }}
             header={
               <View style={styles.tableHeader}>
                 <SummaryTabHdrComponent allSelected={false} onToggleAll={() => {}} />
