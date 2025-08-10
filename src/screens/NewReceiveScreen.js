@@ -103,7 +103,7 @@ const NewReceiveScreen = () => {
   navigation.navigate('LineItemDetails', {
     items: mapped,
     startIndex: startIdx,
-    readonly, // pass readonly flag
+    readonly, 
   });
   };
 

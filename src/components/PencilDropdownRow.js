@@ -55,10 +55,11 @@ const PencilDropdownRow = ({
               value={query}
               onChangeText={setQuery}
               placeholder={searchPlaceholder}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#233E55"
               style={styles.search}
               autoCapitalize="none"
               autoCorrect={false}
+              borderColor="#233E55"
             />
           )}
           <ScrollView keyboardShouldPersistTaps="handled">
@@ -83,16 +84,16 @@ const styles = StyleSheet.create({
   wrap: { marginHorizontal: 16, marginTop: 10 },
   wrapDisabled: { opacity: 0.6 },
   labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  label: { fontSize: 12, color: '#6B7280' },
+  label: { fontSize: 12, color: '#233E55' },
   labelDisabled: { color: '#9CA3AF' },
   input: {
-    height: 44, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB',
+    height: 44, borderRadius: 10, borderWidth: 1, borderColor: '#9CA3AF',
     paddingHorizontal: 12, backgroundColor: '#fff', flexDirection: 'row',
     alignItems: 'center', justifyContent: 'space-between',
   },
   inputDisabled: { backgroundColor: '#F5F6F7' },
   valueText: { fontSize: 14, color: '#111827' },
-  valueDisabled: { color: '#9CA3AF' },
+  valueDisabled: { color: '#233E55' },
   placeholder: { color: '#9CA3AF' },
   chev: { fontSize: 16, color: '#6B7280' },
   menu: {
