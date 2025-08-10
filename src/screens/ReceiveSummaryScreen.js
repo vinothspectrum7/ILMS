@@ -11,24 +11,60 @@ import Toast from 'react-native-toast-message';
 import { createOrderReceipt } from '../api/mockApi';
 
 const poData = [
-  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN' },
-  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechCo',    poDate: '22 JUL 2025', status: 'OPEN' },
+  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', poDate: '21 JUL 2025', status: 'OPEN' },
+  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechCo', poDate: '22 JUL 2025', status: 'OPEN' },
   { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN' },
   { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN' },
 ];
 
 const receivedData = [
-  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',         receivedDate: '21 Jul 2025', status: 'Fully Received' },
-  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechNerds',     receivedDate: '22 Jul 2025', status: 'Partially Received' },
+  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', receivedDate: '21 Jul 2025', status: 'Fully Received' },
+  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechNerds', receivedDate: '22 Jul 2025', status: 'Partially Received' },
   { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'CreativeTools', receivedDate: '23 Jul 2025', status: 'Fully Received' },
-  { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp',     receivedDate: '24 Jul 2025', status: 'Fully Received' },
+  { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', receivedDate: '24 Jul 2025', status: 'Fully Received' },
 ];
 
 const defaultReceiptItems = [
-  { id: 'a', name: 'Lorem Impusum', orderedQty: 100, receivedQty: 100, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025' },
-  { id: 'b', name: 'Item A',        orderedQty: 150, receivedQty: 150, openQty: 0, promisedDate: '23/07/2025', needByDate: '25/07/2025' },
-  { id: 'c', name: 'Item B',        orderedQty: 200, receivedQty: 200, openQty: 0, promisedDate: '24/07/2025', needByDate: '26/07/2025' },
-  { id: 'd', name: 'Item C',        orderedQty: 120, receivedQty: 120, openQty: 0, promisedDate: '25/07/2025', needByDate: '27/07/2025' },
+  {
+    id: 'a',
+    name: 'Lorem Impusum',
+    description: 'Lorem ipsum dolor sit amet…',   
+    orderedQty: 100,
+    receivedQty: 100,
+    openQty: 0,
+    promisedDate: '22/07/2025',
+    needByDate: '24/07/2025',
+    lpn: 'LPN1',                                   
+    subInventory: 'SUBINVENTORY1',
+    locator: 'LOCATOR1',
+  },
+  {
+    id: 'b',
+    name: 'Impusum',
+    description: 'Lorem ipsum dolor sit amet…',   
+    orderedQty: 150,
+    receivedQty: 150,
+    openQty: 0,
+    promisedDate: '22/07/2025',
+    needByDate: '24/07/2025',
+    lpn: 'LPN2',                                   
+    subInventory: 'SUBINVENTORY2',
+    locator: 'LOCATOR2',
+  },
+  {
+    id: 'c',
+    name: 'Des Impusum',
+    description: 'dolor ipsum dolor sit amet…',   
+    orderedQty: 200,
+    receivedQty: 200,
+    openQty: 0,
+    promisedDate: '22/07/2025',
+    needByDate: '24/07/2025',
+    lpn: 'LPN3',                                   
+    subInventory: 'SUBINVENTORY3',
+    locator: 'LOCATOR3',
+  },
+  
 ];
 
 const ReceiveSummaryScreen = () => {
@@ -106,6 +142,31 @@ const ReceiveSummaryScreen = () => {
     setModalVisible(false);
   };
 
+  const toDetailItemFromSummary = (it, i) => ({
+    id: String(it.id),
+    poNumber: headerData.poNumber ?? '—',
+    lineNumber: i + 1,
+    itemName: it.name,
+    itemDescription: it.itemDescription ?? it.description ?? '—',
+    orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+    receivingQty: Number(readonly ? (it.receivedQty ?? 0) : (it.qtyToReceive ?? 0)),
+    receivingStatus: readonly ? 'Received' : 'In-progress',
+    lpn: it.lpn ?? '',
+    subInventory: it.subInventory ?? '',
+    locator: it.locator ?? '',
+  });
+
+  const openLineDetailsFromSummary = (item) => {
+    const source = items;
+    const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
+    const mapped = source.map(toDetailItemFromSummary);
+    navigation.navigate('LineItemDetails', {
+      items: mapped,
+      startIndex: idx,
+      readonly,            
+    });
+  };
+
   const openConfirmModal = () => setModalVisible(true);
 
   return (
@@ -132,9 +193,9 @@ const ReceiveSummaryScreen = () => {
               <ConfirmLineItemComponent
                 item={item}
                 qtyLabel="Qty"
-                qtyValue={readonly ? item.receivedQty ?? item.qtyToReceive : item.qtyToReceive}
+                qtyValue={readonly ? Number(item.receivedQty ?? item.qtyToReceive ?? 0) : Number(item.qtyToReceive ?? 0)}
                 readOnly
-                onViewDetails={() => {}}
+                onViewDetails={() => openLineDetailsFromSummary(item)}
               />
             </View>
           )}

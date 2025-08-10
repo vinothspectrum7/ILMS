@@ -8,6 +8,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import ReceiveScreen from './src/screens/ReceiveScreen';
 import NewReceiveScreen from './src/screens/NewReceiveScreen';
 import ReceiveSummaryScreen from './src/screens/ReceiveSummaryScreen'; 
+import LineItemDetailsScreen from './src/screens/LineItemDetailsScreen'; 
 
 const Stack = createNativeStackNavigator();
 
@@ -39,6 +40,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="ReceiveSummaryScreen"
 component={ReceiveSummaryScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="LineItemDetails"
+component={LineItemDetailsScreen}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>

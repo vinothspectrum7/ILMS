@@ -1,11 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
+
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
 const CustomNumericInput = ({
   value,
@@ -15,34 +11,44 @@ const CustomNumericInput = ({
   step = 1,
   width = 120,
   isSelected = true,
+  onLimit,             // optional: () => {} when hitting a limit
 }) => {
   const [touched, setTouched] = useState(false);
 
-  const handleInteraction = () => {
-    if (!touched) {
-      setTouched(true);
-      setValue(max);
+  const markTouched = () => {
+    if (!touched) setTouched(true);
+  };
+
+  const safeValue = clamp(Number(value ?? 0) || 0, min, max);
+  const canDec = isSelected && safeValue > min;
+  const canInc = isSelected && safeValue < max;
+
+  const apply = (next) => {
+    const clamped = clamp(Number(next) || 0, min, max);
+    if (clamped !== safeValue) {
+      setValue(clamped);
+    } else if (onLimit && (next > max || next < min)) {
+      onLimit();
     }
   };
 
   const handleMinus = () => {
-    if (!isSelected) return;
-    handleInteraction();
-    setValue(prev => Math.max(min, prev - step));
+    if (!canDec) { onLimit?.(); return; }
+    markTouched();
+    setValue(prev => clamp((Number(prev) || 0) - step, min, max));
   };
 
   const handlePlus = () => {
-    if (!isSelected) return;
-    handleInteraction();
-    setValue(prev => Math.min(max, prev + step));
+    if (!canInc) { onLimit?.(); return; }
+    markTouched();
+    setValue(prev => clamp((Number(prev) || 0) + step, min, max));
   };
 
   const handleManualInput = (text) => {
     if (!isSelected) return;
-    handleInteraction();
-    const numeric = parseInt(text.replace(/[^0-9]/g, ''), 10);
-    const clamped = isNaN(numeric) ? 0 : Math.min(max, Math.max(min, numeric));
-    setValue(clamped);
+    markTouched();
+    const numeric = parseInt(String(text).replace(/[^0-9]/g, ''), 10);
+    apply(isNaN(numeric) ? 0 : numeric);
   };
 
   const dynamicStyles = touched ? styles.touched : styles.untouched;
@@ -52,15 +58,15 @@ const CustomNumericInput = ({
     <View style={[styles.container, dynamicStyles.border, { width }]}>
       <TouchableOpacity
         onPress={handleMinus}
-        disabled={!isSelected}
-        style={[styles.button, dynamicStyles.bg]}
+        disabled={!canDec}
+        style={[styles.button, dynamicStyles.bg, !canDec && styles.disabled]}
       >
         <Text style={[styles.buttonText, { color: textColor }]}>−</Text>
       </TouchableOpacity>
 
       <TextInput
         style={[styles.input, dynamicStyles.bg, { color: textColor }]}
-        value={String(value)}
+        value={String(safeValue)}     // always show clamped value
         onChangeText={handleManualInput}
         keyboardType="numeric"
         editable={isSelected}
@@ -68,8 +74,8 @@ const CustomNumericInput = ({
 
       <TouchableOpacity
         onPress={handlePlus}
-        disabled={!isSelected}
-        style={[styles.button, dynamicStyles.bg]}
+        disabled={!canInc}
+        style={[styles.button, dynamicStyles.bg, !canInc && styles.disabled]}
       >
         <Text style={[styles.buttonText, { color: textColor }]}>＋</Text>
       </TouchableOpacity>
@@ -78,47 +84,18 @@ const CustomNumericInput = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    height: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  button: {
-    width: 40,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  input: {
-    flex: 1,
-    height: '100%',
-    textAlign: 'center',
-    fontSize: 16,
-    paddingVertical: 0,
-  },
+  container: { height: 40, flexDirection: 'row', alignItems: 'center', borderRadius: 6, overflow: 'hidden' },
+  button: { width: 40, height: '100%', justifyContent: 'center', alignItems: 'center' },
+  buttonText: { fontSize: 20, fontWeight: 'bold' },
+  input: { flex: 1, height: '100%', textAlign: 'center', fontSize: 16, paddingVertical: 0 },
+  disabled: { opacity: 0.5 },
   untouched: {
-    bg: {
-      backgroundColor: '#fff',
-    },
-    border: {
-      borderWidth: 1,
-      borderColor: '#233E55',
-    },
+    bg: { backgroundColor: '#fff' },
+    border: { borderWidth: 1, borderColor: '#233E55' },
   },
   touched: {
-    bg: {
-      backgroundColor: '#233E55',
-    },
-    border: {
-      borderWidth: 1,
-      borderColor: '#fff',
-    },
+    bg: { backgroundColor: '#233E55' },
+    border: { borderWidth: 1, borderColor: '#fff' },
   },
 });
 
