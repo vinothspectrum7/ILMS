@@ -175,7 +175,7 @@ const NewReceiveScreen = () => {
       </ScrollView>
 
       <FooterButtonsComponent
-        leftLabel="Draft"
+        leftLabel="Save"
         rightLabel="Receive"
         onLeftPress={hasAnyItems ? handleSave : undefined}
         onRightPress={hasAnyItems ? handleReceive : undefined}

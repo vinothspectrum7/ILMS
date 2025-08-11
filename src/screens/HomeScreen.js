@@ -62,7 +62,12 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Shipping Status</Text>
           <View style={styles.shippingStatusCardsContainer}>
             <ShippingStatusCard label="Order Shipped" count="8" icon={OrderShippedIcon} iconColor="#033EFF" onPress={() => {}} />
-            <ShippingStatusCard label="Order Scheduled today" count="15" icon={OrderScheduledTodayIcon} iconColor="#10b981" onPress={() => {}} />
+            <ShippingStatusCard label={
+                  <>
+                    Order{"\n"}
+                    Scheduled today
+                  </>
+                } count="15" icon={OrderScheduledTodayIcon} iconColor="#10b981" onPress={() => {}} />
             <ShippingStatusCard label="Backordered" count="9" icon={BackOrderedIcon} iconColor="#f59e0b" onPress={() => {}} />
           </View>
         </View>
