@@ -41,7 +41,7 @@ const ConfirmLineItemComponent = ({
         <View style={styles.section3}>
           <View style={{ justifyContent: 'center', alignItems: 'center', height: 34 }}>
             <TextInput
-              style={[styles.qtyInput, { backgroundColor: '#F4F5F6' }]}
+              style={[styles.qtyInput, { backgroundColor: '#FFFFFF' }]}
               editable={false}
               value={displayQty}
             />
@@ -77,13 +77,14 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 4,
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: 'right',
     paddingVertical: 0,
-    borderColor: '#233E55',
+    borderColor: '#FFFFFF',
+    fontWeight: 'bold',
     borderWidth: 1,
     color: '#233E55',
   },
-  uomText: { fontSize: 10, color: '#666', marginTop: 4 },
+  uomText: { fontSize: 10, color: '#233E55', marginTop: -3, marginRight:4 },
   qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center', columnGap: 4 },
   metaText: {
     fontSize: 10,
