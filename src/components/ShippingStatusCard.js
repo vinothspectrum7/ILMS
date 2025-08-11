@@ -1,15 +1,31 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 export const ShippingStatusCard = ({ label, count, icon: Icon, iconColor = '#000', onPress }) => {
+  const Wrapper = onPress ? TouchableOpacity : View;
+
   return (
-    <View style={styles.card}>
-      {Icon && <Icon width={30} height={30} fill={iconColor} style={styles.icon} />}
-      <Text style={styles.title}>{label}</Text>
-      <Text style={styles.count}>{count}</Text>
-    </View>
+    <Wrapper style={styles.card} onPress={onPress} activeOpacity={0.85}>
+      <View style={styles.iconWrap}>
+        {Icon ? <Icon width={30} height={30} fill={iconColor} /> : null}
+      </View>
+
+      <View style={styles.titleWrap}>
+        <Text
+          style={styles.title}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
+          {label}
+        </Text>
+      </View>
+
+      <View style={styles.countWrap}>
+        <Text style={styles.count}>{count}</Text>
+      </View>
+    </Wrapper>
   );
 };
 
@@ -20,24 +36,42 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',     
     elevation: 3,
-    minWidth: width / 4,
+    minWidth: width / 4,              
   },
-  icon: {
-    marginBottom: 8,
+
+  // Fixed heights so icon/count never shift
+  iconWrap: {
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
   },
+  titleWrap: {
+    minHeight: 34,                    
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  countWrap: {
+    height: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   title: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500',
     color: '#333',
     textAlign: 'center',
-    marginBottom: 4,
+    lineHeight: 16,
   },
   count: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
   },
