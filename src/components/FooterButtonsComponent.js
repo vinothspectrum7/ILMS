@@ -102,7 +102,7 @@ const FooterButtonsComponent = memo((props) => {
 
 const styles = StyleSheet.create({
   footerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F6F8FA',
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 12,
