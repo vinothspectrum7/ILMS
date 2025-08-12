@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E5E7EB' },
   label: { fontSize: 12, color: '#6B7280' },
   valueBold: { fontSize: 14, color: '#0A395D', fontWeight: '700', maxWidth: '58%', textAlign: 'right' },
-  descText: { marginTop: 6, fontSize: 12, color: '#111827', lineHeight: 18 },
+  descText: { marginTop: 6, fontSize: 14, fontWeight: '700', color: '#111827', lineHeight: 18 },
   qtyRight: { fontSize: 16, fontWeight: '700', color: '#111827' },
   qtyUnit: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
