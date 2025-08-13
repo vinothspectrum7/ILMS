@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     height: 120,
     backgroundColor: '#fff',
     borderRadius: 10,
-    elevation: 2,
+    elevation: 3,
   },
   rowContainer: { flexDirection: 'row', height: '100%' },
   section2: { flex: 1, paddingLeft: 8, marginTop: 8 },

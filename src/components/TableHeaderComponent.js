@@ -34,13 +34,14 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F4F5F6',
+    backgroundColor: '#F2F2F2',
     paddingVertical: 10,
     paddingLeft: 5,
     paddingRight: 5,
     borderRadius: 8,
     marginHorizontal: 16,
     marginTop: 12,
+    elevation: 3,
   },
   section1: {
     width: 44,

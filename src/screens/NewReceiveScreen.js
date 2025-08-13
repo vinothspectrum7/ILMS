@@ -187,7 +187,7 @@ const NewReceiveScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#FFFFFF', flex: 1 },
+  container: { backgroundColor: '#F6F8FA', flex: 1 },
   contentContainer: { paddingBottom: 120 },
   tableHeader: { marginBottom: 10, marginTop: 8 },
   lineItemWrapper: { marginBottom: 12 },

@@ -231,7 +231,7 @@ const ReceiveSummaryScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#FFFFFF', flex: 1 },
+  container: { backgroundColor: '#F6F8FA', flex: 1 },
   contentContainer: { paddingBottom: 120 },
   tableHeader: { marginTop: 8, marginBottom: 10 },
   lineItemWrapper: { marginBottom: 12 },
