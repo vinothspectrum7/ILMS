@@ -7,9 +7,13 @@ import {
   TouchableOpacity,
   FlatList,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { useNavigation } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
+
+import BarcodeScanner from './BarCodeScanner'; // ensure this path/name matches your file
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import SearchIcon from '../assets/icons/search.svg';
@@ -19,7 +23,7 @@ const initialLayout = { width: Dimensions.get('window').width };
 const poData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN', received: 40, billed: 60 },
   { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechCo',    poDate: '22 JUL 2025', status: 'OPEN', received: 55, billed: 80 },
-  { id: '3', purchaseReceipt: 'PR-00004',  poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN', received: 70, billed: 75 },
+  { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN', received: 70, billed: 75 },
   { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN', received: 90, billed: 90 },
 ];
 
@@ -33,6 +37,8 @@ const receivedData = [
 const ReceiveScreen = () => {
   const navigation = useNavigation();
   const [index, setIndex] = useState(0);
+  const [showScanner, setShowScanner] = useState(false);
+
   const [routes] = useState([
     { key: 'poir', title: 'PO/IR' },
     { key: 'asn', title: 'ASN' },
@@ -44,10 +50,12 @@ const ReceiveScreen = () => {
   const [searchText, setSearchText] = useState('');
   const [filteredPO, setFilteredPO] = useState(poData);
   const [filteredReceived, setFilteredReceived] = useState(receivedData);
+  const [filteredData, setFilteredData] = useState(poData);
 
   const handleSearch = (text) => {
     setSearchText(text);
     const q = text.trim().toLowerCase();
+
     if (activeKey === 'received') {
       setFilteredReceived(
         receivedData.filter(
@@ -65,6 +73,46 @@ const ReceiveScreen = () => {
             p.supplier.toLowerCase().includes(q)
         )
       );
+      setFilteredData(
+        poData.filter(
+          p =>
+            p.poNumber.toLowerCase().includes(q) ||
+            p.supplier.toLowerCase().includes(q)
+        )
+      );
+    }
+  };
+
+  const handleScan = (value) => {
+    const code = String(value).trim().toUpperCase();
+    // setSearchText(code);
+    // handleSearch(code);
+
+    const match = poData.find(p => String(p.poNumber).toUpperCase() === code);
+
+    if (match) {
+      setShowScanner(false);
+      Toast.show({
+        type: 'success',
+        text1: 'PO found',
+        text2: `${match.poNumber} • ${match.supplier}`,
+        position: 'top',
+        visibilityTime: 1000,
+      });
+      navigation.navigate('NewReceiveScreen', {
+        selectedPO: match,
+        fromScan: true,
+        scannedPoNumber: code,
+      });
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'PO/IR number not found',
+        text2: `Scanned PO number ${code} not found`,
+        position: 'top',
+        visibilityTime: 1500,
+      });
+      setShowScanner(false);
     }
   };
 
@@ -74,7 +122,7 @@ const ReceiveScreen = () => {
       <TouchableOpacity
         onPress={() => {
           if (isReceived) return;
-          navigation.navigate('NewReceiveScreen');
+          setShowScanner(true);
         }}
       >
         {isReceived ? (
@@ -84,7 +132,7 @@ const ReceiveScreen = () => {
         )}
       </TouchableOpacity>
     );
-  }, [activeKey, navigation]);
+  }, [activeKey]);
 
   const POList = () => (
     <FlatList
@@ -124,6 +172,48 @@ const ReceiveScreen = () => {
               <Text style={styles.subLabel}>Billed</Text>
               <View style={styles.progressWrapper}>
                 <View style={[styles.progressBar, { width: `${item.billed}%` }]} />
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+    />
+  );
+
+  const ASNList = () => (
+    <FlatList
+      data={filteredData}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ paddingBottom: 80 }}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AsnReceiptScreen', { selectedPO: item })}
+          activeOpacity={0.9}
+        >
+          <View style={styles.card}>
+            <View style={styles.cardLeft}>
+              <View style={styles.row}>
+                <Text style={styles.labelText}>ASN Number</Text>
+                <Text style={styles.valueText}>{item.poNumber}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.labelText}>Status</Text>
+                <Text style={[styles.valueText, styles.openText]}>{item.status}</Text>
+              </View>
+              <Text style={styles.subLabel}>Received</Text>
+              <View style={styles.progressWrapper}>
+                <View style={[styles.progressBar, { width: `${item.received}%` }]} />
+              </View>
+            </View>
+
+            <View style={styles.cardRight}>
+              <View style={styles.row}>
+                <Text style={styles.labelText}>Supplier</Text>
+                <Text style={styles.valueText}>{item.supplier}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.labelText}>Shipped Date</Text>
+                <Text style={styles.valueText}>{item.poDate}</Text>
               </View>
             </View>
           </View>
@@ -195,7 +285,7 @@ const ReceiveScreen = () => {
 
   const renderScene = {
     poir: POList,
-    asn: POList,
+    asn: ASNList,
     received: ReceivedList,
     inprogress: POList,
   };
@@ -246,13 +336,16 @@ const ReceiveScreen = () => {
           />
         )}
       />
+
+      <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
+        <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f8f8' },
-
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -263,8 +356,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   input: { flex: 1, height: 40, fontSize: 14, color: '#333' },
-
-  // PO/IR cards
   card: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -273,11 +364,11 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     borderRadius: 12,
     padding: 12,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 3,
   },
   cardLeft: { flex: 1, paddingRight: 6 },
   cardRight: { flex: 1, paddingLeft: 6 },
@@ -292,28 +383,26 @@ const styles = StyleSheet.create({
     height: 12,
     width: '75%',
     justifyContent: 'center',
+    elevation: 4,
+    marginTop: 4,
+    marginBottom: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 4,
-    marginTop: 4,
-    marginBottom: 6,
   },
   progressBar: { height: 8, backgroundColor: '#1C3C55', borderRadius: 20, marginHorizontal: 4 },
-
-  // Received cards (2-column grid)
   rcvCard: {
     backgroundColor: '#fff',
     marginHorizontal: 12,
     marginVertical: 6,
     borderRadius: 12,
     padding: 14,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
-    elevation: 2,
   },
   rcvCols: { flexDirection: 'row' },
   rcvColLeft: { flex: 1, paddingRight: 10 },

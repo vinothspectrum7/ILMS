@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
 import ToggleTabsComponent from '../components/ToggleTabsComponent';
@@ -9,43 +10,20 @@ import FooterButtonsComponent from '../components/FooterButtonsComponent';
 import TableHeaderComponent from '../components/TableHeaderComponent';
 import ScanItemListCardComponent from '../components/ScanItemListCardComponent';
 import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
+import BarcodeScanner from './BarCodeScanner';
 
 const dummyItems = [
-  { id: '1', purchaseReceipt: 'PR-00002', name: 'Lorem Ipsumum', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
-  { id: '2', purchaseReceipt: 'PR-00002', name: 'Dolor Sit Item', description: 'High quality item with standard packaging.', orderedQty: 14, receivedQty: 1, openQty: 3, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
-  { id: '3', purchaseReceipt: 'PR-00002', name: 'Dolor Item', description: 'Secondary component used in assembly.', orderedQty: 12, receivedQty: 1, openQty: 7, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
+  { id: '01', purchaseReceipt: 'PR-00002', name: 'Lorem Ipsumum', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
+  { id: '02', purchaseReceipt: 'PR-00002', name: 'Dolor Sit Item', description: 'High quality item with standard packaging.', orderedQty: 14, receivedQty: 1, openQty: 3, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
+  { id: '03', purchaseReceipt: 'PR-00002', name: 'Dolor Item', description: 'Secondary component used in assembly.', orderedQty: 12, receivedQty: 1, openQty: 7, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
 ];
 
 const stripForPayload = ({
-  id,
-  purchaseReceipt,
-  name,
-  description,          
-  orderedQty,
-  receivedQty,
-  openQty,
-  uom,
-  promisedDate,
-  needByDate,
-  qtyToReceive,
-  lpn,                  
-  subInventory,         
-  locator,              
+  id, purchaseReceipt, name, description, orderedQty, receivedQty, openQty, uom,
+  promisedDate, needByDate, qtyToReceive, lpn, subInventory, locator,
 }) => ({
-  id,
-  purchaseReceipt,
-  name,
-  description,          
-  orderedQty,
-  receivedQty,
-  openQty,
-  uom,
-  promisedDate,
-  needByDate,
-  qtyToReceive,
-  lpn,
-  subInventory,
-  locator,
+  id, purchaseReceipt, name, description, orderedQty, receivedQty, openQty, uom,
+  promisedDate, needByDate, qtyToReceive, lpn, subInventory, locator,
 });
 
 const NewReceiveScreen = () => {
@@ -53,10 +31,25 @@ const NewReceiveScreen = () => {
   const route = useRoute();
   const selectedPO = route?.params?.selectedPO || null;
 
+  const fromScan = !!route?.params?.fromScan;
+const scannedPoNumber = route?.params?.scannedPoNumber ?? null;
+
+React.useEffect(() => {
+  if (fromScan && scannedPoNumber) {
+    Toast.show({
+      type: 'success',              
+      text1: `Scanned PO/IR numeber is ${scannedPoNumber}`,
+      position: 'top',
+      visibilityTime: 1500,
+    });
+  }
+}, [fromScan, scannedPoNumber]);
+
   const [selectedTab, setSelectedTab] = useState('lineItems');
   const [items, setItems] = useState(dummyItems.map(i => ({ ...i, qtyToReceive: 0 })));
   const [selectedItems, setSelectedItems] = useState([]);
   const [scannedItems, setScannedItems] = useState([]);
+  const [showScanner, setShowScanner] = useState(false);
 
   const handleCheckToggle = (item) => {
     const isChecked = selectedItems.includes(item.id);
@@ -99,15 +92,58 @@ const NewReceiveScreen = () => {
   });
 
   const goToLineItemDetails = (startIdx = 0, source = items, readonly = false) => {
-  const mapped = source.map(toDetailItem);
-  navigation.navigate('LineItemDetails', {
-    items: mapped,
-    startIndex: startIdx,
-    readonly, 
-  });
+    const mapped = source.map(toDetailItem);
+    navigation.navigate('LineItemDetails', { items: mapped, startIndex: startIdx, readonly });
   };
 
-  const hasAnyItems = useMemo(() => (selectedTab === 'lineItems' ? selectedItems.length > 0 : scannedItems.length > 0), [selectedTab, selectedItems.length, scannedItems.length]);
+  const handleScan = (value) => {
+  const id = String(value).trim();
+  const source = dummyItems.find(x => String(x.id) === id);
+
+  if (!source) {
+    Toast.show({
+      type: 'error',
+      text1: 'Unknown barcode',
+      text2: `No item with id ${id}`,
+      position: 'top',
+    });
+    setShowScanner(false);
+    return;
+  }
+
+  const alreadyExists = scannedItems.some(x => String(x.id) === id);
+  if (alreadyExists) {
+    Toast.show({
+      type: 'orange',
+      text1: 'Scanned item already added to the list',
+      text2: `${source.name} (ID: ${id})`,
+      position: 'top',
+      visibilityTime: 1500,
+    });
+    setShowScanner(false);
+    return;
+  }
+
+  const fullReceiving = Math.max(0, source.openQty ?? 0);
+  setScannedItems(prev => [...prev, { ...source, qtyToReceive: fullReceiving }]);
+
+  setSelectedTab('scanItems');
+  setShowScanner(false);
+
+  Toast.show({
+    type: 'success',
+    text1: 'Item added from scan',
+    text2: `${source.name} (ID: ${id})`,
+    position: 'top',
+    visibilityTime: 1200,
+  });
+};
+
+
+  const hasAnyItems = useMemo(
+    () => (selectedTab === 'lineItems' ? selectedItems.length > 0 : scannedItems.length > 0),
+    [selectedTab, selectedItems.length, scannedItems.length]
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -160,6 +196,8 @@ const NewReceiveScreen = () => {
             dummyItems={dummyItems}
             scannedItems={scannedItems}
             onChange={setScannedItems}
+            onRequestScan={() => setShowScanner(true)}
+            onFirstFilled={() => setSelectedTab('scanItems')}
             onViewDetails={(item) => {
               const source = scannedItems.length ? scannedItems : dummyItems;
               const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
@@ -182,6 +220,10 @@ const NewReceiveScreen = () => {
         leftEnabled={hasAnyItems}
         rightEnabled={hasAnyItems}
       />
+
+      <Modal visible={showScanner} animationType="slide">
+        <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+      </Modal>
     </SafeAreaView>
   );
 };
