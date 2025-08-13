@@ -28,6 +28,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 16,
     marginTop: 12,
+    elevation: 3,
   },
   section1: {
     width: 44,
