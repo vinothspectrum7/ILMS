@@ -22,7 +22,7 @@ const ConfirmModalComponent = ({
   confirmColor = 'green',
   cancelColor = 'red',
   backdropColor = 'rgba(0,0,0,0.3)',
-  headerBg = '#C9E2FF',
+  headerBg = '#5D768B1A',
   widthRatio = 0.85,
   confirmAction,
   onCancel,
