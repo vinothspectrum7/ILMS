@@ -6,7 +6,8 @@ import Toast from 'react-native-toast-message'; // ✅ import Toast
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ReceiveScreen from './src/screens/ReceiveScreen';
-import NewReceiveScreen from './src/screens/NewReceiveScreen'; 
+import NewReceiveScreen from './src/screens/NewReceiveScreen';
+import AsnReceiptScreen from './src/screens/AsnReceipt'; 
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +34,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="NewReceiveScreen"
 component={NewReceiveScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="AsnReceiptScreen"
+component={AsnReceiptScreen}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>

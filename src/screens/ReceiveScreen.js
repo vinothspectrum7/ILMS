@@ -7,10 +7,12 @@ import {
   TouchableOpacity,
   FlatList,
   Dimensions,
+  Modal
 } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { ArrowLeft, Menu, ScanBarcode } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import BarcodeScanner from './BarCodeScanner';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
@@ -57,6 +59,7 @@ const ReceiveScreen = () => {
   const navigation = useNavigation();
   const [index, setIndex] = useState(0);
   const [searchText, setSearchText] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
   const [filteredData, setFilteredData] = useState(poData);
 
   const [routes] = useState([
@@ -65,6 +68,12 @@ const ReceiveScreen = () => {
     { key: 'received', title: 'Received' },
     { key: 'inprogress', title: 'In-progress' },
   ]);
+
+
+  const handleScan = (value) => {
+    setSearchText(value);
+    setShowScanner(false);
+  };
 
   const handleSearch = (text) => {
     setSearchText(text);
@@ -119,10 +128,51 @@ const ReceiveScreen = () => {
       )}
     />
   );
+    const ASNList = () => (
+    <FlatList
+      data={filteredData}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ paddingBottom: 80 }}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AsnReceiptScreen', { selectedPO: item })}
+          activeOpacity={0.9}
+        >
+          <View style={styles.card}>
+            <View style={styles.cardLeft}>
+              <View style={styles.row}>
+                <Text style={styles.labelText}>ASN Number</Text>
+                <Text style={styles.valueText}>{item.poNumber}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.labelText}>Status</Text>
+                <Text style={[styles.valueText, styles.openText]}>{item.status}</Text>
+              </View>
+              <Text style={styles.subLabel}>Received</Text>
+              <View style={styles.progressWrapper}>
+                <View style={[styles.progressBar, { width: `${item.received}%` }]} />
+              </View>
+            </View>
+
+            <View style={styles.cardRight}>
+              <View style={styles.row}>
+                <Text style={styles.labelText}>Supplier</Text>
+                <Text style={styles.valueText}>{item.supplier}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.labelText}>Shipped Date</Text>
+                <Text style={styles.valueText}>{item.poDate}</Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+    />
+  );
 
   const renderScene = {
     poir: POList,
-    asn: POList,
+    asn: ASNList,
     received: POList,
     inprogress: POList,
   };
@@ -147,9 +197,12 @@ const ReceiveScreen = () => {
           value={searchText}
           onChangeText={handleSearch}
         />
-        <TouchableOpacity onPress={() => navigation.navigate('NewReceiveScreen')}>
+        <TouchableOpacity onPress={() => setShowScanner(true)}>
           <ScanBarcode color="#233E55" size={24} />
         </TouchableOpacity>
+              <Modal visible={showScanner} animationType="slide">
+                 <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+              </Modal>
       </View>
 
       <TabView
