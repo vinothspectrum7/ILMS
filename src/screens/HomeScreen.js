@@ -151,14 +151,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: responsiveSize(16),
-    marginTop: responsiveSize(20),
+    marginTop: responsiveSize(0),
   },
   shippingStatusCardsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: responsiveSize(10),
+    gap: responsiveSize(8),
     flexWrap: 'wrap',
-    marginTop: responsiveSize(10),
+    marginTop: responsiveSize(5),
   },
   chartHeader: {
     flexDirection: 'row',
