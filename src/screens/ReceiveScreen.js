@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,55 +10,31 @@ import {
   Modal
 } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
-import { ArrowLeft, Menu, ScanBarcode } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import BarcodeScanner from './BarCodeScanner';
+import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
+import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
+import SearchIcon from '../assets/icons/search.svg';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
 const poData = [
-  {
-    id: '1',
-    poNumber: 'PO-00002',
-    supplier: '3DIng',
-    poDate: '21 JUL 2025',
-    status: 'OPEN',
-    received: 40,
-    billed: 60,
-  },
-  {
-    id: '2',
-    poNumber: 'PO-00003',
-    supplier: 'TechCo',
-    poDate: '22 JUL 2025',
-    status: 'OPEN',
-    received: 55,
-    billed: 80,
-  },
-  {
-    id: '3',
-    poNumber: 'PO-00004',
-    supplier: 'DesignHub',
-    poDate: '23 JUL 2025',
-    status: 'OPEN',
-    received: 70,
-    billed: 75,
-  },
-  {
-    id: '4',
-    poNumber: 'PO-00005',
-    supplier: 'BuildCorp',
-    poDate: '24 JUL 2025',
-    status: 'OPEN',
-    received: 90,
-    billed: 90,
-  },
+  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN', received: 40, billed: 60 },
+  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechCo',    poDate: '22 JUL 2025', status: 'OPEN', received: 55, billed: 80 },
+  { id: '3', purchaseReceipt: 'PR-00004',  poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN', received: 70, billed: 75 },
+  { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN', received: 90, billed: 90 },
+];
+
+const receivedData = [
+  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',         receivedDate: '21 Jul 2025', status: 'Fully Received' },
+  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechNerds',     receivedDate: '22 Jul 2025', status: 'Partially Received' },
+  { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'CreativeTools', receivedDate: '23 Jul 2025', status: 'Fully Received' },
+  { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp',     receivedDate: '24 Jul 2025', status: 'Fully Received' },
 ];
 
 const ReceiveScreen = () => {
   const navigation = useNavigation();
   const [index, setIndex] = useState(0);
-  const [searchText, setSearchText] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [filteredData, setFilteredData] = useState(poData);
 
@@ -68,6 +44,11 @@ const ReceiveScreen = () => {
     { key: 'received', title: 'Received' },
     { key: 'inprogress', title: 'In-progress' },
   ]);
+  const activeKey = routes[index].key;
+
+  const [searchText, setSearchText] = useState('');
+  const [filteredPO, setFilteredPO] = useState(poData);
+  const [filteredReceived, setFilteredReceived] = useState(receivedData);
 
 
   const handleScan = (value) => {
@@ -77,15 +58,48 @@ const ReceiveScreen = () => {
 
   const handleSearch = (text) => {
     setSearchText(text);
-    const newData = poData.filter((item) =>
-      item.poNumber.toLowerCase().includes(text.toLowerCase())
-    );
-    setFilteredData(newData);
+    const q = text.trim().toLowerCase();
+    if (activeKey === 'received') {
+      setFilteredReceived(
+        receivedData.filter(
+          r =>
+            r.purchaseReceipt.toLowerCase().includes(q) ||
+            r.poNumber.toLowerCase().includes(q) ||
+            r.supplier.toLowerCase().includes(q)
+        )
+      );
+    } else {
+      setFilteredPO(
+        poData.filter(
+          p =>
+            p.poNumber.toLowerCase().includes(q) ||
+            p.supplier.toLowerCase().includes(q)
+        )
+      );
+    }
   };
+
+  const InputRightIcon = useMemo(() => {
+    const isReceived = activeKey === 'received';
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          if (isReceived) return;
+          setShowScanner(true);
+        }}
+      >
+        {isReceived ? (
+          <SearchIcon width={20} height={20} fill="#233E55" />
+        ) : (
+          <BarcodeScannerIcon width={24} height={24} fill="#233E55" />
+        )}
+      </TouchableOpacity>
+    );
+  }, [activeKey, navigation]);
 
   const POList = () => (
     <FlatList
-      data={filteredData}
+      data={filteredPO}
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ paddingBottom: 80 }}
       renderItem={({ item }) => (
@@ -170,24 +184,83 @@ const ReceiveScreen = () => {
     />
   );
 
+  const ReceivedList = () => (
+    <FlatList
+      data={filteredReceived}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ paddingBottom: 80 }}
+      renderItem={({ item }) => {
+        const statusColor =
+          item.status === 'Fully Received' ? '#18A558' :
+          item.status === 'Partially Received' ? '#2FB67A' : '#333';
+        return (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() =>
+              navigation.navigate('ReceiveSummaryScreen', {
+                readonly: true,
+                id: item.id,
+                header: {
+                  receiptNumber: item.purchaseReceipt,
+                  supplier: item.supplier,
+                  poNumber: item.poNumber,
+                  receiptDate: item.receivedDate,
+                },
+                selectedItems: [],
+              })
+            }
+          >
+            <View style={styles.rcvCard}>
+              <View style={styles.rcvCols}>
+                <View style={styles.rcvColLeft}>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>Purchase Receipt</Text>
+                    <Text style={[styles.rcvValue, styles.bold]}>{item.purchaseReceipt}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>Supplier</Text>
+                    <Text style={styles.rcvValue}>{item.supplier}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>Status</Text>
+                    <Text style={[styles.rcvStatus, { color: statusColor }]}>{item.status}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.rcvColRight}>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>PO Number</Text>
+                    <Text style={styles.rcvValue}>{item.poNumber}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.rcvLabel}>Received Date</Text>
+                    <Text style={styles.rcvValue}>{item.receivedDate}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        );
+      }}
+    />
+  );
+
   const renderScene = {
     poir: POList,
     asn: ASNList,
-    received: POList,
+    received: ReceivedList,
     inprogress: POList,
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft color="#fff" size={24} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Receive</Text>
-        <TouchableOpacity>
-          <Menu color="#fff" size={24} />
-        </TouchableOpacity>
-      </View>
+      <GlobalHeaderComponent
+        title="Receive"
+        greetingName="Robert"
+        dateText="06-08-2025"
+        onBack={() => navigation.goBack()}
+        onMenu={() => {}}
+      />
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -197,9 +270,7 @@ const ReceiveScreen = () => {
           value={searchText}
           onChangeText={handleSearch}
         />
-        <TouchableOpacity onPress={() => setShowScanner(true)}>
-          <ScanBarcode color="#233E55" size={24} />
-        </TouchableOpacity>
+        {InputRightIcon}
               <Modal visible={showScanner} animationType="slide">
                  <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
               </Modal>
@@ -208,7 +279,10 @@ const ReceiveScreen = () => {
       <TabView
         navigationState={{ index, routes }}
         renderScene={SceneMap(renderScene)}
-        onIndexChange={setIndex}
+        onIndexChange={(i) => {
+          setIndex(i);
+          handleSearch(searchText);
+        }}
         initialLayout={initialLayout}
         renderTabBar={(props) => (
           <TabBar
@@ -220,13 +294,7 @@ const ReceiveScreen = () => {
             activeColor="#233E55"
             inactiveColor="#444"
             renderLabel={({ route, focused, color }) => (
-              <Text
-                style={{
-                  color,
-                  fontWeight: focused ? 'bold' : 'normal',
-                  fontSize: 12,
-                }}
-              >
+              <Text style={{ color, fontWeight: focused ? 'bold' : 'normal', fontSize: 12 }}>
                 {route.title}
               </Text>
             )}
@@ -239,22 +307,7 @@ const ReceiveScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f8f8' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#233E55',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    flex: 1,
-    marginLeft: 10,
-  },
+
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -264,12 +317,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'space-between',
   },
-  input: {
-    flex: 1,
-    height: 40,
-    fontSize: 14,
-    color: '#333',
-  },
+  input: { flex: 1, height: 40, fontSize: 14, color: '#333' },
+
+  // PO/IR cards
   card: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -284,40 +334,13 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  cardLeft: {
-    flex: 1,
-    paddingRight: 6,
-  },
-  cardRight: {
-    flex: 1,
-    paddingLeft: 6,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  labelText: {
-    fontSize: 10,
-    color: '#555',
-    flex: 1,
-  },
-  valueText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#1C1C1C',
-    flex: 1,
-    textAlign: 'left',
-  },
-  openText: {
-    color: 'green',
-  },
-  subLabel: {
-    fontSize: 10,
-    color: '#555',
-    marginTop: 4,
-    marginBottom: 2,
-  },
+  cardLeft: { flex: 1, paddingRight: 6 },
+  cardRight: { flex: 1, paddingLeft: 6 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  labelText: { fontSize: 10, color: '#555', flex: 1 },
+  valueText: { fontSize: 10, fontWeight: 'bold', color: '#1C1C1C', flex: 1, textAlign: 'left' },
+  openText: { color: 'green' },
+  subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
   progressWrapper: {
     backgroundColor: '#E5F8F7',
     borderRadius: 20,
@@ -332,12 +355,29 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 6,
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#1C3C55',
-    borderRadius: 20,
-    marginHorizontal: 4,
+  progressBar: { height: 8, backgroundColor: '#1C3C55', borderRadius: 20, marginHorizontal: 4 },
+
+  // Received cards (2-column grid)
+  rcvCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 12,
+    marginVertical: 6,
+    borderRadius: 12,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
+  rcvCols: { flexDirection: 'row' },
+  rcvColLeft: { flex: 1, paddingRight: 10 },
+  rcvColRight: { flex: 1, paddingLeft: 10 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  rcvLabel: { fontSize: 12, color: '#7A7A7A' },
+  rcvValue: { fontSize: 12, color: '#1C1C1C' },
+  rcvStatus: { fontSize: 12, fontWeight: '600' },
+  bold: { fontWeight: 'bold' },
 });
 
 export default ReceiveScreen;

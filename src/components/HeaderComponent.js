@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 
@@ -20,6 +14,12 @@ const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
 const scale = screenWidth / baseWidth;
 const responsiveSize = (size) => Math.round(size * scale);
+
+export const HEADER_METRICS = {
+  HEADER_HEIGHT: responsiveSize(180),
+  NAV_CARDS_OVERLAP: responsiveSize(28),
+  CONTENT_SPACER: responsiveSize(200),
+};
 
 export default function HeaderComponent({
   onNotificationPress,
@@ -54,14 +54,13 @@ export default function HeaderComponent({
             itemSeparatorStyle={styles.itemSeparatorStyle}
             listItemLabelStyle={styles.listItemLabelStyle}
             selectedItemLabelStyle={styles.selectedItemLabelStyle}
-            onSelectItem={(item) => {
-              onOrganizationChange?.(item.value);
-            }}
+            onSelectItem={(item) => onOrganizationChange?.(item.value)}
             renderBadge={() => null}
             ArrowUpIconComponent={({ style }) => <Text style={[style, { color: '#FFFFFF' }]}>▲</Text>}
             ArrowDownIconComponent={({ style }) => <Text style={[style, { color: '#FFFFFF' }]}>▼</Text>}
           />
         </View>
+
         <View style={styles.iconSection}>
           <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress}>
             <Bell size={responsiveSize(24)} color="#ffffff" strokeWidth={2} />
@@ -69,15 +68,17 @@ export default function HeaderComponent({
               <Text style={styles.notificationBadgeText}>5</Text>
             </View>
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
             <ProfileIcon width={responsiveSize(24)} height={responsiveSize(24)} />
           </TouchableOpacity>
         </View>
       </View>
+
       <View style={styles.navigationCardsRow}>
-        <NavigationCard title="Receive" icon={ReceiveIcon} onPress={() => onCardPress('Receive')} />
+        <NavigationCard title="Receive"   icon={ReceiveIcon}   onPress={() => onCardPress('Receive')} />
         <NavigationCard title="Inventory" icon={InventoryIcon} onPress={() => onCardPress('Inventory')} />
-        <NavigationCard title="Shipping" icon={ShippingIcon} onPress={() => onCardPress('Shipping')} />
+        <NavigationCard title="Shipping"  icon={ShippingIcon}  onPress={() => onCardPress('Shipping')} />
       </View>
     </View>
   );
@@ -86,7 +87,7 @@ export default function HeaderComponent({
 const styles = StyleSheet.create({
   headerContainer: {
     width: '100%',
-    height: responsiveSize(162),
+    height: HEADER_METRICS.HEADER_HEIGHT,
     backgroundColor: '#233E55',
     borderBottomLeftRadius: responsiveSize(10),
     borderBottomRightRadius: responsiveSize(10),
@@ -132,20 +133,10 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     borderWidth: 0,
   },
-  itemSeparatorStyle: {
-    backgroundColor: '#3b5266',
-  },
-  listItemLabelStyle: {
-    color: '#FFFFFF',
-  },
-  selectedItemLabelStyle: {
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  iconSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  itemSeparatorStyle: { backgroundColor: '#3b5266' },
+  listItemLabelStyle: { color: '#FFFFFF' },
+  selectedItemLabelStyle: { fontWeight: 'bold', color: '#FFFFFF' },
+  iconSection: { flexDirection: 'row', alignItems: 'center' },
   notificationButton: {
     padding: responsiveSize(8),
     position: 'relative',
@@ -168,12 +159,10 @@ const styles = StyleSheet.create({
     fontSize: responsiveSize(12),
     fontWeight: '600',
   },
-  profileButton: {
-    padding: responsiveSize(8),
-  },
+  profileButton: { padding: responsiveSize(8) },
   navigationCardsRow: {
     position: 'absolute',
-    bottom: responsiveSize(-25),
+    bottom: -HEADER_METRICS.NAV_CARDS_OVERLAP,
     left: 0,
     right: 0,
     flexDirection: 'row',

@@ -13,6 +13,7 @@ import {
   StatusBar,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import EnnVeeLogo from '../assets/icons/EnnVeeLogo.svg';
 
 import axios from 'axios';
 import { BASE_URL } from '../config/config';
@@ -103,11 +104,7 @@ const LoginScreen = ({ navigation }) => {
           />
         </ImageBackground>
         <View style={styles.headerContent}>
-          <Image
-            source={require('../assets/images/ennvee_logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <EnnVeeLogo width={160} height={40} />
         </View>
       </View>
 

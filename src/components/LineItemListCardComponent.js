@@ -10,9 +10,11 @@ import CheckBox from '@react-native-community/checkbox';
 
 const LineItemListCardComponent = ({
   item,
+  index,               
   isSelected,
   onCheckToggle,
   onQtyChange,
+  onViewDetails,        
 }) => {
   const [touched, setTouched] = useState(false);
 
@@ -80,9 +82,9 @@ const LineItemListCardComponent = ({
             <Text style={styles.metaText}>|</Text>
             <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
           </View>
-          <TouchableOpacity>
-            <Text style={styles.viewDetails}>View Details</Text>
-          </TouchableOpacity>
+           <TouchableOpacity onPress={() => onViewDetails?.(item, index)}>
+              <Text style={styles.viewDetails}>View Details</Text>
+           </TouchableOpacity>
         </View>
 
         <View style={styles.section3}>
@@ -137,7 +139,7 @@ const styles = StyleSheet.create({
     height: 120,
     backgroundColor: '#fff',
     borderRadius: 10,
-    elevation: 2,
+    elevation: 3,
   },
   rowContainer: {
     flexDirection: 'row',
