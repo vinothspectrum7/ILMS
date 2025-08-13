@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StatusBar, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import OrganizationIcon from '../assets/icons/Organization_icon.svg';
 import ProfileIcon from '../assets/icons/Profile_icon.svg';
@@ -15,7 +14,6 @@ const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
 const scale = screenWidth / baseWidth;
 const responsiveSize = (size) => Math.round(size * scale);
-
 const BRAND_BG = '#233E55'; 
 
 export const HEADER_METRICS = {
@@ -38,10 +36,8 @@ export default function HeaderComponent({
   ]);
 
   return (
-<SafeAreaView edges={['top']} style={styles.safeArea}>
-  
-  <StatusBar translucent={false} barStyle="light-content" backgroundColor={BRAND_BG} />
     <View style={styles.headerContainer}>
+      <StatusBar translucent={false} barStyle="light-content" backgroundColor={BRAND_BG} />
       <View style={styles.headerContent}>
         <View style={styles.organizationSection}>
           <OrganizationIcon width={responsiveSize(21)} height={responsiveSize(21)} />
@@ -87,12 +83,10 @@ export default function HeaderComponent({
         <NavigationCard title="Shipping"  icon={ShippingIcon}  onPress={() => onCardPress('Shipping')} />
       </View>
     </View>
-    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: BRAND_BG },
   headerContainer: {
     width: '100%',
     height: HEADER_METRICS.HEADER_HEIGHT,
@@ -103,14 +97,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     zIndex: 5,
-    paddingBottom: responsiveSize(8),
+    paddingBottom: responsiveSize(20),
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: responsiveSize(20),
-    paddingTop: responsiveSize(36),
+    paddingTop: responsiveSize(50),
   },
   organizationSection: {
     flexDirection: 'row',
