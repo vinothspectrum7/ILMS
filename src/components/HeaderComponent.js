@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StatusBar, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 
@@ -14,11 +14,12 @@ const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
 const scale = screenWidth / baseWidth;
 const responsiveSize = (size) => Math.round(size * scale);
+const BRAND_BG = '#233E55'; 
 
 export const HEADER_METRICS = {
-  HEADER_HEIGHT: responsiveSize(180),
-  NAV_CARDS_OVERLAP: responsiveSize(28),
-  CONTENT_SPACER: responsiveSize(200),
+  HEADER_HEIGHT: responsiveSize(140),
+  NAV_CARDS_OVERLAP: responsiveSize(40),
+  CONTENT_SPACER: responsiveSize(160),
 };
 
 export default function HeaderComponent({
@@ -36,6 +37,7 @@ export default function HeaderComponent({
 
   return (
     <View style={styles.headerContainer}>
+      <StatusBar translucent={false} barStyle="light-content" backgroundColor={BRAND_BG} />
       <View style={styles.headerContent}>
         <View style={styles.organizationSection}>
           <OrganizationIcon width={responsiveSize(21)} height={responsiveSize(21)} />
