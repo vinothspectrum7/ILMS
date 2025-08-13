@@ -59,7 +59,7 @@ export default function HomeScreen({ navigation }) {
         <View style={{ height: HEADER_METRICS.CONTENT_SPACER }} />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Shipping Status</Text>
+          <Text style={styles.sectionShippingTitle}>Shipping Status</Text>
           <View style={styles.shippingStatusCardsContainer}>
             <ShippingStatusCard label="Order Shipped" count="8" icon={OrderShippedIcon} iconColor="#033EFF" onPress={() => {}} />
             <ShippingStatusCard label={
@@ -152,6 +152,13 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     marginBottom: responsiveSize(16),
     marginTop: responsiveSize(0),
+  },
+  sectionShippingTitle: {
+    fontSize: responsiveSize(16),
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: responsiveSize(16),
+    marginTop: responsiveSize(30),
   },
   shippingStatusCardsContainer: {
     flexDirection: 'row',
