@@ -88,7 +88,7 @@ const LineItemDetailsScreen = () => {
     return qtyOk && lpnOk && subInvOk && locOk;
   }, [state, readOnly, current.orderQty]);
 
-  const titlePo = current?.poNumber ? `Receive - ${String(current.poNumber).replace('-', '')}` : 'Receive';
+  const titlePo = current?.poNumber ? `Receive - ${String(current.poNumber)}` : 'Receive';
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
@@ -326,7 +326,8 @@ const LineItemDetailsScreen = () => {
 const styles = StyleSheet.create({
   container: { backgroundColor: '#F6F8FA', flex: 1 },
   navBar: {
-    marginTop: 8,
+    marginTop: 14,
+    marginBottom:14,
     marginHorizontal: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
