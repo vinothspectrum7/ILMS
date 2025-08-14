@@ -16,6 +16,9 @@ import { ShippingStatusCard } from '../components/ShippingStatusCard';
 import OrderShippedIcon from '../assets/icons/Order_Shipped_icon.svg';
 import OrderScheduledTodayIcon from '../assets/icons/Order_Scheduled_today_icon.svg';
 import BackOrderedIcon from '../assets/icons/Back_ordered_icon.svg';
+import { useReceivingStore } from '../store/receivingStore';
+
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
@@ -45,6 +48,15 @@ export default function HomeScreen({ navigation }) {
     { value: 35, label: 'Item 6', color: '#8C98A6' },
     { value: 75, label: 'Item 7', color: '#F2A091' },
   ];
+
+  const resetReceiving = useReceivingStore(s => s.resetReceiving);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      resetReceiving();
+      return () => {};
+    }, [resetReceiving])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
