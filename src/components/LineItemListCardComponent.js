@@ -174,6 +174,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 4,
+    color: '#000',
   },
   numericInputWrapper: {
     marginBottom: 10,

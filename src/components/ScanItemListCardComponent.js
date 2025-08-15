@@ -14,12 +14,15 @@ const ScanItemListCardComponent = ({
 }) => {
   const [showScanRow, setShowScanRow] = useState(scannedItems.length === 0);
   const [showAddMore, setShowAddMore] = useState(scannedItems.length > 0);
+  const [forceScanRow, setForceScanRow] = useState(false);
   const wasEmptyRef = useRef(scannedItems.length === 0);
 
   useEffect(() => {
     const any = scannedItems.length > 0;
-    setShowScanRow(!any);
-    setShowAddMore(any);
+    if (!forceScanRow) {
+      setShowScanRow(!any);
+      setShowAddMore(any);
+    }
     if (wasEmptyRef.current && any) {
       wasEmptyRef.current = false;
       onFirstFilled();
@@ -27,9 +30,20 @@ const ScanItemListCardComponent = ({
     if (!any) {
       wasEmptyRef.current = true;
     }
-  }, [scannedItems.length, onFirstFilled]);
+  }, [scannedItems.length, onFirstFilled, forceScanRow]);
 
   const hasItems = scannedItems.length > 0;
+
+  const handleScanRowPress = () => {
+    setForceScanRow(false);
+    onRequestScan();
+  };
+
+  const handleAddMorePress = () => {
+    setForceScanRow(true);
+    setShowScanRow(true);
+    setShowAddMore(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -55,15 +69,15 @@ const ScanItemListCardComponent = ({
         />
       ) : null}
 
-      {showScanRow && (
-        <TouchableOpacity style={styles.scanRow} onPress={onRequestScan} activeOpacity={0.8}>
+      {(forceScanRow || showScanRow) && (
+        <TouchableOpacity style={styles.scanRow} onPress={handleScanRowPress} activeOpacity={0.8}>
           <Text style={styles.scanText}>Scan your item</Text>
           <BarcodeScannerIcon width={20} height={20} fill="#7A7A7A" />
         </TouchableOpacity>
       )}
 
-      {showAddMore && (
-        <TouchableOpacity onPress={onRequestScan} style={styles.addMore} activeOpacity={0.8}>
+      {!forceScanRow && showAddMore && (
+        <TouchableOpacity onPress={handleAddMorePress} style={styles.addMore} activeOpacity={0.8}>
           <Text style={styles.addMoreText}>Add more items</Text>
         </TouchableOpacity>
       )}

@@ -278,13 +278,13 @@ const LineItemDetailsScreen = () => {
 
       <View style={styles.navBar}>
         <TouchableOpacity onPress={goPrev} disabled={index === 0} style={styles.navEdge} activeOpacity={0.7}>
-          <ChevronLeft size={22} />
+          <ChevronLeft size={22} color={index === 0 ? '#C8D0D6' : '#233E55'} />
         </TouchableOpacity>
 
         <Text style={styles.navTitle}>{`Line Item ${index + 1}`}</Text>
 
         <TouchableOpacity onPress={goNext} disabled={index === allItems.length - 1} style={styles.navEdge} activeOpacity={0.7}>
-          <ChevronRight size={22} />
+          <ChevronRight size={22} color={index === allItems.length - 1 ? '#C8D0D6' : '#233E55'} />
         </TouchableOpacity>
       </View>
 
@@ -347,9 +347,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    elevation: 3,
   },
   navEdge: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center' },
-  navTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '600' },
+  navTitle: { flex: 1, color:"#233E55", textAlign: 'center', fontSize: 18, fontWeight: '600' },
   content: { paddingBottom: 120 },
   card: {
     backgroundColor: '#fff',
@@ -359,6 +360,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 6,
+    elevation: 3,
   },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, justifyContent: 'space-between' },
   block: { paddingVertical: 12 },

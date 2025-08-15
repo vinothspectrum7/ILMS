@@ -10,13 +10,14 @@ import {
   Modal,
 } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 
-import BarcodeScanner from './BarCodeScanner'; // ensure this path/name matches your file
+import BarcodeScanner from './BarCodeScanner';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import SearchIcon from '../assets/icons/search.svg';
+import { useReceivingStore } from '../store/receivingStore';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
@@ -36,6 +37,8 @@ const receivedData = [
 
 const ReceiveScreen = () => {
   const navigation = useNavigation();
+  const { resetReceiving } = useReceivingStore();
+
   const [index, setIndex] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
 
@@ -51,6 +54,13 @@ const ReceiveScreen = () => {
   const [filteredPO, setFilteredPO] = useState(poData);
   const [filteredReceived, setFilteredReceived] = useState(receivedData);
   const [filteredData, setFilteredData] = useState(poData);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      resetReceiving();
+      return () => {};
+    }, [resetReceiving])
+  );
 
   const handleSearch = (text) => {
     setSearchText(text);
@@ -85,9 +95,6 @@ const ReceiveScreen = () => {
 
   const handleScan = (value) => {
     const code = String(value).trim().toUpperCase();
-    // setSearchText(code);
-    // handleSearch(code);
-
     const match = poData.find(p => String(p.poNumber).toUpperCase() === code);
 
     if (match) {
