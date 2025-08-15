@@ -93,9 +93,21 @@ const NewReceiveScreen = () => {
 
   useEffect(() => {
     if (fromScan && scannedPoNumber) {
-      Toast.show({ type: 'success', text1: `Scanned PO/IR numeber is ${scannedPoNumber}`, position: 'top', visibilityTime: 1500 });
+      Toast.show({ type: 'success', text1: `Scanned PO/IR number is ${scannedPoNumber}`, position: 'top', visibilityTime: 1500 });
     }
   }, [fromScan, scannedPoNumber]);
+
+  const commitDraftToStore = () => {
+    draftItems.forEach(it => {
+      mergePatchIntoReceiveItems({
+        id: String(it.id),
+        receivingQty: Number(it.qtyToReceive ?? 0),
+        lpn: it.lpn ?? '',
+        subInventory: it.subInventory ?? '',
+        locator: it.locator ?? '',
+      });
+    });
+  };
 
   const handleCheckToggle = (item) => {
     const isChecked = selectedItems.includes(item.id);
@@ -112,16 +124,30 @@ const NewReceiveScreen = () => {
   };
 
   const handleQtyChange = (id, newQty) => {
-    setDraftItems(prev =>
-      prev.map(item =>
+    setDraftItems(prev => {
+      const next = prev.map(item =>
         item.id === id ? { ...item, qtyToReceive: clampToOpen(newQty, item.openQty) } : item
-      )
-    );
+      );
+      const changed = next.find(x => x.id === id);
+      const clamped = Number(changed?.qtyToReceive ?? 0);
+      setSelectedItems(curr => {
+        const has = curr.includes(id);
+        if (clamped > 0 && !has) return [...curr, id];
+        if (clamped === 0 && has) return curr.filter(x => x !== id);
+        return curr;
+      });
+      return next;
+    });
   };
 
   const handleReceive = () => {
-    const payload = draftItems
-      .filter(i => selectedItems.includes(i.id) && Number(i.qtyToReceive ?? 0) > 0)
+    commitDraftToStore();
+
+    const isScan = selectedTab === 'scanItems';
+    const source = isScan ? scannedItems : draftItems;
+
+    const payload = source
+      .filter(i => Number(i.qtyToReceive ?? 0) > 0)
       .map(i => ({
         id: i.id,
         purchaseReceipt: i.purchaseReceipt,
@@ -144,7 +170,7 @@ const NewReceiveScreen = () => {
       selectedItems: payload,
       readonly: false,
       header: mapHeader(selectedPO),
-      listType: 'line',
+      listType: isScan ? 'scan' : 'line',
     });
   };
 
@@ -278,7 +304,7 @@ const NewReceiveScreen = () => {
       <FooterButtonsComponent
         leftLabel="Save"
         rightLabel="Receive"
-        onLeftPress={hasAnyItems ? () => {} : undefined}
+        onLeftPress={hasAnyItems ? () => { commitDraftToStore(); Toast.show({ type: 'success', text1: 'Draft saved' }); } : undefined}
         onRightPress={hasAnyItems ? handleReceive : undefined}
         leftEnabled={hasAnyItems}
         rightEnabled={hasAnyItems}

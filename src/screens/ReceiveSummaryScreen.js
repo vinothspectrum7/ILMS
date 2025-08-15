@@ -36,8 +36,7 @@ const ReceiveSummaryScreen = () => {
 
   const {
     poHeader, setPoHeader,
-    summaryItems, initSummaryItems,
-    mergePatchIntoSummaryItems, mergePatchIntoReceiveItems,
+    summaryItems, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems,
     resetReceiving,
   } = useReceivingStore();
 
@@ -76,17 +75,11 @@ const ReceiveSummaryScreen = () => {
     }
   }, [poHeader, readonly, sourceId, setPoHeader]);
 
-  useEffect(() => {
-    if (!readonly && summaryItems.length === 0) initSummaryItems(passedItems);
-  }, [summaryItems.length, readonly, passedItems, initSummaryItems]);
-
-  useEffect(() => {
-    if (readonly) setDraft(passedItems.length ? passedItems : defaultReceiptItems);
-    else setDraft(summaryItems);
-  }, [summaryItems, passedItems, readonly]);
-
   useFocusEffect(
     React.useCallback(() => {
+      if (!readonly) {
+        setDraft(passedItems);
+      }
       const patch = route?.params?.patch;
       if (patch) {
         setDraft(prev => prev.map(it => String(it.id) === String(patch.id)
@@ -98,8 +91,12 @@ const ReceiveSummaryScreen = () => {
         navigation.setParams({ patch: undefined });
       }
       return () => {};
-    }, [route?.params?.patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation])
+    }, [readonly, passedItems, route?.params?.patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation])
   );
+
+  useEffect(() => {
+    if (readonly) setDraft(passedItems.length ? passedItems : defaultReceiptItems);
+  }, [readonly, passedItems]);
 
   const headerData = useMemo(() => poHeader || { purchaseReceipt: '—', supplier: '—', poNumber: '—', poDate: '—' }, [poHeader]);
 

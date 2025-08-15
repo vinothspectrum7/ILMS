@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   rowContainer: { flexDirection: 'row', height: '100%' },
   section2: { flex: 1, paddingLeft: 8, marginTop: 8 },
   section3: { alignItems: 'flex-end', justifyContent: 'center', paddingLeft: 8, minWidth: 100 },
-  itemName: { fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
+  itemName: { color: '#000',fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
   qtyInput: {
     width: 50,
     height: 30,

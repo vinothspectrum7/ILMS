@@ -22,7 +22,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
   const [isScanning, setIsScanning] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
 
-  const BRAND_BG = "#233E55";
+  const BRAND_BG = "#000000";
 
   useEffect(() => {
     
@@ -34,7 +34,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
     
     return () => {
       if (Platform.OS === "android") {
-        StatusBar.setBackgroundColor("#F5F5F5"); 
+        StatusBar.setBackgroundColor(BRAND_BG); 
         StatusBar.setBarStyle("light-content"); 
       }
     };
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   },
   scannerContainer: {
     flex: 1,
-    backgroundColor: "#000"
+    backgroundColor: "#233E55"
   },
   uiOverlay: {
     ...StyleSheet.absoluteFillObject,
