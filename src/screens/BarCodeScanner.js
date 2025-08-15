@@ -9,17 +9,36 @@ import {
   StatusBar,
   PermissionsAndroid,
   ActivityIndicator,
+  Linking
 } from "react-native";
 import { Camera } from "react-native-camera-kit";
-import { launchImageLibrary } from 'react-native-image-picker';
-import RNQRGenerator from 'rn-qr-generator';
-import { Flashlight } from 'lucide-react-native';
+import { launchImageLibrary } from "react-native-image-picker";
+import RNQRGenerator from "rn-qr-generator";
+import { Images, Zap, ZapOff } from "lucide-react-native";
+import GlobalHeaderComponent from "../components/GlobalHeaderComponent";
 
 export default function BarcodeScanner({ onScan, onClose }) {
-  const [hasPermission, setHasPermission] = useState(Platform.OS !== "android");
+  const [hasCameraPermission, setHasCameraPermission] = useState(Platform.OS !== "android");
   const [isScanning, setIsScanning] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
-  const BRAND_BG = '#233E55'; 
+
+  const BRAND_BG = "#233E55";
+
+  useEffect(() => {
+    
+    if (Platform.OS === "android") {
+      StatusBar.setBackgroundColor(BRAND_BG);
+      StatusBar.setBarStyle("light-content");
+    }
+
+    
+    return () => {
+      if (Platform.OS === "android") {
+        StatusBar.setBackgroundColor("#F5F5F5"); 
+        StatusBar.setBarStyle("light-content"); 
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function requestCameraPermission() {
@@ -31,34 +50,27 @@ export default function BarcodeScanner({ onScan, onClose }) {
               title: "Camera Permission",
               message: "App needs camera access to scan barcodes",
               buttonPositive: "OK",
-              buttonNegative: "Cancel",
+              buttonNegative: "Cancel"
             }
           );
-          setHasPermission(granted === PermissionsAndroid.RESULTS.GRANTED);
+          setHasCameraPermission(granted === PermissionsAndroid.RESULTS.GRANTED);
           if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-            Alert.alert(
-              "Permission denied",
-              "Cannot scan barcodes without camera permission"
-            );
-            onClose();
+            Alert.alert("Permission denied", "Cannot scan barcodes without camera permission");
           }
         } catch (e) {
           console.warn(e);
-          onClose();
         }
       }
     }
-
-    if (!hasPermission) {
+    if (!hasCameraPermission) {
       requestCameraPermission();
     }
-  }, []);
+  }, [hasCameraPermission]);
 
   const onReadCode = (event) => {
     if (!isScanning) return;
     setIsScanning(false);
-    const code =
-      event?.nativeEvent?.codeStringValue || event?.nativeEvent?.code || null;
+    const code = event?.nativeEvent?.codeStringValue || event?.nativeEvent?.code || null;
     if (code) {
       onScan(code);
     } else {
@@ -67,49 +79,88 @@ export default function BarcodeScanner({ onScan, onClose }) {
     }
   };
 
-  const scanFromGallery = async () => {
+  async function requestGalleryPermission() {
+    if (Platform.OS !== "android") return true;
+
+    const sdk = Platform.Version;
+    const perms = [];
+
+    if (sdk >= 34) {
+      if (PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES) {
+        perms.push(PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES);
+      }
+      if (PermissionsAndroid.PERMISSIONS.READ_MEDIA_VISUAL_USER_SELECTED) {
+        perms.push(PermissionsAndroid.PERMISSIONS.READ_MEDIA_VISUAL_USER_SELECTED);
+      }
+    } else if (sdk >= 33) {
+      if (PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES) {
+        perms.push(PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES);
+      }
+    } else {
+      if (PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE) {
+        perms.push(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
+      }
+    }
+
+    if (perms.length === 0) return true;
+
     try {
-      const result = await launchImageLibrary({
-        mediaType: 'photo',
-        quality: 1,
-      });
-
-      if (result.didCancel) {
-        return;
+      const result = await PermissionsAndroid.requestMultiple(perms);
+      const granted = perms.every((p) => result[p] === PermissionsAndroid.RESULTS.GRANTED);
+      if (!granted) {
+        Alert.alert(
+          "Permission Denied",
+          "Storage permission is required to access your gallery. Please enable it in Settings.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Go to Settings", onPress: () => Linking.openSettings() }
+          ]
+        );
       }
+      return granted;
+    } catch (e) {
+      console.warn(e);
+      return false;
+    }
+  }
 
-      if (result.assets && result.assets.length > 0) {
-        setIsScanning(false);
-        const imageUri = result.assets[0].uri;
+  const checkAndScanFromGallery = async () => {
+    const allowed = await requestGalleryPermission();
+    if (!allowed) return;
 
-        RNQRGenerator.detect({ uri: imageUri })
-          .then(response => {
-            const { values } = response;
-            if (values.length > 0) {
-              onScan(values[0]);
-            } else {
-              Alert.alert("Scan error", "No barcode or QR code found in the image.");
-              setIsScanning(true);
-            }
-          })
-          .catch(error => {
-            console.error(error);
-            Alert.alert("Scan error", "Failed to process the image.");
+    try {
+      const result = await launchImageLibrary({ mediaType: "photo", quality: 1, selectionLimit: 1 });
+      if (result?.didCancel) return;
+
+      const imageUri = result?.assets?.[0]?.uri;
+      if (!imageUri) return;
+
+      setIsScanning(false);
+      RNQRGenerator.detect({ uri: imageUri })
+        .then((response) => {
+          const { values } = response;
+          if (values?.length > 0) {
+            onScan(values[0]);
+          } else {
+            Alert.alert("Scan error", "No barcode or QR code found in the image.");
             setIsScanning(true);
-          });
-      }
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+          Alert.alert("Scan error", "Failed to process the image.");
+          setIsScanning(true);
+        });
     } catch (e) {
       console.warn(e);
       Alert.alert("Error", "Something went wrong while accessing the gallery.");
     }
   };
 
-  if (!hasPermission) {
+  if (!hasCameraPermission) {
     return (
       <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>
-          Camera permission is required to scan barcodes.
-        </Text>
+        <Text style={styles.permissionText}>Camera permission is required to scan barcodes.</Text>
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
           <Text style={styles.closeButtonText}>Close</Text>
         </TouchableOpacity>
@@ -123,114 +174,127 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar translucent={false} barStyle="light-content" backgroundColor={BRAND_BG} />
+      <GlobalHeaderComponent title="Barcode Scanner" onBack={onClose} onMenu={() => {}} />
       {isScanning ? (
-        <>
+        <View style={styles.scannerContainer}>
           <Camera
-            style={{ flex: 1 }}
-            cameraOptions={{
-              flashMode: "auto",
-              focusMode: "on",
-              zoomMode: "on",
-            }}
-            scanBarcode={true}
-            showFrame={true}
-            laserColor={'#233E55'} // Updated color for the animating line
-            frameColor={'#FFFFFF'} // Updated color for the marked area border
+            style={StyleSheet.absoluteFill}
+            cameraOptions={{ flashMode: "auto", focusMode: "on", zoomMode: "on" }}
+            scanBarcode
+            showFrame
+            laserColor="#233E55"
+            frameColor="#FFFFFF"
             torchMode={torchOn ? "on" : "off"}
             onReadCode={onReadCode}
           />
-          <View style={styles.torchButtonContainer}>
-            <TouchableOpacity onPress={toggleTorch} style={styles.torchButton}>
-              <Flashlight
-                size={30}
-                color="white"
-                fill={torchOn ? "white" : "transparent"}
-              />
-            </TouchableOpacity>
+          <View style={styles.uiOverlay}>
+            <View style={styles.torchButtonContainer}>
+              <TouchableOpacity onPress={toggleTorch} style={styles.torchButton}>
+                {torchOn ? <Zap size={24} color="#FFFFFF" fill="#FFFFFF" /> : <ZapOff size={24} color="#FFFFFF" />}
+              </TouchableOpacity>
+            </View>
+            <View style={styles.bottomInfoContainer}>
+              <Text style={styles.scanText}>Scan ILMS Barcode</Text>
+              <Text style={styles.infoText}>PO/IR, ASN, Line Item</Text>
+            </View>
+            <View style={styles.bottomButtonsContainer}>
+              <TouchableOpacity style={styles.iconButton} onPress={checkAndScanFromGallery}>
+                <Images size={24} color="#FFFFFF" />
+                <Text style={styles.iconButtonText}>Scan from Gallery</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </>
+        </View>
       ) : (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="red" />
+          <ActivityIndicator size="large" color="#FFFFFF" />
           <Text style={styles.loadingText}>Processing...</Text>
         </View>
       )}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={onClose}>
-          <Text style={styles.buttonText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={scanFromGallery}>
-          <Text style={styles.buttonText}>Scan from Gallery</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  closeButton: {
-    position: "absolute",
-    bottom: 40,
-    alignSelf: "center",
-    backgroundColor: "#233E55",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    zIndex: 10,
-  },
-  closeButtonText: {
-    color: "#fff",
-    fontSize: 16,
-  },
   permissionContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+    backgroundColor: "#FFFFFF"
   },
   permissionText: {
     fontSize: 16,
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 20
+  },
+  closeButton: {
+    backgroundColor: "#233E55",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontSize: 16
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#233E55",
+    backgroundColor: "#233E55"
   },
   loadingText: {
-    color: "red",
+    color: "#FFFFFF",
     marginTop: 10,
-    fontSize: 18,
+    fontSize: 18
   },
-  buttonContainer: {
-    position: "absolute",
-    bottom: 40,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    paddingHorizontal: 20,
-    zIndex: 10,
+  scannerContainer: {
+    flex: 1,
+    backgroundColor: "#000"
   },
-  button: {
-    backgroundColor: "#233E55",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
+  uiOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 40
   },
   torchButtonContainer: {
     position: "absolute",
-    top: 60,
+    top: 20,
     right: 20,
-    zIndex: 10,
+    zIndex: 10
   },
   torchButton: {
-    padding: 10,
+    padding: 10
   },
+  bottomInfoContainer: {
+    position: "absolute",
+    bottom: 80,
+    alignItems: "center"
+  },
+  scanText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600"
+  },
+  infoText: {
+    color: "#CCCCCC",
+    fontSize: 12,
+    marginTop: 4
+  },
+  bottomButtonsContainer: {
+    position: "absolute",
+    bottom: 20,
+    flexDirection: "row"
+  },
+  iconButton: {
+    flexDirection: "column",
+    alignItems: "center"
+  },
+  iconButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    marginTop: 8
+  }
 });
