@@ -7,6 +7,7 @@ import {
   TextInput,
 } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
+import { useNavigation } from '@react-navigation/native';
 
 const ASNListCardComponent = ({
   item,
@@ -14,6 +15,7 @@ const ASNListCardComponent = ({
   onCheckToggle,
 }) => {
   const [touched, setTouched] = useState(false);
+  const navigation = useNavigation();
 
   useEffect(() => {
     if (isSelected) {
@@ -48,7 +50,7 @@ const ASNListCardComponent = ({
             <Text style={styles.metaText}>|</Text>
             <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
           </View> */}
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('poviewitems', { selectedPO: item })}>
             <Text style={styles.viewDetails}>View Items</Text>
           </TouchableOpacity>
         </View>

@@ -11,6 +11,7 @@ import AsnReceiptScreen from './src/screens/AsnReceipt';
 import ReceiveSummaryScreen from './src/screens/ReceiveSummaryScreen'; 
 import LineItemDetailsScreen from './src/screens/LineItemDetailsScreen';
 import PODetailSummary from './src/screens/POdetailsummary'; 
+import PovViewItems from './src/screens/ASN/poviewitems';
 
 const Stack = createNativeStackNavigator();
 
@@ -69,6 +70,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="podetailsummary"
 component={PODetailSummary}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="poviewitems"
+component={PovViewItems}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>

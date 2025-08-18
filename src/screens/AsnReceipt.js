@@ -6,6 +6,7 @@ import AsnToggleComponent from '../components/AsnTogglecomponent';
 import ASNinfoCardComponent from '../components/ASNinfoCardComponent';
 import ASNListCardComponent from '../components/Asnlistcardcomponent';
 import AsnHeaderComponent from '../components/AsnTableHeader';
+import { useNavigation } from '@react-navigation/native';
 
 const dummyItems = [
   {
@@ -29,6 +30,7 @@ const dummyItems = [
 ];
 
 const AsnReceiptScreen = () => {
+  const navigation = useNavigation();
   const [selectedTab, setSelectedTab] = useState('podetails');
   const [selectedItems, setSelectedItems] = useState([]);
   const [items, setItems] = useState(dummyItems.map(item => ({ ...item })));
@@ -66,7 +68,8 @@ const AsnReceiptScreen = () => {
   };
 
   const handleReceive = () => {
-    console.log('Received:', items.filter(i => selectedItems.includes(i.id)));
+    // console.log('Received:', items.filter(i => selectedItems.includes(i.id)));
+    navigation.navigate('podetailsummary');
   };
 
   const isReceiveEnabled = selectedItems.length > 0;
