@@ -18,6 +18,7 @@ import EnnVeeLogo from '../assets/icons/EnnVeeLogo.svg';
 import axios from 'axios';
 import { BASE_URL } from '../config/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserLogin } from '../api/ApiServices';
 
 
 const { height } = Dimensions.get('window');
@@ -33,45 +34,33 @@ const LoginScreen = ({ navigation }) => {
     return;
   }
   else {
-    navigation.replace('Home');
+      try {
+    const formData = new FormData();
+    formData.append('grant_type', "password");
+    formData.append('username', employeeId);
+    formData.append('password', password);
+
+    const response = await UserLogin(formData);
+    console.log('responseresponseresponseresponse',response);
+
+    if (response.status === 200 && response.data.access_token) {
+      await AsyncStorage.setItem('access_token', response.data.access_token);
+      navigation.replace('Home');
+    } else {
+      // navigation.replace('Home');
+      Alert.alert('Login failed', 'Incorrect credentials or unexpected response.');
+    }
+  } catch (error) {
+    // if (error.response && error.response.data) {
+    //   navigation.replace('Home');
+    //   // Alert.alert('Login failed', JSON.stringify(error.response.data));
+    // } else {
+    //   navigation.replace('Home');
+    //   // Alert.alert('Error', 'An unexpected error occurred.');
+    // }
+  }
   }
 
-  // try {
-  //   console.log('baseurl==',`${BASE_URL}token`);
-  //   const formData = new URLSearchParams();
-  //   formData.append('username', employeeId);
-  //   formData.append('password', password);
-
-  //   const response = await axios.post(
-  //     `${BASE_URL}token`,
-  //     formData.toString(),
-  //     {
-  //       headers: {
-  //         'Content-Type': 'application/x-www-form-urlencoded',
-  //         Accept: 'application/json',
-  //       },
-  //     }
-  //   );
-  //   console.log('baseurl==',`${BASE_URL}token`);
-
-  //   console.log('formData==',formData.toString());
-
-  //   if (response.status === 200 && response.data.access_token) {
-  //     await AsyncStorage.setItem('access_token', response.data.access_token);
-  //     navigation.replace('Home');
-  //   } else {
-  //     navigation.replace('Home');
-  //     // Alert.alert('Login failed', 'Incorrect credentials or unexpected response.');
-  //   }
-  // } catch (error) {
-  //   if (error.response && error.response.data) {
-  //     navigation.replace('Home');
-  //     // Alert.alert('Login failed', JSON.stringify(error.response.data));
-  //   } else {
-  //     navigation.replace('Home');
-  //     // Alert.alert('Error', 'An unexpected error occurred.');
-  //   }
-  // }
 };
 
 

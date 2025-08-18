@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ScrollView, StyleSheet, FlatList, SafeAreaView, Alert } from 'react-native';
 import NavHeaderComponent from '../components/NavHeaderComponent';
 import FooterButtonsComponent from '../components/FooterButtonsComponent';
@@ -6,7 +6,7 @@ import AsnToggleComponent from '../components/AsnTogglecomponent';
 import ASNinfoCardComponent from '../components/ASNinfoCardComponent';
 import ASNListCardComponent from '../components/Asnlistcardcomponent';
 import AsnHeaderComponent from '../components/AsnTableHeader';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const dummyItems = [
   {
@@ -31,9 +31,20 @@ const dummyItems = [
 
 const AsnReceiptScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const [selectedTab, setSelectedTab] = useState('podetails');
   const [selectedItems, setSelectedItems] = useState([]);
   const [items, setItems] = useState(dummyItems.map(item => ({ ...item })));
+
+    const fromScan = !!route?.params?.fromScan;
+    const scannedAsnNumber = route?.params?.scannedAsnNumber ?? null;
+    const selectedASN = route?.params?.selectedASN;
+  
+    useEffect(() => {
+      if (fromScan && scannedAsnNumber) {
+        Toast.show({ type: 'success', text1: `Scanned ASN number is ${scannedAsnNumber}`, position: 'top', visibilityTime: 1500 });
+      }
+    }, [fromScan, scannedAsnNumber]);
 
   const handleCheckToggle = (item) => {
     console.log(item,"coming insideeee")
@@ -80,10 +91,10 @@ const AsnReceiptScreen = () => {
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <ASNinfoCardComponent
-          receiptNumber="12300002"
-          supplier="3DIng"
-          asnnumber="PO-00002"
-          shippeddate="21 Jul 2025"
+          receiptNumber={selectedASN?.asn_num || '-'}
+          supplier={selectedASN?.supplier_name || '-'}
+          asnnumber={selectedASN?.asn_num || '-'}
+          shippeddate={selectedASN?.shipped_date || '-'}
         />
 
         <AsnToggleComponent
