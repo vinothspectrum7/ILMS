@@ -15,19 +15,7 @@ const CONTROL_WIDTH = 130;
 const CONTROL_HEIGHT = 44;
 
 const fallbackLineItems = [
-  {
-    id: '1',
-    poNumber: 'PO-00002',
-    lineNumber: 1,
-    itemName: 'Lorem Imusum',
-    itemDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua',
-    orderQty: 100,
-    receivingQty: 0,
-    receivingStatus: 'In-progress',
-    lpn: '',
-    subInventory: '',
-    locator: '',
-  },
+  { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINVENTORY1', locator: 'LOCATOR1' },
 ];
 
 const LPN_OPTIONS = ['LPN1', 'LPN2', 'LPN3', 'LPN4'];
@@ -41,11 +29,21 @@ const InlineFieldRow = ({ label, children }) => (
   </View>
 );
 
+const clampToOpen = (qty, open) => {
+  const o = Number(open ?? 0);
+  const q = Number(qty ?? 0);
+  if (!Number.isFinite(o) || o <= 0) return 0;
+  if (!Number.isFinite(q) || q <= 0) return 0;
+  return Math.min(q, o);
+};
+
 const LineItemDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
   const readOnly = !!route?.params?.readonly;
+  const returnTo = route?.params?.returnTo || null;
+  const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
 
   const allItems =
@@ -62,31 +60,35 @@ const LineItemDetailsScreen = () => {
 
   const current = useMemo(() => allItems[index], [allItems, index]);
 
+  const readonlyScanQty = (() => {
+    if (!readOnly || listType !== 'scan') return null;
+    const open = Number(current.openQty ?? 0);
+    const ord = Number(current.orderQty ?? 0);
+    return open > 0 ? open : ord;
+  })();
+
+  const initialReceivingQty = readOnly
+    ? (listType === 'scan' ? Number(readonlyScanQty ?? 0) : Number(current.orderQty ?? current.receivingQty ?? 0))
+    : Number(current.receivingQty ?? 0);
+
   const state = edited[current.id] ?? {
-    receivingQty: Number(current.receivingQty ?? 0),
+    receivingQty: initialReceivingQty,
     lpn: current.lpn ?? '',
     subInventory: current.subInventory ?? '',
     locator: current.locator ?? '',
   };
-
-  const updateField = useCallback((patch) => {
-    setEdited((prev) => ({
-      ...prev,
-      [current.id]: { ...(prev[current.id] ?? {}), ...patch },
-    }));
-  }, [current.id]);
 
   const isEdited = useMemo(() => !readOnly && !!edited[current.id], [edited, current.id, readOnly]);
 
   const isSubmitEnabled = useMemo(() => {
     if (readOnly) return false;
     const q = Number(state.receivingQty ?? 0);
-    const qtyOk = q > 0 && q <= Number(current.orderQty ?? 0);
+    const qtyOk = q > 0 && q <= Number(current.openQty ?? 0);
     const lpnOk = !!state.lpn;
     const subInvOk = !!state.subInventory;
     const locOk = !!state.locator;
     return qtyOk && lpnOk && subInvOk && locOk;
-  }, [state, readOnly, current.orderQty]);
+  }, [state, readOnly, current.openQty]);
 
   const titlePo = current?.poNumber ? `Receive - ${String(current.poNumber)}` : 'Receive';
 
@@ -96,21 +98,9 @@ const LineItemDetailsScreen = () => {
     setIndex(i);
   }, [allItems.length]);
 
-  const goPrev = useCallback(() => {
-    if (index === 0) return;
-    scrollToIndex(index - 1);
-  }, [index, scrollToIndex]);
-
-  const goNext = useCallback(() => {
-    if (index === allItems.length - 1) return;
-    scrollToIndex(index + 1);
-  }, [index, allItems.length, scrollToIndex]);
-
-  const onMomentumEnd = useCallback((e) => {
-    const x = e.nativeEvent.contentOffset.x;
-    const newIndex = Math.round(x / SCREEN_WIDTH);
-    if (newIndex !== index) setIndex(newIndex);
-  }, [index]);
+  const goPrev = useCallback(() => { if (index > 0) scrollToIndex(index - 1); }, [index, scrollToIndex]);
+  const goNext = useCallback(() => { if (index < allItems.length - 1) scrollToIndex(index + 1); }, [index, allItems.length, scrollToIndex]);
+  const onMomentumEnd = useCallback((e) => { const x = e.nativeEvent.contentOffset.x; const newIndex = Math.round(x / SCREEN_WIDTH); if (newIndex !== index) setIndex(newIndex); }, [index]);
 
   const handleSave = useCallback(async () => {
     Toast.show({ type: 'info', text1: 'Saving line item…', position: 'top', visibilityTime: 800 });
@@ -120,19 +110,28 @@ const LineItemDetailsScreen = () => {
 
   const openSubmitConfirm = useCallback(() => setShowConfirm(true), []);
   const closeSubmitConfirm = useCallback(() => setShowConfirm(false), []);
-
-  const mockSubmitAction = useCallback(async () => {
-    await new Promise((r) => setTimeout(r, 900));
-    return { success: true };
-  }, []);
+  const mockSubmitAction = useCallback(async () => { await new Promise((r) => setTimeout(r, 900)); return { success: true }; }, []);
 
   const afterSubmitSuccess = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
+    const patch = {
+      id: String(current.id),
+      receivingQty: clampToOpen(Number((edited[current.id]?.receivingQty ?? state.receivingQty) || 0), current.openQty),
+      lpn: (edited[current.id]?.lpn ?? state.lpn) || '',
+      subInventory: (edited[current.id]?.subInventory ?? state.subInventory) || '',
+      locator: (edited[current.id]?.locator ?? state.locator) || '',
+    };
+    if (returnTo) navigation.navigate({ name: returnTo, params: { patch, listType }, merge: true });
+  }, [navigation, returnTo, current.id, current.openQty, state, edited, listType]);
 
   const renderPage = ({ item }) => {
+    const readonlyQty = readOnly
+      ? (listType === 'scan'
+          ? (Number(item.openQty ?? 0) > 0 ? Number(item.openQty ?? 0) : Number(item.orderQty ?? 0))
+          : Number(item.orderQty ?? item.receivingQty ?? 0))
+      : Number(item.receivingQty ?? 0);
+
     const pageState = edited[item.id] ?? {
-      receivingQty: Number(item.receivingQty ?? 0),
+      receivingQty: readonlyQty,
       lpn: item.lpn ?? '',
       subInventory: item.subInventory ?? '',
       locator: item.locator ?? '',
@@ -164,28 +163,36 @@ const LineItemDetailsScreen = () => {
             <View style={styles.divider} />
 
             <View style={styles.row}>
+              <Text style={styles.label}>Open Quantity</Text>
+              <Text style={styles.qtyRight}>{String(item.openQty ?? 0)} <Text style={styles.qtyUnit}>Qty</Text></Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.row}>
               <Text style={styles.label}>Receiving Quantity</Text>
               <View style={styles.numericRight}>
-                <CustomNumericInput
-                  key={`qty-${String(item.id)}`}
-                  value={Number(pageState.receivingQty) || 0}
-                  setValue={(v) => {
-                    if (readOnly) return;
-                    const currentVal = Number(pageState.receivingQty) || 0;
-                    const raw = typeof v === 'function' ? v(currentVal) : v;
-                    const n = Number(raw);
-                    const clamped = Number.isFinite(n) ? Math.max(0, Math.min(n, Number(item.orderQty ?? 0))) : currentVal;
-                    setEdited((prev) => ({
-                      ...prev,
-                      [item.id]: { ...(prev[item.id] ?? {}), receivingQty: clamped },
-                    }));
-                  }}
-                  max={Number(item.orderQty ?? 0)}
-                  min={0}
-                  step={1}
-                  width={CONTROL_WIDTH}
-                  isSelected={isEditable}
-                />
+                {readOnly ? (
+                  <Text style={styles.qtyRight}>{String(readonlyQty)} <Text style={styles.qtyUnit}>Qty</Text></Text>
+                ) : (
+                  <CustomNumericInput
+                    key={`qty-${String(item.id)}`}
+                    value={Number(pageState.receivingQty) || 0}
+                    setValue={(v) => {
+                      if (readOnly) return;
+                      const currentVal = Number(pageState.receivingQty) || 0;
+                      const raw = typeof v === 'function' ? v(currentVal) : v;
+                      const n = Number(raw);
+                      const clamped = clampToOpen(n, Number(item.openQty ?? 0));
+                      setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), receivingQty: clamped } }));
+                    }}
+                    max={Number(item.openQty ?? 0)}
+                    min={0}
+                    step={1}
+                    width={CONTROL_WIDTH}
+                    isSelected={isEditable}
+                  />
+                )}
               </View>
             </View>
 
@@ -193,7 +200,12 @@ const LineItemDetailsScreen = () => {
 
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
-              <Text style={styles.statusText}>{item.receivingStatus || 'In-progress'}</Text>
+              <Text style={styles.statusText}>
+                {readOnly
+                    ? (listType === 'scan' ? 'In-Progress' : 'Received')
+                    : (item.receivingStatus || 'In-Progress')}
+                </Text>
+
             </View>
 
             <View style={styles.divider} />
@@ -266,13 +278,13 @@ const LineItemDetailsScreen = () => {
 
       <View style={styles.navBar}>
         <TouchableOpacity onPress={goPrev} disabled={index === 0} style={styles.navEdge} activeOpacity={0.7}>
-          <ChevronLeft size={22} color={index === 0 ? '#C8D0D6' : '#1F3B55'} />
+          <ChevronLeft size={22} color={index === 0 ? '#C8D0D6' : '#233E55'} />
         </TouchableOpacity>
 
         <Text style={styles.navTitle}>{`Line Item ${index + 1}`}</Text>
 
         <TouchableOpacity onPress={goNext} disabled={index === allItems.length - 1} style={styles.navEdge} activeOpacity={0.7}>
-          <ChevronRight size={22} color={index === allItems.length - 1 ? '#C8D0D6' : '#1F3B55'} />
+          <ChevronRight size={22} color={index === allItems.length - 1 ? '#C8D0D6' : '#233E55'} />
         </TouchableOpacity>
       </View>
 
@@ -327,7 +339,7 @@ const styles = StyleSheet.create({
   container: { backgroundColor: '#F6F8FA', flex: 1 },
   navBar: {
     marginTop: 14,
-    marginBottom:14,
+    marginBottom: 14,
     marginHorizontal: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
@@ -336,13 +348,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
   },
   navEdge: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center' },
-  navTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '600', color: '#6B7785' },
+  navTitle: { flex: 1, color:"#233E55", textAlign: 'center', fontSize: 18, fontWeight: '600' },
   content: { paddingBottom: 120 },
   card: {
     backgroundColor: '#fff',
@@ -353,10 +361,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 6,
     elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
   },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, justifyContent: 'space-between' },
   block: { paddingVertical: 12 },

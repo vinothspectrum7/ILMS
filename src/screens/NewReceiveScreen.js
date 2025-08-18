@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
@@ -11,6 +11,7 @@ import TableHeaderComponent from '../components/TableHeaderComponent';
 import ScanItemListCardComponent from '../components/ScanItemListCardComponent';
 import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
 import BarcodeScanner from './BarCodeScanner';
+import { useReceivingStore } from '../store/receivingStore';
 
 const dummyItems = [
   { id: '01', purchaseReceipt: 'PR-00002', name: 'Lorem Ipsumum', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
@@ -18,72 +19,169 @@ const dummyItems = [
   { id: '03', purchaseReceipt: 'PR-00002', name: 'Dolor Item', description: 'Secondary component used in assembly.', orderedQty: 12, receivedQty: 1, openQty: 7, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
 ];
 
-const stripForPayload = ({
-  id, purchaseReceipt, name, description, orderedQty, receivedQty, openQty, uom,
-  promisedDate, needByDate, qtyToReceive, lpn, subInventory, locator,
-}) => ({
-  id, purchaseReceipt, name, description, orderedQty, receivedQty, openQty, uom,
-  promisedDate, needByDate, qtyToReceive, lpn, subInventory, locator,
+const clampToOpen = (qty, open) => {
+  const o = Number(open ?? 0);
+  const q = Number(qty ?? 0);
+  if (!Number.isFinite(o) || o <= 0) return 0;
+  if (!Number.isFinite(q) || q <= 0) return 0;
+  return Math.min(q, o);
+};
+
+const mapHeader = (po) => ({
+  purchaseReceipt: po?.purchaseReceipt ?? '—',
+  supplier: po?.supplier ?? '—',
+  poNumber: po?.poNumber ?? '—',
+  poDate: po?.poDate ?? '—',
 });
 
 const NewReceiveScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+
+  const {
+    poHeader, setPoHeader,
+    receiveItems, initReceiveItems, mergePatchIntoReceiveItems,
+  } = useReceivingStore();
+
   const selectedPO = route?.params?.selectedPO || null;
 
+  const [selectedTab, setSelectedTab] = React.useState('lineItems');
+  const [draftItems, setDraftItems] = React.useState([]);
+  const [selectedItems, setSelectedItems] = React.useState([]);
+  const [scannedItems, setScannedItems] = React.useState([]);
+  const [showScanner, setShowScanner] = React.useState(false);
+
+  useEffect(() => {
+    if (!poHeader && selectedPO) setPoHeader(mapHeader(selectedPO));
+  }, [poHeader, selectedPO, setPoHeader]);
+
+  useEffect(() => {
+    if (receiveItems.length === 0) {
+      const seeded = dummyItems.map(i => ({ ...i, qtyToReceive: 0 }));
+      initReceiveItems(seeded);
+    }
+  }, [receiveItems.length, initReceiveItems]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const withStoredQty = receiveItems.map(src => {
+        const stored = receiveItems.find(r => String(r.id) === String(src.id));
+        const qty = Number(stored?.qtyToReceive ?? 0);
+        return { ...src, qtyToReceive: qty };
+      });
+      setDraftItems(withStoredQty);
+      setSelectedItems(withStoredQty.filter(x => Number(x.qtyToReceive ?? 0) > 0).map(x => x.id));
+
+      const patch = route?.params?.patch;
+      const listType = route?.params?.listType;
+      if (patch && listType !== 'scan') {
+        setDraftItems(prev =>
+          prev.map(it => String(it.id) === String(patch.id)
+            ? { ...it, qtyToReceive: clampToOpen(patch.receivingQty, it.openQty), lpn: patch.lpn ?? it.lpn, subInventory: patch.subInventory ?? it.subInventory, locator: patch.locator ?? it.locator }
+            : it
+          )
+        );
+        mergePatchIntoReceiveItems(patch);
+        navigation.setParams({ patch: undefined, listType: undefined });
+      }
+      return () => {};
+    }, [receiveItems, route?.params?.patch, route?.params?.listType, mergePatchIntoReceiveItems, navigation])
+  );
+
   const fromScan = !!route?.params?.fromScan;
-const scannedPoNumber = route?.params?.scannedPoNumber ?? null;
+  const scannedPoNumber = route?.params?.scannedPoNumber ?? null;
 
-React.useEffect(() => {
-  if (fromScan && scannedPoNumber) {
-    Toast.show({
-      type: 'success',              
-      text1: `Scanned PO/IR numeber is ${scannedPoNumber}`,
-      position: 'top',
-      visibilityTime: 1500,
+  useEffect(() => {
+    if (fromScan && scannedPoNumber) {
+      Toast.show({ type: 'success', text1: `Scanned PO/IR number is ${scannedPoNumber}`, position: 'top', visibilityTime: 1500 });
+    }
+  }, [fromScan, scannedPoNumber]);
+
+  const commitDraftToStore = () => {
+    draftItems.forEach(it => {
+      mergePatchIntoReceiveItems({
+        id: String(it.id),
+        receivingQty: Number(it.qtyToReceive ?? 0),
+        lpn: it.lpn ?? '',
+        subInventory: it.subInventory ?? '',
+        locator: it.locator ?? '',
+      });
     });
-  }
-}, [fromScan, scannedPoNumber]);
-
-  const [selectedTab, setSelectedTab] = useState('lineItems');
-  const [items, setItems] = useState(dummyItems.map(i => ({ ...i, qtyToReceive: 0 })));
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [scannedItems, setScannedItems] = useState([]);
-  const [showScanner, setShowScanner] = useState(false);
+  };
 
   const handleCheckToggle = (item) => {
     const isChecked = selectedItems.includes(item.id);
-    const nextSelected = isChecked ? selectedItems.filter(id => id !== item.id) : [...selectedItems, item.id];
-    setSelectedItems(nextSelected);
-    setItems(prev => prev.map(it => (it.id === item.id ? { ...it, qtyToReceive: isChecked ? 0 : it.openQty } : it)));
+    if (isChecked) {
+      setSelectedItems(prev => prev.filter(id => id !== item.id));
+      setDraftItems(prev => prev.map(it => (it.id === item.id ? { ...it, qtyToReceive: 0 } : it)));
+      return;
+    }
+    const stored = receiveItems.find(r => String(r.id) === String(item.id));
+    const storedQty = Number(stored?.qtyToReceive ?? 0);
+    const nextQty = storedQty > 0 ? storedQty : clampToOpen(item.openQty, item.openQty);
+    setDraftItems(prev => prev.map(it => (it.id === item.id ? { ...it, qtyToReceive: nextQty } : it)));
+    setSelectedItems(prev => [...prev, item.id]);
   };
 
   const handleQtyChange = (id, newQty) => {
-    setItems(prev => prev.map(item => (item.id === id ? { ...item, qtyToReceive: newQty } : item)));
+    setDraftItems(prev => {
+      const next = prev.map(item =>
+        item.id === id ? { ...item, qtyToReceive: clampToOpen(newQty, item.openQty) } : item
+      );
+      const changed = next.find(x => x.id === id);
+      const clamped = Number(changed?.qtyToReceive ?? 0);
+      setSelectedItems(curr => {
+        const has = curr.includes(id);
+        if (clamped > 0 && !has) return [...curr, id];
+        if (clamped === 0 && has) return curr.filter(x => x !== id);
+        return curr;
+      });
+      return next;
+    });
   };
 
-  const handleSave = () => {};
-
   const handleReceive = () => {
-    const payload =
-      selectedTab === 'lineItems'
-        ? items.filter(i => selectedItems.includes(i.id) && (i.qtyToReceive ?? 0) > 0).map(stripForPayload)
-        : scannedItems.filter(i => (i.qtyToReceive ?? 0) > 0).map(stripForPayload);
+    commitDraftToStore();
+
+    const isScan = selectedTab === 'scanItems';
+    const source = isScan ? scannedItems : draftItems;
+
+    const payload = source
+      .filter(i => Number(i.qtyToReceive ?? 0) > 0)
+      .map(i => ({
+        id: i.id,
+        purchaseReceipt: i.purchaseReceipt,
+        name: i.name,
+        description: i.description,
+        orderedQty: i.orderedQty,
+        receivedQty: i.receivedQty,
+        openQty: i.openQty,
+        uom: i.uom,
+        promisedDate: i.promisedDate,
+        needByDate: i.needByDate,
+        qtyToReceive: i.qtyToReceive,
+        lpn: i.lpn,
+        subInventory: i.subInventory,
+        locator: i.locator,
+      }));
 
     navigation.navigate('ReceiveSummaryScreen', {
       id: selectedPO?.id ?? null,
       selectedItems: payload,
       readonly: false,
+      header: mapHeader(selectedPO),
+      listType: isScan ? 'scan' : 'line',
     });
   };
 
   const toDetailItem = (it, i) => ({
     id: String(it.id),
-    poNumber: selectedPO?.poNumber ?? '—',
+    poNumber: poHeader?.poNumber ?? '—',
     lineNumber: i + 1,
     itemName: it.name,
     itemDescription: it.itemDescription ?? it.description ?? '—',
     orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+    openQty: Number(it.openQty ?? 0),
     receivingQty: Number(it.qtyToReceive ?? 0),
     receivingStatus: 'In-progress',
     lpn: it.lpn ?? '',
@@ -91,54 +189,35 @@ React.useEffect(() => {
     locator: it.locator ?? '',
   });
 
-  const goToLineItemDetails = (startIdx = 0, source = items, readonly = false) => {
+  const goToLineItemDetails = (startIdx = 0, source = draftItems, readonly = false, listType = 'line') => {
     const mapped = source.map(toDetailItem);
-    navigation.navigate('LineItemDetails', { items: mapped, startIndex: startIdx, readonly });
+    navigation.navigate({
+      name: 'LineItemDetails',
+      params: { items: mapped, startIndex: startIdx, readonly, returnTo: 'NewReceiveScreen', listType },
+      merge: true,
+    });
   };
 
   const handleScan = (value) => {
-  const id = String(value).trim();
-  const source = dummyItems.find(x => String(x.id) === id);
-
-  if (!source) {
-    Toast.show({
-      type: 'error',
-      text1: 'Unknown barcode',
-      text2: `No item with id ${id}`,
-      position: 'top',
-    });
+    const id = String(value).trim();
+    const source = dummyItems.find(x => String(x.id) === id);
+    if (!source) {
+      Toast.show({ type: 'error', text1: 'Unknown barcode', text2: `No item with id ${id}`, position: 'top' });
+      setShowScanner(false);
+      return;
+    }
+    const alreadyExists = scannedItems.some(x => String(x.id) === id);
+    if (alreadyExists) {
+      Toast.show({ type: 'orange', text1: 'Scanned item already added to the list', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 1500 });
+      setShowScanner(false);
+      return;
+    }
+    const fullReceiving = Math.max(0, source.openQty ?? 0);
+    setScannedItems(prev => [...prev, { ...source, qtyToReceive: fullReceiving }]);
+    setSelectedTab('scanItems');
     setShowScanner(false);
-    return;
-  }
-
-  const alreadyExists = scannedItems.some(x => String(x.id) === id);
-  if (alreadyExists) {
-    Toast.show({
-      type: 'orange',
-      text1: 'Scanned item already added to the list',
-      text2: `${source.name} (ID: ${id})`,
-      position: 'top',
-      visibilityTime: 1500,
-    });
-    setShowScanner(false);
-    return;
-  }
-
-  const fullReceiving = Math.max(0, source.openQty ?? 0);
-  setScannedItems(prev => [...prev, { ...source, qtyToReceive: fullReceiving }]);
-
-  setSelectedTab('scanItems');
-  setShowScanner(false);
-
-  Toast.show({
-    type: 'success',
-    text1: 'Item added from scan',
-    text2: `${source.name} (ID: ${id})`,
-    position: 'top',
-    visibilityTime: 1200,
-  });
-};
-
+    Toast.show({ type: 'success', text1: 'Item added from scan', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 1200 });
+  };
 
   const hasAnyItems = useMemo(
     () => (selectedTab === 'lineItems' ? selectedItems.length > 0 : scannedItems.length > 0),
@@ -151,10 +230,10 @@ React.useEffect(() => {
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
-          receiptNumber={selectedPO?.purchaseReceipt || '—'}
-          supplier={selectedPO?.supplier || '—'}
-          poNumber={selectedPO?.poNumber || '—'}
-          receiptDate={selectedPO?.poDate || '—'}
+          receiptNumber={poHeader?.purchaseReceipt || '—'}
+          supplier={poHeader?.supplier || '—'}
+          poNumber={poHeader?.poNumber || '—'}
+          receiptDate={poHeader?.poDate || '—'}
         />
 
         <ToggleTabsComponent selectedTab={selectedTab} onSelectTab={setSelectedTab} />
@@ -163,18 +242,28 @@ React.useEffect(() => {
           <>
             <View style={styles.tableHeader}>
               <TableHeaderComponent
-                allSelected={selectedItems.length === items.length}
+                allSelected={selectedItems.length === draftItems.length && draftItems.every(d => Number(d.qtyToReceive ?? 0) > 0)}
                 onToggleAll={() => {
-                  const allIds = items.map(i => i.id);
-                  const shouldSelectAll = selectedItems.length !== items.length;
-                  setSelectedItems(shouldSelectAll ? allIds : []);
-                  setItems(prev => prev.map(it => ({ ...it, qtyToReceive: shouldSelectAll ? it.openQty : 0 })));
+                  const selecting = !(selectedItems.length === draftItems.length && draftItems.every(d => Number(d.qtyToReceive ?? 0) > 0));
+                  if (!selecting) {
+                    setSelectedItems([]);
+                    setDraftItems(prev => prev.map(it => ({ ...it, qtyToReceive: 0 })));
+                    return;
+                  }
+                  const next = draftItems.map(it => {
+                    const stored = receiveItems.find(r => String(r.id) === String(it.id));
+                    const storedQty = Number(stored?.qtyToReceive ?? 0);
+                    const useQty = storedQty > 0 ? storedQty : clampToOpen(it.openQty, it.openQty);
+                    return { ...it, qtyToReceive: useQty };
+                  });
+                  setDraftItems(next);
+                  setSelectedItems(next.filter(x => Number(x.qtyToReceive ?? 0) > 0).map(x => x.id));
                 }}
               />
             </View>
 
             <FlatList
-              data={items}
+              data={draftItems}
               keyExtractor={item => item.id}
               renderItem={({ item, index }) => (
                 <View style={styles.lineItemWrapper}>
@@ -184,7 +273,7 @@ React.useEffect(() => {
                     isSelected={selectedItems.includes(item.id)}
                     onCheckToggle={handleCheckToggle}
                     onQtyChange={handleQtyChange}
-                    onViewDetails={() => goToLineItemDetails(index, items, false)}
+                    onViewDetails={() => goToLineItemDetails(index, draftItems, false, 'line')}
                   />
                 </View>
               )}
@@ -201,7 +290,7 @@ React.useEffect(() => {
             onViewDetails={(item) => {
               const source = scannedItems.length ? scannedItems : dummyItems;
               const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-              goToLineItemDetails(idx, source, true);
+              goToLineItemDetails(idx, source, true, 'scan');
             }}
             header={
               <View style={styles.tableHeader}>
@@ -215,7 +304,7 @@ React.useEffect(() => {
       <FooterButtonsComponent
         leftLabel="Save"
         rightLabel="Receive"
-        onLeftPress={hasAnyItems ? handleSave : undefined}
+        onLeftPress={hasAnyItems ? () => { commitDraftToStore(); Toast.show({ type: 'success', text1: 'Draft saved' }); } : undefined}
         onRightPress={hasAnyItems ? handleReceive : undefined}
         leftEnabled={hasAnyItems}
         rightEnabled={hasAnyItems}
