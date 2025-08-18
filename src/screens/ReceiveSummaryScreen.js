@@ -36,7 +36,8 @@ const ReceiveSummaryScreen = () => {
 
   const {
     poHeader, setPoHeader,
-    summaryItems, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems,
+    summaryItems, initSummaryItems,
+    mergePatchIntoSummaryItems, mergePatchIntoReceiveItems,
     resetReceiving,
   } = useReceivingStore();
 
@@ -44,59 +45,91 @@ const ReceiveSummaryScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
 
   const didCompleteRef = useRef(false);
-  useFocusEffect(React.useCallback(() => { didCompleteRef.current = false; return () => {}; }, []));
+  const handledPatchIdsRef = useRef(new Set());
+
+  useFocusEffect(
+    React.useCallback(() => {
+      didCompleteRef.current = false;
+      return () => {};
+    }, [])
+  );
 
   useEffect(() => {
-    if (!poHeader) {
-      if (headerFromRoute) {
-        setPoHeader(headerFromRoute);
-      } else if (readonly) {
-        let rec = null;
-        if (sourceId) rec = receivedData.find(r => r.id === sourceId);
-        if (!rec) {
-          const poNo = route?.params?.header?.poNumber || route?.params?.poNumber || null;
-          if (poNo) rec = receivedData.find(r => r.poNumber === poNo);
-        }
-        if (rec) {
-          setPoHeader({ purchaseReceipt: rec.purchaseReceipt, supplier: rec.supplier, poNumber: rec.poNumber, poDate: rec.receivedDate });
-        }
+    if (poHeader) return;
+    if (headerFromRoute) {
+      setPoHeader(headerFromRoute);
+      return;
+    }
+    if (readonly) {
+      let rec = null;
+      if (sourceId) rec = receivedData.find(r => r.id === sourceId);
+      if (!rec) {
+        const poNo = route?.params?.header?.poNumber || route?.params?.poNumber || null;
+        if (poNo) rec = receivedData.find(r => r.poNumber === poNo);
+      }
+      if (rec) {
+        setPoHeader({ purchaseReceipt: rec.purchaseReceipt, supplier: rec.supplier, poNumber: rec.poNumber, poDate: rec.receivedDate });
       }
     }
-  }, [poHeader, headerFromRoute, readonly, sourceId, route?.params, setPoHeader]);
+  }, [poHeader, headerFromRoute, readonly, sourceId, setPoHeader, route?.params?.header?.poNumber, route?.params?.poNumber]);
 
   useEffect(() => {
-    if (poHeader && readonly) {
-      const needsReceipt = !poHeader.purchaseReceipt || poHeader.purchaseReceipt === '—';
-      const needsDate = !poHeader.poDate || poHeader.poDate === '—';
-      if (needsReceipt || needsDate) {
-        const rec = receivedData.find(r => r.poNumber === poHeader.poNumber) || (sourceId ? receivedData.find(r => r.id === sourceId) : null);
-        if (rec) setPoHeader({ purchaseReceipt: rec.purchaseReceipt, supplier: poHeader.supplier || rec.supplier, poNumber: poHeader.poNumber || rec.poNumber, poDate: rec.receivedDate });
-      }
+    if (readonly) {
+      setDraft(passedItems.length ? passedItems : defaultReceiptItems);
+      return;
     }
-  }, [poHeader, readonly, sourceId, setPoHeader]);
+    if (Array.isArray(passedItems) && passedItems.length > 0) {
+      setDraft(passedItems);
+      initSummaryItems(passedItems);
+    } else if (!readonly && draft.length === 0 && Array.isArray(summaryItems) && summaryItems.length > 0) {
+      setDraft(summaryItems);
+    }
+  }, [readonly, passedItems, summaryItems, initSummaryItems]);
 
   useFocusEffect(
     React.useCallback(() => {
       if (!readonly) {
-        setDraft(passedItems);
-      }
-      const patch = route?.params?.patch;
-      if (patch) {
-        setDraft(prev => prev.map(it => String(it.id) === String(patch.id)
-          ? { ...it, qtyToReceive: (typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive), lpn: patch.lpn ?? it.lpn, subInventory: patch.subInventory ?? it.subInventory, locator: patch.locator ?? it.locator }
-          : it
-        ));
-        mergePatchIntoSummaryItems(patch);
-        mergePatchIntoReceiveItems(patch);
-        navigation.setParams({ patch: undefined });
+        if (Array.isArray(passedItems) && passedItems.length > 0) {
+          setDraft(passedItems);
+          initSummaryItems(passedItems);
+        } else if (draft.length === 0 && Array.isArray(summaryItems) && summaryItems.length > 0) {
+          setDraft(summaryItems);
+        }
       }
       return () => {};
-    }, [readonly, passedItems, route?.params?.patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation])
+    }, [readonly, summaryItems, draft.length])
   );
 
+  const patch = route?.params?.patch;
+
   useEffect(() => {
-    if (readonly) setDraft(passedItems.length ? passedItems : defaultReceiptItems);
-  }, [readonly, passedItems]);
+    const patchId = patch?.id != null ? String(patch.id) : null;
+    if (!patchId || handledPatchIdsRef.current.has(patchId)) return;
+
+    handledPatchIdsRef.current.add(patchId);
+
+    setDraft(prev => {
+      const base = prev.length > 0 ? prev : (Array.isArray(summaryItems) ? summaryItems : []);
+      const next = base.map(it =>
+        String(it.id) === patchId
+          ? {
+              ...it,
+              qtyToReceive: typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive,
+              lpn: patch.lpn ?? it.lpn,
+              subInventory: patch.subInventory ?? it.subInventory,
+              locator: patch.locator ?? it.locator,
+            }
+          : it
+      );
+      return next;
+    });
+
+    mergePatchIntoSummaryItems(patch);
+    mergePatchIntoReceiveItems(patch);
+
+    const t = setTimeout(() => navigation.setParams({ patch: undefined }), 0);
+    return () => clearTimeout(t);
+  }, [patch?.id, patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation, summaryItems]);
 
   const headerData = useMemo(() => poHeader || { purchaseReceipt: '—', supplier: '—', poNumber: '—', poDate: '—' }, [poHeader]);
 
@@ -163,7 +196,7 @@ const ReceiveSummaryScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText="06-08-2025" onBack={() => navigation.goBack()} onMenu={() => {}} />
+      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText="06-08-2025" onBack={() => navigation.navigate('NewReceiveScreen')} onMenu={() => {}} />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent

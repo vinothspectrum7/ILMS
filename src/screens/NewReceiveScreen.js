@@ -226,7 +226,7 @@ const NewReceiveScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText="06-08-2025" onBack={() => navigation.goBack()} onMenu={() => {}} />
+      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText="06-08-2025" onBack={() => navigation.navigate('Receive')} onMenu={() => {}} />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
