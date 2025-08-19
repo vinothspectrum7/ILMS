@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -113,15 +113,26 @@ const LineItemDetailsScreen = () => {
   const mockSubmitAction = useCallback(async () => { await new Promise((r) => setTimeout(r, 900)); return { success: true }; }, []);
 
   const afterSubmitSuccess = useCallback(() => {
-    const patch = {
-      id: String(current.id),
-      receivingQty: clampToOpen(Number((edited[current.id]?.receivingQty ?? state.receivingQty) || 0), current.openQty),
-      lpn: (edited[current.id]?.lpn ?? state.lpn) || '',
-      subInventory: (edited[current.id]?.subInventory ?? state.subInventory) || '',
-      locator: (edited[current.id]?.locator ?? state.locator) || '',
-    };
-    if (returnTo) navigation.navigate({ name: returnTo, params: { patch, listType }, merge: true });
-  }, [navigation, returnTo, current.id, current.openQty, state, edited, listType]);
+  const patch = {
+    id: String(current.id),
+    receivingQty: clampToOpen(
+      Number((edited[current.id]?.receivingQty ?? state.receivingQty) || 0),
+      current.openQty
+    ),
+    lpn: (edited[current.id]?.lpn ?? state.lpn) || '',
+    subInventory: (edited[current.id]?.subInventory ?? state.subInventory) || '',
+    locator: (edited[current.id]?.locator ?? state.locator) || '',
+  };
+
+  if (returnTo) {
+    navigation.dispatch(
+      StackActions.replace(returnTo, { patch, listType })
+    );
+  } else {
+    navigation.goBack();
+  }
+}, [navigation, returnTo, current.id, current.openQty, state, edited, listType]);
+
 
   const renderPage = ({ item }) => {
     const readonlyQty = readOnly

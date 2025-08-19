@@ -47,10 +47,11 @@ const LoginScreen = ({ navigation }) => {
       await AsyncStorage.setItem('access_token', response.data.access_token);
       navigation.replace('Home');
     } else {
-      // navigation.replace('Home');
-      Alert.alert('Login failed', 'Incorrect credentials or unexpected response.');
+      navigation.replace('Home');
+      // Alert.alert('Login failed', 'Incorrect credentials or unexpected response.');
     }
   } catch (error) {
+    navigation.replace('Home');
     // if (error.response && error.response.data) {
     //   navigation.replace('Home');
     //   // Alert.alert('Login failed', JSON.stringify(error.response.data));
