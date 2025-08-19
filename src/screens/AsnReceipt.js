@@ -51,9 +51,11 @@ const AsnReceiptScreen = () => {
                 const asn_data = await GetASNPoItems(scannedAsnId);
                 console.log(asn_data,"asn_data")
                 if(asn_data!=undefined&&asn_data.length!=0){
-                asn_data.forEach(element => {
-                  element["id"] = element.po_id;
-                  element["Poid"] = element.po
+                asn_data.forEach((element,index) => {
+                  element["id"] = index+1;
+                  element["Poid"] = element.po_number;
+                  element["status"] = "Yet to Receive";
+                  element["orderedByDate"] = "2025-06-10";
                 });
                 setItems(asn_data.map(item => ({ ...item })));
               }
