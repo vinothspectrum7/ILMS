@@ -350,7 +350,7 @@ const ReceiveScreen = () => {
         title="Receive"
         greetingName="Robert"
         dateText="06-08-2025"
-        onBack={() => navigation.goBack()}
+        onBack={() => navigation.navigate('Home')}
         onMenu={() => {}}
       />
 
