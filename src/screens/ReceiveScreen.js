@@ -124,7 +124,8 @@ const ReceiveScreen = () => {
   const handleScan = (value) => {
     const code = String(value).trim().toUpperCase();
     const match = poData.find(p => String(p.poNumber).toUpperCase() === code);
-    const asnmatch = AsnIntialData.find(a =>String(p.asn_num).toUpperCase() ===code);
+    const asnmatch = AsnIntialData.find(a =>String(a.asn_num).toUpperCase() ===code);
+    console.log(asnmatch,"asnmatch");
 
     if (match) {
       setShowScanner(false);
@@ -154,6 +155,7 @@ const ReceiveScreen = () => {
         selectedASN: asnmatch,
         fromScan: true,
         scannedAsnNumber: code,
+        scannedAsnId:asnmatch.asn_id,
       });
     } else {
       Toast.show({
@@ -241,7 +243,8 @@ const ReceiveScreen = () => {
           onPress={() => navigation.navigate('AsnReceiptScreen', 
             {selectedASN: item,
         fromScan: false,
-        scannedAsnNumber: null, })}
+        scannedAsnId:item.asn_id,
+        scannedAsnNumber: item.asn_num, })}
           activeOpacity={0.9}
         >
           <View style={styles.card}>

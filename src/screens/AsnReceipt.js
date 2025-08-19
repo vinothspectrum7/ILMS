@@ -7,7 +7,8 @@ import ASNinfoCardComponent from '../components/ASNinfoCardComponent';
 import ASNListCardComponent from '../components/Asnlistcardcomponent';
 import AsnHeaderComponent from '../components/AsnTableHeader';
 import { useNavigation, useRoute } from '@react-navigation/native';
-
+import Toast from 'react-native-toast-message';
+import { GetASNPoItems } from '../api/ApiServices';
 const dummyItems = [
   {
     id: '1',
@@ -34,16 +35,36 @@ const AsnReceiptScreen = () => {
   const route = useRoute();
   const [selectedTab, setSelectedTab] = useState('podetails');
   const [selectedItems, setSelectedItems] = useState([]);
-  const [items, setItems] = useState(dummyItems.map(item => ({ ...item })));
+  const [items, setItems] = useState([]);
 
     const fromScan = !!route?.params?.fromScan;
     const scannedAsnNumber = route?.params?.scannedAsnNumber ?? null;
     const selectedASN = route?.params?.selectedASN;
+    const scannedAsnId = route?.params?.scannedAsnId;
   
     useEffect(() => {
       if (fromScan && scannedAsnNumber) {
         Toast.show({ type: 'success', text1: `Scanned ASN number is ${scannedAsnNumber}`, position: 'top', visibilityTime: 1500 });
       }
+        const loadData = async () => {
+              try {
+                const asn_data = await GetASNPoItems(scannedAsnId);
+                console.log(asn_data,"asn_data")
+                if(asn_data!=undefined&&asn_data.length!=0){
+                asn_data.forEach(element => {
+                  element["id"] = element.po_id;
+                  element["Poid"] = element.po
+                });
+                setItems(asn_data.map(item => ({ ...item })));
+              }
+                // setAsnData(userdata);
+                // setAsnIntialData(userdata);
+                console.log(userdata, "usereejebu");
+              } catch (err) {
+                console.error("Error loading user data:", err);
+              }
+            };  
+            loadData();
     }, [fromScan, scannedAsnNumber]);
 
   const handleCheckToggle = (item) => {

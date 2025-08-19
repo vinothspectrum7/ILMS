@@ -2,11 +2,12 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BASE_URL } from "../config/config";
+// import { useNavigation } from '@react-navigation/native';
 
 const api = axios.create({
   baseURL: BASE_URL,
 });
-
+  // const navigation = useNavigation();
 // APIs where token must NOT be sent
 const excludedUrls = ["/token", "/auth/register"];
 
@@ -42,6 +43,7 @@ api.interceptors.response.use(
       if (status === 401) {
         console.warn("Unauthorized → Token expired or invalid");
         await AsyncStorage.removeItem("access_token");
+        // navigation.navigate('Login');
         // Optionally trigger navigation to Login
       } else if (status === 403) {
         console.error("Forbidden → You don’t have access");

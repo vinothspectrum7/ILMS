@@ -21,3 +21,13 @@ export const UserLogin = async(formData)=>{
     throw error;
   }  
 }
+export const GetASNPoItems = async(asn_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_SINGLE_ASN_DATA(asn_id));
+        // console.log("Response Data:", response);
+    return response.data;
+  }catch (error) {
+    console.error("Get ASN Error:", error.message, error.response?.data);
+    throw error;
+  }
+}

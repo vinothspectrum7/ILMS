@@ -181,7 +181,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
             style={StyleSheet.absoluteFill}
             cameraOptions={{ flashMode: "auto", focusMode: "on", zoomMode: "on" }}
             scanBarcode
-            showFrame
+            // showFrame
             laserColor="#233E55"
             frameColor="#FFFFFF"
             torchMode={torchOn ? "on" : "off"}
