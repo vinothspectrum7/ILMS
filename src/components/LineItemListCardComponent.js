@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     minWidth: s(110),
   },
   itemName: {
-    fontSize: fs(14),
+    fontSize: fs(12),
     fontWeight: '700',
     color: '#111827',
     paddingBottom:s(16),
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     borderRadius: s(0.5),
     opacity: 0.9,
   },
-  metaText: { fontSize: fs(10), color: '#6B7280' },
+  metaText: { fontSize: fs(8), color: '#6B7280' },
   viewDetails: {
     
     fontSize: fs(10),
