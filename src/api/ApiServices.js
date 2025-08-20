@@ -31,3 +31,24 @@ export const GetASNPoItems = async(asn_id)=>{
     throw error;
   }
 }
+export const GetPoItems = async(org_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_PO_DATA(org_id));
+        console.log("Response Data:popopo", response);
+    return response.data;
+  }catch (error) {
+    console.error("Get PO Error:", error.message, error.response?.data);
+    throw error;
+  }
+}
+export const GetSinglePO = async(po_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PO_DATA(po_id));
+    console.log(response,"GET_SINGLE_PO_DATA");
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get Single PO Error:", error.message, error.response?.data);
+    throw error;
+  }
+}

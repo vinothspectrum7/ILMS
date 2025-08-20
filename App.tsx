@@ -12,6 +12,7 @@ import ReceiveSummaryScreen from './src/screens/ReceiveSummaryScreen';
 import LineItemDetailsScreen from './src/screens/LineItemDetailsScreen';
 import PODetailSummary from './src/screens/POdetailsummary'; 
 import PovViewItems from './src/screens/ASN/poviewitems';
+import { navigationRef } from './src/api/api';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,7 +31,7 @@ const toastConfig: ToastConfig = {
 function App() {
 return (
 <>
-<NavigationContainer>
+<NavigationContainer ref={navigationRef}>
 <Stack.Navigator initialRouteName="Login">
 <Stack.Screen
 name="Login"
