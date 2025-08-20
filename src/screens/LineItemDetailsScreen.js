@@ -173,14 +173,14 @@ const LineItemDetailsScreen = () => {
 
             <View style={styles.row}>
               <Text style={styles.label}>Order Quantity</Text>
-              <Text style={styles.qtyRight}>{String(item.orderQty ?? 0)} <Text style={styles.qtyUnit}>Qty</Text></Text>
+              <Text style={styles.qtyRight}>{String(item.orderQty ?? 0)} Qty</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.row}>
               <Text style={styles.label}>Open Quantity</Text>
-              <Text style={styles.qtyRight}>{String(item.openQty ?? 0)} <Text style={styles.qtyUnit}>Qty</Text></Text>
+              <Text style={styles.qtyRight}>{String(item.openQty ?? 0)} Qty</Text>
             </View>
 
             <View style={styles.divider} />
@@ -394,10 +394,10 @@ const styles = StyleSheet.create({
   inlineRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   inlineRight: { alignItems: 'flex-end', justifyContent: 'center' },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E5E7EB' },
-  label: { fontSize: 12, color: '#6B7280' },
-  valueBold: { fontSize: 14, color: '#0A395D', fontWeight: '700', maxWidth: '58%', textAlign: 'right' },
+  label: { fontSize: 12, color: '#6C6C6C' },
+  valueBold: { fontSize: 14, color: '#000000', fontWeight: '700', maxWidth: '58%', textAlign: 'right' },
   descText: { marginTop: 6, fontSize: 14, fontWeight: '700', color: '#111827', lineHeight: 18 },
-  qtyRight: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  qtyRight: { fontSize: 14, fontWeight: '700', color: '#111827' },
   qtyUnit: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
   statusText: { color: '#F5B429', fontWeight: '700' },

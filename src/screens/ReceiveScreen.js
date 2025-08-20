@@ -19,16 +19,16 @@ import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import SearchIcon from '../assets/icons/search.svg';
 import { useReceivingStore } from '../store/receivingStore';
-import { FetchData } from '../api/ApiServices';
+import { FetchData, GetPoItems } from '../api/ApiServices';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
-const poData = [
-  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN', received: 40, billed: 60 },
-  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechCo',    poDate: '22 JUL 2025', status: 'OPEN', received: 55, billed: 80 },
-  { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN', received: 70, billed: 75 },
-  { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN', received: 90, billed: 90 },
-];
+// const poData = [
+//   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN', received: 40, billed: 60 },
+//   { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechCo',    poDate: '22 JUL 2025', status: 'OPEN', received: 55, billed: 80 },
+//   { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN', received: 70, billed: 75 },
+//   { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN', received: 90, billed: 90 },
+// ];
 
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',         receivedDate: '21 Jul 2025', status: 'Fully Received' },
@@ -55,9 +55,9 @@ const ReceiveScreen = () => {
   const activeKey = routes[index].key;
 
   const [searchText, setSearchText] = useState('');
-  const [filteredPO, setFilteredPO] = useState(poData);
+  const [POData, setPOData] = useState([]);
   const [filteredReceived, setFilteredReceived] = useState(receivedData);
-  const [filteredData, setFilteredData] = useState(poData);
+  const [POIntialData, setPOIntialData] = useState([]);
 
  useEffect(() => {
     const loadData = async () => {
@@ -70,7 +70,31 @@ const ReceiveScreen = () => {
         console.error("Error loading user data:", err);
       }
     };
+    const loadPoData = async () => {
+      try {
+        const podata = await GetPoItems('550e8400-e29b-41d4-a716-446655440000');
+        if(podata!=undefined&&podata.length!=0){
+          podata.forEach((element,index) => {
+            element["id"] = index+1;
+          const total_ord_qty = element.total_ord_qty;
+          const total_received_qty = element.total_received_qty;
+         // calculate percentage
+         const receivedPercent =
+        total_ord_qty > 0
+            ? (total_received_qty / total_ord_qty) * 100
+            : 0;
+            element["received"] = receivedPercent;
+          });
+        }
+        setPOData(podata);
+        setPOIntialData(podata);
+        console.log(podata, "podatapodatapodata");
+      } catch (err) {
+        console.error("Error loading user data:", err);
+      }
+    };
 
+    loadPoData();
     loadData();
   }, []);
 
@@ -117,15 +141,8 @@ const ReceiveScreen = () => {
       );
 
     } else {
-      setFilteredPO(
-        poData.filter(
-          p =>
-            p.poNumber.toLowerCase().includes(q) ||
-            p.supplier.toLowerCase().includes(q)
-        )
-      );
-      setFilteredData(
-        poData.filter(
+      setPOData(
+        POIntialData.filter(
           p =>
             p.poNumber.toLowerCase().includes(q) ||
             p.supplier.toLowerCase().includes(q)
@@ -136,8 +153,9 @@ const ReceiveScreen = () => {
 
   const handleScan = (value) => {
     const code = String(value).trim().toUpperCase();
-    const match = poData.find(p => String(p.poNumber).toUpperCase() === code);
-    // const asnmatch = AsnIntialData.find(a =>String(p.asn_num).toUpperCase() ===code);
+    const match = POData.find(p => String(p.poNumber).toUpperCase() === code);
+    const asnmatch = AsnIntialData.find(a =>String(a.asn_num).toUpperCase() ===code);
+    console.log(asnmatch,"asnmatch");
 
     if (match) {
       setShowScanner(false);
@@ -167,6 +185,7 @@ const ReceiveScreen = () => {
         selectedASN: asnmatch,
         fromScan: true,
         scannedAsnNumber: code,
+        scannedAsnId:asnmatch.asn_id,
       });
     } else {
       Toast.show({
@@ -200,7 +219,7 @@ const ReceiveScreen = () => {
 
   const POList = () => (
     <FlatList
-      data={filteredPO}
+      data={POData}
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ paddingBottom: 80 }}
       renderItem={({ item }) => (
@@ -212,7 +231,7 @@ const ReceiveScreen = () => {
             <View style={styles.cardLeft}>
               <View style={styles.toprow}>
                 <Text style={styles.labelText}>PO Number</Text>
-                <Text style={styles.valueText}>{item.poNumber}</Text>
+                <Text style={styles.valueText}>{item.po_number}</Text>
               </View>
               <View style={styles.bottomrow}>
                 <Text style={styles.labelText}>PO Status</Text>
@@ -227,15 +246,15 @@ const ReceiveScreen = () => {
             <View style={styles.cardRight}>
               <View style={styles.toprow}>
                 <Text style={styles.labelText}>Supplier</Text>
-                <Text style={styles.valueText}>{item.supplier}</Text>
+                <Text style={styles.valueText}>{item.supplier_name}</Text>
               </View>
               <View style={styles.bottomrow}>
                 <Text style={styles.labelText}>PO Order Date</Text>
-                <Text style={styles.valueText}>{item.poDate}</Text>
+                <Text style={styles.valueText}>{item.order_date}</Text>
               </View>
               <Text style={styles.subLabel}>Billed</Text>
               <View style={styles.progressWrapper}>
-                <View style={[styles.progressBar, { width: `${item.billed}%` }]} />
+                <View style={[styles.progressBar, { width: `40%` }]} />
               </View>
             </View>
           </View>
@@ -254,7 +273,8 @@ const ReceiveScreen = () => {
           onPress={() => navigation.navigate('AsnReceiptScreen', 
             {selectedASN: item,
         fromScan: false,
-        scannedAsnNumber: null, })}
+        scannedAsnId:item.asn_id,
+        scannedAsnNumber: item.asn_num, })}
           activeOpacity={0.9}
         >
           <View style={styles.card}>
