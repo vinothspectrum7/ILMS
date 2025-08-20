@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
@@ -36,7 +36,8 @@ const ReceiveSummaryScreen = () => {
 
   const {
     poHeader, setPoHeader,
-    summaryItems, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems,
+    summaryItems, initSummaryItems,
+    mergePatchIntoSummaryItems, mergePatchIntoReceiveItems,
     resetReceiving,
   } = useReceivingStore();
 
@@ -44,61 +45,96 @@ const ReceiveSummaryScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
 
   const didCompleteRef = useRef(false);
-  useFocusEffect(React.useCallback(() => { didCompleteRef.current = false; return () => {}; }, []));
-
-  useEffect(() => {
-    if (!poHeader) {
-      if (headerFromRoute) {
-        setPoHeader(headerFromRoute);
-      } else if (readonly) {
-        let rec = null;
-        if (sourceId) rec = receivedData.find(r => r.id === sourceId);
-        if (!rec) {
-          const poNo = route?.params?.header?.poNumber || route?.params?.poNumber || null;
-          if (poNo) rec = receivedData.find(r => r.poNumber === poNo);
-        }
-        if (rec) {
-          setPoHeader({ purchaseReceipt: rec.purchaseReceipt, supplier: rec.supplier, poNumber: rec.poNumber, poDate: rec.receivedDate });
-        }
-      }
-    }
-  }, [poHeader, headerFromRoute, readonly, sourceId, route?.params, setPoHeader]);
-
-  useEffect(() => {
-    if (poHeader && readonly) {
-      const needsReceipt = !poHeader.purchaseReceipt || poHeader.purchaseReceipt === '—';
-      const needsDate = !poHeader.poDate || poHeader.poDate === '—';
-      if (needsReceipt || needsDate) {
-        const rec = receivedData.find(r => r.poNumber === poHeader.poNumber) || (sourceId ? receivedData.find(r => r.id === sourceId) : null);
-        if (rec) setPoHeader({ purchaseReceipt: rec.purchaseReceipt, supplier: poHeader.supplier || rec.supplier, poNumber: poHeader.poNumber || rec.poNumber, poDate: rec.receivedDate });
-      }
-    }
-  }, [poHeader, readonly, sourceId, setPoHeader]);
+  const handledPatchIdsRef = useRef(new Set());
+  const initializedRef = useRef(false);
 
   useFocusEffect(
     React.useCallback(() => {
-      if (!readonly) {
-        setDraft(passedItems);
-      }
-      const patch = route?.params?.patch;
-      if (patch) {
-        setDraft(prev => prev.map(it => String(it.id) === String(patch.id)
-          ? { ...it, qtyToReceive: (typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive), lpn: patch.lpn ?? it.lpn, subInventory: patch.subInventory ?? it.subInventory, locator: patch.locator ?? it.locator }
-          : it
-        ));
-        mergePatchIntoSummaryItems(patch);
-        mergePatchIntoReceiveItems(patch);
-        navigation.setParams({ patch: undefined });
-      }
+      didCompleteRef.current = false;
       return () => {};
-    }, [readonly, passedItems, route?.params?.patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation])
+    }, [])
+  );
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (modalVisible) {
+          setModalVisible(false);
+          return true;
+        }
+        navigation.navigate('NewReceiveScreen');
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [navigation, modalVisible])
   );
 
   useEffect(() => {
-    if (readonly) setDraft(passedItems.length ? passedItems : defaultReceiptItems);
-  }, [readonly, passedItems]);
+    if (poHeader) return;
+    if (headerFromRoute) {
+      setPoHeader(headerFromRoute);
+      return;
+    }
+    if (readonly) {
+      let rec = null;
+      if (sourceId) rec = receivedData.find(r => r.id === sourceId);
+      if (!rec) {
+        const poNo = route?.params?.header?.poNumber || route?.params?.poNumber || null;
+        if (poNo) rec = receivedData.find(r => r.poNumber === poNo);
+      }
+      if (rec) {
+        setPoHeader({ purchaseReceipt: rec.purchaseReceipt, supplier: rec.supplier, poNumber: rec.poNumber, poDate: rec.receivedDate });
+      }
+    }
+  }, [poHeader, headerFromRoute, readonly, sourceId, setPoHeader, route?.params?.header?.poNumber, route?.params?.poNumber]);
 
-  const headerData = useMemo(() => poHeader || { purchaseReceipt: '—', supplier: '—', poNumber: '—', poDate: '—' }, [poHeader]);
+  useEffect(() => {
+    if (initializedRef.current) return;
+    if (readonly) {
+      setDraft(passedItems.length ? passedItems : defaultReceiptItems);
+    } else if (Array.isArray(passedItems) && passedItems.length > 0) {
+      setDraft(passedItems);
+      initSummaryItems(passedItems);
+    } else if (Array.isArray(summaryItems) && summaryItems.length > 0) {
+      setDraft(summaryItems);
+    }
+    initializedRef.current = true;
+  }, [readonly, passedItems, summaryItems, initSummaryItems]);
+
+  const patch = route?.params?.patch;
+
+  useEffect(() => {
+    const patchId = patch?.id != null ? String(patch.id) : null;
+    if (!patchId || handledPatchIdsRef.current.has(patchId)) return;
+
+    handledPatchIdsRef.current.add(patchId);
+
+    setDraft(prev =>
+      prev.map(it =>
+        String(it.id) === patchId
+          ? {
+              ...it,
+              qtyToReceive: typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive,
+              lpn: patch.lpn ?? it.lpn,
+              subInventory: patch.subInventory ?? it.subInventory,
+              locator: patch.locator ?? it.locator,
+            }
+          : it
+      )
+    );
+
+    mergePatchIntoSummaryItems(patch);
+    mergePatchIntoReceiveItems(patch);
+
+    const t = setTimeout(() => navigation.setParams({ patch: undefined }), 0);
+    return () => clearTimeout(t);
+  }, [patch?.id, patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation]);
+
+  const headerData = useMemo(
+    () => poHeader || { purchaseReceipt: '—', supplier: '—', poNumber: '—', poDate: '—' },
+    [poHeader]
+  );
 
   const confirmAction = async () => {
     try {
@@ -161,9 +197,17 @@ const ReceiveSummaryScreen = () => {
     });
   };
 
+  const formatToday = () => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText="06-08-2025" onBack={() => navigation.goBack()} onMenu={() => {}} />
+      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText={formatToday()} onBack={() => navigation.navigate('NewReceiveScreen')} onMenu={() => {}} />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
@@ -173,27 +217,31 @@ const ReceiveSummaryScreen = () => {
           receiptDate={headerData.poDate}
         />
 
-        <View style={styles.tableHeader}>
-          <SummaryTabHdrComponent />
-        </View>
+        <View style={styles.itemcontainer}>
+          <Text style={styles.itemName}>Item Summary</Text>
 
-        <FlatList
-          data={draft}
-          keyExtractor={item => String(item.id)}
-          renderItem={({ item }) => (
-            <View style={styles.lineItemWrapper}>
-              <ConfirmLineItemComponent
-                item={item}
-                qtyLabel="Qty"
-                qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? item.qtyToReceive ?? 0) : Number(item.qtyToReceive ?? 0)}
-                readOnly
-                onViewDetails={() => openLineDetailsFromSummary(item)}
-              />
-            </View>
-          )}
-          scrollEnabled={false}
-          ListEmptyComponent={<View style={{ height: 16 }} />}
-        />
+          <View style={styles.tableHeader}>
+            <SummaryTabHdrComponent />
+          </View>
+
+          <FlatList
+            data={draft}
+            keyExtractor={item => String(item.id)}
+            renderItem={({ item }) => (
+              <View style={styles.lineItemWrapper}>
+                <ConfirmLineItemComponent
+                  item={item}
+                  qtyLabel="Qty"
+                  qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? item.qtyToReceive ?? 0) : Number(item.qtyToReceive ?? 0)}
+                  readOnly
+                  onViewDetails={() => openLineDetailsFromSummary(item)}
+                />
+              </View>
+            )}
+            scrollEnabled={false}
+            ListEmptyComponent={<View style={{ height: 16 }} />}
+          />
+        </View>
       </ScrollView>
 
       {!readonly && (
@@ -226,6 +274,25 @@ const styles = StyleSheet.create({
   contentContainer: { paddingBottom: 120 },
   tableHeader: { marginTop: 8, marginBottom: 10 },
   lineItemWrapper: { marginBottom: 12 },
+  itemcontainer: {
+    backgroundColor: '#fff',
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 12,
+    paddingTop: 8,
+    paddingBottom: 6,
+    elevation: 2,
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+    marginHorizontal: 12,
+    marginStart: 18,
+    marginTop: 3,
+    paddingTop: 3,
+  },
 });
 
 export default ReceiveSummaryScreen;

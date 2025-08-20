@@ -11,7 +11,7 @@ const CustomNumericInput = ({
   step = 1,
   width = 120,
   isSelected = true,
-  onLimit,             // optional: () => {} when hitting a limit
+  onLimit,
 }) => {
   const [touched, setTouched] = useState(false);
 
@@ -19,7 +19,7 @@ const CustomNumericInput = ({
     if (!touched) setTouched(true);
   };
 
-  const safeValue = clamp(Number(value ?? 0) || 0, min, max);
+  const safeValue = clamp(Number(value ?? 0) || 0, Number(min) || 0, Number(max) || 0);
   const canDec = isSelected && safeValue > min;
   const canInc = isSelected && safeValue < max;
 
@@ -35,13 +35,15 @@ const CustomNumericInput = ({
   const handleMinus = () => {
     if (!canDec) { onLimit?.(); return; }
     markTouched();
-    setValue(prev => clamp((Number(prev) || 0) - step, min, max));
+    const next = clamp(safeValue - step, min, max);
+    setValue(next);
   };
 
   const handlePlus = () => {
     if (!canInc) { onLimit?.(); return; }
     markTouched();
-    setValue(prev => clamp((Number(prev) || 0) + step, min, max));
+    const next = clamp(safeValue + step, min, max);
+    setValue(next);
   };
 
   const handleManualInput = (text) => {
@@ -51,33 +53,26 @@ const CustomNumericInput = ({
     apply(isNaN(numeric) ? 0 : numeric);
   };
 
-  const dynamicStyles = touched ? styles.touched : styles.untouched;
-  const textColor = touched ? '#fff' : '#233E55';
+  const showFilled = isSelected && safeValue > 0;
+  const dynamicStyles = showFilled ? styles.touched : styles.untouched;
+  const activeTextColor = showFilled ? '#fff' : '#5D768B';
 
   return (
     <View style={[styles.container, dynamicStyles.border, { width }]}>
-      <TouchableOpacity
-        onPress={handleMinus}
-        disabled={!canDec}
-        style={[styles.button, dynamicStyles.bg, !canDec && styles.disabled]}
-      >
-        <Text style={[styles.buttonText, { color: textColor }]}>−</Text>
+      <TouchableOpacity onPress={handleMinus} disabled={!canDec} style={[styles.button, dynamicStyles.bg]}>
+        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canDec ? 1 : 0.5 }]}>−</Text>
       </TouchableOpacity>
 
       <TextInput
-        style={[styles.input, dynamicStyles.bg, { color: textColor }]}
-        value={String(safeValue)}     // always show clamped value
+        style={[styles.input, dynamicStyles.bg, { color: activeTextColor }]}
+        value={String(safeValue)}
         onChangeText={handleManualInput}
         keyboardType="numeric"
         editable={isSelected}
       />
 
-      <TouchableOpacity
-        onPress={handlePlus}
-        disabled={!canInc}
-        style={[styles.button, dynamicStyles.bg, !canInc && styles.disabled]}
-      >
-        <Text style={[styles.buttonText, { color: textColor }]}>＋</Text>
+      <TouchableOpacity onPress={handlePlus} disabled={!canInc} style={[styles.button, dynamicStyles.bg]}>
+        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canInc ? 1 : 0.5 }]}>＋</Text>
       </TouchableOpacity>
     </View>
   );
@@ -88,13 +83,12 @@ const styles = StyleSheet.create({
   button: { width: 40, height: '100%', justifyContent: 'center', alignItems: 'center' },
   buttonText: { fontSize: 20, fontWeight: 'bold' },
   input: { flex: 1, height: '100%', textAlign: 'center', fontSize: 16, paddingVertical: 0 },
-  disabled: { opacity: 0.5 },
   untouched: {
     bg: { backgroundColor: '#fff' },
-    border: { borderWidth: 1, borderColor: '#233E55' },
+    border: { borderWidth: 1, borderColor: '#00000040' },
   },
   touched: {
-    bg: { backgroundColor: '#233E55' },
+    bg: { backgroundColor: '#5D768B' },
     border: { borderWidth: 1, borderColor: '#fff' },
   },
 });

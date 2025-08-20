@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   FlatList,
   Dimensions,
   Modal,
+  BackHandler,
 } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -18,6 +19,7 @@ import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import SearchIcon from '../assets/icons/search.svg';
 import { useReceivingStore } from '../store/receivingStore';
+import { FetchData } from '../api/ApiServices';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
@@ -41,6 +43,8 @@ const ReceiveScreen = () => {
 
   const [index, setIndex] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
+  const [AsnIntialData,setAsnIntialData] = useState([]);
+  const [AsnData,setAsnData] = useState([]);
 
   const [routes] = useState([
     { key: 'poir', title: 'PO/IR' },
@@ -55,12 +59,39 @@ const ReceiveScreen = () => {
   const [filteredReceived, setFilteredReceived] = useState(receivedData);
   const [filteredData, setFilteredData] = useState(poData);
 
+ useEffect(() => {
+    const loadData = async () => {
+      try {
+        const userdata = await FetchData('550e8400-e29b-41d4-a716-446655440000');
+        setAsnData(userdata);
+        setAsnIntialData(userdata);
+        console.log(userdata, "usereejebu");
+      } catch (err) {
+        console.error("Error loading user data:", err);
+      }
+    };
+
+    loadData();
+  }, []);
+
   useFocusEffect(
     React.useCallback(() => {
       resetReceiving();
       return () => {};
     }, [resetReceiving])
   );
+
+  useFocusEffect(
+      React.useCallback(() => {
+        const onBackPress = () => {
+          navigation.navigate('Home');
+          return true;
+        };
+
+        const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => sub.remove();
+      }, [navigation])
+    );
 
   const handleSearch = (text) => {
     setSearchText(text);
@@ -75,6 +106,16 @@ const ReceiveScreen = () => {
             r.supplier.toLowerCase().includes(q)
         )
       );
+    }
+    else if(activeKey === 'asn'){
+            setAsnData(
+        AsnIntialData.filter(
+          p =>
+            p.asn_num.toLowerCase().includes(q) ||
+            p.supplier_name.toLowerCase().includes(q)
+        )
+      );
+
     } else {
       setFilteredPO(
         poData.filter(
@@ -96,6 +137,7 @@ const ReceiveScreen = () => {
   const handleScan = (value) => {
     const code = String(value).trim().toUpperCase();
     const match = poData.find(p => String(p.poNumber).toUpperCase() === code);
+    // const asnmatch = AsnIntialData.find(a =>String(p.asn_num).toUpperCase() ===code);
 
     if (match) {
       setShowScanner(false);
@@ -110,6 +152,21 @@ const ReceiveScreen = () => {
         selectedPO: match,
         fromScan: true,
         scannedPoNumber: code,
+      });
+    }
+    else if(asnmatch){
+      setShowScanner(false);
+      Toast.show({
+        type: 'success',
+        text1: 'ASN found',
+        text2: `${asnmatch.asn_num} • ${asnmatch.supplier_name}`,
+        position: 'top',
+        visibilityTime: 1000,
+      });
+      navigation.navigate('AsnReceiptScreen', {
+        selectedASN: asnmatch,
+        fromScan: true,
+        scannedAsnNumber: code,
       });
     } else {
       Toast.show({
@@ -189,19 +246,22 @@ const ReceiveScreen = () => {
 
   const ASNList = () => (
     <FlatList
-      data={filteredData}
-      keyExtractor={(item) => item.id}
+      data={AsnData}
+      keyExtractor={(item) => item.asn_id}
       contentContainerStyle={{ paddingBottom: 80 }}
       renderItem={({ item }) => (
         <TouchableOpacity
-          onPress={() => navigation.navigate('AsnReceiptScreen', { selectedPO: item })}
+          onPress={() => navigation.navigate('AsnReceiptScreen', 
+            {selectedASN: item,
+        fromScan: false,
+        scannedAsnNumber: null, })}
           activeOpacity={0.9}
         >
           <View style={styles.card}>
             <View style={styles.cardLeft}>
               <View style={styles.row}>
                 <Text style={styles.labelText}>ASN Number</Text>
-                <Text style={styles.valueText}>{item.poNumber}</Text>
+                <Text style={styles.valueText}>{item.asn_num}</Text>
               </View>
               <View style={styles.row}>
                 <Text style={styles.labelText}>Status</Text>
@@ -209,18 +269,18 @@ const ReceiveScreen = () => {
               </View>
               <Text style={styles.subLabel}>Received</Text>
               <View style={styles.progressWrapper}>
-                <View style={[styles.progressBar, { width: `${item.received}%` }]} />
+                <View style={[styles.progressBar, { width: `40%` }]} />
               </View>
             </View>
 
             <View style={styles.cardRight}>
               <View style={styles.row}>
                 <Text style={styles.labelText}>Supplier</Text>
-                <Text style={styles.valueText}>{item.supplier}</Text>
+                <Text style={styles.valueText}>{item.supplier_name}</Text>
               </View>
               <View style={styles.row}>
                 <Text style={styles.labelText}>Shipped Date</Text>
-                <Text style={styles.valueText}>{item.poDate}</Text>
+                <Text style={styles.valueText}>{item.shipped_date}</Text>
               </View>
             </View>
           </View>
@@ -297,13 +357,21 @@ const ReceiveScreen = () => {
     inprogress: POList,
   };
 
+  const formatToday = () => {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+};
+
   return (
     <View style={styles.container}>
       <GlobalHeaderComponent
         title="Receive"
         greetingName="Robert"
-        dateText="06-08-2025"
-        onBack={() => navigation.goBack()}
+        dateText={formatToday()}
+        onBack={() => navigation.navigate('Home')}
         onMenu={() => {}}
       />
 

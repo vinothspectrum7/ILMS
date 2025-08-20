@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal } from 'react-native';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal, BackHandler } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -12,6 +12,8 @@ import ScanItemListCardComponent from '../components/ScanItemListCardComponent';
 import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
 import BarcodeScanner from './BarCodeScanner';
 import { useReceivingStore } from '../store/receivingStore';
+import { createOrderReceipt } from '../api/mockApi';
+import ConfirmModalComponent from '../components/ConfirmModalComponent';
 
 const dummyItems = [
   { id: '01', purchaseReceipt: 'PR-00002', name: 'Lorem Ipsumum', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
@@ -41,15 +43,46 @@ const NewReceiveScreen = () => {
   const {
     poHeader, setPoHeader,
     receiveItems, initReceiveItems, mergePatchIntoReceiveItems,
+    resetReceiving,
   } = useReceivingStore();
 
   const selectedPO = route?.params?.selectedPO || null;
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const didCompleteRef = useRef(false);
 
   const [selectedTab, setSelectedTab] = React.useState('lineItems');
   const [draftItems, setDraftItems] = React.useState([]);
   const [selectedItems, setSelectedItems] = React.useState([]);
   const [scannedItems, setScannedItems] = React.useState([]);
   const [showScanner, setShowScanner] = React.useState(false);
+
+  useFocusEffect(
+      React.useCallback(() => {
+        didCompleteRef.current = false;
+        return () => {};
+      }, [])
+    );
+
+    useFocusEffect(
+      React.useCallback(() => {
+        const onBackPress = () => {
+          if (showScanner) {
+            setShowScanner(false);
+            return true;
+          }
+          if (modalVisible) {
+            setModalVisible(false);
+            return true;
+          }
+          navigation.navigate('Receive');
+          return true;
+        };
+
+        const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => sub.remove();
+      }, [navigation, showScanner, modalVisible])
+    );
 
   useEffect(() => {
     if (!poHeader && selectedPO) setPoHeader(mapHeader(selectedPO));
@@ -144,7 +177,14 @@ const NewReceiveScreen = () => {
     commitDraftToStore();
 
     const isScan = selectedTab === 'scanItems';
-    const source = isScan ? scannedItems : draftItems;
+
+    if (isScan) {
+      setModalVisible(true);              
+      return;                             
+    }
+
+    
+    const source = draftItems;
 
     const payload = source
       .filter(i => Number(i.qtyToReceive ?? 0) > 0)
@@ -170,9 +210,56 @@ const NewReceiveScreen = () => {
       selectedItems: payload,
       readonly: false,
       header: mapHeader(selectedPO),
-      listType: isScan ? 'scan' : 'line',
+      listType: 'line',
     });
   };
+
+  const confirmAction = async () => {
+    try {
+      
+      const payload = (scannedItems || [])
+        .filter(i => Number(i.qtyToReceive ?? 0) > 0)
+        .map(i => ({
+          id: i.id,
+          purchaseReceipt: i.purchaseReceipt,
+          name: i.name,
+          description: i.description,
+          orderedQty: i.orderedQty,
+          receivedQty: i.receivedQty,
+          openQty: i.openQty,
+          uom: i.uom,
+          promisedDate: i.promisedDate,
+          needByDate: i.needByDate,
+          qtyToReceive: i.qtyToReceive,
+          lpn: i.lpn,
+          subInventory: i.subInventory,
+          locator: i.locator,
+        }));
+
+      const res = await createOrderReceipt(payload, true); // mock API
+      return { success: !!res?.ok, message: res?.message };
+    } catch (error) {
+      return { success: false, message: error?.message || 'Network error. Please try again.' };
+    }
+  };
+  
+    const handleCancel = () => setModalVisible(false);
+  
+    const handleSuccess = () => {
+      if (didCompleteRef.current) return;
+      didCompleteRef.current = true;
+      Toast.hide();
+      Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 1500 });
+      setModalVisible(false);
+      resetReceiving();
+      navigation.navigate('Receive');
+    };
+  
+    const handleFailure = () => {
+      Toast.hide();
+      Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 1500 });
+      setModalVisible(false);
+    };
 
   const toDetailItem = (it, i) => ({
     id: String(it.id),
@@ -224,9 +311,17 @@ const NewReceiveScreen = () => {
     [selectedTab, selectedItems.length, scannedItems.length]
   );
 
+  const formatToday = () => {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+};
+
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText="06-08-2025" onBack={() => navigation.goBack()} onMenu={() => {}} />
+      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText={formatToday()} onBack={() => navigation.navigate('Receive')} onMenu={() => {}} />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
@@ -235,6 +330,8 @@ const NewReceiveScreen = () => {
           poNumber={poHeader?.poNumber || '—'}
           receiptDate={poHeader?.poDate || '—'}
         />
+
+        <View style={styles.itemcontainer}>
 
         <ToggleTabsComponent selectedTab={selectedTab} onSelectTab={setSelectedTab} />
 
@@ -299,6 +396,7 @@ const NewReceiveScreen = () => {
             }
           />
         )}
+        </View>
       </ScrollView>
 
       <FooterButtonsComponent
@@ -309,6 +407,15 @@ const NewReceiveScreen = () => {
         leftEnabled={hasAnyItems}
         rightEnabled={hasAnyItems}
       />
+      <ConfirmModalComponent
+            visible={modalVisible}
+            title="Confirmation"
+            message="Are you sure want to confirm this order?"
+            confirmAction={confirmAction}
+            onCancel={handleCancel}
+            onSuccess={handleSuccess}
+            onFailure={handleFailure}
+          />
 
       <Modal visible={showScanner} animationType="slide">
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
@@ -320,6 +427,17 @@ const NewReceiveScreen = () => {
 const styles = StyleSheet.create({
   container: { backgroundColor: '#F6F8FA', flex: 1 },
   contentContainer: { paddingBottom: 120 },
+  itemcontainer: { 
+    backgroundColor: '#fff',     
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom:8,
+    borderRadius: 12,
+    paddingTop: 8,
+    paddingBottom: 6,
+    elevation: 2, 
+  },
+
   tableHeader: { marginBottom: 10, marginTop: 8 },
   lineItemWrapper: { marginBottom: 12 },
 });

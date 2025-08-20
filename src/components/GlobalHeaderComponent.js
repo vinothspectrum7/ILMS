@@ -15,6 +15,17 @@ const GlobalHeaderComponent = ({
   onBack = () => {},
   onMenu = () => {},
 }) => {
+
+  const today = (() => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  })();
+
+  const shownDate = dateText || today;
+  
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       
@@ -31,7 +42,7 @@ const GlobalHeaderComponent = ({
               {`Hello ${greetingName}`}
             </Text>
             <Text style={styles.dateText} numberOfLines={1} ellipsizeMode="tail">
-              {dateText}
+              {shownDate}
             </Text>
           </View>
         </View>
@@ -85,7 +96,8 @@ const styles = StyleSheet.create({
   dateText: {
     color: '#FFFFFF',
     opacity: 0.9,
-    fontSize: 9,       
+    fontSize: 9,
+    fontStyle: 'italic',       
     marginTop: 4,
   },
 

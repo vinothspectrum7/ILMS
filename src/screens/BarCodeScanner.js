@@ -172,9 +172,17 @@ export default function BarcodeScanner({ onScan, onClose }) {
     setTorchOn(!torchOn);
   };
 
+  const formatToday = () => {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+};
+
   return (
     <View style={{ flex: 1 }}>
-      <GlobalHeaderComponent title="Barcode Scanner" onBack={onClose} onMenu={() => {}} />
+      <GlobalHeaderComponent title="Barcode Scanner" dateText={formatToday()} onBack={onClose} onMenu={() => {}} />
       {isScanning ? (
         <View style={styles.scannerContainer}>
           <Camera
