@@ -73,12 +73,12 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   label: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#333',
   },
   qtyLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#333',
     marginRight: 12,

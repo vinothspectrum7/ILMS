@@ -81,9 +81,9 @@ const CustomNumericInput = ({
 
 const styles = StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, overflow: 'hidden' },
-  button: { width: 28, height: '100%', justifyContent: 'center', alignItems: 'center' },
-  buttonText: { fontSize: 20, fontWeight: 'bold' },
-  input: { flex: 1, height: '100%', textAlign: 'center', fontSize: 12, paddingVertical: 0, },
+  button: { width: 20, height: '100%', justifyContent: 'center', alignItems: 'center' },
+  buttonText: { fontSize: 14, fontWeight: 'bold' },
+  input: { flex: 1, height: '100%', textAlign: 'center', fontSize: 12, paddingVertical: 0,marginRight:-1,marginLeft:-1 },
   untouched: {
     bg: { backgroundColor: '#fff' },
     border: { borderWidth: 1, borderColor: '#00000040' },

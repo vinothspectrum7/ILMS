@@ -14,8 +14,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTROL_WIDTH = 80;
 const CONTROL_HEIGHT = 28;
 
-const NUMCONTROL_WIDTH = 90;
-const NUMCONTROL_HEIGHT = 32;
+const NUMCONTROL_WIDTH = 80;
+const NUMCONTROL_HEIGHT = 28;
 
 const fallbackLineItems = [
   { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINVENTORY1', locator: 'LOCATOR1' },
@@ -395,9 +395,9 @@ const styles = StyleSheet.create({
   inlineRight: { alignItems: 'flex-end', justifyContent: 'center' },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E5E7EB' },
   label: { fontSize: 12, color: '#6C6C6C' },
-  valueBold: { fontSize: 14, color: '#000000', fontWeight: '700', maxWidth: '58%', textAlign: 'right' },
-  descText: { marginTop: 6, fontSize: 14, fontWeight: '700', color: '#111827', lineHeight: 18 },
-  qtyRight: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  valueBold: { fontSize: 12, color: '#000000', fontWeight: '700', maxWidth: '58%', textAlign: 'right' },
+  descText: { marginTop: 6, fontSize: 12, fontWeight: '700', color: '#111827', lineHeight: 18 },
+  qtyRight: { fontSize: 12, fontWeight: '700', color: '#111827' },
   qtyUnit: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
   statusText: { color: '#F5B429', fontWeight: '700' },
