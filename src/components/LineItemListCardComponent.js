@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StyleSheet as RNStyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StyleSheet as RNStyleSheet,
+  Platform,
+  Dimensions,
+} from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import CustomNumericInput from '../components/CustomNumericInput';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const s = (n) => (SCREEN_WIDTH / BASE_WIDTH) * n;             // size scale
+const fs = (n, f = 0.35) => n + (s(n) - n) * f;               // font moderate scale
 
 const LineItemListCardComponent = ({
   item,
@@ -16,7 +29,6 @@ const LineItemListCardComponent = ({
   useEffect(() => {
     if (isSelected) {
       if (!touched) setTouched(true);
-
       if ((item.qtyToReceive ?? 0) === 0) {
         onQtyChange(item.id, item.openQty);
       }
@@ -92,6 +104,7 @@ const LineItemListCardComponent = ({
         </View>
 
         <View style={styles.section3}>
+          <Text style={styles.itemName}></Text>
           <View style={styles.numericInputWrapper}>
             <CustomNumericInput
               value={item.qtyToReceive ?? 0}
@@ -102,7 +115,8 @@ const LineItemListCardComponent = ({
               min={0}
               max={item.openQty}
               step={1}
-              width={100}
+              width={s(80)}
+              height={s(28)}
               isSelected={isSelected}
               onLimit={() => {}}
             />
@@ -124,78 +138,78 @@ const LineItemListCardComponent = ({
 
 const styles = StyleSheet.create({
   cardwrapper: {
-    paddingRight: 12,
+    paddingRight: s(12),
     paddingLeft: 0,
-    marginRight: 15,
-    marginLeft: 15,
-    height: 120,
+    marginRight: s(15),
+    marginLeft: s(15),
+    height: s(110),
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E5E5',
-    borderRadius: 10,
+    borderRadius: s(10),
   },
   rowContainer: { flexDirection: 'row', height: '100%' },
   section1: {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F6FAFA',
-    width: 35,
+    width: s(35),
     height: '100%',
-    borderRadius: 10,
-    borderBottomEndRadius:0,
-    borderTopRightRadius:0,
+    borderRadius: s(10),
+    borderBottomEndRadius: 0,
+    borderTopRightRadius: 0,
     position: 'relative',
   },
   checkbox: {
-    width: 16,
-    height: 16,
+    width: s(16),
+    height: s(16),
     transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }],
-    marginLeft: -15,
+    marginLeft: -s(15),
   },
   section2: {
     flex: 1,
     alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-    paddingLeft: 12,
-    paddingTop: 8,
+    justifyContent: 'center',
+    paddingLeft: s(12),
+    paddingTop: s(8),
+    minWidth: 0,
   },
   section3: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingLeft: 8,
-    minWidth: 100,
+    paddingLeft: s(8),
+    minWidth: s(110),
   },
   itemName: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '700',
     color: '#111827',
-    marginTop: 8,
-    marginBottom: 22,
+    paddingBottom:s(16),
   },
   numericInputWrapper: {
-    marginBottom: 10,
+    marginBottom: s(10),
     alignItems: 'center',
   },
-  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center', paddingBottom:15, },
   vertDivider: {
-    width: 1,
-    height: 18,
+    width: Math.max(StyleSheet.hairlineWidth, s(1)),
+    height: s(18),
     backgroundColor: '#DADADA',
-    marginHorizontal: 12,
-    borderRadius: 0.5,
+    marginHorizontal: s(12),
+    borderRadius: s(0.5),
     opacity: 0.9,
   },
-  metaText: { fontSize: 10, color: '#6B7280' },
+  metaText: { fontSize: fs(10), color: '#6B7280' },
   viewDetails: {
-    marginTop: 10,
-    fontSize: 10,
+    
+    fontSize: fs(10),
     color: '#033EFF',
     textDecorationLine: 'underline',
     textDecorationColor: '#033EFF',
   },
-  dateRow: { flexDirection: 'row', marginTop: 2 },
-  dateLabel: { fontSize: 10, color: '#6C6C6C' },
-  dateValue: { fontSize: 10, color: '#6C6C6C', fontWeight: '500' },
+  dateRow: { flexDirection: 'row', marginTop: s(2) },
+  dateLabel: { fontSize: fs(8), color: '#6C6C6C' },
+  dateValue: { fontSize: fs(8), color: '#6C6C6C', fontWeight: '500' },
 });
 
 export default LineItemListCardComponent;

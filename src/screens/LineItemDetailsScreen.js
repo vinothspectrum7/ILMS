@@ -11,8 +11,11 @@ import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import PenIcon from '../assets/icons/penicon.svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CONTROL_WIDTH = 130;
-const CONTROL_HEIGHT = 44;
+const CONTROL_WIDTH = 80;
+const CONTROL_HEIGHT = 28;
+
+const NUMCONTROL_WIDTH = 90;
+const NUMCONTROL_HEIGHT = 32;
 
 const fallbackLineItems = [
   { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINVENTORY1', locator: 'LOCATOR1' },
@@ -202,7 +205,8 @@ const LineItemDetailsScreen = () => {
                     max={Number(item.openQty ?? 0)}
                     min={0}
                     step={1}
-                    width={CONTROL_WIDTH}
+                    width={NUMCONTROL_WIDTH}
+                    height={NUMCONTROL_HEIGHT}
                     isSelected={isEditable}
                   />
                 )}
