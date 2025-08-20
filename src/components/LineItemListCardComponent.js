@@ -1,77 +1,81 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StyleSheet as RNStyleSheet, Platform } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
+import CustomNumericInput from '../components/CustomNumericInput';
 
 const LineItemListCardComponent = ({
   item,
-  index,               
+  index,
   isSelected,
   onCheckToggle,
   onQtyChange,
-  onViewDetails,        
+  onViewDetails,
 }) => {
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
     if (isSelected) {
-      setTouched(true);
+      if (!touched) setTouched(true);
+
+      if ((item.qtyToReceive ?? 0) === 0) {
+        onQtyChange(item.id, item.openQty);
+      }
     } else {
       setTouched(false);
     }
   }, [isSelected]);
 
-  const handleInteraction = () => {
-    if (!touched && isSelected) {
-      setTouched(true);
-      onQtyChange(item.id, item.openQty);
+  const MONTH_IDX = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+  };
+
+  const parseDate = (s) => {
+    if (!s) return null;
+    const t = String(s).trim();
+    let m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+    m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    m = t.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
+    if (m) {
+      const dd = Number(m[1]);
+      const mon = MONTH_IDX[m[2].toLowerCase()];
+      const yy = Number(m[3]);
+      if (mon != null) return new Date(yy, mon, dd);
     }
+    const d = new Date(t);
+    return isNaN(d) ? null : d;
   };
 
-  const handleMinus = () => {
-    handleInteraction();
-    onQtyChange(item.id, Math.max(0, (item.qtyToReceive ?? 0) - 1));
+  const formatDDMMYYYY = (s) => {
+    const d = parseDate(s);
+    if (!d) return s || '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
   };
-
-  const handlePlus = () => {
-    handleInteraction();
-    onQtyChange(item.id, Math.min(item.openQty, (item.qtyToReceive ?? 0) + 1));
-  };
-
-  const handleManualInput = (text) => {
-    handleInteraction();
-    const numeric = parseInt(text.replace(/[^0-9]/g, ''), 10);
-    const value = !isNaN(numeric) ? Math.min(item.openQty, numeric) : 0;
-    onQtyChange(item.id, value);
-  };
-
-  const isActive = touched && isSelected;
-
-  const inputStyles = [
-    styles.qtyInput,
-    isActive ? styles.inputTouched : styles.inputUntouched,
-  ];
-  const textColor = isActive ? '#fff' : '#233E55';
 
   return (
     <View style={styles.cardwrapper}>
       <View style={styles.rowContainer}>
         <View style={styles.section1}>
           <TouchableOpacity
-            style={StyleSheet.absoluteFill}
+            style={RNStyleSheet.absoluteFill}
             onPress={() => onCheckToggle(item)}
             activeOpacity={0.8}
           />
           <CheckBox
             value={isSelected}
             onValueChange={() => onCheckToggle(item)}
-            tintColors={{ true: '#233E55', false: '#233E55' }}
             style={styles.checkbox}
+            tintColors={{ true: '#233E55', false: '#666666' }}
+            onCheckColor={Platform.OS === 'ios' ? '#FFFFFF' : undefined}
+            onFillColor={Platform.OS === 'ios' ? '#233E55' : undefined}
+            onTintColor={Platform.OS === 'ios' ? '#666666' : undefined}
+            boxType={Platform.OS === 'ios' ? 'square' : undefined}
+            lineWidth={Platform.OS === 'ios' ? 1.5 : undefined}
           />
         </View>
 
@@ -79,49 +83,39 @@ const LineItemListCardComponent = ({
           <Text style={styles.itemName}>{item.name}</Text>
           <View style={styles.qtyBreakdownRow}>
             <Text style={styles.metaText}>Ordered Qty: {item.orderedQty}</Text>
-            <Text style={styles.metaText}>|</Text>
+            <View style={styles.vertDivider} />
             <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
           </View>
-           <TouchableOpacity onPress={() => onViewDetails?.(item, index)}>
-              <Text style={styles.viewDetails}>View Details</Text>
-           </TouchableOpacity>
+          <TouchableOpacity onPress={() => onViewDetails?.(item, index)}>
+            <Text style={styles.viewDetails}>View Details</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section3}>
           <View style={styles.numericInputWrapper}>
-            <TouchableOpacity
-              onPress={handleMinus}
-              disabled={!isSelected}
-              style={[
-                styles.btn,
-                isActive ? styles.btnTouched : styles.btnUntouched,
-              ]}
-            >
-              <Text style={{ color: textColor, fontSize: 18 }}>−</Text>
-            </TouchableOpacity>
-
-            <TextInput
-              style={[...inputStyles, { color: textColor }]}
-              value={String(item.qtyToReceive ?? 0)}
-              onChangeText={handleManualInput}
-              keyboardType="numeric"
-              editable={isSelected}
+            <CustomNumericInput
+              value={item.qtyToReceive ?? 0}
+              setValue={(v) => {
+                if (!touched && isSelected) setTouched(true);
+                onQtyChange(item.id, v);
+              }}
+              min={0}
+              max={item.openQty}
+              step={1}
+              width={100}
+              isSelected={isSelected}
+              onLimit={() => {}}
             />
-
-            <TouchableOpacity
-              onPress={handlePlus}
-              disabled={!isSelected}
-              style={[
-                styles.btn,
-                isActive ? styles.btnTouched : styles.btnUntouched,
-              ]}
-            >
-              <Text style={{ color: textColor, fontSize: 18 }}>＋</Text>
-            </TouchableOpacity>
           </View>
 
-          <Text style={styles.dateText}>Promised Date: {item.promisedDate}</Text>
-          <Text style={styles.dateText}>Need By Date: {item.needByDate}</Text>
+          <View style={styles.dateRow}>
+            <Text style={styles.dateLabel}>Promised Date: </Text>
+            <Text style={styles.dateValue}>{formatDDMMYYYY(item.promisedDate)}</Text>
+          </View>
+          <View style={styles.dateRow}>
+            <Text style={styles.dateLabel}>Need By Date: </Text>
+            <Text style={styles.dateValue}>{formatDDMMYYYY(item.needByDate)}</Text>
+          </View>
         </View>
       </View>
     </View>
@@ -132,37 +126,38 @@ const styles = StyleSheet.create({
   cardwrapper: {
     paddingRight: 12,
     paddingLeft: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
     marginRight: 15,
     marginLeft: 15,
     height: 120,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
     borderRadius: 10,
-    elevation: 3,
   },
-  rowContainer: {
-    flexDirection: 'row',
-    height: '100%',
-  },
+  rowContainer: { flexDirection: 'row', height: '100%' },
   section1: {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F6FAFA',
-    width: 40,
+    width: 35,
     height: '100%',
+    borderRadius: 10,
+    borderBottomEndRadius:0,
+    borderTopRightRadius:0,
     position: 'relative',
   },
   checkbox: {
     width: 16,
     height: 16,
+    transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }],
     marginLeft: -15,
-    zIndex: 1,
   },
   section2: {
     flex: 1,
-    paddingLeft: 8,
-    marginTop: 8,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    paddingLeft: 12,
+    paddingTop: 8,
   },
   section3: {
     alignItems: 'flex-end',
@@ -172,80 +167,35 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#000',
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 8,
+    marginBottom: 22,
   },
   numericInputWrapper: {
     marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  btn: {
-    width: 28,
-    height: 30,
-    borderRadius: 4,
-    justifyContent: 'center',
     alignItems: 'center',
   },
-  btnUntouched: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#233E55',
+  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  vertDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: '#DADADA',
+    marginHorizontal: 12,
+    borderRadius: 0.5,
+    opacity: 0.9,
   },
-  btnTouched: {
-    backgroundColor: '#233E55',
-    borderWidth: 1,
-    borderColor: '#fff',
-  },
-  qtyInput: {
-    width: 50,
-    height: 30,
-    borderRadius: 4,
-    fontSize: 14,
-    textAlign: 'center',
-    paddingVertical: 0,
-  },
-  inputUntouched: {
-    backgroundColor: '#fff',
-    borderColor: '#233E55',
-    borderWidth: 1,
-  },
-  inputTouched: {
-    backgroundColor: '#233E55',
-    borderColor: '#fff',
-    borderWidth: 1,
-  },
-  uomText: {
-    fontSize: 10,
-    color: '#666',
-    marginTop: 4,
-  },
-  qtyBreakdownRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    columnGap: 4,
-  },
-  metaText: {
-    fontSize: 10,
-    color: '#666',
-    marginHorizontal: 15,
-    marginLeft: -1,
-    marginBottom: 10,
-    marginTop: 5,
-  },
+  metaText: { fontSize: 10, color: '#6B7280' },
   viewDetails: {
+    marginTop: 10,
     fontSize: 10,
-    color: '#0A395D',
-    marginTop: 4,
+    color: '#033EFF',
     textDecorationLine: 'underline',
+    textDecorationColor: '#033EFF',
   },
-  dateText: {
-    fontSize: 10,
-    color: '#999',
-    marginTop: 4,
-  },
+  dateRow: { flexDirection: 'row', marginTop: 2 },
+  dateLabel: { fontSize: 10, color: '#6C6C6C' },
+  dateValue: { fontSize: 10, color: '#6C6C6C', fontWeight: '500' },
 });
 
 export default LineItemListCardComponent;

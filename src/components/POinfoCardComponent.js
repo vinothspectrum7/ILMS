@@ -10,53 +10,64 @@ const POinfoCardComponent = ({ receiptNumber, supplier, poNumber, receiptDate })
   const rd = (receiptDate ?? '').toString().trim() || dash;
 
   return (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        <View style={styles.column}>
-          <Text style={styles.label}>Purchase Receipt</Text>
-          <Text style={styles.value}>{rn}</Text>
-        </View>
-        <View style={styles.column}>
-          <Text style={styles.label}>Supplier</Text>
-          <Text style={styles.value}>{sup}</Text>
-        </View>
-      </View>
-
-      <View style={styles.row}>
-        <View style={styles.column}>
-          <Text style={styles.label}>PO Number</Text>
-          <Text style={styles.value}>{po}</Text>
-        </View>
-        <View style={styles.column}>
-          <Text style={styles.label}>Receipt Date</Text>
-          <Text style={styles.value}>{rd}</Text>
-        </View>
-      </View>
-    </View>
+      <View style={styles.card}>
+                <View style={styles.cardLeft}>
+                  <View style={styles.row}>
+                    <Text style={styles.labelText}>Purchase Receipt</Text>
+                    <Text style={styles.valueText}>{rn}</Text>
+                  </View>
+                  <View style={styles.row}>
+                    <Text style={styles.labelText}>PO Number</Text>
+                    <Text style={styles.valueText}>{po}</Text>
+                  </View>
+                </View>
+    
+                <View style={styles.cardRight}>
+                  <View style={styles.row}>
+                    <Text style={styles.labelText}>Supplier</Text>
+                    <Text style={styles.valueText}>{sup}</Text>
+                  </View>
+                  <View style={styles.row}>
+                    <Text style={styles.labelText}>Receipt Date</Text>
+                    <Text style={styles.valueText}>{rd}</Text>
+                  </View>
+                </View>
+              </View>
+    
   );
 };
 
 const styles = StyleSheet.create({
+  
   card: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
+    marginTop:24,
+    marginHorizontal: 12,
+    marginVertical: 6,
     borderRadius: 12,
-    elevation: 4,
+    padding: 12,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 3,
   },
+  cardLeft: { flex: 1, paddingRight: 6 },
+  cardRight: { flex: 1, paddingLeft: 6 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  labelText: { fontSize: 12, color: '#555', flex: 1 },
+  valueText: { fontSize: 12, fontWeight: 'bold', color: '#1C1C1C', flex: 1, textAlign: 'left' },
+  openText: { color: 'green' },
+  subLabel: { fontSize: 12, color: '#555', marginTop: 4, marginBottom: 2 },
+  
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
   },
   column: { flex: 1 },
-  label: { fontSize: 12, color: '#777' },
-  value: { fontSize: 14, fontWeight: 'bold', color: '#000' },
 });
 
 export default POinfoCardComponent;

@@ -8,6 +8,7 @@ import {
   FlatList,
   Dimensions,
   Modal,
+  BackHandler,
 } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -103,6 +104,18 @@ const ReceiveScreen = () => {
       return () => {};
     }, [resetReceiving])
   );
+
+  useFocusEffect(
+      React.useCallback(() => {
+        const onBackPress = () => {
+          navigation.navigate('Home');
+          return true;
+        };
+
+        const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => sub.remove();
+      }, [navigation])
+    );
 
   const handleSearch = (text) => {
     setSearchText(text);
@@ -364,12 +377,20 @@ const ReceiveScreen = () => {
     inprogress: POList,
   };
 
+  const formatToday = () => {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+};
+
   return (
     <View style={styles.container}>
       <GlobalHeaderComponent
         title="Receive"
         greetingName="Robert"
-        dateText="06-08-2025"
+        dateText={formatToday()}
         onBack={() => navigation.navigate('Home')}
         onMenu={() => {}}
       />
