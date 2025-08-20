@@ -210,11 +210,11 @@ const ReceiveScreen = () => {
         >
           <View style={styles.card}>
             <View style={styles.cardLeft}>
-              <View style={styles.row}>
+              <View style={styles.toprow}>
                 <Text style={styles.labelText}>PO Number</Text>
                 <Text style={styles.valueText}>{item.poNumber}</Text>
               </View>
-              <View style={styles.row}>
+              <View style={styles.bottomrow}>
                 <Text style={styles.labelText}>PO Status</Text>
                 <Text style={[styles.valueText, styles.openText]}>{item.status}</Text>
               </View>
@@ -225,11 +225,11 @@ const ReceiveScreen = () => {
             </View>
 
             <View style={styles.cardRight}>
-              <View style={styles.row}>
+              <View style={styles.toprow}>
                 <Text style={styles.labelText}>Supplier</Text>
                 <Text style={styles.valueText}>{item.supplier}</Text>
               </View>
-              <View style={styles.row}>
+              <View style={styles.bottomrow}>
                 <Text style={styles.labelText}>PO Order Date</Text>
                 <Text style={styles.valueText}>{item.poDate}</Text>
               </View>
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     borderRadius: 12,
     padding: 12,
-    elevation: 3,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -447,7 +447,8 @@ const styles = StyleSheet.create({
   },
   cardLeft: { flex: 1, paddingRight: 6 },
   cardRight: { flex: 1, paddingLeft: 6 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  toprow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  bottomrow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   labelText: { fontSize: 10, color: '#555', flex: 1 },
   valueText: { fontSize: 10, fontWeight: 'bold', color: '#1C1C1C', flex: 1, textAlign: 'left' },
   openText: { color: 'green' },
