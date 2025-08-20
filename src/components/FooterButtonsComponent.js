@@ -2,100 +2,97 @@ import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
-const FooterButtonsComponent = memo((props) => {
-  const {
-    onSave,
-    onReceive,
-    isReceiveEnabled,
-    leftLabel = 'Save',
-    rightLabel = 'Receive',
-    onLeftPress,
-    onRightPress,
-    leftEnabled = isReceiveEnabled === undefined ? true : !!isReceiveEnabled,
-    rightEnabled = isReceiveEnabled === undefined ? true : !!isReceiveEnabled,
-    leftVariant = 'light',
-    rightVariant = 'dark',
-    containerStyle,
-    leftButtonStyle,
-    rightButtonStyle,
-    labelStyle,
-    sticky = true,
-    showShadow = false,
-  } = props;
+const BRAND = '#233E55';
+const WHITE = '#FFFFFF';
+const MUTED_WHITE = 'rgba(255,255,255,0.85)';
+const MUTED_TEAL  = '#7A8C99';
 
+const GREY_TOP = '#D9D9D9';
+const GREY_MID = '#C2C2C2';
+const GREY_DARK = '#A9A9A9';
+
+const RADIUS = 42;
+const HEIGHT = 48;
+
+const FooterButtonsComponent = memo(({
+  onSave,
+  onReceive,
+  leftLabel = 'Save',
+  rightLabel = 'Receive',
+  onLeftPress,
+  onRightPress,
+  leftEnabled = true,
+  rightEnabled = true,
+  containerStyle,
+  leftButtonStyle,
+  rightButtonStyle,
+  labelStyle,
+  sticky = true,
+  showShadow = false,
+}) => {
   const handleLeft = onLeftPress ?? onSave;
   const handleRight = onRightPress ?? onReceive;
 
-  const renderButton = ({ label, onPress, enabled, variant, extraStyle }) => {
-    const isDark = variant === 'dark';
-    const isOutline = variant === 'outline';
-
-    const gradientEnabled = isDark
-      ? ['#233E55', '#233E55', '#233E55']
-      : ['#EBF7F6', '#EBF7F6', '#EBF7F6'];
-    const gradientDisabled = isDark
-      ? ['#233e5538', '#233e5538', '#233e5538']
-      : ['#ebf7f650', '#ebf7f650', '#ebf7f650'];
-
-    const gradientColors = enabled ? gradientEnabled : gradientDisabled;
-    const textColor = isDark ? (enabled ? '#FFFFFF' : '#233E55') : '#233E55';
-
-    return (
+  return (
+    <View style={[styles.footerContainer, sticky && styles.sticky, showShadow && styles.shadow, containerStyle]}>
       <TouchableOpacity
-        onPress={enabled ? onPress : undefined}
-        style={[styles.buttonBase, extraStyle, isOutline && styles.buttonOutline]}
-        activeOpacity={enabled ? 0.8 : 1}
-        disabled={!enabled}
+        onPress={leftEnabled ? handleLeft : undefined}
+        activeOpacity={leftEnabled ? 0.85 : 1}
+        disabled={!leftEnabled}
+        style={[styles.buttonBase, styles.half, styles.left, leftButtonStyle, !leftEnabled && styles.leftDisabledBorder]}
       >
-        <View style={styles.glossWrapper}>
-          <LinearGradient
-            colors={['#EBF7F6', 'rgba(255, 255, 255, 0.1)', 'transparent']}
-            style={styles.glossOverlay}
-            start={{ x: 0.0, y: 0.0 }}
-            end={{ x: 0.0, y: 1.0 }}
-          />
-        </View>
+        <LinearGradient
+          colors={leftEnabled ? ['rgba(255,255,255,0.70)', '#EBF7F6'] : ['rgba(255,255,255,0.55)', '#EBF7F6']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.fillGradient}
+        />
+        <Text style={[styles.label, { color: leftEnabled ? BRAND : MUTED_TEAL }, labelStyle]}>{leftLabel}</Text>
+      </TouchableOpacity>
 
-        {!isOutline && (
+      <TouchableOpacity
+        onPress={rightEnabled ? handleRight : undefined}
+        activeOpacity={rightEnabled ? 0.85 : 1}
+        disabled={!rightEnabled}
+        style={[styles.buttonBase, styles.half, styles.right, rightButtonStyle]}
+      >
+        {rightEnabled ? (
+          <View style={styles.fillSolidBrand} />
+        ) : (
           <LinearGradient
-            colors={gradientColors}
-            start={{ x: 0.0, y: 0.5 }}
-            end={{ x: 1.0, y: 0.5 }}
-            style={styles.shinyGradient}
+            colors={[GREY_TOP, GREY_MID, GREY_DARK]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.fillGradient}
           />
         )}
 
-        <Text style={[styles.label, { color: textColor }, labelStyle]}>
-          {label}
-        </Text>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.53)', 'rgba(255,255,255,0)']}
+          locations={[0, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.topGloss}
+        />
+
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.23)']}
+          locations={[0.55, 1]}
+          start={{ x: 0.5, y: 0.55 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.bottomInnerShadow}
+        />
+
+        <LinearGradient
+          colors={['rgba(0,0,0,0.16)', 'transparent', 'transparent', 'rgba(0,0,0,0.16)']}
+          locations={[0, 0.2, 0.8, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.sideVignette}
+        />
+
+        <Text style={[styles.label, { color: rightEnabled ? WHITE : MUTED_WHITE }, labelStyle]}>{rightLabel}</Text>
       </TouchableOpacity>
-    );
-  };
-
-  return (
-    <View
-      style={[
-        styles.footerContainer,
-        sticky && styles.sticky,
-        showShadow && styles.shadow,
-        containerStyle,
-      ]}
-    >
-      {renderButton({
-        label: leftLabel,
-        onPress: handleLeft,
-        enabled: leftEnabled,
-        variant: leftVariant,
-        extraStyle: [styles.half, styles.left, leftButtonStyle],
-      })}
-
-      {renderButton({
-        label: rightLabel,
-        onPress: handleRight,
-        enabled: rightEnabled,
-        variant: rightVariant,
-        extraStyle: [styles.half, styles.right, rightButtonStyle],
-      })}
     </View>
   );
 });
@@ -110,59 +107,53 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
-  sticky: {
-    paddingBottom: Platform.select({ ios: 24, android: 12 }),
-  },
+  sticky: { paddingBottom: Platform.select({ ios: 24, android: 12 }) },
   shadow: {
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: -2 } },
       android: { elevation: 6 },
     }),
   },
-  half: {
-    width: '50%',
-  },
-  left: {
-    marginRight: 4,
-    borderWidth: 1,
-    borderColor: '#233E55',
-  },
-  right: {
-    marginLeft: 4,
-  },
+  half: { width: '50%' },
+  left: { marginRight: 4, borderWidth: 1, borderColor: BRAND, backgroundColor: WHITE },
+  leftDisabledBorder: { borderColor: '#A0AEB8' },
+  right: { marginLeft: 4 },
   buttonBase: {
-    height: 40,
-    borderRadius: 30,
+    height: HEIGHT,
+    borderRadius: RADIUS,
     overflow: 'hidden',
-    marginBottom: 30,
+    marginBottom: 22,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
-  buttonOutline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#233E55',
-  },
-  shinyGradient: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 30,
-  },
-  glossWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 30,
-    zIndex: 1,
-    overflow: 'hidden',
-  },
-  glossOverlay: {
-    height: '60%',
-    width: '100%',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-  },
-  label: {
+  label: { zIndex: 5, fontWeight: 'bold', fontSize: 16 },
+  fillGradient: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS },
+  fillSolidBrand: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS, backgroundColor: BRAND },
+  topGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 2,
+    right: 2,
+    height: '52%',
+    borderTopLeftRadius: RADIUS,
+    borderTopRightRadius: RADIUS,
     zIndex: 2,
-    fontWeight: 'bold',
+  },
+  bottomInnerShadow: {
+    position: 'absolute',
+    left: 2,
+    right: 2,
+    bottom: 0,
+    height: '36%',
+    borderBottomLeftRadius: RADIUS,
+    borderBottomRightRadius: RADIUS,
+    zIndex: 1,
+  },
+  sideVignette: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: RADIUS,
+    zIndex: 1,
   },
 });
 

@@ -1,47 +1,31 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import RadioGlossySelected from '../assets/icons/RadioGlossySelected.svg';
+import RadioGlossyUnselected from '../assets/icons/RadioGlossyUnselected.svg';
+
+const BRAND = '#0A395D';
+
+const RadioIcon = ({ selected, size = 20 }) =>
+  selected ? (
+    <RadioGlossySelected width={size} height={size} />
+  ) : (
+    <RadioGlossyUnselected width={size} height={size} />
+  );
 
 const ToggleTabsComponent = ({ selectedTab, onSelectTab }) => {
+  const isLine = selectedTab === 'lineItems';
+  const isScan = selectedTab === 'scanItems';
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[
-          styles.tab,
-          selectedTab === 'lineItems' && styles.tabSelected,
-        ]}
-        onPress={() => onSelectTab('lineItems')}
-      >
-        <View style={styles.radioCircle}>
-          {selectedTab === 'lineItems' && <View style={styles.radioDot} />}
-        </View>
-        <Text
-          style={[
-            styles.tabText,
-            selectedTab === 'lineItems' && styles.tabTextSelected,
-          ]}
-        >
-          Line Items
-        </Text>
+      <TouchableOpacity style={styles.tab} onPress={() => onSelectTab('lineItems')} activeOpacity={0.8}>
+        <RadioIcon selected={isLine} size={20} />
+        <Text style={[styles.tabText, isLine && styles.tabTextSelected]}>Line Items</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.tab,
-          selectedTab === 'scanItems' && styles.tabSelected,
-        ]}
-        onPress={() => onSelectTab('scanItems')}
-      >
-        <View style={styles.radioCircle}>
-          {selectedTab === 'scanItems' && <View style={styles.radioDot} />}
-        </View>
-        <Text
-          style={[
-            styles.tabText,
-            selectedTab === 'scanItems' && styles.tabTextSelected,
-          ]}
-        >
-          Scan items
-        </Text>
+      <TouchableOpacity style={styles.tab} onPress={() => onSelectTab('scanItems')} activeOpacity={0.8}>
+        <RadioIcon selected={isScan} size={20} />
+        <Text style={[styles.tabText, isScan && styles.tabTextSelected]}>Scan items</Text>
       </TouchableOpacity>
     </View>
   );
@@ -59,30 +43,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 24,
   },
-  tabSelected: {},
   tabText: {
-    fontSize: 14,
-    color: '#444',
+    fontSize: 16,
+    color: BRAND,
     marginLeft: 8,
+    fontWeight: '500',
   },
   tabTextSelected: {
-    fontWeight: 'bold',
-    color: '#0A395D',
-  },
-  radioCircle: {
-    height: 16,
-    width: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#0A395D',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioDot: {
-    height: 8,
-    width: 8,
-    borderRadius: 4,
-    backgroundColor: '#0A395D',
+    fontWeight: '700',
   },
 });
 

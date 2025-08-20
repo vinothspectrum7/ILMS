@@ -84,10 +84,8 @@ const LineItemDetailsScreen = () => {
     if (readOnly) return false;
     const q = Number(state.receivingQty ?? 0);
     const qtyOk = q > 0 && q <= Number(current.openQty ?? 0);
-    const lpnOk = !!state.lpn;
     const subInvOk = !!state.subInventory;
-    const locOk = !!state.locator;
-    return qtyOk && lpnOk && subInvOk && locOk;
+    return qtyOk && subInvOk;
   }, [state, readOnly, current.openQty]);
 
   const titlePo = current?.poNumber ? `Receive - ${String(current.poNumber)}` : 'Receive';
@@ -108,31 +106,35 @@ const LineItemDetailsScreen = () => {
     Toast.show({ type: 'success', text1: 'Line item saved', position: 'top', visibilityTime: 1200 });
   }, []);
 
+  const handleCancelNav = useCallback(() => {
+    if (returnTo) navigation.navigate(returnTo);
+    else navigation.goBack();
+  }, [navigation, returnTo]);
+
   const openSubmitConfirm = useCallback(() => setShowConfirm(true), []);
   const closeSubmitConfirm = useCallback(() => setShowConfirm(false), []);
   const mockSubmitAction = useCallback(async () => { await new Promise((r) => setTimeout(r, 900)); return { success: true }; }, []);
 
   const afterSubmitSuccess = useCallback(() => {
-  const patch = {
-    id: String(current.id),
-    receivingQty: clampToOpen(
-      Number((edited[current.id]?.receivingQty ?? state.receivingQty) || 0),
-      current.openQty
-    ),
-    lpn: (edited[current.id]?.lpn ?? state.lpn) || '',
-    subInventory: (edited[current.id]?.subInventory ?? state.subInventory) || '',
-    locator: (edited[current.id]?.locator ?? state.locator) || '',
-  };
+    const patch = {
+      id: String(current.id),
+      receivingQty: clampToOpen(
+        Number((edited[current.id]?.receivingQty ?? state.receivingQty) || 0),
+        current.openQty
+      ),
+      lpn: (edited[current.id]?.lpn ?? state.lpn) || '',
+      subInventory: (edited[current.id]?.subInventory ?? state.subInventory) || '',
+      locator: (edited[current.id]?.locator ?? state.locator) || '',
+    };
 
-  if (returnTo) {
-    navigation.dispatch(
-      StackActions.replace(returnTo, { patch, listType })
-    );
-  } else {
-    navigation.goBack();
-  }
-}, [navigation, returnTo, current.id, current.openQty, state, edited, listType]);
-
+    if (returnTo) {
+      navigation.dispatch(
+        StackActions.replace(returnTo, { patch, listType })
+      );
+    } else {
+      navigation.goBack();
+    }
+  }, [navigation, returnTo, current.id, current.openQty, state, edited, listType]);
 
   const renderPage = ({ item }) => {
     const readonlyQty = readOnly
@@ -209,17 +211,16 @@ const LineItemDetailsScreen = () => {
 
             <View style={styles.divider} />
 
-            <View style={styles.row}>
+            {/* <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
               <Text style={styles.statusText}>
                 {readOnly
                     ? (listType === 'scan' ? 'In-Progress' : 'Received')
                     : (item.receivingStatus || 'In-Progress')}
                 </Text>
-
             </View>
 
-            <View style={styles.divider} />
+            <View style={styles.divider} /> */}
 
             <InlineFieldRow label="LPN">
               <PencilDropdownRow
@@ -238,7 +239,7 @@ const LineItemDetailsScreen = () => {
 
             <View style={styles.divider} />
 
-            <InlineFieldRow label="Sub Inventory">
+            <InlineFieldRow label="Sub Inventory*">
               <PencilDropdownRow
                 key={`subinv-${String(item.id)}`}
                 value={pageState.subInventory}
@@ -255,7 +256,7 @@ const LineItemDetailsScreen = () => {
 
             <View style={styles.divider} />
 
-            <InlineFieldRow label="Locator*">
+            <InlineFieldRow label="Locator">
               <PencilDropdownRow
                 key={`locator-${String(item.id)}`}
                 value={pageState.locator}
@@ -277,12 +278,23 @@ const LineItemDetailsScreen = () => {
     );
   };
 
+  const formatToday = () => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
+  const leftBtnLabel = 'Cancel';
+  const rightBtnLabel = returnTo === 'ReceiveSummaryScreen' ? 'Update' : 'Submit';
+
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
         title={titlePo}
-        greetingName="Hello Robert"
-        dateText="06-08-2025"
+        greetingName="Robert"
+        dateText={formatToday()}
         onBack={() => navigation.goBack()}
         onMenu={() => {}}
       />
@@ -316,11 +328,11 @@ const LineItemDetailsScreen = () => {
 
       {!readOnly && (
         <FooterButtonsComponent
-          leftLabel="Save"
-          rightLabel="Submit"
-          onLeftPress={isEdited ? handleSave : undefined}
+          leftLabel={leftBtnLabel}
+          rightLabel={rightBtnLabel}
+          onLeftPress={handleCancelNav}
           onRightPress={isSubmitEnabled ? openSubmitConfirm : undefined}
-          leftEnabled={isEdited}
+          leftEnabled={true}
           rightEnabled={isSubmitEnabled}
         />
       )}

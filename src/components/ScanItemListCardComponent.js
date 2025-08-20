@@ -96,14 +96,15 @@ const styles = StyleSheet.create({
     height: 40,
     marginHorizontal: 15,
     marginTop: 6,
+    marginBottom:420,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   scanText: { color: '#777' },
-  addMore: { alignSelf: 'flex-start', marginTop: 8, marginLeft: 15 },
-  addMoreText: { color: '#0A395D', textDecorationLine: 'underline', fontSize: 12 },
+  addMore: { alignSelf: 'flex-start', marginTop: 8, marginLeft: 15, marginBottom:10 },
+  addMoreText: { color: '#033EFF', textDecorationLine: 'underline', fontSize: 12 },
 });
 
 export default ScanItemListCardComponent;

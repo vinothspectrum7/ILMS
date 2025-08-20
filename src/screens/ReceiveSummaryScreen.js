@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
@@ -46,12 +46,28 @@ const ReceiveSummaryScreen = () => {
 
   const didCompleteRef = useRef(false);
   const handledPatchIdsRef = useRef(new Set());
+  const initializedRef = useRef(false);
 
   useFocusEffect(
     React.useCallback(() => {
       didCompleteRef.current = false;
       return () => {};
     }, [])
+  );
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (modalVisible) {
+          setModalVisible(false);
+          return true;
+        }
+        navigation.navigate('NewReceiveScreen');
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [navigation, modalVisible])
   );
 
   useEffect(() => {
@@ -74,31 +90,17 @@ const ReceiveSummaryScreen = () => {
   }, [poHeader, headerFromRoute, readonly, sourceId, setPoHeader, route?.params?.header?.poNumber, route?.params?.poNumber]);
 
   useEffect(() => {
+    if (initializedRef.current) return;
     if (readonly) {
       setDraft(passedItems.length ? passedItems : defaultReceiptItems);
-      return;
-    }
-    if (Array.isArray(passedItems) && passedItems.length > 0) {
+    } else if (Array.isArray(passedItems) && passedItems.length > 0) {
       setDraft(passedItems);
       initSummaryItems(passedItems);
-    } else if (!readonly && draft.length === 0 && Array.isArray(summaryItems) && summaryItems.length > 0) {
+    } else if (Array.isArray(summaryItems) && summaryItems.length > 0) {
       setDraft(summaryItems);
     }
+    initializedRef.current = true;
   }, [readonly, passedItems, summaryItems, initSummaryItems]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      if (!readonly) {
-        if (Array.isArray(passedItems) && passedItems.length > 0) {
-          setDraft(passedItems);
-          initSummaryItems(passedItems);
-        } else if (draft.length === 0 && Array.isArray(summaryItems) && summaryItems.length > 0) {
-          setDraft(summaryItems);
-        }
-      }
-      return () => {};
-    }, [readonly, summaryItems, draft.length])
-  );
 
   const patch = route?.params?.patch;
 
@@ -108,9 +110,8 @@ const ReceiveSummaryScreen = () => {
 
     handledPatchIdsRef.current.add(patchId);
 
-    setDraft(prev => {
-      const base = prev.length > 0 ? prev : (Array.isArray(summaryItems) ? summaryItems : []);
-      const next = base.map(it =>
+    setDraft(prev =>
+      prev.map(it =>
         String(it.id) === patchId
           ? {
               ...it,
@@ -120,18 +121,20 @@ const ReceiveSummaryScreen = () => {
               locator: patch.locator ?? it.locator,
             }
           : it
-      );
-      return next;
-    });
+      )
+    );
 
     mergePatchIntoSummaryItems(patch);
     mergePatchIntoReceiveItems(patch);
 
     const t = setTimeout(() => navigation.setParams({ patch: undefined }), 0);
     return () => clearTimeout(t);
-  }, [patch?.id, patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation, summaryItems]);
+  }, [patch?.id, patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation]);
 
-  const headerData = useMemo(() => poHeader || { purchaseReceipt: '—', supplier: '—', poNumber: '—', poDate: '—' }, [poHeader]);
+  const headerData = useMemo(
+    () => poHeader || { purchaseReceipt: '—', supplier: '—', poNumber: '—', poDate: '—' },
+    [poHeader]
+  );
 
   const confirmAction = async () => {
     try {
@@ -194,9 +197,17 @@ const ReceiveSummaryScreen = () => {
     });
   };
 
+  const formatToday = () => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText="06-08-2025" onBack={() => navigation.navigate('NewReceiveScreen')} onMenu={() => {}} />
+      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText={formatToday()} onBack={() => navigation.navigate('NewReceiveScreen')} onMenu={() => {}} />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
@@ -206,27 +217,31 @@ const ReceiveSummaryScreen = () => {
           receiptDate={headerData.poDate}
         />
 
-        <View style={styles.tableHeader}>
-          <SummaryTabHdrComponent />
-        </View>
+        <View style={styles.itemcontainer}>
+          <Text style={styles.itemName}>Item Summary</Text>
 
-        <FlatList
-          data={draft}
-          keyExtractor={item => String(item.id)}
-          renderItem={({ item }) => (
-            <View style={styles.lineItemWrapper}>
-              <ConfirmLineItemComponent
-                item={item}
-                qtyLabel="Qty"
-                qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? item.qtyToReceive ?? 0) : Number(item.qtyToReceive ?? 0)}
-                readOnly
-                onViewDetails={() => openLineDetailsFromSummary(item)}
-              />
-            </View>
-          )}
-          scrollEnabled={false}
-          ListEmptyComponent={<View style={{ height: 16 }} />}
-        />
+          <View style={styles.tableHeader}>
+            <SummaryTabHdrComponent />
+          </View>
+
+          <FlatList
+            data={draft}
+            keyExtractor={item => String(item.id)}
+            renderItem={({ item }) => (
+              <View style={styles.lineItemWrapper}>
+                <ConfirmLineItemComponent
+                  item={item}
+                  qtyLabel="Qty"
+                  qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? item.qtyToReceive ?? 0) : Number(item.qtyToReceive ?? 0)}
+                  readOnly
+                  onViewDetails={() => openLineDetailsFromSummary(item)}
+                />
+              </View>
+            )}
+            scrollEnabled={false}
+            ListEmptyComponent={<View style={{ height: 16 }} />}
+          />
+        </View>
       </ScrollView>
 
       {!readonly && (
@@ -259,6 +274,25 @@ const styles = StyleSheet.create({
   contentContainer: { paddingBottom: 120 },
   tableHeader: { marginTop: 8, marginBottom: 10 },
   lineItemWrapper: { marginBottom: 12 },
+  itemcontainer: {
+    backgroundColor: '#fff',
+    marginHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 12,
+    paddingTop: 8,
+    paddingBottom: 6,
+    elevation: 2,
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+    marginHorizontal: 12,
+    marginStart: 18,
+    marginTop: 3,
+    paddingTop: 3,
+  },
 });
 
 export default ReceiveSummaryScreen;
