@@ -9,7 +9,7 @@ const responsiveSize = (size) => Math.round(size * scale);
 
 export function NavigationCard({ title, icon: IconComponent, onPress }) {
   return (
-    <TouchableOpacity style={styles.cardContainer} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={styles.cardContainer} onPress={onPress} activeOpacity={0.97}>
       <View style={styles.backgroundWrapper}>
         <CardBackground width="100%" height={responsiveSize(40)} style={styles.cardBackground} />
       </View>
