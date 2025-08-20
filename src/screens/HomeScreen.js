@@ -8,6 +8,7 @@ import {
   Dimensions,
   SafeAreaView,
   Alert,
+  BackHandler,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { QrCode } from 'lucide-react-native';
@@ -57,6 +58,18 @@ export default function HomeScreen({ navigation }) {
       return () => {};
     }, [resetReceiving])
   );
+
+  useFocusEffect(
+        React.useCallback(() => {
+          const onBackPress = () => {
+            navigation.navigate('Login');
+            return true;
+          };
+  
+          const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+          return () => sub.remove();
+        }, [navigation])
+      );
 
   return (
     <SafeAreaView style={styles.container}>

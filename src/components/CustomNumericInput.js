@@ -9,7 +9,8 @@ const CustomNumericInput = ({
   max = 999,
   min = 0,
   step = 1,
-  width = 120,
+  width = 100,
+  height= 32,
   isSelected = true,
   onLimit,
 }) => {
@@ -58,7 +59,7 @@ const CustomNumericInput = ({
   const activeTextColor = showFilled ? '#fff' : '#5D768B';
 
   return (
-    <View style={[styles.container, dynamicStyles.border, { width }]}>
+    <View style={[styles.container, dynamicStyles.border, { width }, { height }]}>
       <TouchableOpacity onPress={handleMinus} disabled={!canDec} style={[styles.button, dynamicStyles.bg]}>
         <Text style={[styles.buttonText, { color: activeTextColor, opacity: canDec ? 1 : 0.5 }]}>−</Text>
       </TouchableOpacity>
@@ -79,8 +80,8 @@ const CustomNumericInput = ({
 };
 
 const styles = StyleSheet.create({
-  container: { height: 40, flexDirection: 'row', alignItems: 'center', borderRadius: 6, overflow: 'hidden' },
-  button: { width: 40, height: '100%', justifyContent: 'center', alignItems: 'center' },
+  container: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, overflow: 'hidden' },
+  button: { width: 28, height: '100%', justifyContent: 'center', alignItems: 'center' },
   buttonText: { fontSize: 20, fontWeight: 'bold' },
   input: { flex: 1, height: '100%', textAlign: 'center', fontSize: 16, paddingVertical: 0 },
   untouched: {

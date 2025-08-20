@@ -98,9 +98,6 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, color: '#233E55' },
   labelDisabled: { color: '#9CA3AF' },
   input: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#9CA3AF',
     paddingHorizontal: 12,
     backgroundColor: '#5D768B0D',
     flexDirection: 'row',
