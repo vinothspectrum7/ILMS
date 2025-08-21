@@ -91,7 +91,7 @@ const LineItemDetailsScreen = () => {
     return qtyOk && subInvOk;
   }, [state, readOnly, current.openQty]);
 
-  const titlePo = current?.poNumber ? `Receive - ${String(current.poNumber)}` : 'Receive';
+  const titlePo = current?.poNumber ? `${String(current.poNumber)}` : 'Receive';
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
@@ -299,7 +299,7 @@ const LineItemDetailsScreen = () => {
         organizationName="EnnVee"
         screenTitle="Receive"
         contextInfo={titlePo}
-        notificationCount={3}
+        notificationCount={0}
         profileName="Vinoth Umasankar"
         onBack={() => navigation.goBack()}
         onMenu={() => setMenuOpen(true)}
@@ -387,6 +387,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginHorizontal: 16,
     marginTop: 8,
+    marginBottom:80,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingTop: 12,

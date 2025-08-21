@@ -369,8 +369,8 @@ const  mapBackendArrayToFrontend = (data)=> {
       <GlobalHeaderComponent
         organizationName="EnnVee"
         screenTitle="Receive"
-        contextInfo={selectedPO}
-        notificationCount={3}
+        contextInfo={poHeader?.poNumber || '—'}
+        notificationCount={0}
         profileName="Vinoth Umasankar"
         onBack={() => navigation.navigate('Receive')}
         onMenu={() => setMenuOpen(true)}

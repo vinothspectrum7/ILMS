@@ -9,23 +9,44 @@ import ReceiveIcon from '../assets/icons/Receive_icon.svg';
 import InventoryIcon from '../assets/icons/Inventory_icon.svg';
 import ShippingIcon from '../assets/icons/Shipping_icon.svg';
 import { NavigationCard } from './NavigationCard';
+import EnnVeeLogoSmall from '../assets/icons/EnnVeeLogoSmall.svg';
+import BellIcon from '../assets/icons/bellnotification.svg';
+import HamburgerMenu from '../assets/icons/hamburgermenu.svg';
 
-const { width: screenWidth } = Dimensions.get('window');
-const baseWidth = 375;
-const scale = screenWidth / baseWidth;
-const responsiveSize = (size) => Math.round(size * scale);
-const BRAND_BG = '#233E55'; 
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;         
+const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor; 
+const rs = (size) => Math.round(scale(size));                        
+
+
+const BRAND_BG = '#233E55';
+const NAV_BG = '#5D768B';
+const RED = '#FF0000';
+const WHITE = '#FFFFFF';
+
+function getInitials(name = '') {
+  const n = String(name).trim().replace(/\s+/g, ' ');
+  if (!n) return '';
+  const parts = n.split(' ');
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
 
 export const HEADER_METRICS = {
-  HEADER_HEIGHT: responsiveSize(140),
-  NAV_CARDS_OVERLAP: responsiveSize(40),
-  CONTENT_SPACER: responsiveSize(160),
+  HEADER_HEIGHT: rs(170),
+  NAV_CARDS_OVERLAP: rs(40),
+  CONTENT_SPACER: rs(160),
 };
 
 export default function HeaderComponent({
   onNotificationPress,
   onProfilePress,
   onOrganizationChange,
+  notificationCount = 0,
+  profileName = 'User',
+  onMenu = () => {},
   onCardPress = () => {},
 }) {
   const [openOrgDropdown, setOpenOrgDropdown] = useState(false);
@@ -35,12 +56,33 @@ export default function HeaderComponent({
     { label: 'S7', value: 'S7' },
   ]);
 
+  const initials = getInitials(profileName);
+  const showDot = Number(notificationCount) > 0;
+
   return (
     <View style={styles.headerContainer}>
       <StatusBar translucent={false} barStyle="light-content" backgroundColor={BRAND_BG} />
+
+      <View style={styles.brandingRow}>
+        <View style={styles.brandLeft}>
+          <EnnVeeLogoSmall width={rs(140)} height={rs(36)} />
+        </View>
+
+        <View style={styles.brandRight}>
+          <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
+            <BellIcon width={rs(22)} height={rs(22)} />
+            {showDot && <View style={styles.dot} />}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={onProfilePress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={styles.headerContent}>
         <View style={styles.organizationSection}>
-          <OrganizationIcon width={responsiveSize(21)} height={responsiveSize(21)} />
+          <OrganizationIcon width={rs(21)} height={rs(21)} />
           <DropDownPicker
             open={openOrgDropdown}
             value={selectedOrganization}
@@ -64,16 +106,9 @@ export default function HeaderComponent({
         </View>
 
         <View style={styles.iconSection}>
-          <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress}>
-            <Bell size={responsiveSize(24)} color="#ffffff" strokeWidth={2} />
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>5</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
-            <ProfileIcon width={responsiveSize(24)} height={responsiveSize(24)} />
-          </TouchableOpacity>
+        <TouchableOpacity onPress={onMenu} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <HamburgerMenu width={scale(24)} height={scale(24)} />
+        </TouchableOpacity>
         </View>
       </View>
 
@@ -86,25 +121,59 @@ export default function HeaderComponent({
   );
 }
 
+const DOT_SIZE = rs(12);
+const AVATAR_SIZE = rs(30);
+
 const styles = StyleSheet.create({
+  brandingRow: {
+    backgroundColor: BRAND_BG,
+    paddingHorizontal: ms(16),
+    paddingTop: ms(40),
+    paddingBottom: ms(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  brandLeft: { flexShrink: 1, paddingRight: ms(12) },
+  brandRight: { flexDirection: 'row', alignItems: 'center' },
+  bellWrap: { position: 'relative', alignItems: 'center', justifyContent: 'center', marginRight: ms(12) },
+  dot: {
+    position: 'absolute',
+    right: -ms(0),
+    top: -ms(4),
+    width: DOT_SIZE,
+    height: DOT_SIZE,
+    borderRadius: DOT_SIZE / 2,
+    backgroundColor: RED,
+  },
+  avatar: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: WHITE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { color: BRAND_BG, fontSize: ms(10), fontWeight: '700' },
+
   headerContainer: {
     width: '100%',
     height: HEADER_METRICS.HEADER_HEIGHT,
-    backgroundColor: '#233E55',
-    borderBottomLeftRadius: responsiveSize(10),
-    borderBottomRightRadius: responsiveSize(10),
+    backgroundColor: BRAND_BG,
+    borderBottomLeftRadius: rs(10),
+    borderBottomRightRadius: rs(10),
     position: 'absolute',
     top: 0,
     left: 0,
     zIndex: 5,
-    paddingBottom: responsiveSize(20),
+    paddingBottom: rs(20),
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: responsiveSize(20),
-    paddingTop: responsiveSize(50),
+    paddingHorizontal: rs(15),
+    paddingTop: rs(0),
   },
   organizationSection: {
     flexDirection: 'row',
@@ -112,56 +181,39 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   dropdownContainer: {
-    width: responsiveSize(103),
-    height: responsiveSize(21),
-    marginLeft: responsiveSize(5),
+    width: rs(103),
+    height: rs(21),
+    marginLeft: rs(5),
   },
   dropdownStyle: {
     backgroundColor: 'transparent',
     borderColor: 'transparent',
-    minHeight: responsiveSize(21),
+    minHeight: rs(21),
   },
-  dropdownLabel: {
-    color: '#FFFFFF',
-    fontSize: responsiveSize(14),
-    fontWeight: '600',
-  },
-  dropdownText: {
-    color: '#FFFFFF',
-    fontSize: responsiveSize(14),
-  },
-  dropdownMenuContainer: {
-    backgroundColor: '#233E55',
-    borderColor: '#FFFFFF',
-    borderWidth: 0,
-  },
+  dropdownLabel: { color: '#FFFFFF', fontSize: rs(14), fontWeight: '600' },
+  dropdownText: { color: '#FFFFFF', fontSize: rs(14) },
+  dropdownMenuContainer: { backgroundColor: BRAND_BG, borderColor: '#FFFFFF', borderWidth: 0 },
   itemSeparatorStyle: { backgroundColor: '#3b5266' },
   listItemLabelStyle: { color: '#FFFFFF' },
   selectedItemLabelStyle: { fontWeight: 'bold', color: '#FFFFFF' },
+
   iconSection: { flexDirection: 'row', alignItems: 'center' },
-  notificationButton: {
-    padding: responsiveSize(8),
-    position: 'relative',
-    marginRight: responsiveSize(10),
-  },
+  notificationButton: { padding: rs(8), position: 'relative', marginRight: rs(10) },
   notificationBadge: {
     position: 'absolute',
-    top: responsiveSize(4),
-    right: responsiveSize(4),
+    top: rs(4),
+    right: rs(4),
     backgroundColor: '#f5b951ff',
-    borderRadius: responsiveSize(10),
-    width: responsiveSize(20),
-    height: responsiveSize(20),
+    borderRadius: rs(10),
+    width: rs(20),
+    height: rs(20),
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
   },
-  notificationBadgeText: {
-    color: '#ffffff',
-    fontSize: responsiveSize(12),
-    fontWeight: '600',
-  },
-  profileButton: { padding: responsiveSize(8) },
+  notificationBadgeText: { color: '#ffffff', fontSize: rs(12), fontWeight: '600' },
+  profileButton: { padding: rs(8) },
+
   navigationCardsRow: {
     position: 'absolute',
     bottom: -HEADER_METRICS.NAV_CARDS_OVERLAP,
@@ -169,7 +221,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: responsiveSize(20),
+    paddingHorizontal: rs(20),
     zIndex: 10,
   },
 });

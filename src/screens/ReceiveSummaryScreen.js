@@ -212,7 +212,7 @@ const ReceiveSummaryScreen = () => {
           organizationName="EnnVee"
           screenTitle="Receive"
           contextInfo={selectedPO}
-          notificationCount={3}
+          notificationCount={0}
           profileName="Vinoth Umasankar"
           onBack={() => navigation.navigate('NewReceiveScreen')}
           onMenu={() => setMenuOpen(true)}

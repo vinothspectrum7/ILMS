@@ -74,10 +74,12 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <HeaderComponent
+        notificationCount={0}
+        profileName="Vinoth Umasankar"
         onNotificationPress={handleNotificationPress}
-        onProfilePress={handleProfilePress}
         onOrganizationChange={handleOrganizationChange}
         onCardPress={(screen) => navigation.navigate(screen)}
+        onMenu={handleProfilePress}
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -161,9 +163,9 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={handleQrScanPress}>
+      {/* <TouchableOpacity style={styles.fab} onPress={handleQrScanPress}>
         <QrCode size={responsiveSize(28)} color="#ffffff" strokeWidth={2} />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </SafeAreaView>
   );
 }
@@ -183,7 +185,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: responsiveSize(16),
-    marginTop: responsiveSize(30),
+    marginTop: responsiveSize(60),
   },
   shippingStatusCardsContainer: {
     flexDirection: 'row',

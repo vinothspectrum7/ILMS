@@ -185,7 +185,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
      <GlobalHeaderComponent
         organizationName="EnnVee"
         screenTitle="Barcode Scanner"
-        notificationCount={3}
+        notificationCount={0}
         profileName="Vinoth Umasankar"
         onBack={onClose}
         onMenu={() => setMenuOpen(true)}

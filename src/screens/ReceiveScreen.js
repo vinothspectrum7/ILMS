@@ -236,8 +236,8 @@ const ReceiveScreen = () => {
           <View style={styles.card}>
             <View style={styles.toprow}>
               <View style={styles.topcardLeft}>
-              <Text style={styles.labelText}>Supplier</Text>
-              <Text style={styles.valueText}>{item.supplier_name}</Text>
+              <Text style={styles.labelText}>PO Number</Text>
+              <Text style={styles.valueText}>{item.po_number}</Text>
               </View>
               <View style={styles.topcardRight}>
               <Text style={styles.labelText}>Supplier</Text>
@@ -410,8 +410,7 @@ const ReceiveScreen = () => {
       <GlobalHeaderComponent
         organizationName="EnnVee"
         screenTitle="Receive"
-        contextInfo="PO00002"
-        notificationCount={3}
+        notificationCount={0}
         profileName="Vinoth Umasankar"
         onBack={() => navigation.navigate('Home')}
         onMenu={() => setMenuOpen(true)}
