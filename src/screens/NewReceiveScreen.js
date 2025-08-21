@@ -111,26 +111,27 @@ const  mapBackendArrayToFrontend = (data)=> {
 }
 
 
-  useEffect(async ()=> {
-    if (selectedPO){
-      Alert.alert("cominggg")
-      console.log(selectedPO,"SELECTEDPO")
-    // const loadPoData = async () => {
+      useEffect(() => {
+      let cancelled = false;
+
+      async function loadPoData() {
+        if (!selectedPO) return;
+
         try {
-            const posingledata = await GetSinglePO(selectedPO?.po_id);
-            if(posingledata!=undefined){
-              const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines);
-              setPoListItems([]);
-              setPoListItems([...frontendArray]);
-            }
-            console.log(posingledata, "mapBackendArrayToFrontendmapBackendArrayToFrontend");
-          } catch (err) {
-            console.error("Error loading user data:", err);
+          const posingledata = await GetSinglePO(selectedPO.po_id);
+          if (!cancelled && posingledata) {
+            const lines = posingledata.purchase_order_lines || [];
+            const frontendArray = mapBackendArrayToFrontend(lines);
+            setPoListItems(frontendArray);
           }
-        // };
-        // loadPoData();
+        } catch (err) {
+          console.error('Error loading PO data:', err);
+        }
       }
-  },[])
+
+      loadPoData();
+      return () => { cancelled = true; };
+    }, [selectedPO]);
 
   useEffect(() => {
     if (receiveItems.length === 0) {
@@ -307,7 +308,7 @@ const  mapBackendArrayToFrontend = (data)=> {
 
   const toDetailItem = (it, i) => ({
     id: String(it.id),
-    poNumber: poHeader?.po_number ?? '—',
+    poNumber: poHeader?.poNumber ?? '—',
     lineNumber: i + 1,
     itemName: it.name,
     itemDescription: it.itemDescription ?? it.description ?? '—',
@@ -365,7 +366,17 @@ const  mapBackendArrayToFrontend = (data)=> {
 
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText={formatToday()} onBack={() => navigation.navigate('Receive')} onMenu={() => {}} />
+      <GlobalHeaderComponent
+        organizationName="EnnVee"
+        screenTitle="Receive"
+        contextInfo={selectedPO}
+        notificationCount={3}
+        profileName="Vinoth Umasankar"
+        onBack={() => navigation.navigate('Receive')}
+        onMenu={() => setMenuOpen(true)}
+        onNotificationPress={() => navigation.navigate('Home')}
+        onProfilePress={() => navigation.navigate('Home')}
+      />
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
           receiptNumber={poHeader?.purchaseReceipt || '—'}
@@ -404,7 +415,7 @@ const  mapBackendArrayToFrontend = (data)=> {
 
             <FlatList
               data={draftItems}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => String(item.id)}
               renderItem={({ item, index }) => (
                 <View style={styles.lineItemWrapper}>
                   <LineItemListCardComponent

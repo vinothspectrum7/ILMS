@@ -16,23 +16,23 @@ const POinfoCardComponent = ({ receiptNumber, supplier, poNumber, receiptDate })
 
   return (
     <View style={styles.card}>
-      <View style={styles.cardLeft}>
+      
         <View style={styles.toprow}>
+          <View style={styles.topcardLeft}>
           <Text style={styles.labelText}>Purchase Receipt</Text>
           <Text style={styles.valueText}>{rn}</Text>
-        </View>
-        <View style={styles.bottomrow}>
-          <Text style={styles.labelText}>PO Number</Text>
-          <Text style={styles.valueText}>{po}</Text>
-        </View>
-      </View>
-
-      <View style={styles.cardRight}>
-        <View style={styles.toprow}>
+          </View>
+          <View style={styles.topcardRight}>
           <Text style={styles.labelText}>Supplier</Text>
           <Text style={styles.valueText}>{sup}</Text>
+          </View>
         </View>
         <View style={styles.bottomrow}>
+          <View style={styles.bottomcardLeft}>
+          <Text style={styles.labelText}>PO Number</Text>
+          <Text style={styles.valueText}>{po}</Text>
+          </View>
+          <View style={styles.bottomcardRight}>
           <Text style={styles.labelText}>Receipt Date</Text>
           <Text style={styles.valueText}>{rd}</Text>
         </View>
@@ -43,7 +43,6 @@ const POinfoCardComponent = ({ receiptNumber, supplier, poNumber, receiptDate })
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     marginTop: scale(24),
@@ -61,14 +60,17 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  cardLeft: { flex: 1, paddingRight: scale(6), minWidth: 0 },
-  cardRight: { flex: 1, paddingLeft: scale(6), minWidth: 0 },
+  topcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), paddingBottom: scale(6), minWidth: 0 },
+  topcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), paddingBottom: scale(6), minWidth: 0 },
+  bottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
+  bottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), minWidth: 0 },
   toprow: {
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: scale(10),
+    marginBottom: scale(0),
   },
   bottomrow: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 0,

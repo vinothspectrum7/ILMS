@@ -296,12 +296,16 @@ const LineItemDetailsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
-        title={titlePo}
-        greetingName="Robert"
-        dateText={formatToday()}
+        organizationName="EnnVee"
+        screenTitle="Receive"
+        contextInfo={titlePo}
+        notificationCount={3}
+        profileName="Vinoth Umasankar"
         onBack={() => navigation.goBack()}
-        onMenu={() => {}}
-      />
+        onMenu={() => setMenuOpen(true)}
+        onNotificationPress={() => navigation.navigate('Home')}
+        onProfilePress={() => navigation.navigate('Home')}
+        />
 
       <View style={styles.navBar}>
         <TouchableOpacity onPress={goPrev} disabled={index === 0} style={styles.navEdge} activeOpacity={0.7}>

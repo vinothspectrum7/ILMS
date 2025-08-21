@@ -9,6 +9,7 @@ import {
   Dimensions,
   Modal,
   BackHandler,
+  Platform,
 } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -22,6 +23,11 @@ import { useReceivingStore } from '../store/receivingStore';
 import { FetchData, GetPoItems } from '../api/ApiServices';
 
 const initialLayout = { width: Dimensions.get('window').width };
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 // const poData = [
 //   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN', received: 40, billed: 60 },
@@ -228,35 +234,49 @@ const ReceiveScreen = () => {
           activeOpacity={0.9}
         >
           <View style={styles.card}>
-            <View style={styles.cardLeft}>
-              <View style={styles.toprow}>
-                <Text style={styles.labelText}>PO Number</Text>
-                <Text style={styles.valueText}>{item.po_number}</Text>
+            <View style={styles.toprow}>
+              <View style={styles.topcardLeft}>
+              <Text style={styles.labelText}>Supplier</Text>
+              <Text style={styles.valueText}>{item.supplier_name}</Text>
               </View>
-              <View style={styles.bottomrow}>
-                <Text style={styles.labelText}>PO Status</Text>
-                <Text style={[styles.valueText, styles.openText]}>{item.status}</Text>
+              <View style={styles.topcardRight}>
+              <Text style={styles.labelText}>Supplier</Text>
+              <Text style={styles.valueText}>{item.supplier_name}</Text>
               </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <Text style={styles.labelText}>PO Status</Text>
+              <Text style={[styles.valueText, styles.openText]}>{item.status}</Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <Text style={styles.labelText}>PO Order Date</Text>
+              <Text style={styles.valueText}>{item.order_date}</Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
               <Text style={styles.subLabel}>Received</Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <Text style={styles.subLabel}>Billed</Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
               <View style={styles.progressWrapper}>
                 <View style={[styles.progressBar, { width: `${item.received}%` }]} />
               </View>
-            </View>
-
-            <View style={styles.cardRight}>
-              <View style={styles.toprow}>
-                <Text style={styles.labelText}>Supplier</Text>
-                <Text style={styles.valueText}>{item.supplier_name}</Text>
               </View>
-              <View style={styles.bottomrow}>
-                <Text style={styles.labelText}>PO Order Date</Text>
-                <Text style={styles.valueText}>{item.order_date}</Text>
-              </View>
-              <Text style={styles.subLabel}>Billed</Text>
+              <View style={styles.bottomcardRight}>
               <View style={styles.progressWrapper}>
                 <View style={[styles.progressBar, { width: `40%` }]} />
               </View>
+              </View>
             </View>
+
+
+
           </View>
         </TouchableOpacity>
       )}
@@ -388,11 +408,15 @@ const ReceiveScreen = () => {
   return (
     <View style={styles.container}>
       <GlobalHeaderComponent
-        title="Receive"
-        greetingName="Robert"
-        dateText={formatToday()}
+        organizationName="EnnVee"
+        screenTitle="Receive"
+        contextInfo="PO00002"
+        notificationCount={3}
+        profileName="Vinoth Umasankar"
         onBack={() => navigation.navigate('Home')}
-        onMenu={() => {}}
+        onMenu={() => setMenuOpen(true)}
+        onNotificationPress={() => navigation.navigate('Home')}
+        onProfilePress={() => navigation.navigate('Home')}
       />
 
       <View style={styles.inputContainer}>
@@ -452,7 +476,6 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, height: 40, fontSize: 14, color: '#333' },
   card: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     marginHorizontal: 12,
@@ -465,10 +488,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
-  cardLeft: { flex: 1, paddingRight: 6 },
-  cardRight: { flex: 1, paddingLeft: 6 },
-  toprow: { flex:1,flexDirection: 'row',minWidth:'100%', marginBottom: 10 },
-  bottomrow: {flex:1, flexDirection: 'row',minWidth:'100%',  marginBottom: 10 },
+  topcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), paddingBottom: scale(6), minWidth: 0 },
+  topcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), paddingBottom: scale(6), minWidth: 0 },
+  bottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
+  bottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), minWidth: 0 },
+  toprow: {
+    flex: 1,
+    flexDirection: 'row',
+    marginBottom: scale(0),
+  },
+  bottomrow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 0,
+  },
   labelText: { fontSize: 10, color: '#555', flex: 1 },
   valueText: { fontSize: 10, fontWeight: 'bold', color: '#1C1C1C', flex: 1, textAlign: 'left' },
   openText: { color: 'green' },
