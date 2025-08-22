@@ -105,6 +105,7 @@ const LineItemListCardComponent = ({
 
         <View style={styles.section3}>
           <Text style={styles.itemName}></Text>
+          <Text style={styles.itemName}></Text>
           <View style={styles.numericInputWrapper}>
             <CustomNumericInput
               value={item.qtyToReceive ?? 0}
@@ -169,7 +170,9 @@ const styles = StyleSheet.create({
   section2: {
     flex: 1,
     alignItems: 'flex-start',
-    justifyContent: 'center',
+    justifyContent: 'space-around',
+    // marginTop:s(12),
+    marginBottom:s(10),
     paddingLeft: s(12),
     paddingTop: s(8),
     minWidth: 0,
@@ -184,13 +187,12 @@ const styles = StyleSheet.create({
     fontSize: fs(12),
     fontWeight: '700',
     color: '#111827',
-    paddingBottom:s(16),
   },
   numericInputWrapper: {
     marginBottom: s(10),
     alignItems: 'center',
   },
-  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center', paddingBottom:15, },
+  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center' },
   vertDivider: {
     width: Math.max(StyleSheet.hairlineWidth, s(1)),
     height: s(18),

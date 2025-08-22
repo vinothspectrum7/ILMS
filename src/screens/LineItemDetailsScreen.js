@@ -91,7 +91,7 @@ const LineItemDetailsScreen = () => {
     return qtyOk && subInvOk;
   }, [state, readOnly, current.openQty]);
 
-  const titlePo = current?.poNumber ? `Receive - ${String(current.poNumber)}` : 'Receive';
+  const titlePo = current?.poNumber ? `${String(current.poNumber)}` : 'Receive';
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
@@ -296,12 +296,16 @@ const LineItemDetailsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
-        title={titlePo}
-        greetingName="Robert"
-        dateText={formatToday()}
+        organizationName="EnnVee"
+        screenTitle="Receive"
+        contextInfo={titlePo}
+        notificationCount={0}
+        profileName="Vinoth Umasankar"
         onBack={() => navigation.goBack()}
-        onMenu={() => {}}
-      />
+        onMenu={() => setMenuOpen(true)}
+        onNotificationPress={() => navigation.navigate('Home')}
+        onProfilePress={() => navigation.navigate('Home')}
+        />
 
       <View style={styles.navBar}>
         <TouchableOpacity onPress={goPrev} disabled={index === 0} style={styles.navEdge} activeOpacity={0.7}>
@@ -383,6 +387,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginHorizontal: 16,
     marginTop: 8,
+    marginBottom:80,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingTop: 12,

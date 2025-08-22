@@ -1,5 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const ms = (size, factor = 0.35) => Math.round(size + (scale(size) - size) * factor);
 
 const ConfirmLineItemComponent = ({
   item,
@@ -11,56 +16,44 @@ const ConfirmLineItemComponent = ({
   receivedQtyOverride,
 }) => {
   const displayQty = String(qtyValue ?? item?.qtyToReceive ?? 0);
-  const receivedQty = String(
-    receivedQtyOverride ?? item?.receivedQty ?? item?.qtyToReceive ?? 0
-  );
+  const receivedQty = String(receivedQtyOverride ?? item?.receivedQty ?? item?.qtyToReceive ?? 0);
 
-  const MONTH_IDX = {
-        jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
-        jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
-      };
+  const MONTH_IDX = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
 
-      const parseDate = (s) => {
-        if (!s) return null;
-        const t = String(s).trim();
+  const parseDate = (s) => {
+    if (!s) return null;
+    const t = String(s).trim();
+    let m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+    m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    m = t.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
+    if (m) {
+      const dd = Number(m[1]);
+      const mon = MONTH_IDX[m[2].toLowerCase()];
+      const yy = Number(m[3]);
+      if (mon != null) return new Date(yy, mon, dd);
+    }
+    const d = new Date(t);
+    return isNaN(d) ? null : d;
+  };
 
-        // DD/MM/YYYY
-        let m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-        if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
-
-        // YYYY-MM-DD
-        m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-        if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-
-        // DD MMM YYYY  (e.g., 22 Jul 2025, 21 JUL 2025)
-        m = t.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
-        if (m) {
-          const dd = Number(m[1]);
-          const mon = MONTH_IDX[m[2].toLowerCase()];
-          const yy = Number(m[3]);
-          if (mon != null) return new Date(yy, mon, dd);
-        }
-
-        // Fallback
-        const d = new Date(t);
-        return isNaN(d) ? null : d;
-      };
-
-      const formatDDMMYYYY = (s) => {
-        const d = parseDate(s);
-        if (!d) return s || '';
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const yyyy = d.getFullYear();
-        return `${dd}/${mm}/${yyyy}`;
-      };
-
+  const formatDDMMYYYY = (s) => {
+    const d = parseDate(s);
+    if (!d) return s || '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
 
   return (
     <View style={styles.cardwrapper}>
       <View style={styles.rowContainer}>
         <View style={styles.section2}>
-          <Text style={styles.itemName}>{item.name}</Text>
+          <Text style={styles.itemName} numberOfLines={2} ellipsizeMode="tail">
+            {item.name}
+          </Text>
 
           <View style={styles.qtyBreakdownRow}>
             <Text style={styles.metaText}>Ordered Qty: {item.orderedQty}</Text>
@@ -74,27 +67,31 @@ const ConfirmLineItemComponent = ({
             <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
           </View>
 
-          <TouchableOpacity onPress={onViewDetails}>
+          <TouchableOpacity onPress={onViewDetails} activeOpacity={0.7}>
             <Text style={styles.viewDetails}>View Details</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.section3}>
-          <View style={{ justifyContent: 'center', alignItems: 'center', height: 34 }}>
+          <View style={styles.qtyBox}>
             <TextInput
-              style={[styles.qtyInput, { backgroundColor: '#FFFFFF' }]}
+              style={styles.qtyInput}
               editable={false}
               value={displayQty}
             />
           </View>
           <Text style={styles.uomText}>{qtyLabel}</Text>
-          <View style={styles.dateRow}>
+          <View style={styles.dateRowtop}>
             <Text style={styles.dateLabel}>Promised Date: </Text>
-            <Text style={styles.dateValue}>{formatDDMMYYYY(item.promisedDate)}</Text>
+            <Text style={styles.dateValue} numberOfLines={1} ellipsizeMode="tail">
+              {formatDDMMYYYY(item.promisedDate)}
+            </Text>
           </View>
-          <View style={styles.dateRow}>
+          <View style={styles.dateRowbottom}>
             <Text style={styles.dateLabel}>Need By Date: </Text>
-            <Text style={styles.dateValue}>{formatDDMMYYYY(item.needByDate)}</Text>
+            <Text style={styles.dateValue} numberOfLines={1} ellipsizeMode="tail">
+              {formatDDMMYYYY(item.needByDate)}
+            </Text>
           </View>
         </View>
       </View>
@@ -104,71 +101,89 @@ const ConfirmLineItemComponent = ({
 
 const styles = StyleSheet.create({
   cardwrapper: {
-    paddingRight: 12,
+    paddingRight: scale(12),
     paddingLeft: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
-    marginRight: 15,
-    marginLeft: 15,
-    height: 120,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    elevation: 2,
+    marginRight: scale(15),
+    marginLeft: scale(15),
+    height: scale(110),
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: scale(10),
   },
   rowContainer: { flexDirection: 'row', height: '100%' },
-  section2: { flex: 1, paddingLeft: 8, marginTop: 8 },
-  section3: { alignItems: 'flex-end', justifyContent: 'center', paddingLeft: 8, minWidth: 100 },
+  section2: {
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'space-around',
+    // marginTop:scale(5),
+    marginBottom:scale(10),
+    paddingLeft: scale(12),
+    paddingTop: scale(8),
+    minWidth: 0,
+  },
+  section3: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingLeft: scale(8),
+    minWidth: scale(110),
+  },
   itemName: {
-    fontSize: 14,
+    fontSize: ms(12),
     fontWeight: '700',
     color: '#111827',
-    marginTop: 8,
-    marginBottom: 22,
+    
+  },
+  qtyBox: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: ms(36),
   },
   qtyInput: {
-    width: 50,
-    height: 30,
-    borderRadius: 4,
-    fontSize: 14,
+    width: Math.max(ms(64), SCREEN_WIDTH * 0.18),
+    height: ms(34),
+    borderRadius: ms(6),
+    fontSize: ms(14),
     textAlign: 'right',
     paddingVertical: 0,
+    paddingHorizontal: ms(10),
     borderColor: '#FFFFFF',
     fontWeight: 'bold',
     borderWidth: 1,
     color: '#000000',
+    backgroundColor: '#FFFFFF',
   },
-  uomText: { fontSize: 10, color: '#000000', marginTop: -9, marginRight:4, marginBottom:28 },
-  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  vertDivider: {
-    width: 1,
-    height: 18,
-    backgroundColor: '#DADADA',
-    marginHorizontal: 12,
-    borderRadius: 0.5,
-    opacity: 0.9,
+  uomText: {
+    fontSize: ms(8),
+    color: '#000000',
+    marginTop: ms(-6),
+    marginBottom: ms(10),
+    marginRight: ms(8),
   },
-  metaText: { fontSize: 10, color: '#6B7280' },
+  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center' },
+    vertDivider: {
+      width: Math.max(StyleSheet.hairlineWidth, scale(1)),
+      height: scale(18),
+      backgroundColor: '#DADADA',
+      marginHorizontal: scale(12),
+      borderRadius: scale(0.5),
+      opacity: 0.9,
+    },
+  metaText: {
+    fontSize: ms(10),
+    color: '#6B7280',
+  },
   viewDetails: {
-    marginTop: 10,
-    fontSize: 10,
+    
+    fontSize: ms(10),
     color: '#033EFF',
     textDecorationLine: 'underline',
     textDecorationColor: '#033EFF',
   },
-  dateText: { fontSize: 10, color: '#999', marginTop: 4 },
-  dateRow: {
-  flexDirection: 'row',
-  marginTop: 2,
-},
-dateLabel: {
-  fontSize: 10,
-  color: '#6C6C6C',
-},
-dateValue: {
-  fontSize: 10,
-  color: '#6C6C6C',
-  fontWeight: '500',
-},
+    dateRowbottom: { flexDirection: 'row', marginTop: scale(2) },
+    dateRowtop: { flexDirection: 'row', marginTop: scale(2), marginTop: ms(16), },
+  dateLabel: { fontSize: ms(10), color: '#6C6C6C' },
+  dateValue: { fontSize: ms(10), color: '#6C6C6C', fontWeight: '500' },
 });
 
 export default ConfirmLineItemComponent;

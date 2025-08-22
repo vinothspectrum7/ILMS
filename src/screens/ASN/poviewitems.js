@@ -150,7 +150,17 @@ React.useEffect(() => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText="06-08-2025" onBack={() => navigation.goBack()} onMenu={() => {}} />
+        <GlobalHeaderComponent
+          organizationName="EnnVee"
+          screenTitle="Receive"
+          contextInfo={selectedPO}
+          notificationCount={0}
+          profileName="Vinoth Umasankar"
+          onBack={() => navigation.goBack()}
+          onMenu={() => setMenuOpen(true)}
+          onNotificationPress={() => navigation.navigate('Home')}
+          onProfilePress={() => navigation.navigate('Home')}
+        />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <ASNinfoCardComponent

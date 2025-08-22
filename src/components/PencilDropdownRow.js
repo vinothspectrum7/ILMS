@@ -1,6 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import React, { useMemo, useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Dimensions } from 'react-native';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import SearchIcon from '../assets/icons/search.svg';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const scale = (size) => Math.round((SCREEN_WIDTH / BASE_WIDTH) * size);
+const ms = (size, factor = 0.35) => Math.round(size + (scale(size) - size) * factor);
 
 const PencilDropdownRow = ({
   label,
@@ -8,18 +14,18 @@ const PencilDropdownRow = ({
   onChange,
   options = [],
   placeholder = 'Select',
-  LeftIcon,
   disabled = false,
-  zIndex = 0,
   enableSearch = true,
   searchPlaceholder = 'Search..',
   maxMenuHeight = 220,
   width,
   height = 44,
   compact = false,
+  containerStyle = {},
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const inputRef = useRef(null);
 
   const toggleOpen = () => { if (!disabled) setOpen(o => !o); };
   const handleSelect = (v) => { if (!disabled) { onChange?.(v); setOpen(false); setQuery(''); } };
@@ -32,56 +38,83 @@ const PencilDropdownRow = ({
     return options.filter(opt => String(opt).toLowerCase().includes(q));
   }, [options, query]);
 
+  const finalHeight = ms(typeof height === 'number' ? height : 44);
+  const finalWidth = typeof width === 'number' ? ms(width) : width;
+  const menuMaxHeight = Math.min(typeof maxMenuHeight === 'number' ? ms(maxMenuHeight) : ms(220), Math.round(SCREEN_HEIGHT * 0.5));
+
   return (
-    <View style={[styles.wrap, { zIndex }, compact && styles.wrapCompact, disabled && styles.wrapDisabled]}>
+    <View style={[
+      styles.wrap,
+      { zIndex: open ? 10 : 1 },
+      compact && styles.wrapCompact,
+      disabled && styles.wrapDisabled,
+      containerStyle
+    ]}>
       <View style={styles.labelRow}>
-        <Text style={[styles.label, disabled && styles.labelDisabled]}>{label}</Text>
+        <Text style={[styles.label, disabled && styles.labelDisabled]} numberOfLines={1}>
+          {label}
+        </Text>
       </View>
 
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={toggleOpen}
         disabled={disabled}
-        style={[styles.input, { height, width }, disabled && styles.inputDisabled]}
+        style={[
+          styles.input,
+          { height: finalHeight, width: finalWidth }
+        ]}
+        ref={inputRef}
       >
-        <Text style={[styles.valueText, !value && styles.placeholder, disabled && styles.valueDisabled]}>
+        <Text
+          style={[styles.valueText, !value && styles.placeholder, disabled && styles.valueDisabled]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           {display}
         </Text>
-        {LeftIcon ? <LeftIcon width={14} height={14} /> : null}
+        {open ? <ChevronUp size={ms(20)} color="#000000" /> : <ChevronDown size={ms(20)} color="#000000" />}
       </TouchableOpacity>
 
       {open && !disabled && (
-        <View style={[styles.menu, { maxHeight: maxMenuHeight }]}>
-          {enableSearch && (
-            <View style={styles.searchRow}>
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder={searchPlaceholder}
-                placeholderTextColor="#9CA3AF"
-                style={styles.searchInput}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <SearchIcon width={16} height={16} />
-            </View>
-          )}
-          <ScrollView keyboardShouldPersistTaps="handled">
-            {filtered.map((opt, idx) => {
-              const selected = String(opt) === String(value);
-              return (
-                <TouchableOpacity
-                  key={String(opt ?? idx)}
-                  style={[styles.menuItem, selected && styles.menuItemSelected]}
-                  onPress={() => handleSelect(opt)}
-                >
-                  <Text style={[styles.menuText, selected && styles.menuTextSelected]}>
-                    {String(opt)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+        <View style={styles.menuContainer} pointerEvents="box-none">
+          <View style={[styles.menu, { maxHeight: menuMaxHeight }]}>
+            {enableSearch && (
+              <View style={styles.searchRow}>
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder={searchPlaceholder}
+                  placeholderTextColor="#9CA3AF"
+                  style={styles.searchInput}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <SearchIcon width={ms(16)} height={ms(16)} />
+              </View>
+            )}
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {filtered.map((opt, idx) => {
+                const selected = String(opt) === String(value);
+                return (
+                  <TouchableOpacity
+                    key={String(opt ?? idx)}
+                    style={[styles.menuItem, selected && styles.menuItemSelected]}
+                    onPress={() => handleSelect(opt)}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[styles.menuText, selected && styles.menuTextSelected]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {String(opt)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
         </View>
       )}
 
@@ -91,43 +124,60 @@ const PencilDropdownRow = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: 16, marginTop: 10 },
+  wrap: {
+    marginHorizontal: ms(16),
+    marginTop: ms(10),
+    position: 'relative'
+  },
   wrapCompact: { marginHorizontal: 0, marginTop: 0 },
   wrapDisabled: { opacity: 0.6 },
-  labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  label: { fontSize: 12, color: '#233E55' },
+  labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: ms(6) },
+  label: { fontSize: ms(12), color: '#233E55' },
   labelDisabled: { color: '#9CA3AF' },
   input: {
-    paddingHorizontal: 12,
+    paddingHorizontal: ms(12),
     backgroundColor: '#5D768B0D',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderRadius: ms(8),
   },
   inputDisabled: { backgroundColor: '#F5F6F7' },
-  valueText: { fontSize: 14, color: '#111827' },
+  valueText: { fontSize: ms(10), color: '#111827', flex: 1, paddingRight: ms(8) },
   valueDisabled: { color: '#233E55' },
   placeholder: { color: '#9CA3AF' },
+  menuContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: -(SCREEN_WIDTH * 0.7),
+    right: -(SCREEN_WIDTH * 0.02),
+    zIndex: 10,
+    marginTop: ms(6),
+  },
   menu: {
-    marginTop: 6,
-    borderRadius: 10,
+    borderRadius: ms(10),
     borderWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#fff',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: ms(8),
+    shadowOffset: { width: 0, height: ms(4) },
+    elevation: 3,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E7EB',
-    paddingHorizontal: 12,
-    height: 40,
+    paddingHorizontal: ms(12),
+    height: ms(40),
   },
-  searchInput: { flex: 1, color: '#111827', paddingVertical: 0, paddingRight: 8 },
-  menuItem: { paddingVertical: 10, paddingHorizontal: 12 },
-  menuItemSelected: { backgroundColor: '#F2F4F5' },
-  menuText: { fontSize: 14, color: '#111827' },
+  searchInput: { color: '#111827', paddingVertical: 0, paddingRight: ms(8), flex: 1, fontSize: ms(14) },
+  menuItem: { paddingVertical: ms(10), paddingHorizontal: ms(12) },
+  menuItemSelected: { backgroundColor: '#5D768B33' },
+  menuText: { fontSize: ms(14), color: '#111827' },
   menuTextSelected: { fontWeight: '700' },
 });
 

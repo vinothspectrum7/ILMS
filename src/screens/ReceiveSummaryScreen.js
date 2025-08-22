@@ -29,6 +29,7 @@ const ReceiveSummaryScreen = () => {
   const route = useRoute();
 
   const readonly = !!route?.params?.readonly;
+  const selectedPO = route?.params?.header?.poNumber;
   const listTypeFromRoute = route?.params?.listType || 'line';
   const headerFromRoute = route?.params?.header || null;
   const sourceId = route?.params?.id ? String(route.params.id) : null;
@@ -207,7 +208,17 @@ const ReceiveSummaryScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText={formatToday()} onBack={() => navigation.navigate('NewReceiveScreen')} onMenu={() => {}} />
+      <GlobalHeaderComponent
+          organizationName="EnnVee"
+          screenTitle="Receiving"
+          // contextInfo={selectedPO}
+          notificationCount={0}
+          profileName="Vinoth Umasankar"
+          onBack={() => navigation.navigate('NewReceiveScreen')}
+          onMenu={() => setMenuOpen(true)}
+          onNotificationPress={() => navigation.navigate('Home')}
+          onProfilePress={() => navigation.navigate('Home')}
+        />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent

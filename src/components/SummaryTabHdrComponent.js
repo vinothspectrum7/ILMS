@@ -27,10 +27,10 @@ const styles = StyleSheet.create({
     paddingRight: 5,
     borderRadius: 8,
     marginHorizontal: 16,
-    marginTop: 8,
+    marginTop: 12,
   },
   section1: {
-    width: 44,
+    width: 38,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -39,6 +39,12 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  checkboxVisual: {
+    width: 16,
+    height: 16,
+    marginLeft: -20,
+    transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }],
   },
   section2: {
     flex: 1,
@@ -51,12 +57,12 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   label: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#333',
   },
   qtyLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#333',
     marginRight: 12,

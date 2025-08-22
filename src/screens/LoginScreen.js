@@ -51,7 +51,8 @@ const LoginScreen = ({ navigation }) => {
       // Alert.alert('Login failed', 'Incorrect credentials or unexpected response.');
     }
   } catch (error) {
-    navigation.replace('Home');
+        console.log('errror response login',error);
+    // navigation.replace('Home');
     // if (error.response && error.response.data) {
     //   navigation.replace('Home');
     //   // Alert.alert('Login failed', JSON.stringify(error.response.data));

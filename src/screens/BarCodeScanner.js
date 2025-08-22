@@ -182,7 +182,16 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <GlobalHeaderComponent title="Barcode Scanner" dateText={formatToday()} onBack={onClose} onMenu={() => {}} />
+     <GlobalHeaderComponent
+        organizationName="EnnVee"
+        screenTitle="Barcode Scanner"
+        notificationCount={0}
+        profileName="Vinoth Umasankar"
+        onBack={onClose}
+        onMenu={() => setMenuOpen(true)}
+        onNotificationPress={() => navigation.navigate('Home')}
+        onProfilePress={() => navigation.navigate('Home')}
+      />
       {isScanning ? (
         <View style={styles.scannerContainer}>
           <Camera

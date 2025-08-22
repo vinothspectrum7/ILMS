@@ -44,7 +44,7 @@ const NewReceiveScreen = () => {
   const {
     poHeader, setPoHeader,
     receiveItems, initReceiveItems, mergePatchIntoReceiveItems,
-    resetReceiving,
+    resetReceiving,OrgData
   } = useReceivingStore();
 
   const selectedPO = route?.params?.selectedPO || null;
@@ -321,7 +321,7 @@ useEffect(() => {
 
   const toDetailItem = (it, i) => ({
     id: String(it.id),
-    poNumber: poHeader?.po_number ?? '—',
+    poNumber: poHeader?.poNumber ?? '—',
     lineNumber: i + 1,
     itemName: it.name,
     itemDescription: it.itemDescription ?? it.description ?? '—',
@@ -387,7 +387,16 @@ useEffect(() => {
     )}
         {phase !== 'loading' && (
       <>
-      <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText={formatToday()} onBack={() => navigation.navigate('Receive')} onMenu={() => {}} />
+      <GlobalHeaderComponent
+        organizationName="EnnVee"
+        screenTitle="Receiving"
+        notificationCount={0}
+        profileName="Vinoth Umasankar"
+        onBack={() => navigation.navigate('Receive')}
+        onMenu={() => setMenuOpen(true)}
+        onNotificationPress={() => navigation.navigate('Home')}
+        onProfilePress={() => navigation.navigate('Home')}
+      />
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
           receiptNumber={poHeader?.purchaseReceipt || '—'}
@@ -426,7 +435,7 @@ useEffect(() => {
 
             <FlatList
               data={draftItems}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => String(item.id)}
               renderItem={({ item, index }) => (
                 <View style={styles.lineItemWrapper}>
                   <LineItemListCardComponent
