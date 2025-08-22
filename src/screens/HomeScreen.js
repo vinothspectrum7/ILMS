@@ -32,7 +32,7 @@ export default function HomeScreen({ navigation }) {
   const [Defaultorg,setDefaultorg] = useState(null);
   const [defaultinventory,Setdefaultinventory] = useState(null);
     const {
-      OrgData, setOrgData,
+      OrgData, setOrgData,setInventoryList
     } = useReceivingStore();
   const [selectedInventoryOrg, setSelectedInventoryOrg] = useState('Inventory ORG1');
   const [inventoryOrganizations] = useState([
@@ -55,6 +55,7 @@ export default function HomeScreen({ navigation }) {
         const inventrydata = await GetInventryData(Defaultorg);
         console.log(inventrydata,"inventrydata")
         if (inventrydata) {
+          setInventoryList(inventrydata);
           const defaultinventry = inventrydata.find(o => o.is_default);
           console.log(defaultinventry,"defaultinventrydefaultinventrydefaultinventry")
           Setdefaultinventory(defaultinventry?.sub_inv_id ?? inventrydata[0]?.sub_inv_id);

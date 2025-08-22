@@ -256,7 +256,7 @@ const ReceiveScreen = () => {
   const POList = () => (
     <FlatList
       data={POData}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={(item) => item.id}
           ListEmptyComponent={() => (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
         <Text style={{ fontSize: 16, color: 'gray' }}>No data found</Text>
@@ -321,7 +321,7 @@ const ReceiveScreen = () => {
   const ASNList = () => (
     <FlatList
       data={AsnData}
-      keyExtractor={(item) => item.asn_id.toString()}
+      keyExtractor={(item) => item.asn_id}
       contentContainerStyle={{ paddingBottom: 80 }}
                 ListEmptyComponent={() => (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>

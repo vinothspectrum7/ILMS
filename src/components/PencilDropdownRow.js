@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Dimensions } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import SearchIcon from '../assets/icons/search.svg';
@@ -10,9 +10,9 @@ const ms = (size, factor = 0.35) => Math.round(size + (scale(size) - size) * fac
 
 const PencilDropdownRow = ({
   label,
-  value,
-  onChange,
-  options = [],
+  value,               // <- will hold sub_inv_id
+  onChange,             // <- will return sub_inv_id
+  options = [],         // <- API array of objects
   placeholder = 'Select',
   disabled = false,
   enableSearch = true,
@@ -28,19 +28,43 @@ const PencilDropdownRow = ({
   const inputRef = useRef(null);
 
   const toggleOpen = () => { if (!disabled) setOpen(o => !o); };
-  const handleSelect = (v) => { if (!disabled) { onChange?.(v); setOpen(false); setQuery(''); } };
+  const handleSelect = (v) => {
+    if (!disabled) {
+      onChange?.(v.sub_inv_id);   // store ID
+      setOpen(false);
+      setQuery('');
+    }
+  };
 
-  const display = value ? String(value) : placeholder;
+  // 👉 Auto-select default if no value provided
+  useEffect(() => {
+    if (!value && options.length > 0) {
+      const def = options.find(o => o.is_default && o.sub_inv_enabled);
+      if (def) {
+        onChange?.(def.sub_inv_id);
+      }
+    }
+  }, [value, options, onChange]);
+
+  // find display name for current value
+  const selectedItem = options.find(o => o.sub_inv_id === value);
+  const display = selectedItem ? selectedItem.sub_inv_name : placeholder;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return options;
-    return options.filter(opt => String(opt).toLowerCase().includes(q));
+    if (!q) return options.filter(o => o.sub_inv_enabled); // only enabled
+    return options.filter(o =>
+      o.sub_inv_enabled &&
+      o.sub_inv_name.toLowerCase().includes(q)
+    );
   }, [options, query]);
 
   const finalHeight = ms(typeof height === 'number' ? height : 44);
   const finalWidth = typeof width === 'number' ? ms(width) : width;
-  const menuMaxHeight = Math.min(typeof maxMenuHeight === 'number' ? ms(maxMenuHeight) : ms(220), Math.round(SCREEN_HEIGHT * 0.5));
+  const menuMaxHeight = Math.min(
+    typeof maxMenuHeight === 'number' ? ms(maxMenuHeight) : ms(220),
+    Math.round(SCREEN_HEIGHT * 0.5)
+  );
 
   return (
     <View style={[
@@ -94,11 +118,11 @@ const PencilDropdownRow = ({
               </View>
             )}
             <ScrollView keyboardShouldPersistTaps="handled">
-              {filtered.map((opt, idx) => {
-                const selected = String(opt) === String(value);
+              {filtered.map((opt) => {
+                const selected = opt.sub_inv_id === value;
                 return (
                   <TouchableOpacity
-                    key={String(opt ?? idx)}
+                    key={opt.sub_inv_id}
                     style={[styles.menuItem, selected && styles.menuItemSelected]}
                     onPress={() => handleSelect(opt)}
                     activeOpacity={0.8}
@@ -108,7 +132,7 @@ const PencilDropdownRow = ({
                       numberOfLines={1}
                       ellipsizeMode="tail"
                     >
-                      {String(opt)}
+                      {opt.sub_inv_name}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -124,11 +148,7 @@ const PencilDropdownRow = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: {
-    marginHorizontal: ms(16),
-    marginTop: ms(10),
-    position: 'relative'
-  },
+  wrap: { marginHorizontal: ms(16), marginTop: ms(10), position: 'relative' },
   wrapCompact: { marginHorizontal: 0, marginTop: 0 },
   wrapDisabled: { opacity: 0.6 },
   labelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: ms(6) },
@@ -142,7 +162,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderRadius: ms(8),
   },
-  inputDisabled: { backgroundColor: '#F5F6F7' },
   valueText: { fontSize: ms(10), color: '#111827', flex: 1, paddingRight: ms(8) },
   valueDisabled: { color: '#233E55' },
   placeholder: { color: '#9CA3AF' },

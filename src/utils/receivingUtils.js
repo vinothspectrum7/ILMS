@@ -12,6 +12,7 @@ export const useReceivingStore = create((set, get) => ({
   poHeader: null,
   setPoHeader: (header) => set({ poHeader: header }),
   setOrgData: (data) => set({OrgData:data}),
+  setInventoryList: (data) => set({InventoryList:data}),
 
   receiveItems: [],
   initReceiveItems: (items) => set({ receiveItems: items }),

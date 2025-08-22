@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions } from 'react-native';
 import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
@@ -9,6 +9,7 @@ import CustomNumericInput from '../components/CustomNumericInput';
 import PencilDropdownRow from '../components/PencilDropdownRow';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import PenIcon from '../assets/icons/penicon.svg';
+import { useReceivingStore } from '../store/receivingStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTROL_WIDTH = 80;
@@ -48,6 +49,7 @@ const LineItemDetailsScreen = () => {
   const returnTo = route?.params?.returnTo || null;
   const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
+  const { InventoryList } = useReceivingStore();
 
   const allItems =
     Array.isArray(route?.params?.items) && route.params.items.length > 0
@@ -60,6 +62,11 @@ const LineItemDetailsScreen = () => {
   const [edited, setEdited] = useState({});
   const [showConfirm, setShowConfirm] = useState(false);
   const listRef = useRef(null);
+
+  useEffect(()=>{
+    console.log(InventoryList,"InventoryList InventoryList InventoryList")
+
+  },[InventoryList])
 
   const current = useMemo(() => allItems[index], [allItems, index]);
 
@@ -227,7 +234,7 @@ const LineItemDetailsScreen = () => {
             <View style={styles.divider} /> */}
 
             <InlineFieldRow label="LPN">
-              <PencilDropdownRow
+              {/* <PencilDropdownRow
                 key={`lpn-${String(item.id)}`}
                 value={pageState.lpn}
                 onChange={isEditable ? (v) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), lpn: v } })) : undefined}
@@ -238,30 +245,40 @@ const LineItemDetailsScreen = () => {
                 width={CONTROL_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
-              />
+              /> */}
             </InlineFieldRow>
 
             <View style={styles.divider} />
 
             <InlineFieldRow label="Sub Inventory*">
               <PencilDropdownRow
-                key={`subinv-${String(item.id)}`}
-                value={pageState.subInventory}
-                onChange={isEditable ? (v) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), subInventory: v } })) : undefined}
-                options={SUBINVENTORY_OPTIONS}
-                placeholder="Select"
-                LeftIcon={PenIcon}
-                disabled={!isEditable}
-                width={CONTROL_WIDTH}
-                height={CONTROL_HEIGHT}
-                compact
-              />
+  key={`subinv-${String(item.id)}`}
+  value={pageState.subInventory}        // will be sub_inv_id
+  onChange={
+    isEditable
+      ? (id) => setEdited((prev) => ({
+          ...prev,
+          [item.id]: {
+            ...(prev[item.id] ?? {}),
+            subInventory: id,           // store only ID
+          },
+        }))
+      : undefined
+  }
+  options={InventoryList}                     // pass API array directly
+  placeholder="Select Sub Inventory"
+  disabled={!isEditable}
+  width={CONTROL_WIDTH}
+  height={CONTROL_HEIGHT}
+  compact
+/>
+
             </InlineFieldRow>
 
             <View style={styles.divider} />
 
             <InlineFieldRow label="Locator">
-              <PencilDropdownRow
+              {/* <PencilDropdownRow
                 key={`locator-${String(item.id)}`}
                 value={pageState.locator}
                 onChange={isEditable ? (v) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: v } })) : undefined}
@@ -272,7 +289,7 @@ const LineItemDetailsScreen = () => {
                 width={CONTROL_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
-              />
+              /> */}
             </InlineFieldRow>
           </View>
 

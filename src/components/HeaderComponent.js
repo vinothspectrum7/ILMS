@@ -58,7 +58,7 @@ export default function HeaderComponent({
   const [selectedOrganization, setSelectedOrganization] = useState(null);
   const [organizations,setOrganizations] = useState([]);
       const {
-        OrgData, setOrgData,
+        OrgData
       } = useReceivingStore();
   // First effect: load PO data
   useEffect(() => {

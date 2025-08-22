@@ -125,11 +125,11 @@ const LineItemListCardComponent = ({
 
           <View style={styles.dateRow}>
             <Text style={styles.dateLabel}>Promised Date: </Text>
-            <Text style={styles.dateValue}>{formatDDMMYYYY(item.promisedDate)}</Text>
+            <Text style={styles.dateValue}>{formatDDMMYYYY('22/05/2025')}</Text>
           </View>
           <View style={styles.dateRow}>
             <Text style={styles.dateLabel}>Need By Date: </Text>
-            <Text style={styles.dateValue}>{formatDDMMYYYY(item.needByDate)}</Text>
+            <Text style={styles.dateValue}>{formatDDMMYYYY('25/05/2025')}</Text>
           </View>
         </View>
       </View>
@@ -201,17 +201,17 @@ const styles = StyleSheet.create({
     borderRadius: s(0.5),
     opacity: 0.9,
   },
-  metaText: { fontSize: fs(10), color: '#6B7280' },
+  metaText: { fontSize: fs(8), color: '#6B7280' },
   viewDetails: {
     
-    fontSize: fs(10),
+    fontSize: fs(9),
     color: '#033EFF',
     textDecorationLine: 'underline',
     textDecorationColor: '#033EFF',
   },
   dateRow: { flexDirection: 'row', marginTop: s(2) },
-  dateLabel: { fontSize: fs(10), color: '#6C6C6C' },
-  dateValue: { fontSize: fs(10), color: '#6C6C6C', fontWeight: '500' },
+  dateLabel: { fontSize: fs(6), color: '#6C6C6C' },
+  dateValue: { fontSize: fs(6), color: '#6C6C6C', fontWeight: '500' },
 });
 
 export default LineItemListCardComponent;
