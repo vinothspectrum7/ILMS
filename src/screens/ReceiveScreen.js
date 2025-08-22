@@ -9,9 +9,10 @@ import {
   Dimensions,
   Modal,
   BackHandler,
+  ActivityIndicator,
 } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 
 import BarcodeScanner from './BarCodeScanner';
@@ -23,13 +24,6 @@ import { FetchData, GetPoItems } from '../api/ApiServices';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
-// const poData = [
-//   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',     poDate: '21 JUL 2025', status: 'OPEN', received: 40, billed: 60 },
-//   { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechCo',    poDate: '22 JUL 2025', status: 'OPEN', received: 55, billed: 80 },
-//   { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'DesignHub', poDate: '23 JUL 2025', status: 'OPEN', received: 70, billed: 75 },
-//   { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN', received: 90, billed: 90 },
-// ];
-
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',         receivedDate: '21 Jul 2025', status: 'Fully Received' },
   { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechNerds',     receivedDate: '22 Jul 2025', status: 'Partially Received' },
@@ -39,7 +33,9 @@ const receivedData = [
 
 const ReceiveScreen = () => {
   const navigation = useNavigation();
-  const { resetReceiving } = useReceivingStore();
+  const route = useRoute();
+  const { resetReceiving,OrgData } = useReceivingStore();
+  // const selectedorg = route?.params?.selectedOrg || null;
 
   const [index, setIndex] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
@@ -59,44 +55,72 @@ const ReceiveScreen = () => {
   const [filteredReceived, setFilteredReceived] = useState(receivedData);
   const [POIntialData, setPOIntialData] = useState([]);
 
- useEffect(() => {
+  const [phase, setPhase] = useState('idle');
+
+  useEffect(() => {
+    console.log(OrgData,"selectedorgselectedorgselectedorgselectedorg")
+      if (!OrgData?.selectedOrg) return;
+      setPhase('loading');
     const loadData = async () => {
+      // setPhase('loading');
+      setAsnData([]);
+      setAsnIntialData([]);
       try {
-        const userdata = await FetchData('550e8400-e29b-41d4-a716-446655440000');
+        const userdata = await FetchData(OrgData?.selectedOrg);
         setAsnData(userdata);
         setAsnIntialData(userdata);
+        setPhase('success');
         console.log(userdata, "usereejebu");
       } catch (err) {
-        console.error("Error loading user data:", err);
+        console.error("Error loading ASN data:", err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load ASN data. Please try again.',
+          position: 'top',
+        });
+        setPhase('error');
       }
     };
+
     const loadPoData = async () => {
+      // setPhase('loading');
+      setPOData([]);
+      setPOIntialData([]);
       try {
-        const podata = await GetPoItems('550e8400-e29b-41d4-a716-446655440000');
-        if(podata!=undefined&&podata.length!=0){
+        const podata = await GetPoItems(OrgData?.selectedOrg);
+        if(podata!=undefined && podata.length!=0){
           podata.forEach((element,index) => {
             element["id"] = index+1;
-          const total_ord_qty = element.total_ord_qty;
-          const total_received_qty = element.total_received_qty;
-         // calculate percentage
-         const receivedPercent =
-        total_ord_qty > 0
-            ? (total_received_qty / total_ord_qty) * 100
-            : 0;
+            const total_ord_qty = element.total_ord_qty;
+            const total_received_qty = element.total_received_qty;
+            // calculate percentage
+            const receivedPercent =
+              total_ord_qty > 0
+                ? (total_received_qty / total_ord_qty) * 100
+                : 0;
             element["received"] = receivedPercent;
           });
         }
         setPOData(podata);
         setPOIntialData(podata);
+        setPhase('success');
         console.log(podata, "podatapodatapodata");
       } catch (err) {
-        console.error("Error loading user data:", err);
+        console.error("Error loading PO data:", err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load Purchase Order data. Please try again.',
+          position: 'top',
+        });
+        setPhase('error');
       }
     };
 
     loadPoData();
     loadData();
-  }, []);
+  }, [OrgData?.selectedOrg]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -132,20 +156,19 @@ const ReceiveScreen = () => {
       );
     }
     else if(activeKey === 'asn'){
-            setAsnData(
+      setAsnData(
         AsnIntialData.filter(
           p =>
             p.asn_num.toLowerCase().includes(q) ||
             p.supplier_name.toLowerCase().includes(q)
         )
       );
-
     } else {
       setPOData(
         POIntialData.filter(
           p =>
-            p.poNumber.toLowerCase().includes(q) ||
-            p.supplier.toLowerCase().includes(q)
+            p.po_number.toLowerCase().includes(q) ||
+            p.supplier_name.toLowerCase().includes(q)
         )
       );
     }
@@ -220,7 +243,12 @@ const ReceiveScreen = () => {
   const POList = () => (
     <FlatList
       data={POData}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item.id.toString()}
+          ListEmptyComponent={() => (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ fontSize: 16, color: 'gray' }}>No data found</Text>
+      </View>
+    )}
       contentContainerStyle={{ paddingBottom: 80 }}
       renderItem={({ item }) => (
         <TouchableOpacity
@@ -266,8 +294,13 @@ const ReceiveScreen = () => {
   const ASNList = () => (
     <FlatList
       data={AsnData}
-      keyExtractor={(item) => item.asn_id}
+      keyExtractor={(item) => item.asn_id.toString()}
       contentContainerStyle={{ paddingBottom: 80 }}
+                ListEmptyComponent={() => (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ fontSize: 16, color: 'gray' }}>No data found</Text>
+      </View>
+    )}
       renderItem={({ item }) => (
         <TouchableOpacity
           onPress={() => navigation.navigate('AsnReceiptScreen', 
@@ -314,6 +347,11 @@ const ReceiveScreen = () => {
       data={filteredReceived}
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ paddingBottom: 80 }}
+                ListEmptyComponent={() => (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ fontSize: 16, color: 'gray' }}>No data found</Text>
+      </View>
+    )}
       renderItem={({ item }) => {
         const statusColor =
           item.status === 'Fully Received' ? '#18A558' :
@@ -378,12 +416,12 @@ const ReceiveScreen = () => {
   };
 
   const formatToday = () => {
-  const d = new Date();
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}-${mm}-${yyyy}`;
-};
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
 
   return (
     <View style={styles.container}>
@@ -395,42 +433,53 @@ const ReceiveScreen = () => {
         onMenu={() => {}}
       />
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          placeholder="Enter PO/IR/ASN"
-          placeholderTextColor="#999"
-          style={styles.input}
-          value={searchText}
-          onChangeText={handleSearch}
-        />
-        {InputRightIcon}
-      </View>
+      {phase === 'loading' && (
+        <View style={styles.loaderWrapper}>
+          <ActivityIndicator size="large" color="#233E55" />
+          <Text style={styles.statusText}>Loading data…</Text>
+        </View>
+      )}
 
-      <TabView
-        navigationState={{ index, routes }}
-        renderScene={SceneMap(renderScene)}
-        onIndexChange={(i) => {
-          setIndex(i);
-          handleSearch(searchText);
-        }}
-        initialLayout={initialLayout}
-        renderTabBar={(props) => (
-          <TabBar
-            {...props}
-            indicatorStyle={{ backgroundColor: '#233E55', height: 3 }}
-            style={{ backgroundColor: '#fff', elevation: 0 }}
-            scrollEnabled
-            tabStyle={{ width: 'auto', paddingHorizontal: 10 }}
-            activeColor="#233E55"
-            inactiveColor="#444"
-            renderLabel={({ route, focused, color }) => (
-              <Text style={{ color, fontWeight: focused ? 'bold' : 'normal', fontSize: 12 }}>
-                {route.title}
-              </Text>
+      {phase !== 'loading' && (
+        <>
+          <View style={styles.inputContainer}>
+            <TextInput
+              placeholder="Enter PO/IR/ASN"
+              placeholderTextColor="#999"
+              style={styles.input}
+              value={searchText}
+              onChangeText={handleSearch}
+            />
+            {InputRightIcon}
+          </View>
+
+          <TabView
+            navigationState={{ index, routes }}
+            renderScene={SceneMap(renderScene)}
+            onIndexChange={(i) => {
+              setIndex(i);
+              handleSearch(searchText);
+            }}
+            initialLayout={initialLayout}
+            renderTabBar={(props) => (
+              <TabBar
+                {...props}
+                indicatorStyle={{ backgroundColor: '#233E55', height: 3 }}
+                style={{ backgroundColor: '#fff', elevation: 0 }}
+                scrollEnabled
+                tabStyle={{ width: 'auto', paddingHorizontal: 10 }}
+                activeColor="#233E55"
+                inactiveColor="#444"
+                renderLabel={({ route, focused, color }) => (
+                  <Text style={{ color, fontWeight: focused ? 'bold' : 'normal', fontSize: 12 }}>
+                    {route.title}
+                  </Text>
+                )}
+              />
             )}
           />
-        )}
-      />
+        </>
+      )}
 
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
@@ -441,6 +490,8 @@ const ReceiveScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f8f8' },
+  loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  statusText: { marginTop: 12, color: '#333', fontSize: 14 },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',

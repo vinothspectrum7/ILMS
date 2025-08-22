@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { View, Text, StatusBar, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -9,6 +9,10 @@ import ReceiveIcon from '../assets/icons/Receive_icon.svg';
 import InventoryIcon from '../assets/icons/Inventory_icon.svg';
 import ShippingIcon from '../assets/icons/Shipping_icon.svg';
 import { NavigationCard } from './NavigationCard';
+import { GetOrgsData } from '../api/ApiServices';
+import Toast from 'react-native-toast-message';
+import { useReceivingStore } from '../store/receivingStore';
+
 
 const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
@@ -26,15 +30,55 @@ export default function HeaderComponent({
   onNotificationPress,
   onProfilePress,
   onOrganizationChange,
+  Defaultorg,
   onCardPress = () => {},
 }) {
   const [openOrgDropdown, setOpenOrgDropdown] = useState(false);
-  const [selectedOrganization, setSelectedOrganization] = useState('EnnVee');
-  const [organizations] = useState([
-    { label: 'EnnVee', value: 'EnnVee' },
-    { label: 'S7', value: 'S7' },
-  ]);
+  const [selectedOrganization, setSelectedOrganization] = useState(null);
+  const [organizations,setOrganizations] = useState([]);
+      const {
+        OrgData, setOrgData,
+      } = useReceivingStore();
+  // First effect: load PO data
+  useEffect(() => {
+    const loadPoData = async () => {
+      try {
+        const orgsdata = await GetOrgsData();
+        console.log(orgsdata,"GetOrgsData")
+        if (orgsdata) {
+          const orgformatdata = maporgdata(orgsdata);
+          setOrganizations(orgformatdata);
+          const defaultOrg = orgformatdata.find(o => o.is_default);
+          if (OrgData?.selectedOrg){
+          setSelectedOrganization(OrgData?.selectedOrg);
+          }else{
+          setSelectedOrganization(defaultOrg?.value ?? orgformatdata[0]?.value);
+          }
+          Defaultorg?.(defaultOrg?.value ?? orgformatdata[0]?.value);
+        } else {
+          setOrganizations([]);
+        }
+      } catch (err) {
+        console.error("Error loading ORG data:", err);
+                Toast.show({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: 'Failed to load organizations. Please try again.',
+                  position: 'top',
+                });
+      }
+    };
+  
+    loadPoData();
+  }, []);
 
+const maporgdata = (data) => {
+  return data.map((element) => ({
+    label: element.org_name,
+    value: element.org_id,
+    is_default: element.is_default,
+  }));
+};
   return (
     <View style={styles.headerContainer}>
       <StatusBar translucent={false} barStyle="light-content" backgroundColor={BRAND_BG} />

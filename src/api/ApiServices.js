@@ -52,3 +52,33 @@ export const GetSinglePO = async(po_id)=>{
     throw error;
   }
 }
+export const GetOrgsData = async()=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_ORGS_DATA);
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get ORGS ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+export const GetInventryData = async(org_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_SUB_INVENTORY_DATA(org_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get ORGS ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+export const GetLocatorsData = async(sub_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_LOCATOR_DATA(sub_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get ORGS ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}

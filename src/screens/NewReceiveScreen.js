@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal, BackHandler, Alert } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal, BackHandler, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -31,7 +31,7 @@ const clampToOpen = (qty, open) => {
 };
 
 const mapHeader = (po) => ({
-  purchaseReceipt: po?.purchaseReceipt ?? '—',
+  purchaseReceipt: po?.next_receipt_num ?? '—',
   supplier: po?.supplier_name ?? '',
   poNumber: po?.po_number ?? '—',
   poDate: po?.order_date ?? '—',
@@ -54,6 +54,7 @@ const NewReceiveScreen = () => {
 
   const [selectedTab, setSelectedTab] = React.useState('lineItems');
   const [draftItems, setDraftItems] = React.useState([]);
+  const [phase, setPhase] = useState('idle');
   const [PoListItems,setPoListItems] = useState([]);
   const [selectedItems, setSelectedItems] = React.useState([]);
   const [scannedItems, setScannedItems] = React.useState([]);
@@ -91,15 +92,16 @@ const NewReceiveScreen = () => {
     console.log(selectedPO,"selectedPOselectedPO");
         console.log(poHeader,"POHEARDDD")
   }, [poHeader, selectedPO, setPoHeader]);
+
 const  mapBackendArrayToFrontend = (data)=> {
   return data.map((backend,index) => ({
     id: index+1,
-    purchaseReceipt: "", // placeholder (if needed)
+    purchaseReceipt:backend.item?.next_receipt_num || "", // placeholder (if needed)
     name: backend.item?.item_code || "",
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
     receivedQty: backend.rcvd_qty,
-    openQty: backend.max_open_qty,
+    openQty: backend.ord_qty,
     uom: backend.uom === "EA" ? "Each" : backend.uom, // convert if needed
     promisedDate: backend.promised_dlry_dt 
       ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
@@ -110,34 +112,46 @@ const  mapBackendArrayToFrontend = (data)=> {
   }));
 }
 
-
-  useEffect(async ()=> {
-    if (selectedPO){
-      Alert.alert("cominggg")
-      console.log(selectedPO,"SELECTEDPO")
-    // const loadPoData = async () => {
-        try {
-            const posingledata = await GetSinglePO(selectedPO?.po_id);
-            if(posingledata!=undefined){
-              const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines);
-              setPoListItems([]);
-              setPoListItems([...frontendArray]);
-            }
-            console.log(posingledata, "mapBackendArrayToFrontendmapBackendArrayToFrontend");
-          } catch (err) {
-            console.error("Error loading user data:", err);
-          }
-        // };
-        // loadPoData();
+// First effect: load PO data
+useEffect(() => {
+  if (!selectedPO?.po_id) return;
+  setPhase('loading');
+  const loadPoData = async () => {
+    // Alert.alert(selectedPO?.po_id)
+    try {
+      const posingledata = await GetSinglePO(selectedPO.po_id);
+      console.log(posingledata,"TESTESTETSTETSTETTET")
+      if (posingledata?.purchase_order_lines) {
+        const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines);
+        setPoListItems(frontendArray); // ✅ only set once
+      } else {
+        setPoListItems([]);
       }
-  },[])
-
-  useEffect(() => {
-    if (receiveItems.length === 0) {
-      const seeded = PoListItems.map(i => ({ ...i, qtyToReceive: 0 }));
-      initReceiveItems(seeded);
+      setPhase('success');
+    } catch (err) {
+      console.error("Error loading PO data:", err);
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to load PO Items. Please try again.',
+                position: 'top',
+              });
+              setPhase('error');
     }
-  }, [receiveItems.length, initReceiveItems, PoListItems]);
+  };
+
+  loadPoData();
+}, [selectedPO?.po_id]); // ✅ depend only on PO id
+
+// Second effect: seed receiveItems whenever PoListItems changes
+useEffect(() => {
+  if (PoListItems.length > 0) {
+    const seeded = PoListItems.map(i => ({ ...i, qtyToReceive: 0 }));
+    initReceiveItems(seeded); // ✅ reset each time new PO data is loaded
+  }
+}, [PoListItems, initReceiveItems]); // ✅ depend on new PoListItems
+
+
 
   useFocusEffect(
     React.useCallback(() => {
@@ -365,6 +379,14 @@ const  mapBackendArrayToFrontend = (data)=> {
 
   return (
     <SafeAreaView style={styles.container}>
+    {phase === 'loading' && (
+      <View style={styles.loaderWrapper}>
+        <ActivityIndicator size="large" color="#233E55" />
+        {/* <Text style={styles.statusText}>Loading data </Text> */}
+      </View>
+    )}
+        {phase !== 'loading' && (
+      <>
       <GlobalHeaderComponent title="Receive" greetingName="Robert" dateText={formatToday()} onBack={() => navigation.navigate('Receive')} onMenu={() => {}} />
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
@@ -463,12 +485,16 @@ const  mapBackendArrayToFrontend = (data)=> {
       <Modal visible={showScanner} animationType="slide">
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
       </Modal>
+  </>
+    )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { backgroundColor: '#F6F8FA', flex: 1 },
+  loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  statusText: { marginTop: 12, color: '#333', fontSize: 14 },
   contentContainer: { paddingBottom: 120 },
   itemcontainer: { 
     backgroundColor: '#fff',     

@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     borderRadius: s(0.5),
     opacity: 0.9,
   },
-  metaText: { fontSize: fs(8), color: '#6B7280' },
+  metaText: { fontSize: fs(10), color: '#6B7280' },
   viewDetails: {
     
     fontSize: fs(10),
@@ -208,8 +208,8 @@ const styles = StyleSheet.create({
     textDecorationColor: '#033EFF',
   },
   dateRow: { flexDirection: 'row', marginTop: s(2) },
-  dateLabel: { fontSize: fs(8), color: '#6C6C6C' },
-  dateValue: { fontSize: fs(8), color: '#6C6C6C', fontWeight: '500' },
+  dateLabel: { fontSize: fs(10), color: '#6C6C6C' },
+  dateValue: { fontSize: fs(10), color: '#6C6C6C', fontWeight: '500' },
 });
 
 export default LineItemListCardComponent;

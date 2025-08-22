@@ -11,6 +11,7 @@ const clampToOpen = (qty, open) => {
 export const useReceivingStore = create((set, get) => ({
   poHeader: null,
   setPoHeader: (header) => set({ poHeader: header }),
+  setOrgData: (data) => set({OrgData:data}),
 
   receiveItems: [],
   initReceiveItems: (items) => set({ receiveItems: items }),

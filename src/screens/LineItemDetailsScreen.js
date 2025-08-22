@@ -291,7 +291,7 @@ const LineItemDetailsScreen = () => {
   };
 
   const leftBtnLabel = 'Cancel';
-  const rightBtnLabel = returnTo === 'ReceiveSummaryScreen' ? 'Update' : 'Submit';
+  const rightBtnLabel = returnTo === 'ReceiveSummaryScreen' ? 'Update' : 'Save';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   navEdge: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center' },
-  navTitle: { flex: 1, color:"#233E55", textAlign: 'center', fontSize: 18, fontWeight: '600' },
+  navTitle: { flex: 1, color:"#233E55", textAlign: 'center', fontSize: 12, fontWeight: '600' },
   content: { paddingBottom: 120 },
   card: {
     backgroundColor: '#fff',

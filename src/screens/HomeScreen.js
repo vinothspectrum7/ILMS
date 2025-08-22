@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import BackOrderedIcon from '../assets/icons/Back_ordered_icon.svg';
 import { useReceivingStore } from '../store/receivingStore';
 
 import { useFocusEffect } from '@react-navigation/native';
+import { GetInventryData } from '../api/ApiServices';
 
 const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
@@ -28,6 +29,11 @@ const responsiveSize = (size) => Math.round(size * scale);
 
 export default function HomeScreen({ navigation }) {
   const [openInventoryOrgDropdown, setOpenInventoryOrgDropdown] = useState(false);
+  const [Defaultorg,setDefaultorg] = useState(null);
+  const [defaultinventory,Setdefaultinventory] = useState(null);
+    const {
+      OrgData, setOrgData,
+    } = useReceivingStore();
   const [selectedInventoryOrg, setSelectedInventoryOrg] = useState('Inventory ORG1');
   const [inventoryOrganizations] = useState([
     { label: 'Inventory ORG1', value: 'Inventory ORG1' },
@@ -37,7 +43,39 @@ export default function HomeScreen({ navigation }) {
 
   const handleNotificationPress = () => Alert.alert('Notification', 'Notification button pressed!');
   const handleProfilePress = () => navigation.navigate('Login');
-  const handleOrganizationChange = (org) => console.log('Selected Organization:', org);
+  const handleOrganizationChange = (org) =>{
+    setDefaultorg(org);
+  };
+
+    useEffect(() => {
+      // Alert.alert(Defaultorg);
+  if (!Defaultorg) return;
+    const loadinventrydata = async () => {
+      try {
+        const inventrydata = await GetInventryData(Defaultorg);
+        console.log(inventrydata,"inventrydata")
+        if (inventrydata) {
+          const defaultinventry = inventrydata.find(o => o.is_default);
+          console.log(defaultinventry,"defaultinventrydefaultinventrydefaultinventry")
+          Setdefaultinventory(defaultinventry?.sub_inv_id ?? inventrydata[0]?.sub_inv_id);
+        } else {
+          Setdefaultinventory(null);
+        }
+      } catch (err) {
+        console.error("Error loading SubInventory data:", err);
+                Toast.show({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: 'Failed to load SubInventories. Please try again.',
+                  position: 'top',
+                });
+      }
+    };
+    let obj = {selectedOrg:Defaultorg,selectedinventory:defaultinventory} 
+  setOrgData(obj);
+    loadinventrydata();
+  }, [Defaultorg]);
+
   const handleQrScanPress = () => navigation.navigate('QrScanner');
 
   const chartData = [
@@ -77,6 +115,7 @@ export default function HomeScreen({ navigation }) {
         onNotificationPress={handleNotificationPress}
         onProfilePress={handleProfilePress}
         onOrganizationChange={handleOrganizationChange}
+        Defaultorg={(value)=>setDefaultorg(value)}
         onCardPress={(screen) => navigation.navigate(screen)}
       />
 
