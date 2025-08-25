@@ -300,12 +300,12 @@ const ReceiveScreen = () => {
             <View style={styles.bottomrow}>
               <View style={styles.bottomcardLeft}>
               <View style={styles.progressWrapper}>
-                <View style={[styles.progressBar, { width: `${item.received}%` }]} />
+                <View style={[styles.progressBarleft, { width: `${item.received}%` }]} />
               </View>
               </View>
               <View style={styles.bottomcardRight}>
               <View style={styles.progressWrapper}>
-                <View style={[styles.progressBar, { width: `40%` }]} />
+                <View style={[styles.progressBarright, { width: `40%` }]} />
               </View>
               </View>
             </View>
@@ -349,7 +349,7 @@ const ReceiveScreen = () => {
               </View>
               <Text style={styles.subLabel}>Received</Text>
               <View style={styles.progressWrapper}>
-                <View style={[styles.progressBar, { width: `40%` }]} />
+                <View style={[styles.progressBarleft, { width: `40%` }]} />
               </View>
             </View>
 
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, height: 40, fontSize: 14, color: '#333' },
   card: {
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: '#FBFBFB',
     marginHorizontal: 12,
     marginVertical: 6,
     borderRadius: 12,
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   openText: { color: 'green' },
   subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
   progressWrapper: {
-    backgroundColor: '#E5F8F7',
+    backgroundColor: '#ECF1F7',
     borderRadius: 20,
     height: 12,
     width: '75%',
@@ -578,7 +578,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  progressBar: { height: 8, backgroundColor: '#1C3C55', borderRadius: 20, marginHorizontal: 4 },
+  progressBarleft: { height: 8, backgroundColor: '#233E55', borderRadius: 20, marginHorizontal: 4 },
+  rcvCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 12,
+    marginVertical: 6,
+    borderRadius: 12,
+    padding: 14,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+  },
+  progressBarright: { height: 8, backgroundColor: '#89ADC9', borderRadius: 20, marginHorizontal: 4 },
   rcvCard: {
     backgroundColor: '#fff',
     marginHorizontal: 12,

@@ -192,7 +192,12 @@ const PencilDropdownRow = ({
 };
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: ms(16), marginTop: ms(10), position: "relative" },
+  wrap: {
+    marginHorizontal: ms(16),
+    backgroundColor:'#ECF1F7',
+    marginTop: ms(10),
+    position: 'relative'
+  },
   wrapCompact: { marginHorizontal: 0, marginTop: 0 },
   wrapDisabled: { opacity: 0.6 },
   labelRow: {

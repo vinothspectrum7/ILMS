@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     borderWidth: 1,
     color: '#000000',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FBFBFB',
   },
   uomText: {
     fontSize: ms(8),
