@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Alert,
   BackHandler,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { QrCode } from 'lucide-react-native';
 import HeaderComponent, { HEADER_METRICS } from '../components/HeaderComponent';
@@ -18,7 +19,6 @@ import OrderShippedIcon from '../assets/icons/Order_Shipped_icon.svg';
 import OrderScheduledTodayIcon from '../assets/icons/Order_Scheduled_today_icon.svg';
 import BackOrderedIcon from '../assets/icons/Back_ordered_icon.svg';
 import { useReceivingStore } from '../store/receivingStore';
-
 import { useFocusEffect } from '@react-navigation/native';
 import { GetInventryData, GetLocatorsData } from '../api/ApiServices';
 
@@ -29,87 +29,82 @@ const responsiveSize = (size) => Math.round(size * scale);
 
 export default function HomeScreen({ navigation }) {
   const [openInventoryOrgDropdown, setOpenInventoryOrgDropdown] = useState(false);
-  const [Defaultorg,setDefaultorg] = useState(null);
-  const [OrgCode,setOrgCode] = useState(null);
-  const [defaultinventory,Setdefaultinventory] = useState(null);
-    const {
-      OrgData, setOrgData,setInventoryList,setLocatorList
-    } = useReceivingStore();
+  const [Defaultorg, setDefaultorg] = useState(null);
+  const [OrgCode, setOrgCode] = useState(null);
+  const [defaultinventory, Setdefaultinventory] = useState(null);
+  const { OrgData, setOrgData, setInventoryList, setLocatorList } = useReceivingStore();
   const [selectedInventoryOrg, setSelectedInventoryOrg] = useState('Inventory ORG1');
   const [inventoryOrganizations] = useState([
     { label: 'Inventory ORG1', value: 'Inventory ORG1' },
     { label: 'Inventory ORG2', value: 'Inventory ORG2' },
     { label: 'Inventory ORG3', value: 'Inventory ORG3' },
   ]);
+  const [profileName, setProfileName] = useState('');
 
   const handleNotificationPress = () => Alert.alert('Notification', 'Notification button pressed!');
   const handleProfilePress = () => navigation.navigate('Login');
-  const handleOrganizationChange = (org) =>{
+  const handleOrganizationChange = (org) => {
     setDefaultorg(org.value);
     setOrgCode(org.org_code);
   };
 
-    useEffect(() => {
-      // Alert.alert(Defaultorg);
-  if (!Defaultorg) return;
+  useEffect(() => {
+    if (!Defaultorg) return;
     const loadinventrydata = async () => {
       try {
         const inventrydata = await GetInventryData(Defaultorg);
-        console.log(inventrydata,"inventrydata")
         if (inventrydata) {
-          const inventoryList = inventrydata.map(d => ({
-  id: d.sub_inv_id,
-  name: d.sub_inv_name,
-  enabled: d.sub_inv_enabled,
-  is_default: d.is_default,
-}));      
+          const inventoryList = inventrydata.map((d) => ({
+            id: d.sub_inv_id,
+            name: d.sub_inv_name,
+            enabled: d.sub_inv_enabled,
+            is_default: d.is_default,
+          }));
           setInventoryList(inventoryList);
-          const defaultinventry = inventrydata.find(o => o.is_default);
+          const defaultinventry = inventrydata.find((o) => o.is_default);
           loadlocatordata(defaultinventory);
-          console.log(defaultinventry,"defaultinventrydefaultinventrydefaultinventry")
           Setdefaultinventory(defaultinventry?.sub_inv_id ?? inventrydata[0]?.sub_inv_id);
         } else {
           Setdefaultinventory(null);
         }
       } catch (err) {
-        console.error("Error loading SubInventory data:", err);
-                Toast.show({
-                  type: 'error',
-                  text1: 'Error',
-                  text2: 'Failed to load SubInventories. Please try again.',
-                  position: 'top',
-                });
+        console.error('Error loading SubInventory data:', err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load SubInventories. Please try again.',
+          position: 'top',
+        });
       }
     };
-    let obj = {selectedOrg:Defaultorg,selectedinventory:defaultinventory,selectedOrgCode:OrgCode} 
-  setOrgData(obj);
+    let obj = { selectedOrg: Defaultorg, selectedinventory: defaultinventory, selectedOrgCode: OrgCode };
+    setOrgData(obj);
     loadinventrydata();
-  }, [Defaultorg,OrgCode]);
+  }, [Defaultorg, OrgCode]);
 
-          const loadlocatordata = async (sub_id) => {
-                    if (!sub_id) return;
-                        try {
-                          const locdata = await GetLocatorsData(sub_id);
-                          console.log(locdata,"locdatalocdatalocdata")
-                          if (locdata) {
-                            const LocatorList = locdata.map(d => ({
-                    id: d.locator_id,
-                    name: d.locator_name,
-                    enabled: d.locator_enabled,
-                  }));      
-                  setLocatorList(LocatorList);
-                          }
-                        } catch (err) {
-                          console.error("Error loading Locator data:", err);
-                                  Toast.show({
-                                    type: 'error',
-                                    text1: 'Error',
-                                    text2: 'Failed to load Locators. Please try again.',
-                                    position: 'top',
-                                  });
-                        }
-          }
-          
+  const loadlocatordata = async (sub_id) => {
+    if (!sub_id) return;
+    try {
+      const locdata = await GetLocatorsData(sub_id);
+      if (locdata) {
+        const LocatorList = locdata.map((d) => ({
+          id: d.locator_id,
+          name: d.locator_name,
+          enabled: d.locator_enabled,
+        }));
+        setLocatorList(LocatorList);
+      }
+    } catch (err) {
+      console.error('Error loading Locator data:', err);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load Locators. Please try again.',
+        position: 'top',
+      });
+    }
+  };
+
   const handleQrScanPress = () => navigation.navigate('QrScanner');
 
   const chartData = [
@@ -122,7 +117,7 @@ export default function HomeScreen({ navigation }) {
     { value: 75, label: 'Item 7', color: '#F2A091' },
   ];
 
-  const resetReceiving = useReceivingStore(s => s.resetReceiving);
+  const resetReceiving = useReceivingStore((s) => s.resetReceiving);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -132,30 +127,60 @@ export default function HomeScreen({ navigation }) {
   );
 
   useFocusEffect(
-        React.useCallback(() => {
-          const onBackPress = () => {
-            navigation.navigate('Login');
-            return true;
-          };
-  
-          const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-          return () => sub.remove();
-        }, [navigation])
-      );
+    React.useCallback(() => {
+      const onBackPress = () => {
+        navigation.navigate('Login');
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [navigation])
+  );
+
+  const loadUserName = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem('user_name');
+      if (!raw) {
+        setProfileName('');
+        return;
+      }
+      let name = '';
+      try {
+        const parsed = JSON.parse(raw);
+        name = typeof parsed === 'string' ? parsed : parsed?.user_name ?? '';
+      } catch {
+        name = raw;
+      }
+      setProfileName(name.trim());
+    } catch (e) {
+      console.log('error getting user_name', e);
+      setProfileName('');
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserName();
+  }, [loadUserName]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserName();
+    }, [loadUserName])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <HeaderComponent
         notificationCount={0}
-        profileName="Vinoth Umasankar"
+        profileName={profileName}
         onNotificationPress={handleNotificationPress}
         onOrganizationChange={handleOrganizationChange}
-        Defaultorg={(value)=>setDefaultorg(value)}
-        OrgCode={(value)=>{
-          // Alert.alert(value)
-          setOrgCode(value)}}
+        Defaultorg={(value) => setDefaultorg(value)}
+        OrgCode={(value) => {
+          setOrgCode(value);
+        }}
         onCardPress={(screen) => navigation.navigate(screen)}
-        onMenu={handleProfilePress}
+        // onMenu={handleProfilePress}
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -165,12 +190,18 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.sectionShippingTitle}>Shipping Status</Text>
           <View style={styles.shippingStatusCardsContainer}>
             <ShippingStatusCard label="Order Shipped" count="8" icon={OrderShippedIcon} iconColor="#033EFF" onPress={() => {}} />
-            <ShippingStatusCard label={
-                  <>
-                    Order{"\n"}
-                    Scheduled today
-                  </>
-                } count="15" icon={OrderScheduledTodayIcon} iconColor="#10b981" onPress={() => {}} />
+            <ShippingStatusCard
+              label={
+                <>
+                  Order{'\n'}
+                  Scheduled today
+                </>
+              }
+              count="15"
+              icon={OrderScheduledTodayIcon}
+              iconColor="#10b981"
+              onPress={() => {}}
+            />
             <ShippingStatusCard label="Backordered" count="9" icon={BackOrderedIcon} iconColor="#f59e0b" onPress={() => {}} />
           </View>
         </View>
@@ -238,10 +269,6 @@ export default function HomeScreen({ navigation }) {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
-
-      {/* <TouchableOpacity style={styles.fab} onPress={handleQrScanPress}>
-        <QrCode size={responsiveSize(28)} color="#ffffff" strokeWidth={2} />
-      </TouchableOpacity> */}
     </SafeAreaView>
   );
 }

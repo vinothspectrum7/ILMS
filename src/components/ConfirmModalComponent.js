@@ -110,26 +110,6 @@ const ConfirmModalComponent = ({
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={handleYes}
-                    style={[
-                      styles.circleButton,
-                      {
-                        borderColor: confirmColor,
-                        width: buttonSize,
-                        height: buttonSize,
-                        borderRadius: buttonSize / 2,
-                      },
-                    ]}
-                  >
-                    <ConfirmIcon
-                      width={buttonSize - 2}
-                      height={buttonSize - 2}
-                      fill={confirmColor}
-                    />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    activeOpacity={0.8}
                     onPress={handleNo}
                     style={[
                       styles.circleButton,
@@ -145,6 +125,26 @@ const ConfirmModalComponent = ({
                       width={buttonSize - 2}
                       height={buttonSize - 2}
                       fill={cancelColor}
+                    />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={handleYes}
+                    style={[
+                      styles.circleButton,
+                      {
+                        borderColor: confirmColor,
+                        width: buttonSize,
+                        height: buttonSize,
+                        borderRadius: buttonSize / 2,
+                      },
+                    ]}
+                  >
+                    <ConfirmIcon
+                      width={buttonSize - 2}
+                      height={buttonSize - 2}
+                      fill={confirmColor}
                     />
                   </TouchableOpacity>
                 </View>
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    width: '60%',
+    width: '40%',
   },
   circleButton: {
     justifyContent: 'center',

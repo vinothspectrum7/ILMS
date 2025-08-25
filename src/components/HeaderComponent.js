@@ -147,9 +147,17 @@ const maporgdata = (data) => {
             selectedItemLabelStyle={styles.selectedItemLabelStyle}
             onSelectItem={(item) => onOrganizationChange?.(item)}
             renderBadge={() => null}
-            ArrowUpIconComponent={({ style }) => <Text style={[style, { color: '#FFFFFF' }]}>▲</Text>}
-            ArrowDownIconComponent={({ style }) => <Text style={[style, { color: '#FFFFFF' }]}>▼</Text>}
+            ArrowUpIconComponent={({ style }) => (
+              <Text style={[style, { color: '#FFFFFF' }]}>▲</Text>
+            )}
+            ArrowDownIconComponent={({ style }) => (
+              <Text style={[style, { color: '#FFFFFF' }]}>▼</Text>
+            )}
+            TickIconComponent={({ style }) => (
+              <Text style={[style, { color: '#FFFFFF', fontSize: 18 }]}>✓</Text>
+            )}
           />
+
         </View>
 
         <View style={styles.iconSection}>

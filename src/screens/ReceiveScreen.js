@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import BarcodeScanner from './BarCodeScanner';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -62,6 +63,8 @@ const ReceiveScreen = () => {
     { key: 'inprogress', title: 'In-progress' },
   ]);
   const activeKey = routes[index].key;
+
+  const [profileName, setProfileName] = useState('');
 
   const [searchText, setSearchText] = useState('');
   const [POData, setPOData] = useState([]);
@@ -189,7 +192,7 @@ const ReceiveScreen = () => {
 
   const handleScan = (value) => {
     const code = String(value).trim().toUpperCase();
-    const match = POData.find(p => String(p.poNumber).toUpperCase() === code);
+    const match = POData.find(p => String(p.po_number).toUpperCase() === code);
     const asnmatch = AsnIntialData.find(a =>String(a.asn_num).toUpperCase() ===code);
     console.log(asnmatch,"asnmatch");
 
@@ -390,6 +393,7 @@ const ReceiveScreen = () => {
               navigation.navigate('ReceiveSummaryScreen', {
                 readonly: true,
                 id: item.id,
+                listType: 'Received',
                 header: {
                   receiptNumber: item.purchaseReceipt,
                   supplier: item.supplier,
@@ -450,15 +454,47 @@ const ReceiveScreen = () => {
     return `${dd}-${mm}-${yyyy}`;
   };
 
+  const loadUserName = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem('user_name');
+      if (!raw) {
+        setProfileName('');
+        return;
+      }
+      let name = '';
+      try {
+        const parsed = JSON.parse(raw);
+        name = typeof parsed === 'string' ? parsed : parsed?.user_name ?? '';
+      } catch {
+        name = raw;
+      }
+      setProfileName(name.trim());
+    } catch (e) {
+      console.log('error getting user_name', e);
+      setProfileName('');
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserName();
+  }, [loadUserName]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserName();
+    }, [loadUserName])
+  );
+
+
   return (
     <View style={styles.container}>
       <GlobalHeaderComponent
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Receiving"
         notificationCount={0}
-        profileName="Vinoth Umasankar"
+        profileName={profileName}
         onBack={() => navigation.navigate('Home')}
-        onMenu={() => setMenuOpen(true)}
+        // onMenu={() => setMenuOpen(true)}
         onNotificationPress={() => navigation.navigate('Home')}
         onProfilePress={() => navigation.navigate('Home')}
       />

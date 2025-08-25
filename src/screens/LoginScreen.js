@@ -44,8 +44,9 @@ const LoginScreen = ({ navigation }) => {
     const response = await UserLogin(formData);
     console.log('responseresponseresponseresponse',response);
 
-    if (response.status === 200 && response.data.access_token) {
+    if (response.status === 200 && response.data.access_token && response.data.user_name) {
       await AsyncStorage.setItem('access_token', response.data.access_token);
+      await AsyncStorage.setItem('user_name', response.data.user_name);
       navigation.replace('Home');
     } else {
       // navigation.replace('Home');
