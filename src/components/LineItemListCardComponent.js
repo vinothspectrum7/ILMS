@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     marginRight: s(15),
     marginLeft: s(15),
     height: s(110),
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FBFBFB',
     borderWidth: 1,
     borderColor: '#E5E5E5',
     borderRadius: s(10),
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   section1: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F6FAFA',
+    backgroundColor: '#ECF1F7',
     width: s(35),
     height: '100%',
     borderRadius: s(10),
