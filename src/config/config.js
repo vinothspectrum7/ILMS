@@ -10,5 +10,6 @@ export const API_ENDPOINTS = {
   GET_ORGS_DATA: `${BASE_URL}/organizations`,
   GET_SUB_INVENTORY_DATA: (po_id) => `${BASE_URL}/organizations/${po_id}/subinventories`,
   GET_LOCATOR_DATA: (sub_inven_id) => `${BASE_URL}/organizations/${sub_inven_id}/locators`,
+  UPDATE_RECEIVED_QTY: `${BASE_URL}/purchase_orders/update/batch_received_qty`
 
 };

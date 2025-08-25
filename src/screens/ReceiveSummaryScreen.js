@@ -10,6 +10,7 @@ import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import Toast from 'react-native-toast-message';
 import { createOrderReceipt } from '../api/mockApi';
 import { useReceivingStore } from '../store/receivingStore';
+import { Submit_Receive_Qty } from '../api/ApiServices';
 
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', receivedDate: '21 Jul 2025', status: 'Fully Received' },
@@ -18,11 +19,11 @@ const receivedData = [
   { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', receivedDate: '24 Jul 2025', status: 'Fully Received' },
 ];
 
-const defaultReceiptItems = [
-  { id: 'a', name: 'Lorem Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 100, receivedQty: 100, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN1', subInventory: 'SUBINVENTORY1', locator: 'LOCATOR1' },
-  { id: 'b', name: 'Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 150, receivedQty: 150, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN2', subInventory: 'SUBINVENTORY2', locator: 'LOCATOR2' },
-  { id: 'c', name: 'Des Impusum', description: 'dolor ipsum dolor sit amet…', orderedQty: 200, receivedQty: 200, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN3', subInventory: 'SUBINVENTORY3', locator: 'LOCATOR3' },
-];
+// const defaultReceiptItems = [
+//   { id: 'a', name: 'Lorem Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 100, receivedQty: 100, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN1', subInventory: 'SUBINVENTORY1', locator: 'LOCATOR1' },
+//   { id: 'b', name: 'Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 150, receivedQty: 150, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN2', subInventory: 'SUBINVENTORY2', locator: 'LOCATOR2' },
+//   { id: 'c', name: 'Des Impusum', description: 'dolor ipsum dolor sit amet…', orderedQty: 200, receivedQty: 200, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN3', subInventory: 'SUBINVENTORY3', locator: 'LOCATOR3' },
+// ];
 
 const ReceiveSummaryScreen = () => {
   const navigation = useNavigation();
@@ -32,6 +33,7 @@ const ReceiveSummaryScreen = () => {
   const selectedPO = route?.params?.header?.poNumber;
   const listTypeFromRoute = route?.params?.listType || 'line';
   const headerFromRoute = route?.params?.header || null;
+  const purchaseReceipt = route?.params?.purchaseReceipt;
   const sourceId = route?.params?.id ? String(route.params.id) : null;
   const passedItems = Array.isArray(route?.params?.selectedItems) ? route.params.selectedItems : [];
 
@@ -93,7 +95,7 @@ const ReceiveSummaryScreen = () => {
   useEffect(() => {
     if (initializedRef.current) return;
     if (readonly) {
-      setDraft(passedItems.length ? passedItems : defaultReceiptItems);
+      setDraft(passedItems.length ? passedItems : []);
     } else if (Array.isArray(passedItems) && passedItems.length > 0) {
       setDraft(passedItems);
       initSummaryItems(passedItems);
@@ -137,14 +139,30 @@ const ReceiveSummaryScreen = () => {
     [poHeader]
   );
 
+const  mapConfirmData = (data)=> {
+  return data.map((backend) => ({
+    po_line_id:backend?.po_line_id,
+    item_id:backend?.item_id,
+    org_id:backend?.org_id, // placeholder (if needed)
+    sub_inv_id: backend?.subInventory,
+    locator_id: backend?.locator,
+    lot_number: "",
+    expiry_date: formatToday(),
+    received_qty: Number(backend?.qtyToReceive)
+  }));
+}
+
   const confirmAction = async () => {
-    try {
-      const response = await createOrderReceipt(draft, true);
-      if (response?.ok) return { success: true, message: response?.message || 'Order receipt created successfully' };
+    const formatdata = mapConfirmData(draft);
+    console.log(formatdata,"formatdataformatdata");
+        try {
+          const response = await Submit_Receive_Qty(formatdata);
+          console.log(response,"posingledataposingledata");
+      if (response?.results) return { success: true, message:'Received Quantity Updated Successfully!' };
       return { success: false, message: response?.message || 'Failed to create order receipt' };
-    } catch (error) {
-      return { success: false, message: error?.message || 'Network error. Please try again.' };
-    }
+        } catch (err) {
+          return { success: false, message: err.detail?.[0].msg || 'Network error. Please try again.' };
+        }
   };
 
   const handleCancel = () => setModalVisible(false);
@@ -179,8 +197,9 @@ const ReceiveSummaryScreen = () => {
       itemDescription: it.itemDescription ?? it.description ?? '—',
       orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
       openQty: Number(it.openQty ?? 0),
+      receivingStatus:readonly ? 'Received' :it.status,
       receivingQty: Number(readonly ? readonlyReceivingQty : (it.qtyToReceive ?? 0)),
-      receivingStatus: readonly ? 'Received' : 'In-progress',
+      // receivingStatus: readonly ? 'Received' : it.line_status,
       lpn: it.lpn ?? '',
       subInventory: it.subInventory ?? '',
       locator: it.locator ?? '',
@@ -189,6 +208,7 @@ const ReceiveSummaryScreen = () => {
 
   const openLineDetailsFromSummary = (item) => {
     const source = draft;
+    console.log()
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
     const mapped = source.map(toDetailItemFromSummary);
     navigation.navigate({
@@ -203,7 +223,7 @@ const ReceiveSummaryScreen = () => {
     const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
-    return `${dd}-${mm}-${yyyy}`;
+    return `${yyyy}-${mm}-${dd}`;
   };
 
   return (
@@ -222,7 +242,7 @@ const ReceiveSummaryScreen = () => {
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
-          receiptNumber={headerData.purchaseReceipt}
+          receiptNumber={purchaseReceipt}
           supplier={headerData.supplier}
           poNumber={headerData.poNumber}
           receiptDate={headerData.poDate}
@@ -242,7 +262,7 @@ const ReceiveSummaryScreen = () => {
               <View style={styles.lineItemWrapper}>
                 <ConfirmLineItemComponent
                   item={item}
-                  qtyLabel="Qty"
+                  qtyLabel="Each"
                   qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? item.qtyToReceive ?? 0) : Number(item.qtyToReceive ?? 0)}
                   readOnly
                   onViewDetails={() => openLineDetailsFromSummary(item)}

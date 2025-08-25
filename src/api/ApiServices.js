@@ -82,3 +82,13 @@ export const GetLocatorsData = async(sub_id)=>{
     throw error;
   }
 }
+export const Submit_Receive_Qty = async(data)=>{
+    try {
+    const response = await api.patch(API_ENDPOINTS.UPDATE_RECEIVED_QTY,data);
+    console.log("Response Data:", response);
+    return response.data;
+  } catch (error) {
+    console.error("Fetch Error:", error.message, error.response?.data);
+    throw error.response?.data;
+  }  
+}

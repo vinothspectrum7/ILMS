@@ -30,7 +30,7 @@ const LineItemListCardComponent = ({
     if (isSelected) {
       if (!touched) setTouched(true);
       if ((item.qtyToReceive ?? 0) === 0) {
-        onQtyChange(item.id, item.openQty);
+        onQtyChange(item.id, item.max_open_qty);
       }
     } else {
       setTouched(false);
@@ -104,8 +104,8 @@ const LineItemListCardComponent = ({
         </View>
 
         <View style={styles.section3}>
-          <Text style={styles.itemName}></Text>
-          <Text style={styles.itemName}></Text>
+          {/* <Text style={styles.itemName}></Text>
+          <Text style={styles.itemName}></Text> */}
           <View style={styles.numericInputWrapper}>
             <CustomNumericInput
               value={item.qtyToReceive ?? 0}
@@ -114,7 +114,7 @@ const LineItemListCardComponent = ({
                 onQtyChange(item.id, v);
               }}
               min={0}
-              max={item.openQty}
+              max={item.max_open_qty}
               step={1}
               width={s(80)}
               height={s(28)}
@@ -122,7 +122,7 @@ const LineItemListCardComponent = ({
               onLimit={() => {}}
             />
           </View>
-
+          <Text style={styles.uomText}>Each</Text>
           <View style={styles.dateRow}>
             <Text style={styles.dateLabel}>Promised Date: </Text>
             <Text style={styles.dateValue}>{formatDDMMYYYY('22/05/2025')}</Text>
@@ -148,6 +148,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5E5',
     borderRadius: s(10),
+  },
+    uomText: {
+    fontSize: s(8),
+    color: '#595A5C',
+    marginTop: s(-6),
+    marginBottom: s(10),
+    marginRight: s(2),
   },
   rowContainer: { flexDirection: 'row', height: '100%' },
   section1: {

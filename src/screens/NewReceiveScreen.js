@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal, BackHandler, ActivityIndicator } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal, BackHandler, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -56,6 +56,7 @@ const NewReceiveScreen = () => {
   const [draftItems, setDraftItems] = React.useState([]);
   const [phase, setPhase] = useState('idle');
   const [PoListItems,setPoListItems] = useState([]);
+  const [PurchaseReceipt,SetPurchaseReceipt] = useState(null);
   const [selectedItems, setSelectedItems] = React.useState([]);
   const [scannedItems, setScannedItems] = React.useState([]);
   const [showScanner, setShowScanner] = React.useState(false);
@@ -88,20 +89,30 @@ const NewReceiveScreen = () => {
     );
 
   useEffect(() => {
-    if (!poHeader && selectedPO) setPoHeader(mapHeader(selectedPO));
+    if (!selectedPO) return;
+    setPoHeader(null);
+    setPoHeader(mapHeader(selectedPO))
     console.log(selectedPO,"selectedPOselectedPO");
         console.log(poHeader,"POHEARDDD")
-  }, [poHeader, selectedPO, setPoHeader]);
+  }, [selectedPO]);
 
-const  mapBackendArrayToFrontend = (data)=> {
+const  mapBackendArrayToFrontend = (data,posingledata)=> {
   return data.map((backend,index) => ({
     id: index+1,
-    purchaseReceipt:backend.item?.next_receipt_num || "", // placeholder (if needed)
+    po_line_id:backend?.po_line_id,
+    item_id:backend?.item_id,
+    purchaseReceipt:posingledata?.next_receipt_num || "", // placeholder (if needed)
     name: backend.item?.item_code || "",
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
     receivedQty: backend.rcvd_qty,
-    openQty: backend.ord_qty,
+    openQty: Number(backend.ord_qty) - Number(backend.rcvd_qty),
+    max_open_qty:backend.max_open_qty,
+    lpn: '',
+    subInventory: OrgData?.selectedinventory,
+    org_id:OrgData?.selectedOrg,
+    locator: '',
+    status:backend.line_status,
     uom: backend.uom === "EA" ? "Each" : backend.uom, // convert if needed
     promisedDate: backend.promised_dlry_dt 
       ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
@@ -120,9 +131,11 @@ useEffect(() => {
     // Alert.alert(selectedPO?.po_id)
     try {
       const posingledata = await GetSinglePO(selectedPO.po_id);
-      console.log(posingledata,"TESTESTETSTETSTETTET")
+      console.log(posingledata,"TESTESTETSTETSTETTET");
       if (posingledata?.purchase_order_lines) {
-        const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines);
+        SetPurchaseReceipt(posingledata?.next_receipt_num);
+        const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines,posingledata);
+        console.log(frontendArray,"frontendArrayfrontendArrayfrontendArrayfrontendArray")
         setPoListItems(frontendArray); // ✅ only set once
       } else {
         setPoListItems([]);
@@ -209,7 +222,7 @@ useEffect(() => {
     }
     const stored = receiveItems.find(r => String(r.id) === String(item.id));
     const storedQty = Number(stored?.qtyToReceive ?? 0);
-    const nextQty = storedQty > 0 ? storedQty : clampToOpen(item.openQty, item.openQty);
+    const nextQty = storedQty > 0 ? storedQty : clampToOpen(item.openQty, item.max_open_qty);
     setDraftItems(prev => prev.map(it => (it.id === item.id ? { ...it, qtyToReceive: nextQty } : it)));
     setSelectedItems(prev => [...prev, item.id]);
   };
@@ -217,7 +230,7 @@ useEffect(() => {
   const handleQtyChange = (id, newQty) => {
     setDraftItems(prev => {
       const next = prev.map(item =>
-        item.id === id ? { ...item, qtyToReceive: clampToOpen(newQty, item.openQty) } : item
+        item.id === id ? { ...item, qtyToReceive: clampToOpen(newQty, item.max_open_qty) } : item
       );
       const changed = next.find(x => x.id === id);
       const clamped = Number(changed?.qtyToReceive ?? 0);
@@ -243,7 +256,6 @@ useEffect(() => {
 
     
     const source = draftItems;
-
     const payload = source
       .filter(i => Number(i.qtyToReceive ?? 0) > 0)
       .map(i => ({
@@ -258,15 +270,21 @@ useEffect(() => {
         promisedDate: i.promisedDate,
         needByDate: i.needByDate,
         qtyToReceive: i.qtyToReceive,
-        lpn: i.lpn,
-        subInventory: i.subInventory,
-        locator: i.locator,
+        po_line_id:i.po_line_id,
+        item_id:i.item_id,
+        lpn: i.lpn?i.lpn:'',
+        subInventory: i.subInventory?i.subInventory:OrgData?.selectedinventory,
+        org_id:OrgData?.selectedOrg,
+        locator: i.locator?i.locator:'',
+        status:i.status
       }));
-
+    console.log(source,"sourcesourcesourcesourcesourcesourcesourcesourcesource")
+    console.log(payload,"payloadpayloadpayloadpayloadpayloadpayloadpayloadpayloadpayload")
     navigation.navigate('ReceiveSummaryScreen', {
       id: selectedPO?.id ?? null,
       selectedItems: payload,
       readonly: false,
+      purchaseReceipt:PurchaseReceipt,
       header: mapHeader(selectedPO),
       listType: 'line',
     });
@@ -274,7 +292,7 @@ useEffect(() => {
 
   const confirmAction = async () => {
     try {
-      
+      console.log(scannedItems,"scannedItemsconfirm")
       const payload = (scannedItems || [])
         .filter(i => Number(i.qtyToReceive ?? 0) > 0)
         .map(i => ({
@@ -293,9 +311,20 @@ useEffect(() => {
           subInventory: i.subInventory,
           locator: i.locator,
         }));
-
-      const res = await createOrderReceipt(payload, true); // mock API
-      return { success: !!res?.ok, message: res?.message };
+// const  mapConfirmData = (data)=> {
+//   return data.map((backend) => ({
+//     po_line_id:backend?.po_line_id,
+//     item_id:backend?.item_id,
+//     org_id:backend?.org_id, // placeholder (if needed)
+//     sub_inv_id: backend?.subInventory,
+//     locator_id: backend?.locator,
+//     lot_number: "",
+//     expiry_date: formatToday(),
+//     received_qty: Number(backend?.qtyToReceive)
+//   }));
+// }
+      // const res = await createOrderReceipt(payload, true); // mock API
+      // return { success: !!res?.ok, message: res?.message };
     } catch (error) {
       return { success: false, message: error?.message || 'Network error. Please try again.' };
     }
@@ -315,7 +344,7 @@ useEffect(() => {
   
     const handleFailure = () => {
       Toast.hide();
-      Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 1500 });
+      // Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 1500 });
       setModalVisible(false);
     };
 
@@ -328,7 +357,8 @@ useEffect(() => {
     orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
     openQty: Number(it.openQty ?? 0),
     receivingQty: Number(it.qtyToReceive ?? 0),
-    receivingStatus: 'In-progress',
+    max_open_qty: Number(it.max_open_qty ?? 0),
+    receivingStatus: it.status,
     lpn: it.lpn ?? '',
     subInventory: it.subInventory ?? '',
     locator: it.locator ?? '',
@@ -345,13 +375,15 @@ useEffect(() => {
 
   const handleScan = (value) => {
     const id = String(value).trim();
-    const source = PoListItems.find(x => String(x.id) === id);
+        console.log(PoListItems,"sourcesourcesourcesourcesourcesourcesourcesource")
+    const source = PoListItems.find(x => String(x.name) === id);
+    console.log(source,"sourcesourcesourcesourcesourcesourcesourcesource")
     if (!source) {
       Toast.show({ type: 'error', text1: 'Unknown barcode', text2: `No item with id ${id}`, position: 'top' });
       setShowScanner(false);
       return;
     }
-    const alreadyExists = scannedItems.some(x => String(x.id) === id);
+    const alreadyExists = scannedItems.some(x => String(x.name) === id);
     if (alreadyExists) {
       Toast.show({ type: 'orange', text1: 'Scanned item already added to the list', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 1500 });
       setShowScanner(false);
@@ -399,7 +431,7 @@ useEffect(() => {
       />
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
-          receiptNumber={poHeader?.purchaseReceipt || '—'}
+          receiptNumber={PurchaseReceipt || '—'}
           supplier={poHeader?.supplier || '—'}
           poNumber={poHeader?.poNumber || '—'}
           receiptDate={poHeader?.poDate || '—'}
@@ -424,7 +456,7 @@ useEffect(() => {
                   const next = draftItems.map(it => {
                     const stored = receiveItems.find(r => String(r.id) === String(it.id));
                     const storedQty = Number(stored?.qtyToReceive ?? 0);
-                    const useQty = storedQty > 0 ? storedQty : clampToOpen(it.openQty, it.openQty);
+                    const useQty = storedQty > 0 ? storedQty : clampToOpen(it.max_open_qty, it.max_open_qty);
                     return { ...it, qtyToReceive: useQty };
                   });
                   setDraftItems(next);
@@ -461,7 +493,7 @@ useEffect(() => {
             onViewDetails={(item) => {
               const source = scannedItems.length ? scannedItems : PoListItems;
               const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-              goToLineItemDetails(idx, source, true, 'scan');
+              goToLineItemDetails(idx, source, false, 'scan');
             }}
             header={
               <View style={styles.tableHeader}>

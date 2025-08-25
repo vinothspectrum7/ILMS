@@ -189,8 +189,9 @@ const ReceiveScreen = () => {
 
   const handleScan = (value) => {
     const code = String(value).trim().toUpperCase();
-    const match = POData.find(p => String(p.poNumber).toUpperCase() === code);
+    const match = POData.find(p => String(p.po_number).toUpperCase() === code);
     const asnmatch = AsnIntialData.find(a =>String(a.asn_num).toUpperCase() ===code);
+    console.log(POData,code,"PODataonscanning")
     console.log(asnmatch,"asnmatch");
 
     if (match) {
@@ -265,7 +266,8 @@ const ReceiveScreen = () => {
       contentContainerStyle={{ paddingBottom: 80 }}
       renderItem={({ item }) => (
         <TouchableOpacity
-          onPress={() => navigation.navigate('NewReceiveScreen', { selectedPO: item })}
+          onPress={() => navigation.navigate('NewReceiveScreen', 
+            { selectedPO: item,fromScan: false,scannedPoNumber: null, })}
           activeOpacity={0.9}
         >
           <View style={styles.card}>
@@ -286,7 +288,7 @@ const ReceiveScreen = () => {
               </View>
               <View style={styles.bottomcardRight}>
               <Text style={styles.labelText}>PO Order Date</Text>
-              <Text style={styles.valueText}>{item.order_date}</Text>
+              <Text style={styles.valueText}>{formatDate(item.order_date)}</Text>
               </View>
             </View>
             <View style={styles.bottomrow}>
@@ -442,13 +444,15 @@ const ReceiveScreen = () => {
     inprogress: POList,
   };
 
-  const formatToday = () => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${dd}-${mm}-${yyyy}`;
-  };
+const formatDate = (date) => {
+  const d = new Date(date);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const mmm = monthNames[d.getMonth()];
+  const yyyy = d.getFullYear();
+  return `${dd} ${mmm} ${yyyy}`;
+};
 
   return (
     <View style={styles.container}>

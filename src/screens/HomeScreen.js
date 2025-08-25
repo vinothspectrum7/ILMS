@@ -66,7 +66,6 @@ export default function HomeScreen({ navigation }) {
           setInventoryList(inventoryList);
           const defaultinventry = inventrydata.find(o => o.is_default);
           loadlocatordata(defaultinventory);
-          console.log(defaultinventry,"defaultinventrydefaultinventrydefaultinventry")
           Setdefaultinventory(defaultinventry?.sub_inv_id ?? inventrydata[0]?.sub_inv_id);
         } else {
           Setdefaultinventory(null);
@@ -84,7 +83,7 @@ export default function HomeScreen({ navigation }) {
     let obj = {selectedOrg:Defaultorg,selectedinventory:defaultinventory,selectedOrgCode:OrgCode} 
   setOrgData(obj);
     loadinventrydata();
-  }, [Defaultorg,OrgCode]);
+  }, [Defaultorg,OrgCode,defaultinventory]);
 
           const loadlocatordata = async (sub_id) => {
                     if (!sub_id) return;

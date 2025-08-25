@@ -50,13 +50,14 @@ const LineItemDetailsScreen = () => {
   const returnTo = route?.params?.returnTo || null;
   const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
+  const [LpnList, setLpnList] = useState([]);
   const { InventoryList,OrgData } = useReceivingStore();
   const { LocatorList,setLocatorList } = useReceivingStore();
 
   const allItems =
     Array.isArray(route?.params?.items) && route.params.items.length > 0
       ? route.params.items
-      : fallbackLineItems;
+      : [];
 
   const startIndex = Math.max(0, Math.min(Number(route?.params?.startIndex ?? 0), allItems.length - 1));
 
@@ -159,6 +160,7 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
   const mockSubmitAction = useCallback(async () => { await new Promise((r) => setTimeout(r, 900)); return { success: true }; }, []);
 
   const afterSubmitSuccess = useCallback(() => {
+    console.log(edited,"editededitededitededitededited")
     const patch = {
       id: String(current.id),
       receivingQty: clampToOpen(
@@ -169,6 +171,8 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
       subInventory: (edited[current.id]?.subInventory ?? state.subInventory) || '',
       locator: (edited[current.id]?.locator ?? state.locator) || '',
     };
+
+    console.log(patch,"listyuyfftyghgfcdxfghgxdfgcxdfghcdxfg")
 
     if (returnTo) {
       navigation.dispatch(
@@ -212,7 +216,7 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
             <View style={styles.divider} />
 
             <View style={styles.row}>
-              <Text style={styles.label}>Order Quantity</Text>
+              <Text style={styles.label}>Order Quantity (Each)</Text>
               <Text style={styles.qtyRight}>{String(item.orderQty ?? 0)} Qty</Text>
             </View>
 
@@ -239,10 +243,10 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
                       const currentVal = Number(pageState.receivingQty) || 0;
                       const raw = typeof v === 'function' ? v(currentVal) : v;
                       const n = Number(raw);
-                      const clamped = clampToOpen(n, Number(item.openQty ?? 0));
+                      const clamped = clampToOpen(n, Number(item.max_open_qty ?? 0));
                       setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), receivingQty: clamped } }));
                     }}
-                    max={Number(item.openQty ?? 0)}
+                    max={Number(item.max_open_qty ?? 0)}
                     min={0}
                     step={1}
                     width={NUMCONTROL_WIDTH}
@@ -255,16 +259,16 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
 
             <View style={styles.divider} />
 
-            {/* <View style={styles.row}>
+            <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
               <Text style={styles.statusText}>
                 {readOnly
-                    ? (listType === 'scan' ? 'In-Progress' : 'Received')
-                    : (item.receivingStatus || 'In-Progress')}
+                    ? (listType === 'scan' ? `${item.receivingStatus}` : 'Received')
+                    : (pageState.receivingQty??pageState.receivingQty>0?'In Progress':'OPEN')}
                 </Text>
             </View>
 
-            <View style={styles.divider} /> */}
+            <View style={styles.divider} />
 
             <InlineFieldRow label="LPN">
               <PencilDropdownRow
@@ -281,7 +285,7 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
         }))
       : undefined
   }
-  options={LocatorList}                     // pass API array directly
+  options={LpnList}                     // pass API array directly
   placeholder="Select Locator"
   disabled={!isEditable}
   width={CONTROL_WIDTH}

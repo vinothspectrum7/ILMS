@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import ConfirmSuccess from '../assets/icons/ConfirmSuccess.svg';
+import cancel from '../assets/icons/cancel.svg';
 import ConfirmIcon from '../assets/icons/confirm.svg';
 import CancelIcon from '../assets/icons/cancel.svg';
 
@@ -31,8 +32,8 @@ const ConfirmModalComponent = ({
   successMessage = 'Order receipt created successfully',
   failureMessage = 'Something went wrong. Please try again.',
   SuccessIcon = ConfirmSuccess,
-  FailureIcon = ConfirmSuccess,
-  autoDismissMsSuccess = 1500,
+  FailureIcon = cancel,
+  autoDismissMsSuccess = 1000,
   autoDismissMsFailure = 1500,
   buttonSize = 50,
 }) => {
@@ -65,11 +66,11 @@ const ConfirmModalComponent = ({
     }
   }, [
     phase,
-    autoDismissMsSuccess,
-    autoDismissMsFailure,
-    onCancel,
-    onSuccess,
-    onFailure,
+    // autoDismissMsSuccess,
+    // autoDismissMsFailure,
+    // onCancel,
+    // onSuccess,
+    // onFailure,
   ]);
 
   const handleYes = async () => {
@@ -78,7 +79,11 @@ const ConfirmModalComponent = ({
 
     try {
       const res = await Promise.resolve(confirmAction());
+      console.log(res,"reserererererererrergrefegfregrrgefef")
       const ok = typeof res === 'object' ? !!res.success : !!res;
+      if (!ok) {
+  failureMessage = res.message;
+}
       setPhase(ok ? 'success' : 'failure');
     } catch {
       setPhase('failure');

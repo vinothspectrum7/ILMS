@@ -34,9 +34,11 @@ const CustomNumericInput = ({
   };
 
   const handleMinus = () => {
+    console.log(canDec,safeValue,max,min,"cande")
     if (!canDec) { onLimit?.(); return; }
     markTouched();
     const next = clamp(safeValue - step, min, max);
+    console.log(next,"NXTEETESTTET")
     setValue(next);
   };
 

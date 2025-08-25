@@ -151,14 +151,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     borderWidth: 1,
     color: '#000000',
-    backgroundColor: '#FBFBFB',
   },
   uomText: {
     fontSize: ms(8),
-    color: '#000000',
+    color: '#242424',
     marginTop: ms(-6),
     marginBottom: ms(10),
-    marginRight: ms(8),
+    marginRight: ms(10),
   },
   qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center' },
     vertDivider: {
