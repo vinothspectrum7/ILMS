@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal, BackHandler, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
@@ -15,19 +15,14 @@ import { useReceivingStore } from '../store/receivingStore';
 import { createOrderReceipt } from '../api/mockApi';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import { GetSinglePO } from '../api/ApiServices';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const dummyItems = [
-  { id: '01', purchaseReceipt: 'PR-00002', name: 'Lorem Ipsumum', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
-  { id: '02', purchaseReceipt: 'PR-00002', name: 'Dolor Sit Item', description: 'High quality item with standard packaging.', orderedQty: 14, receivedQty: 1, openQty: 3, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
-  { id: '03', purchaseReceipt: 'PR-00002', name: 'Dolor Item', description: 'Secondary component used in assembly.', orderedQty: 12, receivedQty: 1, openQty: 7, uom: 'Each', promisedDate: '23 Jul 2025', needByDate: '25 Jul 2025' },
-];
-
-const clampToOpen = (qty, open) => {
-  const o = Number(open ?? 0);
+const clampToLimit = (qty, limit) => {
+  const lim = Number(limit ?? 0);
   const q = Number(qty ?? 0);
-  if (!Number.isFinite(o) || o <= 0) return 0;
+  if (!Number.isFinite(lim) || lim <= 0) return 0;
   if (!Number.isFinite(q) || q <= 0) return 0;
-  return Math.min(q, o);
+  return Math.min(q, lim);
 };
 
 const mapHeader = (po) => ({
@@ -41,10 +36,12 @@ const NewReceiveScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
+  const [profileName, setProfileName] = useState('');
+
   const {
     poHeader, setPoHeader,
     receiveItems, initReceiveItems, mergePatchIntoReceiveItems,
-    resetReceiving,OrgData
+    resetReceiving, OrgData
   } = useReceivingStore();
 
   const selectedPO = route?.params?.selectedPO || null;
@@ -55,128 +52,104 @@ const NewReceiveScreen = () => {
   const [selectedTab, setSelectedTab] = React.useState('lineItems');
   const [draftItems, setDraftItems] = React.useState([]);
   const [phase, setPhase] = useState('idle');
-  const [PoListItems,setPoListItems] = useState([]);
+  const [PoListItems, setPoListItems] = useState([]);
   const [selectedItems, setSelectedItems] = React.useState([]);
   const [scannedItems, setScannedItems] = React.useState([]);
   const [showScanner, setShowScanner] = React.useState(false);
 
   useFocusEffect(
-      React.useCallback(() => {
-        didCompleteRef.current = false;
-        return () => {};
-      }, [])
-    );
-
-    useFocusEffect(
-      React.useCallback(() => {
-        const onBackPress = () => {
-          if (showScanner) {
-            setShowScanner(false);
-            return true;
-          }
-          if (modalVisible) {
-            setModalVisible(false);
-            return true;
-          }
-          navigation.navigate('Receive');
-          return true;
-        };
-
-        const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-        return () => sub.remove();
-      }, [navigation, showScanner, modalVisible])
-    );
-
-  useEffect(() => {
-    if (!poHeader && selectedPO) setPoHeader(mapHeader(selectedPO));
-    console.log(selectedPO,"selectedPOselectedPO");
-        console.log(poHeader,"POHEARDDD")
-  }, [poHeader, selectedPO, setPoHeader]);
-
-const  mapBackendArrayToFrontend = (data)=> {
-  return data.map((backend,index) => ({
-    id: index+1,
-    purchaseReceipt:backend.item?.next_receipt_num || "", // placeholder (if needed)
-    name: backend.item?.item_code || "",
-    description: backend.item?.description || "",
-    orderedQty: backend.ord_qty,
-    receivedQty: backend.rcvd_qty,
-    openQty: backend.ord_qty,
-    uom: backend.uom === "EA" ? "Each" : backend.uom, // convert if needed
-    promisedDate: backend.promised_dlry_dt 
-      ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-      : null,
-    needByDate: backend.need_by_dt 
-      ? new Date(backend.need_by_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-      : null
-  }));
-}
-
-// First effect: load PO data
-useEffect(() => {
-  if (!selectedPO?.po_id) return;
-  setPhase('loading');
-  const loadPoData = async () => {
-    // Alert.alert(selectedPO?.po_id)
-    try {
-      const posingledata = await GetSinglePO(selectedPO.po_id);
-      console.log(posingledata,"TESTESTETSTETSTETTET")
-      if (posingledata?.purchase_order_lines) {
-        const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines);
-        setPoListItems(frontendArray); // ✅ only set once
-      } else {
-        setPoListItems([]);
-      }
-      setPhase('success');
-    } catch (err) {
-      console.error("Error loading PO data:", err);
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to load PO Items. Please try again.',
-                position: 'top',
-              });
-              setPhase('error');
-    }
-  };
-
-  loadPoData();
-}, [selectedPO?.po_id]); // ✅ depend only on PO id
-
-// Second effect: seed receiveItems whenever PoListItems changes
-useEffect(() => {
-  if (PoListItems.length > 0) {
-    const seeded = PoListItems.map(i => ({ ...i, qtyToReceive: 0 }));
-    initReceiveItems(seeded); // ✅ reset each time new PO data is loaded
-  }
-}, [PoListItems, initReceiveItems]); // ✅ depend on new PoListItems
-
-
+    React.useCallback(() => {
+      didCompleteRef.current = false;
+      return () => {};
+    }, [])
+  );
 
   useFocusEffect(
     React.useCallback(() => {
-      const withStoredQty = receiveItems.map(src => {
-        const stored = receiveItems.find(r => String(r.id) === String(src.id));
-        const qty = Number(stored?.qtyToReceive ?? 0);
+      const onBackPress = () => {
+        if (showScanner) {
+          setShowScanner(false);
+          return true;
+        }
+        if (modalVisible) {
+          setModalVisible(false);
+          return true;
+        }
+        navigation.navigate('Receive');
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [navigation, showScanner, modalVisible])
+  );
+
+  useEffect(() => {
+    if (!poHeader && selectedPO) setPoHeader(mapHeader(selectedPO));
+  }, [poHeader, selectedPO, setPoHeader]);
+
+  const mapBackendArrayToFrontend = (data) => {
+    return data.map((backend, index) => ({
+      id: index + 1,
+      purchaseReceipt: backend.item?.next_receipt_num || '',
+      name: backend.item?.item_code || '',
+      description: backend.item?.description || '',
+      orderedQty: backend.ord_qty,
+      receivedQty: backend.rcvd_qty,
+      openQty: backend.ord_qty,
+      max_open_qty: backend.open_qty ?? backend.ord_qty,
+      uom: backend.uom === 'EA' ? 'Each' : backend.uom,
+      promisedDate: backend.promised_dlry_dt
+        ? new Date(backend.promised_dlry_dt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        : null,
+      needByDate: backend.need_by_dt
+        ? new Date(backend.need_by_dt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        : null
+    }));
+  };
+
+  useEffect(() => {
+    if (!selectedPO?.po_id) return;
+    setPhase('loading');
+    const loadPoData = async () => {
+      try {
+        const posingledata = await GetSinglePO(selectedPO.po_id);
+        if (posingledata?.purchase_order_lines) {
+          const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines);
+          setPoListItems(frontendArray);
+        } else {
+          setPoListItems([]);
+        }
+        setPhase('success');
+      } catch (err) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load PO Items. Please try again.',
+          position: 'top',
+        });
+        setPhase('error');
+      }
+    };
+    loadPoData();
+  }, [selectedPO?.po_id]);
+
+  useEffect(() => {
+    if (PoListItems.length > 0) {
+      const seeded = PoListItems.map(i => ({ ...i, qtyToReceive: 0 }));
+      initReceiveItems(seeded);
+    }
+  }, [PoListItems, initReceiveItems]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const withStored = receiveItems.map(src => {
+        const qty = Number(src?.qtyToReceive ?? 0);
         return { ...src, qtyToReceive: qty };
       });
-      setDraftItems(withStoredQty);
-      setSelectedItems(withStoredQty.filter(x => Number(x.qtyToReceive ?? 0) > 0).map(x => x.id));
-
-      const patch = route?.params?.patch;
-      const listType = route?.params?.listType;
-      if (patch && listType !== 'scan') {
-        setDraftItems(prev =>
-          prev.map(it => String(it.id) === String(patch.id)
-            ? { ...it, qtyToReceive: clampToOpen(patch.receivingQty, it.openQty), lpn: patch.lpn ?? it.lpn, subInventory: patch.subInventory ?? it.subInventory, locator: patch.locator ?? it.locator }
-            : it
-          )
-        );
-        mergePatchIntoReceiveItems(patch);
-        navigation.setParams({ patch: undefined, listType: undefined });
-      }
+      setDraftItems(withStored);
+      setSelectedItems(withStored.filter(x => Number(x.qtyToReceive ?? 0) > 0).map(x => x.id));
       return () => {};
-    }, [receiveItems, route?.params?.patch, route?.params?.listType, mergePatchIntoReceiveItems, navigation])
+    }, [receiveItems])
   );
 
   const fromScan = !!route?.params?.fromScan;
@@ -188,15 +161,13 @@ useEffect(() => {
     }
   }, [fromScan, scannedPoNumber]);
 
-  const commitDraftToStore = () => {
-    draftItems.forEach(it => {
-      mergePatchIntoReceiveItems({
-        id: String(it.id),
-        receivingQty: Number(it.qtyToReceive ?? 0),
-        lpn: it.lpn ?? '',
-        subInventory: it.subInventory ?? '',
-        locator: it.locator ?? '',
-      });
+  const persistQty = (id, qty, fields = {}) => {
+    mergePatchIntoReceiveItems({
+      id: String(id),
+      receivingQty: Number(qty ?? 0),
+      lpn: fields.lpn ?? '',
+      subInventory: fields.subInventory ?? '',
+      locator: fields.locator ?? '',
     });
   };
 
@@ -205,20 +176,23 @@ useEffect(() => {
     if (isChecked) {
       setSelectedItems(prev => prev.filter(id => id !== item.id));
       setDraftItems(prev => prev.map(it => (it.id === item.id ? { ...it, qtyToReceive: 0 } : it)));
+      persistQty(item.id, 0, item);
       return;
     }
-    const stored = receiveItems.find(r => String(r.id) === String(item.id));
-    const storedQty = Number(stored?.qtyToReceive ?? 0);
-    const nextQty = storedQty > 0 ? storedQty : clampToOpen(item.openQty, item.openQty);
-    setDraftItems(prev => prev.map(it => (it.id === item.id ? { ...it, qtyToReceive: nextQty } : it)));
+    const autoQty = clampToLimit(item.openQty, item.max_open_qty ?? item.openQty);
+    setDraftItems(prev => prev.map(it => (it.id === item.id ? { ...it, qtyToReceive: autoQty } : it)));
     setSelectedItems(prev => [...prev, item.id]);
+    persistQty(item.id, autoQty, item);
   };
 
   const handleQtyChange = (id, newQty) => {
     setDraftItems(prev => {
-      const next = prev.map(item =>
-        item.id === id ? { ...item, qtyToReceive: clampToOpen(newQty, item.openQty) } : item
-      );
+      const next = prev.map(item => {
+        if (item.id !== id) return item;
+        const limit = item.max_open_qty ?? item.openQty;
+        const clamped = clampToLimit(newQty, limit);
+        return { ...item, qtyToReceive: clamped };
+      });
       const changed = next.find(x => x.id === id);
       const clamped = Number(changed?.qtyToReceive ?? 0);
       setSelectedItems(curr => {
@@ -227,23 +201,27 @@ useEffect(() => {
         if (clamped === 0 && has) return curr.filter(x => x !== id);
         return curr;
       });
+      persistQty(id, clamped, changed || {});
       return next;
+    });
+  };
+
+  const commitDraftToStore = () => {
+    draftItems.forEach(it => {
+      const limit = it.max_open_qty ?? it.openQty;
+      const clamped = clampToLimit(it.qtyToReceive, limit);
+      persistQty(it.id, clamped, it);
     });
   };
 
   const handleReceive = () => {
     commitDraftToStore();
-
     const isScan = selectedTab === 'scanItems';
-
     if (isScan) {
-      setModalVisible(true);              
-      return;                             
+      setModalVisible(true);
+      return;
     }
-
-    
     const source = draftItems;
-
     const payload = source
       .filter(i => Number(i.qtyToReceive ?? 0) > 0)
       .map(i => ({
@@ -262,7 +240,6 @@ useEffect(() => {
         subInventory: i.subInventory,
         locator: i.locator,
       }));
-
     navigation.navigate('ReceiveSummaryScreen', {
       id: selectedPO?.id ?? null,
       selectedItems: payload,
@@ -274,7 +251,6 @@ useEffect(() => {
 
   const confirmAction = async () => {
     try {
-      
       const payload = (scannedItems || [])
         .filter(i => Number(i.qtyToReceive ?? 0) > 0)
         .map(i => ({
@@ -293,31 +269,30 @@ useEffect(() => {
           subInventory: i.subInventory,
           locator: i.locator,
         }));
-
-      const res = await createOrderReceipt(payload, true); // mock API
+      const res = await createOrderReceipt(payload, true);
       return { success: !!res?.ok, message: res?.message };
     } catch (error) {
       return { success: false, message: error?.message || 'Network error. Please try again.' };
     }
   };
-  
-    const handleCancel = () => setModalVisible(false);
-  
-    const handleSuccess = () => {
-      if (didCompleteRef.current) return;
-      didCompleteRef.current = true;
-      Toast.hide();
-      Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 1500 });
-      setModalVisible(false);
-      resetReceiving();
-      navigation.navigate('Receive');
-    };
-  
-    const handleFailure = () => {
-      Toast.hide();
-      Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 1500 });
-      setModalVisible(false);
-    };
+
+  const handleCancel = () => setModalVisible(false);
+
+  const handleSuccess = () => {
+    if (didCompleteRef.current) return;
+    didCompleteRef.current = true;
+    Toast.hide();
+    Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 1500 });
+    setModalVisible(false);
+    resetReceiving();
+    navigation.navigate('Receive');
+  };
+
+  const handleFailure = () => {
+    Toast.hide();
+    Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 1500 });
+    setModalVisible(false);
+  };
 
   const toDetailItem = (it, i) => ({
     id: String(it.id),
@@ -332,20 +307,51 @@ useEffect(() => {
     lpn: it.lpn ?? '',
     subInventory: it.subInventory ?? '',
     locator: it.locator ?? '',
+    max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
   });
 
-  const goToLineItemDetails = (startIdx = 0, source = draftItems, readonly = false, listType = 'line') => {
-    const mapped = source.map(toDetailItem);
-    navigation.navigate({
-      name: 'LineItemDetails',
-      params: { items: mapped, startIndex: startIdx, readonly, returnTo: 'NewReceiveScreen', listType },
-      merge: true,
-    });
-  };
+  const goToLineItemDetails = (
+      startIdx = 0,
+      source = draftItems,
+      readonly = false,
+      listType = 'line'
+    ) => {
+      const withLatestFromStore = source.map((it, i) => {
+        const s = receiveItems.find(r => String(r.id) === String(it.id));
+        const qty = Number(s?.qtyToReceive ?? it.qtyToReceive ?? 0);
+        return {
+          id: String(it.id),
+          poNumber: poHeader?.poNumber ?? '—',
+          lineNumber: i + 1,
+          itemName: it.name,
+          itemDescription: it.itemDescription ?? it.description ?? '—',
+          orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+          openQty: Number(it.openQty ?? 0),
+          receivingQty: qty,
+          receivingStatus: 'In-progress',
+          lpn: s?.lpn ?? it.lpn ?? '',
+          subInventory: s?.subInventory ?? it.subInventory ?? '',
+          locator: s?.locator ?? it.locator ?? '',
+          max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+        };
+      });
+
+      navigation.navigate({
+        name: 'LineItemDetails',
+        params: {
+          items: withLatestFromStore,
+          startIndex: startIdx,
+          readonly,
+          returnTo: 'NewReceiveScreen',
+          listType,
+        },
+        merge: true,
+      });
+    };
 
   const handleScan = (value) => {
     const id = String(value).trim();
-    const source = PoListItems.find(x => String(x.id) === id);
+    const source = PoListItems.find(x => String(x.name) === id);
     if (!source) {
       Toast.show({ type: 'error', text1: 'Unknown barcode', text2: `No item with id ${id}`, position: 'top' });
       setShowScanner(false);
@@ -370,118 +376,148 @@ useEffect(() => {
   );
 
   const formatToday = () => {
-  const d = new Date();
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}-${mm}-${yyyy}`;
-};
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
+  const loadUserName = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem('user_name');
+      if (!raw) {
+        setProfileName('');
+        return;
+      }
+      let name = '';
+      try {
+        const parsed = JSON.parse(raw);
+        name = typeof parsed === 'string' ? parsed : parsed?.user_name ?? '';
+      } catch {
+        name = raw;
+      }
+      setProfileName(name.trim());
+    } catch (e) {
+      setProfileName('');
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserName();
+  }, [loadUserName]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserName();
+    }, [loadUserName])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-    {phase === 'loading' && (
-      <View style={styles.loaderWrapper}>
-        <ActivityIndicator size="large" color="#233E55" />
-        {/* <Text style={styles.statusText}>Loading data </Text> */}
-      </View>
-    )}
-        {phase !== 'loading' && (
-      <>
-      <GlobalHeaderComponent
-        organizationName={OrgData?.selectedOrgCode}
-        screenTitle="Receiving"
-        notificationCount={0}
-        profileName="Vinoth Umasankar"
-        onBack={() => navigation.navigate('Receive')}
-        onMenu={() => setMenuOpen(true)}
-        onNotificationPress={() => navigation.navigate('Home')}
-        onProfilePress={() => navigation.navigate('Home')}
-      />
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        <POinfoCardComponent
-          receiptNumber={poHeader?.purchaseReceipt || '—'}
-          supplier={poHeader?.supplier || '—'}
-          poNumber={poHeader?.poNumber || '—'}
-          receiptDate={poHeader?.poDate || '—'}
-        />
-
-        <View style={styles.itemcontainer}>
-
-        <ToggleTabsComponent selectedTab={selectedTab} onSelectTab={setSelectedTab} />
-
-        {selectedTab === 'lineItems' ? (
-          <>
-            <View style={styles.tableHeader}>
-              <TableHeaderComponent
-                allSelected={selectedItems.length === draftItems.length && draftItems.every(d => Number(d.qtyToReceive ?? 0) > 0)}
-                onToggleAll={() => {
-                  const selecting = !(selectedItems.length === draftItems.length && draftItems.every(d => Number(d.qtyToReceive ?? 0) > 0));
-                  if (!selecting) {
-                    setSelectedItems([]);
-                    setDraftItems(prev => prev.map(it => ({ ...it, qtyToReceive: 0 })));
-                    return;
-                  }
-                  const next = draftItems.map(it => {
-                    const stored = receiveItems.find(r => String(r.id) === String(it.id));
-                    const storedQty = Number(stored?.qtyToReceive ?? 0);
-                    const useQty = storedQty > 0 ? storedQty : clampToOpen(it.openQty, it.openQty);
-                    return { ...it, qtyToReceive: useQty };
-                  });
-                  setDraftItems(next);
-                  setSelectedItems(next.filter(x => Number(x.qtyToReceive ?? 0) > 0).map(x => x.id));
-                }}
-              />
-            </View>
-
-            <FlatList
-              data={draftItems}
-              keyExtractor={(item) => String(item.id)}
-              renderItem={({ item, index }) => (
-                <View style={styles.lineItemWrapper}>
-                  <LineItemListCardComponent
-                    item={item}
-                    index={index}
-                    isSelected={selectedItems.includes(item.id)}
-                    onCheckToggle={handleCheckToggle}
-                    onQtyChange={handleQtyChange}
-                    onViewDetails={() => goToLineItemDetails(index, draftItems, false, 'line')}
-                  />
-                </View>
-              )}
-              scrollEnabled={false}
-            />
-          </>
-        ) : (
-          <ScanItemListCardComponent
-            dummyItems={PoListItems}
-            scannedItems={scannedItems}
-            onChange={setScannedItems}
-            onRequestScan={() => setShowScanner(true)}
-            onFirstFilled={() => setSelectedTab('scanItems')}
-            onViewDetails={(item) => {
-              const source = scannedItems.length ? scannedItems : PoListItems;
-              const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-              goToLineItemDetails(idx, source, true, 'scan');
-            }}
-            header={
-              <View style={styles.tableHeader}>
-                <SummaryTabHdrComponent allSelected={false} onToggleAll={() => {}} />
-              </View>
-            }
-          />
-        )}
+      {phase === 'loading' && (
+        <View style={styles.loaderWrapper}>
+          <ActivityIndicator size="large" color="#233E55" />
         </View>
-      </ScrollView>
+      )}
+      {phase !== 'loading' && (
+        <>
+          <GlobalHeaderComponent
+            organizationName={OrgData?.selectedOrgCode}
+            screenTitle="Receiving"
+            notificationCount={0}
+            profileName={profileName}
+            onBack={() => navigation.navigate('Receive')}
+            onNotificationPress={() => navigation.navigate('Home')}
+            onProfilePress={() => navigation.navigate('Home')}
+          />
 
-      <FooterButtonsComponent
-        leftLabel="Save"
-        rightLabel="Receive"
-        onLeftPress={hasAnyItems ? () => { commitDraftToStore(); Toast.show({ type: 'success', text1: 'Draft saved' }); } : undefined}
-        onRightPress={hasAnyItems ? handleReceive : undefined}
-        leftEnabled={hasAnyItems}
-        rightEnabled={hasAnyItems}
-      />
-      <ConfirmModalComponent
+          <ScrollView contentContainerStyle={styles.contentContainer}>
+            <POinfoCardComponent
+              receiptNumber={poHeader?.purchaseReceipt || '—'}
+              supplier={poHeader?.supplier || '—'}
+              poNumber={poHeader?.poNumber || '—'}
+              receiptDate={poHeader?.poDate || '—'}
+            />
+
+            <View style={styles.itemcontainer}>
+              <ToggleTabsComponent selectedTab={selectedTab} onSelectTab={setSelectedTab} />
+
+              {selectedTab === 'lineItems' ? (
+                <>
+                  <View style={styles.tableHeader}>
+                    <TableHeaderComponent
+                      allSelected={selectedItems.length === draftItems.length && draftItems.every(d => Number(d.qtyToReceive ?? 0) > 0)}
+                      onToggleAll={() => {
+                        const selecting = !(selectedItems.length === draftItems.length && draftItems.every(d => Number(d.qtyToReceive ?? 0) > 0));
+                        if (!selecting) {
+                          setSelectedItems([]);
+                          setDraftItems(prev => prev.map(it => ({ ...it, qtyToReceive: 0 })));
+                          draftItems.forEach(it => persistQty(it.id, 0, it));
+                          return;
+                        }
+                        const next = draftItems.map(it => {
+                          const limit = it.max_open_qty ?? it.openQty;
+                          const useQty = clampToLimit(it.openQty, limit);
+                          return { ...it, qtyToReceive: useQty };
+                        });
+                        setDraftItems(next);
+                        setSelectedItems(next.filter(x => Number(x.qtyToReceive ?? 0) > 0).map(x => x.id));
+                        next.forEach(it => persistQty(it.id, it.qtyToReceive, it));
+                      }}
+                    />
+                  </View>
+
+                  <FlatList
+                    data={draftItems}
+                    keyExtractor={(item) => String(item.id)}
+                    renderItem={({ item, index }) => (
+                      <View style={styles.lineItemWrapper}>
+                        <LineItemListCardComponent
+                          item={item}
+                          index={index}
+                          isSelected={selectedItems.includes(item.id)}
+                          onCheckToggle={handleCheckToggle}
+                          onQtyChange={handleQtyChange}
+                          onViewDetails={() => goToLineItemDetails(index, draftItems, false, 'line')}
+                        />
+                      </View>
+                    )}
+                    scrollEnabled={false}
+                  />
+                </>
+              ) : (
+                <ScanItemListCardComponent
+                  dummyItems={PoListItems}
+                  scannedItems={scannedItems}
+                  onChange={setScannedItems}
+                  onRequestScan={() => setShowScanner(true)}
+                  onFirstFilled={() => setSelectedTab('scanItems')}
+                  onViewDetails={(item) => {
+                    const source = scannedItems.length ? scannedItems : PoListItems;
+                    const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
+                    goToLineItemDetails(idx, source, true, 'scan');
+                  }}
+                  header={
+                    <View style={styles.tableHeader}>
+                      <SummaryTabHdrComponent allSelected={false} onToggleAll={() => {}} />
+                    </View>
+                  }
+                />
+              )}
+            </View>
+          </ScrollView>
+
+          <FooterButtonsComponent
+            leftLabel="Save"
+            rightLabel="Receive"
+            onLeftPress={hasAnyItems ? () => { commitDraftToStore(); Toast.show({ type: 'success', text1: 'Draft saved' }); } : undefined}
+            onRightPress={hasAnyItems ? handleReceive : undefined}
+            leftEnabled={hasAnyItems}
+            rightEnabled={hasAnyItems}
+          />
+
+          <ConfirmModalComponent
             visible={modalVisible}
             title="Confirmation"
             message="Are you sure want to confirm this order?"
@@ -491,11 +527,11 @@ useEffect(() => {
             onFailure={handleFailure}
           />
 
-      <Modal visible={showScanner} animationType="slide">
-        <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
-      </Modal>
-  </>
-    )}
+          <Modal visible={showScanner} animationType="slide">
+            <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+          </Modal>
+        </>
+      )}
     </SafeAreaView>
   );
 };
@@ -505,17 +541,16 @@ const styles = StyleSheet.create({
   loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   statusText: { marginTop: 12, color: '#333', fontSize: 14 },
   contentContainer: { paddingBottom: 120 },
-  itemcontainer: { 
-    backgroundColor: '#fff',     
+  itemcontainer: {
+    backgroundColor: '#fff',
     marginHorizontal: 12,
     marginTop: 8,
-    marginBottom:8,
+    marginBottom: 8,
     borderRadius: 12,
     paddingTop: 8,
     paddingBottom: 6,
-    elevation: 2, 
+    elevation: 2,
   },
-
   tableHeader: { marginBottom: 10, marginTop: 8 },
   lineItemWrapper: { marginBottom: 12 },
 });

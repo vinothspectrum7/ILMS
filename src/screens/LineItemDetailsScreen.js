@@ -1,31 +1,26 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions } from 'react-native';
-import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Modal } from 'react-native';
+import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import FooterButtonsComponent from '../components/FooterButtonsComponent';
 import CustomNumericInput from '../components/CustomNumericInput';
 import PencilDropdownRow from '../components/PencilDropdownRow';
-import ConfirmModalComponent from '../components/ConfirmModalComponent';
-import PenIcon from '../assets/icons/penicon.svg';
+import SuccessModal from '../components/SuccessModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useReceivingStore } from '../store/receivingStore';
 import { GetLocatorsData } from '../api/ApiServices';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTROL_WIDTH = 80;
 const CONTROL_HEIGHT = 28;
-
 const NUMCONTROL_WIDTH = 80;
 const NUMCONTROL_HEIGHT = 28;
 
 const fallbackLineItems = [
-  { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINVENTORY1', locator: 'LOCATOR1' },
+  { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINV1', locator: 'LOC1' },
 ];
-
-const LPN_OPTIONS = ['LPN1', 'LPN2', 'LPN3', 'LPN4'];
-const SUBINVENTORY_OPTIONS = ['SUBINVENTORY1', 'SUBINVENTORY2', 'SUBINVENTORY3', 'SUBINVENTORY4'];
-const LOCATOR_OPTIONS = ['LOCATOR1', 'LOCATOR2', 'LOCATOR3', 'LOCATOR4'];
 
 const InlineFieldRow = ({ label, children }) => (
   <View style={styles.inlineRow}>
@@ -34,12 +29,12 @@ const InlineFieldRow = ({ label, children }) => (
   </View>
 );
 
-const clampToOpen = (qty, open) => {
-  const o = Number(open ?? 0);
+const clampToLimit = (qty, limit) => {
+  const lim = Number(limit ?? 0);
   const q = Number(qty ?? 0);
-  if (!Number.isFinite(o) || o <= 0) return 0;
+  if (!Number.isFinite(lim) || lim <= 0) return 0;
   if (!Number.isFinite(q) || q <= 0) return 0;
-  return Math.min(q, o);
+  return Math.min(q, lim);
 };
 
 const LineItemDetailsScreen = () => {
@@ -50,22 +45,62 @@ const LineItemDetailsScreen = () => {
   const returnTo = route?.params?.returnTo || null;
   const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
-  const { InventoryList,OrgData } = useReceivingStore();
-  const { LocatorList,setLocatorList } = useReceivingStore();
 
-  const allItems =
-    Array.isArray(route?.params?.items) && route.params.items.length > 0
-      ? route.params.items
-      : fallbackLineItems;
+  const { InventoryList, OrgData, LocatorList, setLocatorList, receiveItems, mergePatchIntoReceiveItems } = useReceivingStore();
 
-  const startIndex = Math.max(0, Math.min(Number(route?.params?.startIndex ?? 0), allItems.length - 1));
+  const baseItems = Array.isArray(route?.params?.items) && route.params.items.length > 0
+    ? route.params.items
+    : fallbackLineItems;
 
+  const mergedItems = useMemo(() => {
+    return baseItems.map((it) => {
+      const stored = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
+      return {
+        ...it,
+        receivingQty: Number(stored?.qtyToReceive ?? 0),
+        lpn: stored?.lpn ?? it.lpn ?? '',
+        subInventory: stored?.subInventory ?? it.subInventory ?? '',
+        locator: stored?.locator ?? it.locator ?? '',
+        max_open_qty: Number(it.max_open_qty ?? stored?.max_open_qty ?? it.openQty ?? 0),
+      };
+    });
+  }, [baseItems, receiveItems]);
+
+  const startIndex = Math.max(0, Math.min(Number(route?.params?.startIndex ?? 0), mergedItems.length - 1));
+
+  const [profileName, setProfileName] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [index, setIndex] = useState(startIndex);
   const [edited, setEdited] = useState({});
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const listRef = useRef(null);
+  const prefilledRef = useRef(false);
 
+  const allItems = mergedItems;
   const current = useMemo(() => allItems[index], [allItems, index]);
+
+  useEffect(() => {
+    if (readOnly) return;
+    if (prefilledRef.current) return;
+    const next = { ...edited };
+    for (const it of allItems) {
+      if (next[it.id]) continue;
+      const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
+      if (fromStore) {
+        next[it.id] = {
+          receivingQty: Number(fromStore.qtyToReceive ?? 0),
+          lpn: fromStore.lpn ?? it.lpn ?? '',
+          subInventory: fromStore.subInventory ?? it.subInventory ?? '',
+          locator: fromStore.locator ?? it.locator ?? '',
+        };
+      }
+    }
+    if (Object.keys(next).length !== Object.keys(edited).length) {
+      setEdited(next);
+    }
+    prefilledRef.current = true;
+  }, [allItems, receiveItems, readOnly, edited]);
 
   const readonlyScanQty = (() => {
     if (!readOnly || listType !== 'scan') return null;
@@ -74,62 +109,34 @@ const LineItemDetailsScreen = () => {
     return open > 0 ? open : ord;
   })();
 
-  useEffect(()=>{
-    console.log(LocatorList,"LocatorListinsideitem")
-  },[LocatorList])
-  // ⏬ Helper function for handling sub-inventory change
-const handleSubInventoryChange = async (itemId, sub_id) => {
-  // 1️⃣ update local state
-  setEdited((prev) => ({
-    ...prev,
-    [itemId]: {
-      ...(prev[itemId] ?? {}),
-      subInventory: sub_id,
-    },
-  }));
-
-  // 2️⃣ call Locator API
-  try {
-    const locdata = await GetLocatorsData(sub_id);
-    if (locdata) {
-      const Locatorsdata = locdata.map((d) => ({
-        id: d.locator_id,
-        name: d.locator_name,
-        enabled: d.locator_enabled,
-      }));
-      setLocatorList(Locatorsdata);
+  const handleSubInventoryChange = async (itemId, sub_id) => {
+    setEdited((prev) => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id },
+    }));
+    try {
+      const locdata = await GetLocatorsData(sub_id);
+      if (locdata) {
+        const Locatorsdata = locdata.map((d) => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
+        setLocatorList(Locatorsdata);
+      }
+    } catch {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators', position: 'top' });
     }
-  } catch (err) {
-    console.error("Error loading Locator data:", err);
-    Toast.show({
-      type: "error",
-      text1: "Error",
-      text2: "Failed to load Locators. Please try again.",
-      position: "top",
-    });
-  }
-};
-
-  const initialReceivingQty = readOnly
-    ? (listType === 'scan' ? Number(readonlyScanQty ?? 0) : Number(current.orderQty ?? current.receivingQty ?? 0))
-    : Number(current.receivingQty ?? 0);
-
-  const state = edited[current.id] ?? {
-    receivingQty: initialReceivingQty,
-    lpn: current.lpn ?? '',
-    subInventory: current.subInventory ?? '',
-    locator: current.locator ?? '',
   };
-
-  const isEdited = useMemo(() => !readOnly && !!edited[current.id], [edited, current.id, readOnly]);
 
   const isSubmitEnabled = useMemo(() => {
     if (readOnly) return false;
-    const q = Number(state.receivingQty ?? 0);
-    const qtyOk = q > 0 && q <= Number(current.openQty ?? 0);
-    const subInvOk = !!state.subInventory;
-    return qtyOk && subInvOk;
-  }, [state, readOnly, current.openQty]);
+    return allItems.some((it) => {
+      const st = edited[it.id];
+      if (!st) return false;
+      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
+      const q = Number(st.receivingQty ?? 0);
+      const qtyOk = q > 0 && q <= limit;
+      const subInvOk = !!st.subInventory;
+      return qtyOk && subInvOk;
+    });
+  }, [edited, allItems, readOnly]);
 
   const titlePo = current?.poNumber ? `${String(current.poNumber)}` : 'Receive';
 
@@ -141,90 +148,86 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
 
   const goPrev = useCallback(() => { if (index > 0) scrollToIndex(index - 1); }, [index, scrollToIndex]);
   const goNext = useCallback(() => { if (index < allItems.length - 1) scrollToIndex(index + 1); }, [index, allItems.length, scrollToIndex]);
-  const onMomentumEnd = useCallback((e) => { const x = e.nativeEvent.contentOffset.x; const newIndex = Math.round(x / SCREEN_WIDTH); if (newIndex !== index) setIndex(newIndex); }, [index]);
-
-  const handleSave = useCallback(async () => {
-    Toast.show({ type: 'info', text1: 'Saving line item…', position: 'top', visibilityTime: 800 });
-    await new Promise((r) => setTimeout(r, 600));
-    Toast.show({ type: 'success', text1: 'Line item saved', position: 'top', visibilityTime: 1200 });
-  }, []);
 
   const handleCancelNav = useCallback(() => {
     if (returnTo) navigation.navigate(returnTo);
     else navigation.goBack();
   }, [navigation, returnTo]);
 
-  const openSubmitConfirm = useCallback(() => setShowConfirm(true), []);
-  const closeSubmitConfirm = useCallback(() => setShowConfirm(false), []);
-  const mockSubmitAction = useCallback(async () => { await new Promise((r) => setTimeout(r, 900)); return { success: true }; }, []);
-
-  const afterSubmitSuccess = useCallback(() => {
-    const patch = {
-      id: String(current.id),
-      receivingQty: clampToOpen(
-        Number((edited[current.id]?.receivingQty ?? state.receivingQty) || 0),
-        current.openQty
-      ),
-      lpn: (edited[current.id]?.lpn ?? state.lpn) || '',
-      subInventory: (edited[current.id]?.subInventory ?? state.subInventory) || '',
-      locator: (edited[current.id]?.locator ?? state.locator) || '',
-    };
-
-    if (returnTo) {
-      navigation.dispatch(
-        StackActions.replace(returnTo, { patch, listType })
-      );
-    } else {
-      navigation.goBack();
+  const buildPatches = useCallback(() => {
+    const patches = [];
+    for (const it of allItems) {
+      const st = edited[it.id];
+      if (!st) continue;
+      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
+      const clampedQty = clampToLimit(Number(st.receivingQty ?? 0), limit);
+      const valid = clampedQty > 0 && clampedQty <= limit && !!st.subInventory;
+      if (!valid) continue;
+      patches.push({
+        id: String(it.id),
+        receivingQty: clampedQty,
+        lpn: st.lpn ?? '',
+        subInventory: st.subInventory ?? '',
+        locator: st.locator ?? '',
+      });
     }
-  }, [navigation, returnTo, current.id, current.openQty, state, edited, listType]);
+    return patches;
+  }, [allItems, edited]);
+
+  const handleSaveAll = useCallback(async () => {
+    const patches = buildPatches();
+    if (!patches.length) {
+      Toast.show({ type: 'info', text1: 'No changes to save', position: 'top', visibilityTime: 900 });
+      return;
+    }
+    try {
+      for (const p of patches) mergePatchIntoReceiveItems(p);
+      const label = returnTo === 'ReceiveSummaryScreen' ? 'Updated Successfully' : 'Saved Successfully';
+      setSuccessMessage(label);
+      setSuccessVisible(true);
+      setTimeout(() => {
+        setSuccessVisible(false);
+        if (returnTo) navigation.dispatch(StackActions.replace(returnTo, { listType }));
+        else navigation.goBack();
+      }, 1200);
+    } catch {
+      Toast.show({ type: 'error', text1: 'Save failed', text2: 'Please try again.', position: 'top', visibilityTime: 1200 });
+    }
+  }, [buildPatches, mergePatchIntoReceiveItems, navigation, returnTo, listType]);
 
   const renderPage = ({ item }) => {
+    const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(item.id)) : undefined;
+    const storeQty = Number(fromStore?.qtyToReceive);
+    const mergedQty = Number(item.receivingQty ?? 0);
+    const defaultEditableQty = Number.isFinite(storeQty) ? storeQty : mergedQty;
+
     const readonlyQty = readOnly
       ? (listType === 'scan'
           ? (Number(item.openQty ?? 0) > 0 ? Number(item.openQty ?? 0) : Number(item.orderQty ?? 0))
-          : Number(item.orderQty ?? item.receivingQty ?? 0))
-      : Number(item.receivingQty ?? 0);
+          : Number(item.orderQty ?? mergedQty ?? 0))
+      : defaultEditableQty;
 
     const pageState = edited[item.id] ?? {
       receivingQty: readonlyQty,
-      lpn: item.lpn ?? '',
-      subInventory: item.subInventory ?? '',
-      locator: item.locator ?? '',
+      lpn: fromStore?.lpn ?? item.lpn ?? '',
+      subInventory: fromStore?.subInventory ?? item.subInventory ?? '',
+      locator: fromStore?.locator ?? item.locator ?? '',
     };
+
+    const limit = Number(item.max_open_qty ?? item.openQty ?? 0);
 
     return (
       <View style={{ width: SCREEN_WIDTH }}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.card} key={`card-${item.id}`}>
-            <View style={styles.row}>
-              <Text style={styles.label}>Item Name</Text>
-              <Text style={styles.valueBold} numberOfLines={1}>{item.itemName || '—'}</Text>
-            </View>
-
+            <View style={styles.row}><Text style={styles.label}>Item Name</Text><Text style={styles.valueBold} numberOfLines={1}>{item.itemName || '—'}</Text></View>
             <View style={styles.divider} />
-
-            <View style={styles.block}>
-              <Text style={styles.label}>Item Description</Text>
-              <Text style={styles.descText}>{item.itemDescription || '—'}</Text>
-            </View>
-
+            <View style={styles.block}><Text style={styles.label}>Item Description</Text><Text style={styles.descText}>{item.itemDescription || '—'}</Text></View>
             <View style={styles.divider} />
-
-            <View style={styles.row}>
-              <Text style={styles.label}>Order Quantity</Text>
-              <Text style={styles.qtyRight}>{String(item.orderQty ?? 0)} Qty</Text>
-            </View>
-
+            <View style={styles.row}><Text style={styles.label}>Order Quantity</Text><Text style={styles.qtyRight}>{String(item.orderQty ?? 0)} Qty</Text></View>
             <View style={styles.divider} />
-
-            <View style={styles.row}>
-              <Text style={styles.label}>Open Quantity</Text>
-              <Text style={styles.qtyRight}>{String(item.openQty ?? 0)} Qty</Text>
-            </View>
-
+            <View style={styles.row}><Text style={styles.label}>Open Quantity</Text><Text style={styles.qtyRight}>{String(item.openQty ?? 0)} Qty</Text></View>
             <View style={styles.divider} />
-
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Quantity</Text>
               <View style={styles.numericRight}>
@@ -239,10 +242,10 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
                       const currentVal = Number(pageState.receivingQty) || 0;
                       const raw = typeof v === 'function' ? v(currentVal) : v;
                       const n = Number(raw);
-                      const clamped = clampToOpen(n, Number(item.openQty ?? 0));
+                      const clamped = clampToLimit(n, limit);
                       setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), receivingQty: clamped } }));
                     }}
-                    max={Number(item.openQty ?? 0)}
+                    max={limit}
                     min={0}
                     step={1}
                     width={NUMCONTROL_WIDTH}
@@ -252,108 +255,71 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
                 )}
               </View>
             </View>
-
             <View style={styles.divider} />
-
-            {/* <View style={styles.row}>
-              <Text style={styles.label}>Receiving Status</Text>
-              <Text style={styles.statusText}>
-                {readOnly
-                    ? (listType === 'scan' ? 'In-Progress' : 'Received')
-                    : (item.receivingStatus || 'In-Progress')}
-                </Text>
-            </View>
-
-            <View style={styles.divider} /> */}
-
             <InlineFieldRow label="LPN">
               <PencilDropdownRow
                 key={`lpn-${String(item.id)}`}
                 value={pageState.lpn}
-                  onChange={
-    isEditable
-      ? (id) => setEdited((prev) => ({
-          ...prev,
-          [item.id]: {
-            ...(prev[item.id] ?? {}),
-            lpn: id,           // store only ID
-          },
-        }))
-      : undefined
-  }
-  options={LocatorList}                     // pass API array directly
-  placeholder="Select Locator"
-  disabled={!isEditable}
-  width={CONTROL_WIDTH}
-  height={CONTROL_HEIGHT}
-  compact
+                onChange={isEditable ? (id) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), lpn: id } })) : undefined}
+                options={LocatorList}
+                placeholder="Select Locator"
+                disabled={!isEditable}
+                width={CONTROL_WIDTH}
+                height={CONTROL_HEIGHT}
+                compact
               />
             </InlineFieldRow>
-
             <View style={styles.divider} />
-
             <InlineFieldRow label="Sub Inventory*">
               <PencilDropdownRow
-  key={`subinv-${String(item.id)}`}
-  value={pageState.subInventory}        // will be sub_inv_id
-  onChange={
-    isEditable
-      ? (sub_id) => handleSubInventoryChange(item.id, sub_id)
-      : undefined
-  }
-  options={InventoryList}                     // pass API array directly
-  placeholder="Select Sub Inventory"
-  disabled={!isEditable}
-  width={CONTROL_WIDTH}
-  height={CONTROL_HEIGHT}
-  compact
-/>
-
+                key={`subinv-${String(item.id)}`}
+                value={pageState.subInventory}
+                onChange={isEditable ? (sub_id) => handleSubInventoryChange(item.id, sub_id) : undefined}
+                options={InventoryList}
+                placeholder="Select Sub Inventory"
+                disabled={!isEditable}
+                width={CONTROL_WIDTH}
+                height={CONTROL_HEIGHT}
+                compact
+              />
             </InlineFieldRow>
-
             <View style={styles.divider} />
-
             <InlineFieldRow label="Locator">
               <PencilDropdownRow
                 key={`locator-${String(item.id)}`}
                 value={pageState.locator}
-                  onChange={
-    isEditable
-      ? (id) => setEdited((prev) => ({
-          ...prev,
-          [item.id]: {
-            ...(prev[item.id] ?? {}),
-            locator: id,           // store only ID
-          },
-        }))
-      : undefined
-  }
-  options={LocatorList}                     // pass API array directly
-  placeholder="Select Locator"
-  disabled={!isEditable}
-  width={CONTROL_WIDTH}
-  height={CONTROL_HEIGHT}
-  compact
+                onChange={isEditable ? (id) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
+                options={LocatorList}
+                placeholder="Select Locator"
+                disabled={!isEditable}
+                width={CONTROL_WIDTH}
+                height={CONTROL_HEIGHT}
+                compact
               />
             </InlineFieldRow>
           </View>
-
           <View style={{ height: 24 }} />
         </ScrollView>
       </View>
     );
   };
 
-  const formatToday = () => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${dd}-${mm}-${yyyy}`;
-  };
-
   const leftBtnLabel = 'Cancel';
   const rightBtnLabel = returnTo === 'ReceiveSummaryScreen' ? 'Update' : 'Save';
+
+  const loadUserName = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem('user_name');
+      if (!raw) { setProfileName(''); return; }
+      let name = '';
+      try { const parsed = JSON.parse(raw); name = typeof parsed === 'string' ? parsed : parsed?.user_name ?? ''; }
+      catch { name = raw; }
+      setProfileName(name.trim());
+    } catch { setProfileName(''); }
+  }, []);
+
+  useEffect(() => { loadUserName(); }, [loadUserName]);
+  useFocusEffect(React.useCallback(() => { loadUserName(); }, [loadUserName]));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -362,25 +328,21 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
         screenTitle="Receive"
         contextInfo={titlePo}
         notificationCount={0}
-        profileName="Vinoth Umasankar"
+        profileName={profileName}
         onBack={() => navigation.goBack()}
         onMenu={() => setMenuOpen(true)}
         onNotificationPress={() => navigation.navigate('Home')}
         onProfilePress={() => navigation.navigate('Home')}
-        />
-
+      />
       <View style={styles.navBar}>
         <TouchableOpacity onPress={goPrev} disabled={index === 0} style={styles.navEdge} activeOpacity={0.7}>
           <ChevronLeft size={22} color={index === 0 ? '#C8D0D6' : '#233E55'} />
         </TouchableOpacity>
-
         <Text style={styles.navTitle}>{`Line Item ${index + 1}`}</Text>
-
         <TouchableOpacity onPress={goNext} disabled={index === allItems.length - 1} style={styles.navEdge} activeOpacity={0.7}>
           <ChevronRight size={22} color={index === allItems.length - 1 ? '#C8D0D6' : '#233E55'} />
         </TouchableOpacity>
       </View>
-
       <FlatList
         ref={listRef}
         data={allItems}
@@ -389,40 +351,32 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={onMomentumEnd}
         initialScrollIndex={startIndex}
         getItemLayout={(_, i) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * i, index: i })}
         removeClippedSubviews={false}
         windowSize={3}
+        onScroll={(e) => {
+          const x = e.nativeEvent.contentOffset.x;
+          const newIndex = Math.round(x / SCREEN_WIDTH);
+          if (newIndex !== index) setIndex(newIndex);
+        }}
+        scrollEventThrottle={16}
       />
-
       {!readOnly && (
         <FooterButtonsComponent
           leftLabel={leftBtnLabel}
           rightLabel={rightBtnLabel}
           onLeftPress={handleCancelNav}
-          onRightPress={isSubmitEnabled ? openSubmitConfirm : undefined}
+          onRightPress={isSubmitEnabled ? handleSaveAll : undefined}
           leftEnabled={true}
           rightEnabled={isSubmitEnabled}
         />
       )}
-
-      <ConfirmModalComponent
-        visible={showConfirm}
-        title="Confimation"
-        message="Are you sure you want to submit this line item?"
-        confirmColor="#1B6CC6"
-        cancelColor="#CC3344"
-        headerBg="#5D768B1A"
-        successMessage="Line item submitted successfully"
-        failureMessage="Submission failed. Please try again."
-        confirmAction={mockSubmitAction}
-        onCancel={closeSubmitConfirm}
-        onSuccess={afterSubmitSuccess}
-        onFailure={closeSubmitConfirm}
-        autoDismissMsSuccess={1200}
-        autoDismissMsFailure={1500}
-        widthRatio={0.85}
+      <SuccessModal
+        visible={successVisible}
+        message={successMessage ?? 'Submitted Successfully'}
+        onDismiss={() => setSuccessVisible(false)}
+        autoHideMs={1800}
       />
     </SafeAreaView>
   );
@@ -468,6 +422,10 @@ const styles = StyleSheet.create({
   qtyUnit: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
   statusText: { color: '#F5B429', fontWeight: '700' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
+  successCard: { width: '75%', backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16, alignItems: 'center', elevation: 6 },
+  successTitle: { fontSize: 14, fontWeight: '700', color: '#233E55', marginBottom: 6 },
+  successMsg: { fontSize: 13, fontWeight: '600', color: '#111827' },
 });
 
 export default LineItemDetailsScreen;
