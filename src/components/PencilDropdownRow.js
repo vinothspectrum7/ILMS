@@ -19,9 +19,9 @@ const ms = (size, factor = 0.35) =>
 
 const PencilDropdownRow = ({
   label,
-  value, // <- will hold selected ID
-  onChange, // <- returns selected ID
-  options = [], // <- API array of objects
+  value, 
+  onChange, 
+  options = [], 
   placeholder = "Select",
   disabled = false,
   enableSearch = true,
@@ -32,11 +32,11 @@ const PencilDropdownRow = ({
   compact = false,
   containerStyle = {},
 
-  // NEW PROPS to support any dataset
-  idKey = "id", // e.g. "sub_inv_id" or "locator_id"
-  nameKey = "name", // e.g. "sub_inv_name" or "locator_name"
-  enabledKey = "enabled", // e.g. "sub_inv_enabled" or "locator_enabled"
-  defaultKey = "is_default", // optional key for default
+  
+  idKey = "id", 
+  nameKey = "name", 
+  enabledKey = "enabled", 
+  defaultKey = "is_default", 
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -54,7 +54,7 @@ const PencilDropdownRow = ({
     }
   };
 
-  // Auto-select default if no value provided
+  
   useEffect(() => {
     if (!value && options.length > 0) {
       const def =
@@ -66,7 +66,7 @@ const PencilDropdownRow = ({
     }
   }, [value, options, onChange, idKey, enabledKey, defaultKey]);
 
-  // find display name for current value
+  
   const selectedItem = options.find((o) => o[idKey] === value);
   const display = selectedItem ? selectedItem[nameKey] : placeholder;
 
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     fontSize: ms(10),
     color: "#111827",
     flex: 1,
-    paddingRight: ms(8),
+    paddingRight: ms(3),
   },
   valueDisabled: { color: "#233E55" },
   placeholder: { color: "#9CA3AF" },
