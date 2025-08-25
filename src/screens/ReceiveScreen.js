@@ -453,8 +453,8 @@ const ReceiveScreen = () => {
   return (
     <View style={styles.container}>
       <GlobalHeaderComponent
-        organizationName="EnnVee"
-        screenTitle="Receive"
+        organizationName={OrgData?.selectedOrgCode}
+        screenTitle="Receiving"
         notificationCount={0}
         profileName="Vinoth Umasankar"
         onBack={() => navigation.navigate('Home')}

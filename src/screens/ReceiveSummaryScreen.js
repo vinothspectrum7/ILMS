@@ -39,7 +39,7 @@ const ReceiveSummaryScreen = () => {
     poHeader, setPoHeader,
     summaryItems, initSummaryItems,
     mergePatchIntoSummaryItems, mergePatchIntoReceiveItems,
-    resetReceiving,
+    resetReceiving,OrgData
   } = useReceivingStore();
 
   const [draft, setDraft] = useState([]);
@@ -209,7 +209,7 @@ const ReceiveSummaryScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
-          organizationName="EnnVee"
+          organizationName={OrgData?.selectedOrgCode}
           screenTitle="Receiving"
           // contextInfo={selectedPO}
           notificationCount={0}

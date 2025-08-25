@@ -78,7 +78,7 @@ export const GetLocatorsData = async(sub_id)=>{
     return response.data;
     
   }catch (error) {
-    console.error("Get ORGS ERROR:", error.message, error.response?.data);
+    console.error("Get LOCATORS ERROR:", error.message, error.response?.data);
     throw error;
   }
 }

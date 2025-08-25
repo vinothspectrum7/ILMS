@@ -20,7 +20,7 @@ import BackOrderedIcon from '../assets/icons/Back_ordered_icon.svg';
 import { useReceivingStore } from '../store/receivingStore';
 
 import { useFocusEffect } from '@react-navigation/native';
-import { GetInventryData } from '../api/ApiServices';
+import { GetInventryData, GetLocatorsData } from '../api/ApiServices';
 
 const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
@@ -30,9 +30,10 @@ const responsiveSize = (size) => Math.round(size * scale);
 export default function HomeScreen({ navigation }) {
   const [openInventoryOrgDropdown, setOpenInventoryOrgDropdown] = useState(false);
   const [Defaultorg,setDefaultorg] = useState(null);
+  const [OrgCode,setOrgCode] = useState(null);
   const [defaultinventory,Setdefaultinventory] = useState(null);
     const {
-      OrgData, setOrgData,setInventoryList
+      OrgData, setOrgData,setInventoryList,setLocatorList
     } = useReceivingStore();
   const [selectedInventoryOrg, setSelectedInventoryOrg] = useState('Inventory ORG1');
   const [inventoryOrganizations] = useState([
@@ -44,7 +45,8 @@ export default function HomeScreen({ navigation }) {
   const handleNotificationPress = () => Alert.alert('Notification', 'Notification button pressed!');
   const handleProfilePress = () => navigation.navigate('Login');
   const handleOrganizationChange = (org) =>{
-    setDefaultorg(org);
+    setDefaultorg(org.value);
+    setOrgCode(org.org_code);
   };
 
     useEffect(() => {
@@ -55,8 +57,15 @@ export default function HomeScreen({ navigation }) {
         const inventrydata = await GetInventryData(Defaultorg);
         console.log(inventrydata,"inventrydata")
         if (inventrydata) {
-          setInventoryList(inventrydata);
+          const inventoryList = inventrydata.map(d => ({
+  id: d.sub_inv_id,
+  name: d.sub_inv_name,
+  enabled: d.sub_inv_enabled,
+  is_default: d.is_default,
+}));      
+          setInventoryList(inventoryList);
           const defaultinventry = inventrydata.find(o => o.is_default);
+          loadlocatordata(defaultinventory);
           console.log(defaultinventry,"defaultinventrydefaultinventrydefaultinventry")
           Setdefaultinventory(defaultinventry?.sub_inv_id ?? inventrydata[0]?.sub_inv_id);
         } else {
@@ -72,11 +81,35 @@ export default function HomeScreen({ navigation }) {
                 });
       }
     };
-    let obj = {selectedOrg:Defaultorg,selectedinventory:defaultinventory} 
+    let obj = {selectedOrg:Defaultorg,selectedinventory:defaultinventory,selectedOrgCode:OrgCode} 
   setOrgData(obj);
     loadinventrydata();
-  }, [Defaultorg]);
+  }, [Defaultorg,OrgCode]);
 
+          const loadlocatordata = async (sub_id) => {
+                    if (!sub_id) return;
+                        try {
+                          const locdata = await GetLocatorsData(sub_id);
+                          console.log(locdata,"locdatalocdatalocdata")
+                          if (locdata) {
+                            const LocatorList = locdata.map(d => ({
+                    id: d.locator_id,
+                    name: d.locator_name,
+                    enabled: d.locator_enabled,
+                  }));      
+                  setLocatorList(LocatorList);
+                          }
+                        } catch (err) {
+                          console.error("Error loading Locator data:", err);
+                                  Toast.show({
+                                    type: 'error',
+                                    text1: 'Error',
+                                    text2: 'Failed to load Locators. Please try again.',
+                                    position: 'top',
+                                  });
+                        }
+          }
+          
   const handleQrScanPress = () => navigation.navigate('QrScanner');
 
   const chartData = [
@@ -118,6 +151,9 @@ export default function HomeScreen({ navigation }) {
         onNotificationPress={handleNotificationPress}
         onOrganizationChange={handleOrganizationChange}
         Defaultorg={(value)=>setDefaultorg(value)}
+        OrgCode={(value)=>{
+          // Alert.alert(value)
+          setOrgCode(value)}}
         onCardPress={(screen) => navigation.navigate(screen)}
         onMenu={handleProfilePress}
       />

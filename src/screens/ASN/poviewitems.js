@@ -12,6 +12,7 @@ import ScanItemListCardComponent from '../../components/ScanItemListCardComponen
 import SummaryTabHdrComponent from '../../components/SummaryTabHdrComponent';
 import BarcodeScanner from '../BarCodeScanner';
 import ASNinfoCardComponent from '../../components/ASNinfoCardComponent';
+import { useReceivingStore } from '../../store/receivingStore';
 
 const dummyItems = [
   { id: '01', purchaseReceipt: 'PR-00002', name: 'Lorem Ipsumum', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit...', orderedQty: 10, receivedQty: 5, openQty: 5, uom: 'Each', promisedDate: '22 Jul 2025', needByDate: '24 Jul 2025' },
@@ -34,6 +35,7 @@ const PovViewItems = () => {
 
   const fromScan = !!route?.params?.fromScan;
 const scannedPoNumber = route?.params?.scannedPoNumber ?? null;
+const {OrgData} = useReceivingStore();
 
 React.useEffect(() => {
   if (fromScan && scannedPoNumber) {
@@ -151,7 +153,7 @@ React.useEffect(() => {
   return (
     <SafeAreaView style={styles.container}>
         <GlobalHeaderComponent
-          organizationName="EnnVee"
+          organizationName={OrgData?.selectedOrgCode}
           screenTitle="Receive"
           contextInfo={selectedPO}
           notificationCount={0}

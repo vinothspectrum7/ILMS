@@ -39,6 +39,7 @@ const LoginScreen = ({ navigation }) => {
     formData.append('grant_type', "password");
     formData.append('username', employeeId);
     formData.append('password', password);
+        console.log('entered login data',formData);
 
     const response = await UserLogin(formData);
     console.log('responseresponseresponseresponse',response);
@@ -47,8 +48,8 @@ const LoginScreen = ({ navigation }) => {
       await AsyncStorage.setItem('access_token', response.data.access_token);
       navigation.replace('Home');
     } else {
-      navigation.replace('Home');
-      // Alert.alert('Login failed', 'Incorrect credentials or unexpected response.');
+      // navigation.replace('Home');
+      Alert.alert('Login failed', 'Incorrect credentials or unexpected response.');
     }
   } catch (error) {
         console.log('errror response login',error);

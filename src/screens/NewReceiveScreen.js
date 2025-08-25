@@ -388,7 +388,7 @@ useEffect(() => {
         {phase !== 'loading' && (
       <>
       <GlobalHeaderComponent
-        organizationName="EnnVee"
+        organizationName={OrgData?.selectedOrgCode}
         screenTitle="Receiving"
         notificationCount={0}
         profileName="Vinoth Umasankar"

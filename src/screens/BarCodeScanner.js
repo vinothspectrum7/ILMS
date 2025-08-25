@@ -16,11 +16,13 @@ import { launchImageLibrary } from "react-native-image-picker";
 import RNQRGenerator from "rn-qr-generator";
 import { Images, Zap, ZapOff } from "lucide-react-native";
 import GlobalHeaderComponent from "../components/GlobalHeaderComponent";
+import { useReceivingStore } from "../store/receivingStore";
 
 export default function BarcodeScanner({ onScan, onClose }) {
   const [hasCameraPermission, setHasCameraPermission] = useState(Platform.OS !== "android");
   const [isScanning, setIsScanning] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
+  const {OrgData} = useReceivingStore();
 
   const BRAND_BG = "#000000";
 
@@ -183,7 +185,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
   return (
     <View style={{ flex: 1 }}>
      <GlobalHeaderComponent
-        organizationName="EnnVee"
+        organizationName={OrgData?.selectedOrgCode}
         screenTitle="Barcode Scanner"
         notificationCount={0}
         profileName="Vinoth Umasankar"

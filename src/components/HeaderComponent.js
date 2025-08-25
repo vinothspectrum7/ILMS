@@ -49,6 +49,7 @@ export default function HeaderComponent({
   onProfilePress,
   onOrganizationChange,
   Defaultorg,
+  OrgCode,
   notificationCount = 0,
   profileName = 'User',
   onMenu = () => {},
@@ -65,7 +66,6 @@ export default function HeaderComponent({
     const loadPoData = async () => {
       try {
         const orgsdata = await GetOrgsData();
-        console.log(orgsdata,"GetOrgsData")
         if (orgsdata) {
           const orgformatdata = maporgdata(orgsdata);
           setOrganizations(orgformatdata);
@@ -76,6 +76,8 @@ export default function HeaderComponent({
           setSelectedOrganization(defaultOrg?.value ?? orgformatdata[0]?.value);
           }
           Defaultorg?.(defaultOrg?.value ?? orgformatdata[0]?.value);
+          console.log(defaultOrg,"defaultOrgdefaultOrg")
+          OrgCode?.(defaultOrg?.org_code ?? orgformatdata[0]?.org_code);
         } else {
           setOrganizations([]);
         }
@@ -96,7 +98,8 @@ export default function HeaderComponent({
 const maporgdata = (data) => {
   return data.map((element) => ({
     label: element.org_name,
-    value: element.org_id,
+    value: element.org_uuid,
+    org_code:element.org_code,
     is_default: element.is_default,
   }));
 };
@@ -142,7 +145,7 @@ const maporgdata = (data) => {
             itemSeparatorStyle={styles.itemSeparatorStyle}
             listItemLabelStyle={styles.listItemLabelStyle}
             selectedItemLabelStyle={styles.selectedItemLabelStyle}
-            onSelectItem={(item) => onOrganizationChange?.(item.value)}
+            onSelectItem={(item) => onOrganizationChange?.(item)}
             renderBadge={() => null}
             ArrowUpIconComponent={({ style }) => <Text style={[style, { color: '#FFFFFF' }]}>▲</Text>}
             ArrowDownIconComponent={({ style }) => <Text style={[style, { color: '#FFFFFF' }]}>▼</Text>}

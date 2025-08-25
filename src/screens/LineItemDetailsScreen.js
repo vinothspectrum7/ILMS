@@ -10,6 +10,7 @@ import PencilDropdownRow from '../components/PencilDropdownRow';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import PenIcon from '../assets/icons/penicon.svg';
 import { useReceivingStore } from '../store/receivingStore';
+import { GetLocatorsData } from '../api/ApiServices';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTROL_WIDTH = 80;
@@ -49,7 +50,8 @@ const LineItemDetailsScreen = () => {
   const returnTo = route?.params?.returnTo || null;
   const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
-  const { InventoryList } = useReceivingStore();
+  const { InventoryList,OrgData } = useReceivingStore();
+  const { LocatorList,setLocatorList } = useReceivingStore();
 
   const allItems =
     Array.isArray(route?.params?.items) && route.params.items.length > 0
@@ -63,11 +65,6 @@ const LineItemDetailsScreen = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const listRef = useRef(null);
 
-  useEffect(()=>{
-    console.log(InventoryList,"InventoryList InventoryList InventoryList")
-
-  },[InventoryList])
-
   const current = useMemo(() => allItems[index], [allItems, index]);
 
   const readonlyScanQty = (() => {
@@ -76,6 +73,42 @@ const LineItemDetailsScreen = () => {
     const ord = Number(current.orderQty ?? 0);
     return open > 0 ? open : ord;
   })();
+
+  useEffect(()=>{
+    console.log(LocatorList,"LocatorListinsideitem")
+  },[LocatorList])
+  // ⏬ Helper function for handling sub-inventory change
+const handleSubInventoryChange = async (itemId, sub_id) => {
+  // 1️⃣ update local state
+  setEdited((prev) => ({
+    ...prev,
+    [itemId]: {
+      ...(prev[itemId] ?? {}),
+      subInventory: sub_id,
+    },
+  }));
+
+  // 2️⃣ call Locator API
+  try {
+    const locdata = await GetLocatorsData(sub_id);
+    if (locdata) {
+      const Locatorsdata = locdata.map((d) => ({
+        id: d.locator_id,
+        name: d.locator_name,
+        enabled: d.locator_enabled,
+      }));
+      setLocatorList(Locatorsdata);
+    }
+  } catch (err) {
+    console.error("Error loading Locator data:", err);
+    Toast.show({
+      type: "error",
+      text1: "Error",
+      text2: "Failed to load Locators. Please try again.",
+      position: "top",
+    });
+  }
+};
 
   const initialReceivingQty = readOnly
     ? (listType === 'scan' ? Number(readonlyScanQty ?? 0) : Number(current.orderQty ?? current.receivingQty ?? 0))
@@ -234,18 +267,27 @@ const LineItemDetailsScreen = () => {
             <View style={styles.divider} /> */}
 
             <InlineFieldRow label="LPN">
-              {/* <PencilDropdownRow
+              <PencilDropdownRow
                 key={`lpn-${String(item.id)}`}
                 value={pageState.lpn}
-                onChange={isEditable ? (v) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), lpn: v } })) : undefined}
-                options={LPN_OPTIONS}
-                placeholder="Select"
-                LeftIcon={PenIcon}
-                disabled={!isEditable}
-                width={CONTROL_WIDTH}
-                height={CONTROL_HEIGHT}
-                compact
-              /> */}
+                  onChange={
+    isEditable
+      ? (id) => setEdited((prev) => ({
+          ...prev,
+          [item.id]: {
+            ...(prev[item.id] ?? {}),
+            lpn: id,           // store only ID
+          },
+        }))
+      : undefined
+  }
+  options={LocatorList}                     // pass API array directly
+  placeholder="Select Locator"
+  disabled={!isEditable}
+  width={CONTROL_WIDTH}
+  height={CONTROL_HEIGHT}
+  compact
+              />
             </InlineFieldRow>
 
             <View style={styles.divider} />
@@ -256,13 +298,7 @@ const LineItemDetailsScreen = () => {
   value={pageState.subInventory}        // will be sub_inv_id
   onChange={
     isEditable
-      ? (id) => setEdited((prev) => ({
-          ...prev,
-          [item.id]: {
-            ...(prev[item.id] ?? {}),
-            subInventory: id,           // store only ID
-          },
-        }))
+      ? (sub_id) => handleSubInventoryChange(item.id, sub_id)
       : undefined
   }
   options={InventoryList}                     // pass API array directly
@@ -278,18 +314,27 @@ const LineItemDetailsScreen = () => {
             <View style={styles.divider} />
 
             <InlineFieldRow label="Locator">
-              {/* <PencilDropdownRow
+              <PencilDropdownRow
                 key={`locator-${String(item.id)}`}
                 value={pageState.locator}
-                onChange={isEditable ? (v) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: v } })) : undefined}
-                options={LOCATOR_OPTIONS}
-                placeholder="Select"
-                LeftIcon={PenIcon}
-                disabled={!isEditable}
-                width={CONTROL_WIDTH}
-                height={CONTROL_HEIGHT}
-                compact
-              /> */}
+                  onChange={
+    isEditable
+      ? (id) => setEdited((prev) => ({
+          ...prev,
+          [item.id]: {
+            ...(prev[item.id] ?? {}),
+            locator: id,           // store only ID
+          },
+        }))
+      : undefined
+  }
+  options={LocatorList}                     // pass API array directly
+  placeholder="Select Locator"
+  disabled={!isEditable}
+  width={CONTROL_WIDTH}
+  height={CONTROL_HEIGHT}
+  compact
+              />
             </InlineFieldRow>
           </View>
 
@@ -313,7 +358,7 @@ const LineItemDetailsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
-        organizationName="EnnVee"
+        organizationName={OrgData?.selectedOrgCode}
         screenTitle="Receive"
         contextInfo={titlePo}
         notificationCount={0}
