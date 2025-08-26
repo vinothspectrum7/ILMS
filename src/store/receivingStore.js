@@ -24,7 +24,7 @@ export const useReceivingStore = create((set, get) => ({
         ? {
             ...it,
             qtyToReceive: typeof patch.receivingQty === 'number'
-              ? clampToOpen(patch.receivingQty, it.openQty)
+              ? clampToOpen(patch.receivingQty, it.max_open_qty)
               : it.qtyToReceive,
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -11,6 +11,7 @@ import Toast from 'react-native-toast-message';
 import { createOrderReceipt } from '../api/mockApi';
 import { useReceivingStore } from '../store/receivingStore';
 import { Submit_Receive_Qty } from '../api/ApiServices';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', receivedDate: '21 Jul 2025', status: 'Fully Received' },
@@ -19,18 +20,18 @@ const receivedData = [
   { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', receivedDate: '24 Jul 2025', status: 'Fully Received' },
 ];
 
-// const defaultReceiptItems = [
-//   { id: 'a', name: 'Lorem Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 100, receivedQty: 100, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN1', subInventory: 'SUBINVENTORY1', locator: 'LOCATOR1' },
-//   { id: 'b', name: 'Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 150, receivedQty: 150, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN2', subInventory: 'SUBINVENTORY2', locator: 'LOCATOR2' },
-//   { id: 'c', name: 'Des Impusum', description: 'dolor ipsum dolor sit amet…', orderedQty: 200, receivedQty: 200, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN3', subInventory: 'SUBINVENTORY3', locator: 'LOCATOR3' },
-// ];
+const defaultReceiptItems = [
+  { id: 'a', name: 'Lorem Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 100, receivedQty: 100, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN1', subInventory: 'SUBINVENTORY1', locator: 'LOCATOR1' },
+  { id: 'b', name: 'Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 150, receivedQty: 150, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN2', subInventory: 'SUBINVENTORY2', locator: 'LOCATOR2' },
+  { id: 'c', name: 'Des Impusum', description: 'dolor ipsum dolor sit amet…', orderedQty: 200, receivedQty: 200, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN3', subInventory: 'SUBINVENTORY3', locator: 'LOCATOR3' },
+];
 
 const ReceiveSummaryScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
+  const [profileName, setProfileName] = useState('');
   const readonly = !!route?.params?.readonly;
-  const selectedPO = route?.params?.header?.poNumber;
   const listTypeFromRoute = route?.params?.listType || 'line';
   const headerFromRoute = route?.params?.header || null;
   const purchaseReceipt = route?.params?.purchaseReceipt;
@@ -38,10 +39,15 @@ const ReceiveSummaryScreen = () => {
   const passedItems = Array.isArray(route?.params?.selectedItems) ? route.params.selectedItems : [];
 
   const {
-    poHeader, setPoHeader,
-    summaryItems, initSummaryItems,
-    mergePatchIntoSummaryItems, mergePatchIntoReceiveItems,
-    resetReceiving,OrgData
+    poHeader,
+    setPoHeader,
+    receiveItems,
+    summaryItems,
+    initSummaryItems,
+    mergePatchIntoSummaryItems,
+    mergePatchIntoReceiveItems,
+    resetReceiving,
+    OrgData,
   } = useReceivingStore();
 
   const [draft, setDraft] = useState([]);
@@ -52,25 +58,29 @@ const ReceiveSummaryScreen = () => {
   const initializedRef = useRef(false);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       didCompleteRef.current = false;
       return () => {};
     }, [])
   );
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       const onBackPress = () => {
         if (modalVisible) {
           setModalVisible(false);
           return true;
         }
-        navigation.navigate('NewReceiveScreen');
+        if (listTypeFromRoute === 'Received') {
+          navigation.navigate('Receive');
+        } else {
+          navigation.navigate('NewReceiveScreen');
+        }
         return true;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [navigation, modalVisible])
+    }, [navigation, modalVisible, listTypeFromRoute])
   );
 
   useEffect(() => {
@@ -95,7 +105,9 @@ const ReceiveSummaryScreen = () => {
   useEffect(() => {
     if (initializedRef.current) return;
     if (readonly) {
-      setDraft(passedItems.length ? passedItems : []);
+      setDraft(passedItems.length ? passedItems : defaultReceiptItems);
+    } else if (Array.isArray(receiveItems) && receiveItems.length > 0) {
+      setDraft(receiveItems);
     } else if (Array.isArray(passedItems) && passedItems.length > 0) {
       setDraft(passedItems);
       initSummaryItems(passedItems);
@@ -103,16 +115,14 @@ const ReceiveSummaryScreen = () => {
       setDraft(summaryItems);
     }
     initializedRef.current = true;
-  }, [readonly, passedItems, summaryItems, initSummaryItems]);
+  }, [readonly, receiveItems, passedItems, summaryItems, initSummaryItems]);
 
   const patch = route?.params?.patch;
 
   useEffect(() => {
     const patchId = patch?.id != null ? String(patch.id) : null;
     if (!patchId || handledPatchIdsRef.current.has(patchId)) return;
-
     handledPatchIdsRef.current.add(patchId);
-
     setDraft(prev =>
       prev.map(it =>
         String(it.id) === patchId
@@ -126,10 +136,8 @@ const ReceiveSummaryScreen = () => {
           : it
       )
     );
-
     mergePatchIntoSummaryItems(patch);
     mergePatchIntoReceiveItems(patch);
-
     const t = setTimeout(() => navigation.setParams({ patch: undefined }), 0);
     return () => clearTimeout(t);
   }, [patch?.id, patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation]);
@@ -153,7 +161,8 @@ const  mapConfirmData = (data)=> {
 }
 
   const confirmAction = async () => {
-    const formatdata = mapConfirmData(draft);
+    console.log(renderItems,"draftdraftdraftdraftdraft")
+    const formatdata = mapConfirmData(renderItems);
     console.log(formatdata,"formatdataformatdata");
         try {
           const response = await Submit_Receive_Qty(formatdata);
@@ -164,6 +173,47 @@ const  mapConfirmData = (data)=> {
           return { success: false, message: err.detail?.[0].msg || 'Network error. Please try again.' };
         }
   };
+  const renderItems = useMemo(() => {
+  if (!readonly && Array.isArray(receiveItems) && receiveItems.length > 0) {
+    return receiveItems.filter(
+      it => Number(it?.qtyToReceive ?? it?.receivingQty ?? 0) > 0
+    );
+  }
+  if (Array.isArray(summaryItems) && summaryItems.length > 0) return summaryItems;
+  if (Array.isArray(draft) && draft.length > 0) return draft;
+  return [];
+}, [readonly, receiveItems, summaryItems, draft]);
+
+  const qtyFor = useCallback(
+    it => {
+      const inReceive = Array.isArray(receiveItems) ? receiveItems.find(x => String(x.id) === String(it.id)) : null;
+      const inSummary = Array.isArray(summaryItems) ? summaryItems.find(x => String(x.id) === String(it.id)) : null;
+      const q =
+        inReceive?.qtyToReceive ??
+        inReceive?.receivingQty ??
+        inSummary?.qtyToReceive ??
+        inSummary?.receivingQty ??
+        it?.qtyToReceive ??
+        0;
+      return Number(q);
+    },
+    [receiveItems, summaryItems]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const hasLive = Array.isArray(receiveItems) && receiveItems.length > 0;
+      const nonePassed = !Array.isArray(passedItems) || passedItems.length === 0;
+      const noneSummary = !Array.isArray(summaryItems) || summaryItems.length === 0;
+      if (!readonly && !hasLive && nonePassed && noneSummary) {
+        if (listTypeFromRoute === 'Received') {
+          navigation.replace('Receive');
+        } else {
+          navigation.replace('NewReceiveScreen', { listType: listTypeFromRoute || 'line' });
+        }
+      }
+    }, [readonly, receiveItems, passedItems, summaryItems, listTypeFromRoute, navigation])
+  );
 
   const handleCancel = () => setModalVisible(false);
 
@@ -186,9 +236,10 @@ const  mapConfirmData = (data)=> {
   const toDetailItemFromSummary = (it, i) => {
     const readonlyReceivingQty =
       listTypeFromRoute === 'scan'
-        ? (Number(it.openQty ?? 0) > 0 ? Number(it.openQty ?? 0) : Number(it.orderedQty ?? it.orderQty ?? 0))
+        ? Number(it.openQty ?? 0) > 0
+          ? Number(it.openQty ?? 0)
+          : Number(it.orderedQty ?? it.orderQty ?? 0)
         : Number(it.orderedQty ?? it.orderQty ?? 0);
-
     return {
       id: String(it.id),
       poNumber: headerData.poNumber ?? '—',
@@ -197,18 +248,16 @@ const  mapConfirmData = (data)=> {
       itemDescription: it.itemDescription ?? it.description ?? '—',
       orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
       openQty: Number(it.openQty ?? 0),
-      receivingStatus:readonly ? 'Received' :it.status,
-      receivingQty: Number(readonly ? readonlyReceivingQty : (it.qtyToReceive ?? 0)),
-      // receivingStatus: readonly ? 'Received' : it.line_status,
+      receivingQty: Number(readonly ? readonlyReceivingQty : qtyFor(it)),
+      receivingStatus: readonly ? 'Received' : 'In-progress',
       lpn: it.lpn ?? '',
       subInventory: it.subInventory ?? '',
       locator: it.locator ?? '',
     };
   };
 
-  const openLineDetailsFromSummary = (item) => {
-    const source = draft;
-    console.log()
+  const openLineDetailsFromSummary = item => {
+    const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
     const mapped = source.map(toDetailItemFromSummary);
     navigation.navigate({
@@ -225,20 +274,53 @@ const  mapConfirmData = (data)=> {
     const yyyy = d.getFullYear();
     return `${yyyy}-${mm}-${dd}`;
   };
+  const loadUserName = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem('user_name');
+      if (!raw) {
+        setProfileName('');
+        return;
+      }
+      let name = '';
+      try {
+        const parsed = JSON.parse(raw);
+        name = typeof parsed === 'string' ? parsed : parsed?.user_name ?? '';
+      } catch {
+        name = raw;
+      }
+      setProfileName(name.trim());
+    } catch {
+      setProfileName('');
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserName();
+  }, [loadUserName]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadUserName();
+    }, [loadUserName])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
-          organizationName={OrgData?.selectedOrgCode}
-          screenTitle="Receiving"
-          // contextInfo={selectedPO}
-          notificationCount={0}
-          profileName="Vinoth Umasankar"
-          onBack={() => navigation.navigate('NewReceiveScreen')}
-          onMenu={() => setMenuOpen(true)}
-          onNotificationPress={() => navigation.navigate('Home')}
-          onProfilePress={() => navigation.navigate('Home')}
-        />
+        organizationName={useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode}
+        screenTitle="Receiving"
+        notificationCount={0}
+        profileName={profileName}
+        onBack={() => {
+          if (listTypeFromRoute === 'Received') {
+            navigation.navigate('Receive');
+          } else {
+            navigation.navigate('NewReceiveScreen');
+          }
+        }}
+        onNotificationPress={() => navigation.navigate('Home')}
+        onProfilePress={() => navigation.navigate('Home')}
+      />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
@@ -256,14 +338,14 @@ const  mapConfirmData = (data)=> {
           </View>
 
           <FlatList
-            data={draft}
+            data={renderItems}
             keyExtractor={item => String(item.id)}
             renderItem={({ item }) => (
               <View style={styles.lineItemWrapper}>
                 <ConfirmLineItemComponent
                   item={item}
                   qtyLabel="Each"
-                  qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? item.qtyToReceive ?? 0) : Number(item.qtyToReceive ?? 0)}
+                  qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? qtyFor(item)) : qtyFor(item)}
                   readOnly
                   onViewDetails={() => openLineDetailsFromSummary(item)}
                 />

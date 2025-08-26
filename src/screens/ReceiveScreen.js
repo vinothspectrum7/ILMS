@@ -343,7 +343,54 @@ const ReceiveScreen = () => {
           activeOpacity={0.9}
         >
           <View style={styles.card}>
-            <View style={styles.cardLeft}>
+
+            <View style={styles.toprow}>
+              <View style={styles.topcardLeft}>
+              <Text style={styles.labelText}>ASN Number</Text>
+                <Text style={styles.valueText}>{item.asn_num}</Text>
+              </View>
+              <View style={styles.topcardRight}>
+              <Text style={styles.labelText}>Supplier</Text>
+                <Text style={styles.valueText}>{item.supplier_name}</Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <Text style={styles.labelText}>Status</Text>
+                <Text style={[styles.valueText, styles.openText]}>{item.status}</Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <Text style={styles.labelText}>Shipped Date</Text>
+                <Text style={styles.valueText}>{item.shipped_date}</Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <Text style={styles.subLabel}>Received</Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <Text style={styles.subLabel}></Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <View style={styles.progressWrapper}>
+                <View style={[styles.progressBarleft, { width: `40%` }]} />
+              </View>
+              </View>
+              <View style={styles.bottomcardRight}>
+              
+              </View>
+            </View>
+
+
+
+
+
+
+
+
+            {/* <View style={styles.cardLeft}>
               <View style={styles.row}>
                 <Text style={styles.labelText}>ASN Number</Text>
                 <Text style={styles.valueText}>{item.asn_num}</Text>
@@ -367,7 +414,7 @@ const ReceiveScreen = () => {
                 <Text style={styles.labelText}>Shipped Date</Text>
                 <Text style={styles.valueText}>{item.shipped_date}</Text>
               </View>
-            </View>
+            </View> */}
           </View>
         </TouchableOpacity>
       )}
