@@ -14,7 +14,7 @@ import BarcodeScanner from './BarCodeScanner';
 import { useReceivingStore } from '../store/receivingStore';
 import { createOrderReceipt } from '../api/mockApi';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
-import { GetSinglePO } from '../api/ApiServices';
+import { GetSinglePO, Submit_Receive_Qty } from '../api/ApiServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const clampToLimit = (qty, limit) => {
@@ -275,41 +275,31 @@ useEffect(() => {
     });
   };
 
+  const  mapConfirmData = (data)=> {
+  return data.map((backend) => ({
+    po_line_id:backend?.po_line_id,
+    item_id:backend?.item_id,
+    org_id:backend?.org_id, // placeholder (if needed)
+    sub_inv_id: backend?.subInventory,
+    locator_id: backend?.subInventory,
+    lot_number: "",
+    expiry_date: formatToday(),
+    received_qty: Number(backend?.qtyToReceive)
+  }));
+}
   const confirmAction = async () => {
     try {
       console.log(scannedItems,"scannedItemsconfirm")
-      const payload = (scannedItems || [])
-        .filter(i => Number(i.qtyToReceive ?? 0) > 0)
-        .map(i => ({
-          id: i.id,
-          purchaseReceipt: i.purchaseReceipt,
-          name: i.name,
-          description: i.description,
-          orderedQty: i.orderedQty,
-          receivedQty: i.receivedQty,
-          openQty: i.openQty,
-          uom: i.uom,
-          promisedDate: i.promisedDate,
-          needByDate: i.needByDate,
-          qtyToReceive: i.qtyToReceive,
-          lpn: i.lpn,
-          subInventory: i.subInventory,
-          locator: i.locator,
-        }));
-// const  mapConfirmData = (data)=> {
-//   return data.map((backend) => ({
-//     po_line_id:backend?.po_line_id,
-//     item_id:backend?.item_id,
-//     org_id:backend?.org_id, // placeholder (if needed)
-//     sub_inv_id: backend?.subInventory,
-//     locator_id: backend?.locator,
-//     lot_number: "",
-//     expiry_date: formatToday(),
-//     received_qty: Number(backend?.qtyToReceive)
-//   }));
-// }
-      // const res = await createOrderReceipt(payload, true); // mock API
-      // return { success: !!res?.ok, message: res?.message };
+
+      const payload = mapConfirmData(scannedItems);
+        try {
+              const response = await Submit_Receive_Qty(payload);
+              console.log(response,"posingledataposingledata");
+          if (response?.results) return { success: true, message:'Received Quantity Updated Successfully!' };
+          return { success: false, message: response?.message || 'Failed to create order receipt' };
+            } catch (err) {
+              return { success: false, message: err.detail?.[0].msg || 'Network error. Please try again.' };
+            }
     } catch (error) {
       return { success: false, message: error?.message || 'Network error. Please try again.' };
     }
@@ -417,12 +407,12 @@ useEffect(() => {
     [selectedTab, selectedItems.length, scannedItems.length]
   );
 
-  const formatToday = () => {
+   const formatToday = () => {
     const d = new Date();
     const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
-    return `${dd}-${mm}-${yyyy}`;
+    return `${yyyy}-${mm}-${dd}`;
   };
 
   const loadUserName = useCallback(async () => {
@@ -562,7 +552,7 @@ useEffect(() => {
           <ConfirmModalComponent
             visible={modalVisible}
             title="Confirmation"
-            message="Are you sure want to confirm this order?"
+            message="Are you sure want to receive this Purchase Order?"
             confirmAction={confirmAction}
             onCancel={handleCancel}
             onSuccess={handleSuccess}

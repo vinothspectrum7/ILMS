@@ -370,7 +370,7 @@ const  mapConfirmData = (data)=> {
           <ConfirmModalComponent
             visible={modalVisible}
             title="Confirmation"
-            message="Are you sure want to confirm this order?"
+            message="Are you sure want to receive this Purchase Order?"
             confirmAction={confirmAction}
             onCancel={handleCancel}
             onSuccess={handleSuccess}

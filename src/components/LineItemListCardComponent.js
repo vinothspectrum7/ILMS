@@ -69,6 +69,16 @@ const LineItemListCardComponent = ({
     return `${dd}/${mm}/${yyyy}`;
   };
 
+  const formatDate = (date) => {
+  const d = new Date(date);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const mmm = monthNames[d.getMonth()];
+  const yyyy = d.getFullYear();
+  return `${dd} ${mmm} ${yyyy}`;
+};
+
   return (
     <View style={styles.cardwrapper}>
       <View style={styles.rowContainer}>
@@ -125,11 +135,11 @@ const LineItemListCardComponent = ({
           <Text style={styles.uomText}>Each</Text>
           <View style={styles.dateRow}>
             <Text style={styles.dateLabel}>Promised Date: </Text>
-            <Text style={styles.dateValue}>{formatDDMMYYYY('22/05/2025')}</Text>
+            {/* <Text style={styles.dateValue}>{formatDate(item.promisedDate)}</Text> */}
           </View>
           <View style={styles.dateRow}>
             <Text style={styles.dateLabel}>Need By Date: </Text>
-            <Text style={styles.dateValue}>{formatDDMMYYYY('25/05/2025')}</Text>
+            {/* <Text style={styles.dateValue}>{formatDate(item.needByDate)}</Text> */}
           </View>
         </View>
       </View>
