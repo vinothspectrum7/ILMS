@@ -50,9 +50,10 @@ const LoginScreen = ({ navigation }) => {
       navigation.replace('Home');
     } else {
       // navigation.replace('Home');
-      Alert.alert('Login failed', 'Incorrect credentials or unexpected response.');
+      Alert.alert('Login failed', 'Invalid credentials.');
     }
   } catch (error) {
+      Alert.alert('Login failed', 'Invalid credentials.');
         console.log('errror response login',error);
     // navigation.replace('Home');
     // if (error.response && error.response.data) {
@@ -144,7 +145,7 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotPasswordButton}>
+          <TouchableOpacity  style={styles.forgotPasswordButton}>
             <Text style={styles.forgotPasswordText}>Forgot password?</Text>
           </TouchableOpacity>
 

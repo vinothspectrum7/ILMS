@@ -54,6 +54,7 @@ export default function GlobalHeaderComponent({
         </View>
 
         <View style={styles.brandRight}>
+        <Text style={styles.version}>V: 25082601</Text>
           <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={scale(22)} height={scale(22)} />
             {showDot && <View style={styles.dot} />}
@@ -94,6 +95,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  version:{
+    fontFamily: 'Mulish',
+    fontWeight:500,
+fontWeight: 500,
+fontSize: 10,
+verticalAlign: 'middle',
+color:'#FFFFFF'
   },
   brandLeft: { flexShrink: 1, paddingRight: ms(12) },
   brandRight: { flexDirection: 'row', alignItems: 'center', gap: ms(12) },

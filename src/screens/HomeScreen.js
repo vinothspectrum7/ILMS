@@ -21,6 +21,7 @@ import BackOrderedIcon from '../assets/icons/Back_ordered_icon.svg';
 import { useReceivingStore } from '../store/receivingStore';
 import { useFocusEffect } from '@react-navigation/native';
 import { GetInventryData, GetLocatorsData } from '../api/ApiServices';
+import Toast from 'react-native-toast-message';
 
 const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
@@ -74,6 +75,7 @@ export default function HomeScreen({ navigation }) {
           text1: 'Error',
           text2: 'Failed to load SubInventories. Please try again.',
           position: 'top',
+          visibilityTime: 5000
         });
       }
     };
@@ -101,6 +103,7 @@ export default function HomeScreen({ navigation }) {
         text1: 'Error',
         text2: 'Failed to load Locators. Please try again.',
         position: 'top',
+        visibilityTime: 5000
       });
     }
   };
@@ -128,9 +131,17 @@ export default function HomeScreen({ navigation }) {
 
   useFocusEffect(
     React.useCallback(() => {
-      const onBackPress = () => {
-        navigation.navigate('Login');
-        return true;
+      if (Platform.OS !== 'android') return;
+        let lastPress = 0;
+       const onBackPress = () => {
+        const now = Date.now();
+        if (now - lastPress < 500) {
+          BackHandler.exitApp();
+          return true; // handled
+        }
+        lastPress = now;
+        Toast.show({ type: 'info', text1: 'Press back again to exit', position: 'top', visibilityTime: 1000 });
+        return true; 
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();

@@ -122,7 +122,7 @@ const LineItemDetailsScreen = () => {
         setLocatorList(Locatorsdata);
       }
     } catch {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators', position: 'top' });
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators', position: 'top',visibilityTime: 5000 });
     }
   };
 
@@ -178,7 +178,7 @@ const LineItemDetailsScreen = () => {
   const handleSaveAll = useCallback(async () => {
     const patches = buildPatches();
     if (!patches.length) {
-      Toast.show({ type: 'info', text1: 'No changes to save', position: 'top', visibilityTime: 900 });
+      Toast.show({ type: 'info', text1: 'No changes to save', position: 'top', visibilityTime: 5000 });
       return;
     }
     try {
@@ -192,7 +192,7 @@ const LineItemDetailsScreen = () => {
         else navigation.goBack();
       }, 1200);
     } catch {
-      Toast.show({ type: 'error', text1: 'Save failed', text2: 'Please try again.', position: 'top', visibilityTime: 1200 });
+      Toast.show({ type: 'error', text1: 'Save failed', text2: 'Please try again.', position: 'top', visibilityTime: 5000 });
     }
   }, [buildPatches, mergePatchIntoReceiveItems, navigation, returnTo, listType]);
 
@@ -213,6 +213,7 @@ const LineItemDetailsScreen = () => {
       lpn: fromStore?.lpn ?? item.lpn ?? '',
       subInventory: fromStore?.subInventory ?? item.subInventory ?? '',
       locator: fromStore?.locator ?? item.locator ?? '',
+      openQty:fromStore?.openQty ?? item.openQty ?? ''
     };
 
     const limit = Number(item.max_open_qty ?? item.openQty ?? 0);
@@ -257,6 +258,7 @@ const LineItemDetailsScreen = () => {
                     width={NUMCONTROL_WIDTH}
                     height={NUMCONTROL_HEIGHT}
                     isSelected={isEditable}
+                    disabledinput={item.openQty==0?true:false}
                   />
                 )}
               </View>
@@ -268,7 +270,7 @@ const LineItemDetailsScreen = () => {
               <Text style={styles.statusText}>
                 {readOnly
                     ? (listType === 'scan' ? `${item.receivingStatus}` : 'Received')
-                    : (pageState.receivingQty??pageState.receivingQty>0?'In Progress':'OPEN')}
+                    : (pageState.receivingQty??pageState.receivingQty>0?'In Progress':item.openQty==0?'CLOSED':'OPEN')}
                 </Text>
             </View>
 
@@ -291,7 +293,7 @@ const LineItemDetailsScreen = () => {
   }
   options={LpnList}                     // pass API array directly
   placeholder="Select Locator"
-  disabled={!isEditable}
+  disabled={!isEditable || item.openQty==0}
   width={CONTROL_WIDTH}
   height={CONTROL_HEIGHT}
   compact
@@ -305,7 +307,7 @@ const LineItemDetailsScreen = () => {
                 onChange={isEditable ? (sub_id) => handleSubInventoryChange(item.id, sub_id) : undefined}
                 options={InventoryList}
                 placeholder="Select Sub Inventory"
-                disabled={!isEditable}
+                disabled={!isEditable || item.openQty==0}
                 width={CONTROL_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
@@ -319,7 +321,7 @@ const LineItemDetailsScreen = () => {
                 onChange={isEditable ? (id) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
                 options={LocatorList}
                 placeholder="Select Locator"
-                disabled={!isEditable}
+                disabled={!isEditable || item.openQty==0}
                 width={CONTROL_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
@@ -359,8 +361,8 @@ const LineItemDetailsScreen = () => {
         profileName={profileName}
         onBack={() => navigation.goBack()}
         onMenu={() => setMenuOpen(true)}
-        onNotificationPress={() => navigation.navigate('Home')}
-        onProfilePress={() => navigation.navigate('Home')}
+        // onNotificationPress={() => navigation.navigate('Home')}
+        // onProfilePress={() => navigation.navigate('Home')}
       />
       <View style={styles.navBar}>
         <TouchableOpacity onPress={goPrev} disabled={index === 0} style={styles.navEdge} activeOpacity={0.7}>

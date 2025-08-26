@@ -13,8 +13,8 @@ const POinfoCardComponent = ({ receiptNumber, supplier, poNumber, receiptDate })
   const sup = (supplier ?? '').toString().trim() || dash;
   const po = (poNumber ?? '').toString().trim() || dash;
   const rd = (receiptDate ?? '').toString().trim() || dash;
-const formatDate = (date) => {
-  const d = new Date(date);
+const formatDate = () => {
+  const d = new Date();
   const dd = String(d.getDate()).padStart(2, '0');
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -42,7 +42,7 @@ const formatDate = (date) => {
           </View>
           <View style={styles.bottomcardRight}>
           <Text style={styles.labelText}>Receipt Date</Text>
-          <Text style={styles.valueText}>{formatDate(rd)}</Text>
+          <Text style={styles.valueText}>{formatDate()}</Text>
         </View>
       </View>
     </View>

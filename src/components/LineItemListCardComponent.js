@@ -69,15 +69,43 @@ const LineItemListCardComponent = ({
     return `${dd}/${mm}/${yyyy}`;
   };
 
-  const formatDate = (date) => {
-  const d = new Date(date);
-  const dd = String(d.getDate()).padStart(2, '0');
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+
+  // Split input like "05 july 2025"
+  const parts = dateStr.trim().split(" ");
+  if (parts.length !== 3) return dateStr; // fallback if unexpected format
+
+  const [day, monthStr, year] = parts;
+
+  // Map month names (full & short → index)
+  const months = {
+    jan: 0, january: 0,
+    feb: 1, february: 1,
+    mar: 2, march: 2,
+    apr: 3, april: 3,
+    may: 4,
+    jun: 5, june: 5,
+    jul: 6, july: 6,
+    aug: 7, august: 7,
+    sep: 8, sept: 8, september: 8,
+    oct: 9, october: 9,
+    nov: 10, november: 10,
+    dec: 11, december: 11,
+  };
+
+  const monthIndex = months[monthStr.toLowerCase()];
+  if (monthIndex === undefined) return dateStr; // fallback if unknown month
+
+  // Always format back to dd MMM yyyy
+  const dd = day.padStart(2, "0");
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const mmm = monthNames[d.getMonth()];
-  const yyyy = d.getFullYear();
-  return `${dd} ${mmm} ${yyyy}`;
+  const mmm = monthNames[monthIndex];
+
+  return `${dd} ${mmm} ${year}`;
 };
+
 
   return (
     <View style={styles.cardwrapper}>
@@ -87,17 +115,24 @@ const LineItemListCardComponent = ({
             style={RNStyleSheet.absoluteFill}
             onPress={() => onCheckToggle(item)}
             activeOpacity={0.8}
+            disabled={item.openQty==0}
           />
           <CheckBox
             value={isSelected}
             onValueChange={() => onCheckToggle(item)}
             style={styles.checkbox}
-            tintColors={{ true: '#233E55', false: '#666666' }}
+              tintColors={
+    item.openQty == 0
+      ? { true: '#9D9FA3', false: '#9D9FA3' } // disabled colors (greyed out)
+      : { true: '#233E55', false: '#666666' }  // normal colors
+  }
+
             onCheckColor={Platform.OS === 'ios' ? '#FFFFFF' : undefined}
             onFillColor={Platform.OS === 'ios' ? '#233E55' : undefined}
             onTintColor={Platform.OS === 'ios' ? '#666666' : undefined}
             boxType={Platform.OS === 'ios' ? 'square' : undefined}
             lineWidth={Platform.OS === 'ios' ? 1.5 : undefined}
+            disabled={item.openQty==0}
           />
         </View>
 
@@ -129,17 +164,18 @@ const LineItemListCardComponent = ({
               width={s(80)}
               height={s(28)}
               isSelected={isSelected}
+              disabledinput={item.openQty==0?true:false}
               onLimit={() => {}}
             />
           </View>
-          <Text style={styles.uomText}>Each</Text>
+          <Text style={styles.uomText}>{item.uom}</Text>
           <View style={styles.dateRow}>
             <Text style={styles.dateLabel}>Promised Date: </Text>
-            {/* <Text style={styles.dateValue}>{formatDate(item.promisedDate)}</Text> */}
+            <Text style={styles.dateValue}>{formatDate(item.promisedDate)}</Text>
           </View>
           <View style={styles.dateRow}>
             <Text style={styles.dateLabel}>Need By Date: </Text>
-            {/* <Text style={styles.dateValue}>{formatDate(item.needByDate)}</Text> */}
+            <Text style={styles.dateValue}>{formatDate(item.needByDate)}</Text>
           </View>
         </View>
       </View>
@@ -227,8 +263,8 @@ const styles = StyleSheet.create({
     textDecorationColor: '#033EFF',
   },
   dateRow: { flexDirection: 'row', marginTop: s(2) },
-  dateLabel: { fontSize: fs(6), color: '#6C6C6C' },
-  dateValue: { fontSize: fs(6), color: '#6C6C6C', fontWeight: '500' },
+  dateLabel: { fontSize: fs(8), color: '#6C6C6C' },
+  dateValue: { fontSize: fs(8), color: '#6C6C6C', fontWeight: '500' },
 });
 
 export default LineItemListCardComponent;

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import RadioGlossySelected from '../assets/icons/RadioGlossySelected.svg';
 import RadioGlossyUnselected from '../assets/icons/RadioGlossyUnselected.svg';
 
-const BRAND = '#0A395D';
+const BRAND = '#242424';
 
 const RadioIcon = ({ selected, size = 20 }) =>
   selected ? (
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabTextSelected: {
-    fontWeight: '700',
+    fontWeight: '500',
   },
 });
 

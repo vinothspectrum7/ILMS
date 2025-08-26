@@ -103,14 +103,14 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
     receivedQty: backend.rcvd_qty,
-    openQty: Number(backend.ord_qty) - Number(backend.rcvd_qty),
+    openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
     max_open_qty:backend.max_open_qty,
     lpn: '',
     subInventory: OrgData?.selectedinventory,
     org_id:OrgData?.selectedOrg,
     locator: '',
     status:backend.line_status,
-    uom: backend.uom === "EA" ? "Each" : backend.uom, // convert if needed
+    uom: backend.item?.uom === "EA" ? "Each" : backend.uom, // convert if needed
     promisedDate: backend.promised_dlry_dt 
       ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
       : null,
@@ -145,6 +145,7 @@ useEffect(() => {
                 text1: 'Error',
                 text2: 'Failed to load PO Items. Please try again.',
                 position: 'top',
+                visibilityTime: 5000
               });
               setPhase('error');
     }
@@ -178,7 +179,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (fromScan && scannedPoNumber) {
-      Toast.show({ type: 'success', text1: `Scanned PO/IR number is ${scannedPoNumber}`, position: 'top', visibilityTime: 1500 });
+      Toast.show({ type: 'success', text1: `Scanned PO/IR number is ${scannedPoNumber}`, position: 'top', visibilityTime: 5000 });
     }
   }, [fromScan, scannedPoNumber]);
 
@@ -311,7 +312,7 @@ useEffect(() => {
       if (didCompleteRef.current) return;
       didCompleteRef.current = true;
       Toast.hide();
-      Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 1500 });
+      Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
       setModalVisible(false);
       resetReceiving();
       navigation.navigate('Receive');
@@ -385,13 +386,18 @@ useEffect(() => {
     const source = PoListItems.find(x => String(x.name) === id);
     console.log(source,"sourcesourcesourcesourcesourcesourcesourcesource")
     if (!source) {
-      Toast.show({ type: 'error', text1: 'Unknown barcode', text2: `No item with id ${id}`, position: 'top' });
+      Toast.show({ type: 'error', text1: 'Unknown barcode', text2: `No item with id ${id}`, position: 'top',visibilityTime: 5000 });
       setShowScanner(false);
       return;
     }
+    if(source?.openQty==0){
+      Toast.show({ type: 'error', text1: 'Received', text2: `Received item cannot be scanned`, position: 'top',visibilityTime: 5000 });
+      setShowScanner(false);
+      return; 
+    }
     const alreadyExists = scannedItems.some(x => String(x.name) === id);
     if (alreadyExists) {
-      Toast.show({ type: 'orange', text1: 'Scanned item already added to the list', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 1500 });
+      Toast.show({ type: 'orange', text1: 'Scanned item already added to the list', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
       setShowScanner(false);
       return;
     }
@@ -399,7 +405,7 @@ useEffect(() => {
     setScannedItems(prev => [...prev, { ...source, qtyToReceive: fullReceiving }]);
     setSelectedTab('scanItems');
     setShowScanner(false);
-    Toast.show({ type: 'success', text1: 'Item added from scan', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 1200 });
+    Toast.show({ type: 'success', text1: 'Item added from scan', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
   };
 
   const hasAnyItems = useMemo(
@@ -460,8 +466,8 @@ useEffect(() => {
             notificationCount={0}
             profileName={profileName}
             onBack={() => navigation.navigate('Receive')}
-            onNotificationPress={() => navigation.navigate('Home')}
-            onProfilePress={() => navigation.navigate('Home')}
+            // onNotificationPress={() => navigation.navigate('Home')}
+            // onProfilePress={() => navigation.navigate('Home')}
           />
 
           <ScrollView contentContainerStyle={styles.contentContainer}>

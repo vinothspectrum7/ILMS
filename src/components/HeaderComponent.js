@@ -67,6 +67,7 @@ export default function HeaderComponent({
       try {
         const orgsdata = await GetOrgsData();
         if (orgsdata) {
+          console.log(orgsdata,'orgsdataorgsdataorgsdataorgsdataorgsdatas')
           const orgformatdata = maporgdata(orgsdata);
           setOrganizations(orgformatdata);
           const defaultOrg = orgformatdata.find(o => o.is_default);
@@ -88,6 +89,7 @@ export default function HeaderComponent({
                   text1: 'Error',
                   text2: 'Failed to load organizations. Please try again.',
                   position: 'top',
+                  visibilityTime: 5000
                 });
       }
     };
@@ -97,7 +99,7 @@ export default function HeaderComponent({
 
 const maporgdata = (data) => {
   return data.map((element) => ({
-    label: element.org_name,
+    label: element.org_code,
     value: element.org_uuid,
     org_code:element.org_code,
     is_default: element.is_default,
@@ -116,6 +118,7 @@ const maporgdata = (data) => {
         </View>
 
         <View style={styles.brandRight}>
+          <Text style={styles.version}>V: 25082601</Text>
           <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={rs(22)} height={rs(22)} />
             {showDot && <View style={styles.dot} />}
@@ -168,7 +171,7 @@ const maporgdata = (data) => {
       </View>
 
       <View style={styles.navigationCardsRow}>
-        <NavigationCard title="Receive"   icon={ReceiveIcon}   onPress={() => onCardPress('Receive')} />
+        <NavigationCard title="Receiveing"   icon={ReceiveIcon}   onPress={() => onCardPress('Receive')} />
         <NavigationCard title="Inventory" icon={InventoryIcon} onPress={() => onCardPress('Inventory')} />
         <NavigationCard title="Shipping"  icon={ShippingIcon}  onPress={() => onCardPress('Shipping')} />
       </View>
@@ -278,5 +281,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: rs(20),
     zIndex: 10,
+  },
+    version:{
+    fontFamily: 'Mulish',
+    fontWeight:500,
+fontWeight: 500,
+fontSize: 10,
+verticalAlign: 'middle',
+color:'#FFFFFF',
+marginRight:10
   },
 });

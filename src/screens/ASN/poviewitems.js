@@ -43,7 +43,7 @@ React.useEffect(() => {
       type: 'success',              
       text1: `Scanned PO/IR numeber is ${scannedPoNumber}`,
       position: 'top',
-      visibilityTime: 1500,
+      visibilityTime: 5000,
     });
   }
 }, [fromScan, scannedPoNumber]);
@@ -111,6 +111,7 @@ React.useEffect(() => {
       text1: 'Unknown barcode',
       text2: `No item with id ${id}`,
       position: 'top',
+      visibilityTime: 5000
     });
     setShowScanner(false);
     return;
@@ -123,7 +124,7 @@ React.useEffect(() => {
       text1: 'Scanned item already added to the list',
       text2: `${source.name} (ID: ${id})`,
       position: 'top',
-      visibilityTime: 1500,
+      visibilityTime: 5000,
     });
     setShowScanner(false);
     return;
@@ -140,7 +141,7 @@ React.useEffect(() => {
     text1: 'Item added from scan',
     text2: `${source.name} (ID: ${id})`,
     position: 'top',
-    visibilityTime: 1200,
+    visibilityTime: 5000,
   });
 };
 

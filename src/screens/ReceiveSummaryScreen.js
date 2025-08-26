@@ -221,7 +221,7 @@ const  mapConfirmData = (data)=> {
     if (didCompleteRef.current) return;
     didCompleteRef.current = true;
     Toast.hide();
-    Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 1500 });
+    Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
     setModalVisible(false);
     resetReceiving();
     navigation.navigate('Receive');
@@ -229,7 +229,7 @@ const  mapConfirmData = (data)=> {
 
   const handleFailure = () => {
     Toast.hide();
-    Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 1500 });
+    Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 5000 });
     setModalVisible(false);
   };
 
@@ -318,8 +318,8 @@ const  mapConfirmData = (data)=> {
             navigation.navigate('NewReceiveScreen');
           }
         }}
-        onNotificationPress={() => navigation.navigate('Home')}
-        onProfilePress={() => navigation.navigate('Home')}
+        // onNotificationPress={() => navigation.navigate('Home')}
+        // onProfilePress={() => navigation.navigate('Home')}
       />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>

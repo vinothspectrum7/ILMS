@@ -94,6 +94,7 @@ const ReceiveScreen = () => {
           text1: 'Error',
           text2: 'Failed to load ASN data. Please try again.',
           position: 'top',
+          visibilityTime: 5000
         });
         setPhase('error');
       }
@@ -129,6 +130,7 @@ const ReceiveScreen = () => {
           text1: 'Error',
           text2: 'Failed to load Purchase Order data. Please try again.',
           position: 'top',
+          visibilityTime: 5000
         });
         setPhase('error');
       }
@@ -204,7 +206,7 @@ const ReceiveScreen = () => {
         text1: 'PO found',
         text2: `${match.poNumber} • ${match.supplier}`,
         position: 'top',
-        visibilityTime: 1000,
+        visibilityTime: 5000,
       });
       navigation.navigate('NewReceiveScreen', {
         selectedPO: match,
@@ -219,7 +221,7 @@ const ReceiveScreen = () => {
         text1: 'ASN found',
         text2: `${asnmatch.asn_num} • ${asnmatch.supplier_name}`,
         position: 'top',
-        visibilityTime: 1000,
+        visibilityTime: 5000,
       });
       navigation.navigate('AsnReceiptScreen', {
         selectedASN: asnmatch,
@@ -233,7 +235,7 @@ const ReceiveScreen = () => {
         text1: 'PO/IR number not found',
         text2: `Scanned PO number ${code} not found`,
         position: 'top',
-        visibilityTime: 1500,
+        visibilityTime: 5000,
       });
       setShowScanner(false);
     }
@@ -546,8 +548,8 @@ const formatDate = (date) => {
         profileName={profileName}
         onBack={() => navigation.navigate('Home')}
         // onMenu={() => setMenuOpen(true)}
-        onNotificationPress={() => navigation.navigate('Home')}
-        onProfilePress={() => navigation.navigate('Home')}
+        // onNotificationPress={() => navigation.navigate('Home')}
+        // onProfilePress={() => navigation.navigate('Home')}
       />
 
       {phase === 'loading' && (
@@ -586,7 +588,7 @@ const formatDate = (date) => {
                 scrollEnabled
                 tabStyle={{ width: 'auto', paddingHorizontal: 10 }}
                 activeColor="#233E55"
-                inactiveColor="#444"
+                inactiveColor="#9D9FA3"
                 renderLabel={({ route, focused, color }) => (
                   <Text style={{ color, fontWeight: focused ? 'bold' : 'normal', fontSize: 12 }}>
                     {route.title}

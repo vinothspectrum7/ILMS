@@ -12,6 +12,7 @@ const CustomNumericInput = ({
   width = 100,
   height= 32,
   isSelected = true,
+  disabledinput = true,
   onLimit,
 }) => {
   const [touched, setTouched] = useState(false);
@@ -21,8 +22,8 @@ const CustomNumericInput = ({
   };
 
   const safeValue = clamp(Number(value ?? 0) || 0, Number(min) || 0, Number(max) || 0);
-  const canDec = isSelected && safeValue > min;
-  const canInc = isSelected && safeValue < max;
+  const canDec = safeValue > min;
+  const canInc = safeValue < max;
 
   const apply = (next) => {
     const clamped = clamp(Number(next) || 0, min, max);
@@ -50,19 +51,19 @@ const CustomNumericInput = ({
   };
 
   const handleManualInput = (text) => {
-    if (!isSelected) return;
+    // if (!isSelected) return;
     markTouched();
     const numeric = parseInt(String(text).replace(/[^0-9]/g, ''), 10);
     apply(isNaN(numeric) ? 0 : numeric);
   };
 
   const showFilled = isSelected && safeValue > 0;
-  const dynamicStyles = showFilled ? styles.touched : styles.untouched;
-  const activeTextColor = showFilled ? '#fff' : '#5D768B';
+  const dynamicStyles = disabledinput?styles.disabledvalue:showFilled ? styles.touched : styles.untouched;
+  const activeTextColor = disabledinput?'#fff':showFilled ? '#fff' : '#5D768B';
 
   return (
     <View style={[styles.container, dynamicStyles.border, { width }, { height }]}>
-      <TouchableOpacity onPress={handleMinus} disabled={!canDec} style={[styles.button, dynamicStyles.bg]}>
+      <TouchableOpacity disabled={!canDec} onPress={handleMinus}  style={[styles.button, dynamicStyles.bg]}>
         <Text style={[styles.buttonText, { color: activeTextColor, opacity: canDec ? 1 : 0.5 }]}>−</Text>
       </TouchableOpacity>
 
@@ -71,10 +72,10 @@ const CustomNumericInput = ({
         value={String(safeValue)}
         onChangeText={handleManualInput}
         keyboardType="numeric"
-        editable={isSelected}
+        editable={!disabledinput}
       />
 
-      <TouchableOpacity onPress={handlePlus} disabled={!canInc} style={[styles.button, dynamicStyles.bg]}>
+      <TouchableOpacity disabled={!canInc} onPress={handlePlus}  style={[styles.button, dynamicStyles.bg]}>
         <Text style={[styles.buttonText, { color: activeTextColor, opacity: canInc ? 1 : 0.5 }]}>＋</Text>
       </TouchableOpacity>
     </View>
@@ -92,6 +93,10 @@ const styles = StyleSheet.create({
   },
   touched: {
     bg: { backgroundColor: '#5D768B' },
+    border: { borderWidth: 1, borderColor: '#fff' },
+  },
+  disabledvalue: {
+    bg: { backgroundColor: '#9D9FA3' },
     border: { borderWidth: 1, borderColor: '#fff' },
   },
 });

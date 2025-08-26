@@ -58,13 +58,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: '300',
+    color: '#242424',
   },
   qtyLabel: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: '300',
+    color: '#242424',
     marginRight: 12,
   },
 });
