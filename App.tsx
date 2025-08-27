@@ -10,6 +10,7 @@ import NewReceiveScreen from './src/screens/NewReceiveScreen';
 import AsnReceiptScreen from './src/screens/AsnReceipt'; 
 import ReceiveSummaryScreen from './src/screens/ReceiveSummaryScreen'; 
 import LineItemDetailsScreen from './src/screens/LineItemDetailsScreen';
+import ScanItemDetailsScreen from './src/screens/ScanItemDetailsScreen';
 import PODetailSummary from './src/screens/POdetailsummary'; 
 import PovViewItems from './src/screens/ASN/poviewitems';
 import { navigationRef } from './src/api/api';
@@ -66,6 +67,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="LineItemDetails"
 component={LineItemDetailsScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="ScanItemDetails"
+component={ScanItemDetailsScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen

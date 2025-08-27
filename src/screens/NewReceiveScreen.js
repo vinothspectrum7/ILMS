@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal, BackHandler, ActivityIndicator, Alert } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Modal, BackHandler, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -12,7 +12,6 @@ import ScanItemListCardComponent from '../components/ScanItemListCardComponent';
 import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
 import BarcodeScanner from './BarCodeScanner';
 import { useReceivingStore } from '../store/receivingStore';
-import { createOrderReceipt } from '../api/mockApi';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import { GetSinglePO, Submit_Receive_Qty } from '../api/ApiServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,12 +31,24 @@ const mapHeader = (po) => ({
   poDate: po?.order_date ?? '—',
 });
 
+const sameScanList = (a, b) => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i], y = b[i];
+    if (String(x.id) !== String(y.id)) return false;
+    if (Number(x.qtyToReceive ?? 0) !== Number(y.qtyToReceive ?? 0)) return false;
+    if ((x.lpn ?? '') !== (y.lpn ?? '')) return false;
+    if (String(x.subInventory ?? '') !== String(y.subInventory ?? '')) return false;
+    if (String(x.locator ?? '') !== String(y.locator ?? '')) return false;
+  }
+  return true;
+};
+
 const NewReceiveScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
   const [profileName, setProfileName] = useState('');
-
   const {
     poHeader, setPoHeader,
     receiveItems, initReceiveItems, mergePatchIntoReceiveItems,
@@ -49,123 +60,118 @@ const NewReceiveScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const didCompleteRef = useRef(false);
 
-  const [selectedTab, setSelectedTab] = React.useState('lineItems');
-  const [draftItems, setDraftItems] = React.useState([]);
+  const [selectedTab, setSelectedTab] = useState('lineItems');
+  const [draftItems, setDraftItems] = useState([]);
   const [phase, setPhase] = useState('idle');
-  const [PoListItems,setPoListItems] = useState([]);
-  const [PurchaseReceipt,SetPurchaseReceipt] = useState(null);
-  const [selectedItems, setSelectedItems] = React.useState([]);
-  const [scannedItems, setScannedItems] = React.useState([]);
-  const [showScanner, setShowScanner] = React.useState(false);
+  const [PoListItems, setPoListItems] = useState([]);
+  const [PurchaseReceipt, setPurchaseReceipt] = useState(null);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [scannedItems, setScannedItems] = useState([]);
+  const [showScanner, setShowScanner] = useState(false);
 
   useFocusEffect(
-      React.useCallback(() => {
-        didCompleteRef.current = false;
-        return () => {};
-      }, [])
-    );
+    useCallback(() => {
+      didCompleteRef.current = false;
+      return () => {};
+    }, [])
+  );
 
-    useFocusEffect(
-      React.useCallback(() => {
-        const onBackPress = () => {
-          if (showScanner) {
-            setShowScanner(false);
-            return true;
-          }
-          if (modalVisible) {
-            setModalVisible(false);
-            return true;
-          }
-          navigation.navigate('Receive');
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (showScanner) {
+          setShowScanner(false);
           return true;
-        };
+        }
+        if (modalVisible) {
+          setModalVisible(false);
+          return true;
+        }
+        navigation.navigate('Receive');
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [navigation, showScanner, modalVisible])
+  );
 
-        const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-        return () => sub.remove();
-      }, [navigation, showScanner, modalVisible])
-    );
+  useFocusEffect(
+    useCallback(() => {
+      if (route?.params?.selectedTab === 'scanItems') setSelectedTab('scanItems');
+    }, [route?.params?.selectedTab])
+  );
 
   useEffect(() => {
     if (!selectedPO) return;
-    setPoHeader(null);
-    setPoHeader(mapHeader(selectedPO))
-    console.log(selectedPO,"selectedPOselectedPO");
-        console.log(poHeader,"POHEARDDD")
-  }, [selectedPO]);
+    setPoHeader(mapHeader(selectedPO));
+  }, [selectedPO, setPoHeader]);
 
-const  mapBackendArrayToFrontend = (data,posingledata)=> {
-  return data.map((backend,index) => ({
-    id: index+1,
-    po_line_id:backend?.po_line_id,
-    item_id:backend?.item_id,
-    purchaseReceipt:posingledata?.next_receipt_num || "", // placeholder (if needed)
-    name: backend.item?.item_code || "",
-    description: backend.item?.description || "",
-    orderedQty: backend.ord_qty,
-    receivedQty: backend.rcvd_qty,
-    openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
-    max_open_qty:backend.max_open_qty,
-    lpn: '',
-    subInventory: OrgData?.selectedinventory,
-    org_id:OrgData?.selectedOrg,
-    locator: '',
-    status:backend.line_status,
-    uom: backend.item?.uom === "EA" ? "Each" : backend.uom, // convert if needed
-    promisedDate: backend.promised_dlry_dt 
-      ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-      : null,
-    needByDate: backend.need_by_dt 
-      ? new Date(backend.need_by_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-      : null
-  }));
-}
-
-// First effect: load PO data
-useEffect(() => {
-  if (!selectedPO?.po_id) return;
-  setPhase('loading');
-  const loadPoData = async () => {
-    // Alert.alert(selectedPO?.po_id)
-    try {
-      const posingledata = await GetSinglePO(selectedPO.po_id);
-      console.log(posingledata,"TESTESTETSTETSTETTET");
-      if (posingledata?.purchase_order_lines) {
-        SetPurchaseReceipt(posingledata?.next_receipt_num);
-        const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines,posingledata);
-        console.log(frontendArray,"frontendArrayfrontendArrayfrontendArrayfrontendArray")
-        setPoListItems(frontendArray); // ✅ only set once
-      } else {
-        setPoListItems([]);
-      }
-      setPhase('success');
-    } catch (err) {
-      console.error("Error loading PO data:", err);
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to load PO Items. Please try again.',
-                position: 'top',
-                visibilityTime: 5000
-              });
-              setPhase('error');
-    }
+  const mapBackendArrayToFrontend = (data, posingledata) => {
+    return data.map((backend, index) => ({
+      id: index + 1,
+      po_line_id: backend?.po_line_id,
+      item_id: backend?.item_id,
+      purchaseReceipt: posingledata?.next_receipt_num || '',
+      name: backend.item?.item_code || '',
+      description: backend.item?.description || '',
+      orderedQty: backend.ord_qty,
+      receivedQty: backend.rcvd_qty,
+      openQty: backend.rcvd_qty > backend.ord_qty ? 0 : Number(backend.ord_qty) - Number(backend.rcvd_qty),
+      max_open_qty: backend.max_open_qty,
+      lpn: '',
+      subInventory: OrgData?.selectedinventory,
+      org_id: OrgData?.selectedOrg,
+      locator: '',
+      status: backend.line_status,
+      uom: backend.item?.uom === 'EA' ? 'Each' : backend.uom,
+      promisedDate: backend.promised_dlry_dt
+        ? new Date(backend.promised_dlry_dt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        : null,
+      needByDate: backend.need_by_dt
+        ? new Date(backend.need_by_dt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        : null,
+    }));
   };
 
-  loadPoData();
-}, [selectedPO?.po_id]); // ✅ depend only on PO id
+  useEffect(() => {
+    if (!selectedPO?.po_id) return;
+    setPhase('loading');
+    const loadPoData = async () => {
+      try {
+        const posingledata = await GetSinglePO(selectedPO.po_id);
+        if (posingledata?.purchase_order_lines) {
+          setPurchaseReceipt(posingledata?.next_receipt_num);
+          const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines, posingledata);
+          setPoListItems(frontendArray);
+        } else {
+          setPoListItems([]);
+        }
+        setPhase('success');
+      } catch {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load PO Items. Please try again.',
+          position: 'top',
+          visibilityTime: 5000,
+        });
+        setPhase('error');
+      }
+    };
+    loadPoData();
+  }, [selectedPO?.po_id]);
 
-// Second effect: seed receiveItems whenever PoListItems changes
-useEffect(() => {
-  if (PoListItems.length > 0) {
-    const seeded = PoListItems.map(i => ({ ...i, qtyToReceive: 0 }));
-    initReceiveItems(seeded); // ✅ reset each time new PO data is loaded
-  }
-}, [PoListItems, initReceiveItems]); // ✅ depend on new PoListItems
+  useEffect(() => {
+    if (PoListItems.length > 0) {
+      const seeded = PoListItems.map(i => ({ ...i, qtyToReceive: 0 }));
+      initReceiveItems(seeded);
+    }
+  }, [PoListItems, initReceiveItems]);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       const withStored = receiveItems.map(src => {
-        const qty = Number(src?.qtyToReceive ?? 0);
+        const qty = Number(src?.qtyToReceive ?? src?.receivingQty ?? 0);
         return { ...src, qtyToReceive: qty };
       });
       setDraftItems(withStored);
@@ -174,20 +180,41 @@ useEffect(() => {
     }, [receiveItems])
   );
 
-  const fromScan = !!route?.params?.fromScan;
-  const scannedPoNumber = route?.params?.scannedPoNumber ?? null;
+  const rebuildScannedFromStore = useCallback(() => {
+    const scannedIds = new Set(scannedItems.map(i => String(i.id)));
+    const next = receiveItems
+      .filter(r => scannedIds.has(String(r.id)) || Number(r?.qtyToReceive ?? r?.receivingQty ?? 0) > 0)
+      .map(r => {
+        const base = PoListItems.find(p => String(p.id) === String(r.id)) || r;
+        const qty = Number(r?.qtyToReceive ?? r?.receivingQty ?? 0);
+        return {
+          ...base,
+          qtyToReceive: qty,
+          lpn: r.lpn ?? base.lpn ?? '',
+          subInventory: r.subInventory ?? base.subInventory ?? '',
+          locator: r.locator ?? base.locator ?? '',
+        };
+      });
+    if (!sameScanList(next, scannedItems)) setScannedItems(next);
+  }, [receiveItems, PoListItems, scannedItems]);
 
   useEffect(() => {
-    if (fromScan && scannedPoNumber) {
-      Toast.show({ type: 'success', text1: `Scanned PO/IR number is ${scannedPoNumber}`, position: 'top', visibilityTime: 5000 });
-    }
-  }, [fromScan, scannedPoNumber]);
+    rebuildScannedFromStore();
+  }, [rebuildScannedFromStore]);
+
+  useFocusEffect(
+    useCallback(() => {
+      rebuildScannedFromStore();
+      return () => {};
+    }, [rebuildScannedFromStore])
+  );
 
   const persistQty = (id, qty, fields = {}) => {
-    console.log(fields,"fileedfefeeefefef")
+    const n = Number(qty ?? 0);
     mergePatchIntoReceiveItems({
       id: String(id),
-      receivingQty: Number(qty ?? 0),
+      qtyToReceive: n,
+      receivingQty: n,
       lpn: fields.lpn ?? '',
       subInventory: fields.subInventory ?? '',
       locator: fields.locator ?? '',
@@ -226,6 +253,18 @@ useEffect(() => {
     });
   };
 
+  const handleScanItemQtyChange = (id, newQty) => {
+    setScannedItems(prev => {
+      const next = prev.map(item =>
+        item.id === id ? { ...item, qtyToReceive: clampToLimit(newQty, item.max_open_qty) } : item
+      );
+      const changed = next.find(x => x.id === id);
+      const clamped = Number(changed?.qtyToReceive ?? 0);
+      persistQty(id, clamped, changed || {});
+      return next;
+    });
+  };
+
   const commitDraftToStore = () => {
     draftItems.forEach(it => {
       const limit = it.max_open_qty;
@@ -256,153 +295,167 @@ useEffect(() => {
         promisedDate: i.promisedDate,
         needByDate: i.needByDate,
         qtyToReceive: i.qtyToReceive,
-        po_line_id:i.po_line_id,
-        item_id:i.item_id,
-        lpn: i.lpn?i.lpn:'',
-        subInventory: i.subInventory?i.subInventory:OrgData?.selectedinventory,
-        org_id:OrgData?.selectedOrg,
-        locator: i.locator?i.locator:'',
-        status:i.status
+        po_line_id: i.po_line_id,
+        item_id: i.item_id,
+        lpn: i.lpn || '',
+        subInventory: i.subInventory || OrgData?.selectedinventory,
+        org_id: i.org_id ?? OrgData?.selectedOrg,
+        locator: i.locator || '',
+        status: i.status,
       }));
-    console.log(source,"sourcesourcesourcesourcesourcesourcesourcesourcesource")
-    console.log(payload,"payloadpayloadpayloadpayloadpayloadpayloadpayloadpayloadpayload")
     navigation.navigate('ReceiveSummaryScreen', {
       id: selectedPO?.id ?? null,
       selectedItems: payload,
       readonly: false,
-      purchaseReceipt:PurchaseReceipt,
+      purchaseReceipt: PurchaseReceipt,
       header: mapHeader(selectedPO),
       listType: 'line',
     });
   };
 
-  const  mapConfirmData = (data)=> {
-  return data.map((backend) => ({
-    po_line_id:backend?.po_line_id,
-    item_id:backend?.item_id,
-    org_id:backend?.org_id, // placeholder (if needed)
-    sub_inv_id: backend?.subInventory,
-    locator_id: backend?.subInventory,
-    lot_number: "",
-    expiry_date: formatToday(),
-    received_qty: Number(backend?.qtyToReceive)
-  }));
-}
+  const formatToday = () => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).toString().padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const mapConfirmData = (data) => {
+    return data.map((backend) => ({
+      po_line_id: backend?.po_line_id,
+      item_id: backend?.item_id,
+      org_id: backend?.org_id,
+      sub_inv_id: backend?.subInventory,
+      locator_id: backend?.subInventory,
+      lot_number: '',
+      expiry_date: formatToday(),
+      received_qty: Number(backend?.qtyToReceive),
+    }));
+  };
+
   const confirmAction = async () => {
     try {
-      console.log(scannedItems,"scannedItemsconfirm")
-
       const payload = mapConfirmData(scannedItems);
-        try {
-              const response = await Submit_Receive_Qty(payload);
-              console.log(response,"posingledataposingledata");
-          if (response?.results) return { success: true, message:'Received Quantity Updated Successfully!' };
-          return { success: false, message: response?.message || 'Failed to create order receipt' };
-            } catch (err) {
-              return { success: false, message: err.detail?.[0].msg || 'Network error. Please try again.' };
-            }
+      try {
+        const response = await Submit_Receive_Qty(payload);
+        if (response?.results) return { success: true, message: 'Received Quantity Updated Successfully!' };
+        return { success: false, message: response?.message || 'Failed to create order receipt' };
+      } catch (err) {
+        return { success: false, message: err.detail?.[0].msg || 'Network error. Please try again.' };
+      }
     } catch (error) {
       return { success: false, message: error?.message || 'Network error. Please try again.' };
     }
   };
-  
-    const handleCancel = () => setModalVisible(false);
-  
-    const handleSuccess = () => {
-      if (didCompleteRef.current) return;
-      didCompleteRef.current = true;
-      Toast.hide();
-      Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
-      setModalVisible(false);
-      resetReceiving();
-      navigation.navigate('Receive');
-    };
-  
-    const handleFailure = () => {
-      Toast.hide();
-      // Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 1500 });
-      setModalVisible(false);
-    };
 
-  const toDetailItem = (it, i) => ({
-    id: String(it.id),
-    poNumber: poHeader?.poNumber ?? '—',
-    lineNumber: i + 1,
-    itemName: it.name,
-    itemDescription: it.itemDescription ?? it.description ?? '—',
-    orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
-    openQty: Number(it.openQty ?? 0),
-    receivingQty: Number(it.qtyToReceive ?? 0),
-    max_open_qty: Number(it.max_open_qty ?? 0),
-    receivingStatus: it.status,
-    lpn: it.lpn ?? '',
-    subInventory: it.subInventory ?? '',
-    locator: it.locator ?? '',
-    max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
-  });
+  const handleCancel = () => setModalVisible(false);
 
-  const goToLineItemDetails = (
-      startIdx = 0,
-      source = draftItems,
-      readonly = false,
-      listType = 'line'
-    ) => {
-      const withLatestFromStore = source.map((it, i) => {
-        const s = receiveItems.find(r => String(r.id) === String(it.id));
-        const qty = Number(s?.qtyToReceive ?? it.qtyToReceive ?? 0);
-        return {
-          id: String(it.id),
-          poNumber: poHeader?.poNumber ?? '—',
-          lineNumber: i + 1,
-          itemName: it.name,
-          itemDescription: it.itemDescription ?? it.description ?? '—',
-          orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
-          openQty: Number(it.openQty ?? 0),
-          receivingQty: qty,
-          receivingStatus: 'In-progress',
-          lpn: s?.lpn ?? it.lpn ?? '',
-          subInventory: s?.subInventory ?? it.subInventory ?? '',
-          locator: s?.locator ?? it.locator ?? '',
-          max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
-        };
-      });
+  const handleSuccess = () => {
+    if (didCompleteRef.current) return;
+    didCompleteRef.current = true;
+    Toast.hide();
+    Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
+    setModalVisible(false);
+    resetReceiving();
+    navigation.navigate('Receive');
+  };
 
-      navigation.navigate({
-        name: 'LineItemDetails',
-        params: {
-          items: withLatestFromStore,
-          startIndex: startIdx,
-          readonly,
-          returnTo: 'NewReceiveScreen',
-          listType,
-        },
-        merge: true,
-      });
-    };
+  const handleFailure = () => {
+    Toast.hide();
+    setModalVisible(false);
+  };
+
+  const goToScanItemDetails = (startIdx = 0, source = draftItems, readonly = false, listType = 'scan') => {
+    const withLatestFromStore = source.map((it, i) => {
+      const s = receiveItems.find(r => String(r.id) === String(it.id));
+      const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
+      return {
+        id: String(it.id),
+        poNumber: poHeader?.poNumber ?? '—',
+        lineNumber: i + 1,
+        itemName: it.name,
+        itemDescription: it.itemDescription ?? it.description ?? '—',
+        orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+        openQty: Number(it.openQty ?? 0),
+        receivingQty: qty,
+        receivingStatus: 'In-progress',
+        lpn: s?.lpn ?? it.lpn ?? '',
+        subInventory: s?.subInventory ?? it.subInventory ?? '',
+        locator: s?.locator ?? it.locator ?? '',
+        max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+      };
+    });
+
+    navigation.navigate({
+      name: 'ScanItemDetails',
+      params: {
+        items: withLatestFromStore,
+        startIndex: startIdx,
+        readonly,
+        returnTo: 'NewReceiveScreen',
+        listType,
+      },
+      merge: true,
+    });
+  };
+
+  const goToLineItemDetails = (startIdx = 0, source = draftItems, readonly = false, listType = 'line') => {
+    const withLatestFromStore = source.map((it, i) => {
+      const s = receiveItems.find(r => String(r.id) === String(it.id));
+      const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
+      return {
+        id: String(it.id),
+        poNumber: poHeader?.poNumber ?? '—',
+        lineNumber: i + 1,
+        itemName: it.name,
+        itemDescription: it.itemDescription ?? it.description ?? '—',
+        orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+        openQty: Number(it.openQty ?? 0),
+        receivingQty: qty,
+        receivingStatus: 'In-progress',
+        lpn: s?.lpn ?? it.lpn ?? '',
+        subInventory: s?.subInventory ?? it.subInventory ?? '',
+        locator: s?.locator ?? it.locator ?? '',
+        max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+      };
+    });
+
+    navigation.navigate({
+      name: 'LineItemDetails',
+      params: {
+        items: withLatestFromStore,
+        startIndex: startIdx,
+        readonly,
+        returnTo: 'NewReceiveScreen',
+        listType,
+      },
+      merge: true,
+    });
+  };
 
   const handleScan = (value) => {
     const id = String(value).trim();
-        console.log(PoListItems,"sourcesourcesourcesourcesourcesourcesourcesource")
     const source = PoListItems.find(x => String(x.name) === id);
-    console.log(source,"sourcesourcesourcesourcesourcesourcesourcesource")
     if (!source) {
-      Toast.show({ type: 'error', text1: 'Unknown barcode', text2: `No item with id ${id}`, position: 'top',visibilityTime: 5000 });
+      Toast.show({ type: 'error', text1: 'Unknown barcode', text2: `No item with id ${id}`, position: 'top', visibilityTime: 5000 });
       setShowScanner(false);
       return;
     }
-    if(source?.openQty==0){
-      Toast.show({ type: 'error', text1: 'Received', text2: `Received item cannot be scanned`, position: 'top',visibilityTime: 5000 });
+    if (source?.openQty === 0) {
+      Toast.show({ type: 'error', text1: 'Received', text2: 'Received item cannot be scanned', position: 'top', visibilityTime: 5000 });
       setShowScanner(false);
-      return; 
+      return;
     }
-    const alreadyExists = scannedItems.some(x => String(x.name) === id);
-    if (alreadyExists) {
+    if (scannedItems.some(x => String(x.name) === id)) {
       Toast.show({ type: 'orange', text1: 'Scanned item already added to the list', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
       setShowScanner(false);
       return;
     }
     const fullReceiving = Math.max(0, source.openQty ?? 0);
-    setScannedItems(prev => [...prev, { ...source, qtyToReceive: fullReceiving }]);
+    const scanned = { ...source, qtyToReceive: fullReceiving };
+    setScannedItems(prev => [...prev, scanned]);
+    persistQty(source.id, fullReceiving, source);
     setSelectedTab('scanItems');
     setShowScanner(false);
     Toast.show({ type: 'success', text1: 'Item added from scan', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
@@ -412,14 +465,6 @@ useEffect(() => {
     () => (selectedTab === 'lineItems' ? selectedItems.length > 0 : scannedItems.length > 0),
     [selectedTab, selectedItems.length, scannedItems.length]
   );
-
-   const formatToday = () => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${yyyy}-${mm}-${dd}`;
-  };
 
   const loadUserName = useCallback(async () => {
     try {
@@ -436,7 +481,7 @@ useEffect(() => {
         name = raw;
       }
       setProfileName(name.trim());
-    } catch (e) {
+    } catch {
       setProfileName('');
     }
   }, []);
@@ -446,7 +491,7 @@ useEffect(() => {
   }, [loadUserName]);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       loadUserName();
     }, [loadUserName])
   );
@@ -466,10 +511,7 @@ useEffect(() => {
             notificationCount={0}
             profileName={profileName}
             onBack={() => navigation.navigate('Receive')}
-            // onNotificationPress={() => navigation.navigate('Home')}
-            // onProfilePress={() => navigation.navigate('Home')}
           />
-
           <ScrollView contentContainerStyle={styles.contentContainer}>
             <POinfoCardComponent
               receiptNumber={poHeader?.purchaseReceipt || '—'}
@@ -477,10 +519,8 @@ useEffect(() => {
               poNumber={poHeader?.poNumber || '—'}
               receiptDate={poHeader?.poDate || '—'}
             />
-
             <View style={styles.itemcontainer}>
               <ToggleTabsComponent selectedTab={selectedTab} onSelectTab={setSelectedTab} />
-
               {selectedTab === 'lineItems' ? (
                 <>
                   <View style={styles.tableHeader}>
@@ -505,7 +545,6 @@ useEffect(() => {
                       }}
                     />
                   </View>
-
                   <FlatList
                     data={draftItems}
                     keyExtractor={(item) => String(item.id)}
@@ -531,10 +570,11 @@ useEffect(() => {
                   onChange={setScannedItems}
                   onRequestScan={() => setShowScanner(true)}
                   onFirstFilled={() => setSelectedTab('scanItems')}
+                  onQtyChange={handleScanItemQtyChange}
                   onViewDetails={(item) => {
                     const source = scannedItems.length ? scannedItems : PoListItems;
                     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-                    goToLineItemDetails(idx, source, true, 'scan');
+                    goToScanItemDetails(idx, source, false, 'scan');
                   }}
                   header={
                     <View style={styles.tableHeader}>
@@ -545,7 +585,6 @@ useEffect(() => {
               )}
             </View>
           </ScrollView>
-
           <FooterButtonsComponent
             leftLabel="Save"
             rightLabel="Receive"
@@ -554,7 +593,6 @@ useEffect(() => {
             leftEnabled={hasAnyItems}
             rightEnabled={hasAnyItems}
           />
-
           <ConfirmModalComponent
             visible={modalVisible}
             title="Confirmation"
@@ -564,7 +602,6 @@ useEffect(() => {
             onSuccess={handleSuccess}
             onFailure={handleFailure}
           />
-
           <Modal visible={showScanner} animationType="slide">
             <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
           </Modal>
@@ -577,7 +614,6 @@ useEffect(() => {
 const styles = StyleSheet.create({
   container: { backgroundColor: '#F6F8FA', flex: 1 },
   loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  statusText: { marginTop: 12, color: '#333', fontSize: 14 },
   contentContainer: { paddingBottom: 120 },
   itemcontainer: {
     backgroundColor: '#fff',
