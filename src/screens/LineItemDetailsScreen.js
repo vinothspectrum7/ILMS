@@ -18,9 +18,9 @@ const CONTROL_HEIGHT = 28;
 const NUMCONTROL_WIDTH = 80;
 const NUMCONTROL_HEIGHT = 28;
 
-const fallbackLineItems = [
-  { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINV1', locator: 'LOC1' },
-];
+// const fallbackLineItems = [
+//   { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINV1', locator: 'LOC1' },
+// ];
 
 const InlineFieldRow = ({ label, children }) => (
   <View style={styles.inlineRow}>
@@ -50,7 +50,7 @@ const LineItemDetailsScreen = () => {
 
   const baseItems = Array.isArray(route?.params?.items) && route.params.items.length > 0
     ? route.params.items
-    : fallbackLineItems;
+    : [];
 
   const mergedItems = useMemo(() => {
     return baseItems.map((it) => {
@@ -230,8 +230,10 @@ const LineItemDetailsScreen = () => {
     const storeQty = Number(fromStore?.qtyToReceive);
     const mergedQty = Number(item.receivingQty ?? 0);
     const defaultEditableQty = Number.isFinite(storeQty) ? storeQty : mergedQty;
+    console.log(item,"readOnlyreadOnlyreadOnlyreadOnlyreadOnlyreadOnlyreadOnly")
 
-    const readonlyQty = readOnly
+    const readonlyQty = returnTo=='ReceivedSummaryScreen'?item.receivedQty:
+    readOnly
       ? (listType === 'scan'
           ? (Number(item.openQty ?? 0) > 0 ? Number(item.openQty ?? 0) : Number(item.orderQty ?? 0))
           : Number(item.orderQty ?? mergedQty ?? 0))
@@ -303,7 +305,14 @@ const LineItemDetailsScreen = () => {
 
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
-              <Text style={styles.statusText}>
+              <Text style={[styles.statusText,{
+      color:
+        pageState.receivingQty && pageState.receivingQty > 0
+          ? "#F06000" // ✅ when receivingQty is valid and > 0
+          : item.openQty == 0
+          ? "#168035" // ✅ when openQty is 0 → CLOSED
+          : "#033EFF", // ✅ fallback → OPEN
+    },]}>
                 {readOnly
                     ? (listType === 'scan' ? `${item.receivingStatus}` : 'Received')
                     : (pageState.receivingQty??pageState.receivingQty>0?'In Progress':item.openQty==0?'CLOSED':'OPEN')}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler,ActivityIndicator } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler,ActivityIndicator, Alert } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
@@ -10,7 +10,7 @@ import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import Toast from 'react-native-toast-message';
 import { createOrderReceipt } from '../api/mockApi';
 import { useReceivingStore } from '../store/receivingStore';
-import { GetSinglePO, Submit_Receive_Qty } from '../api/ApiServices';
+import { GetSinglePO, GetSingleReceipt, Submit_Receive_Qty } from '../api/ApiServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SummaryTabHdrsComponent from '../components/ReceivedSummaryheader';
 
@@ -85,12 +85,12 @@ const ReceivedSummaryScreen = () => {
     }, [navigation, modalVisible, listTypeFromRoute])
   );
 
-  const  mapBackendArrayToFrontend = (data,posingledata)=> {
+  const  mapBackendArrayToFrontend = (data)=> {
   return data.map((backend,index) => ({
     id: index+1,
     po_line_id:backend?.po_line_id,
     item_id:backend?.item_id,
-    purchaseReceipt:posingledata?.next_receipt_num || "", // placeholder (if needed)
+    // purchaseReceipt:posingledata?.next_receipt_num || "", // placeholder (if needed)
     name: backend.item?.item_code || "",
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
@@ -118,11 +118,11 @@ const ReceivedSummaryScreen = () => {
     const loadPoData = async () => {
       // Alert.alert(selectedPO?.po_id)
       try {
-        const posingledata = await GetSinglePO(sourceId);
+        const posingledata = await GetSingleReceipt(sourceId);
         console.log(posingledata,"TESTESTETSTETSTETTET");
-        if (posingledata?.purchase_order_lines) {
+        if (posingledata) {
         //   SetPurchaseReceipt(posingledata?.next_receipt_num);
-          const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines,posingledata);
+          const frontendArray = mapBackendArrayToFrontend(posingledata);
           console.log(frontendArray,"frontendArrayfrontendArrayfrontendArrayfrontendArray")
           SetReceivedData(frontendArray); // ✅ only set once
         } else {
@@ -243,6 +243,7 @@ const ReceivedSummaryScreen = () => {
   };
 
   const toDetailItemFromSummary = (it, i) => {
+    console.log(it.receivedQty,"ITRECEITCEFIIENFINEFIIFE")
     const readonlyReceivingQty =
       listTypeFromRoute === 'scan'
         ? Number(it.openQty ?? 0) > 0
@@ -257,7 +258,8 @@ const ReceivedSummaryScreen = () => {
       itemDescription: it.itemDescription ?? it.description ?? '—',
       orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
       openQty: Number(it.openQty ?? 0),
-      receivingQty: Number(readonly ? readonlyReceivingQty : qtyFor(it)),
+      receivingQty: readonlyReceivingQty,
+      receivedQty:Number(it.receivedQty ?? 0),
       receivingStatus: readonly ? 'Received' : 'In-progress',
       lpn: it.lpn ?? '',
       uom:it.uom,
@@ -354,7 +356,7 @@ const ReceivedSummaryScreen = () => {
                 <ConfirmLineItemComponent
                   item={item}
                   qtyLabel={item.uom}
-                  qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? qtyFor(item)) : qtyFor(item)}
+                  qtyValue={item.receivedQty}
                   readOnly
                   onViewDetails={() => openLineDetailsFromSummary(item)}
                 />

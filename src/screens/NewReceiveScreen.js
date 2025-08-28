@@ -117,7 +117,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     orderedQty: backend.ord_qty,
     receivedQty: backend.rcvd_qty,
     openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
-    max_open_qty:backend.max_open_qty,
+    max_open_qty: Math.floor(backend.max_open_qty ?? 0),
     lpn: '',
     subInventory: OrgData?.selectedinventory,
     org_id:OrgData?.selectedOrg,

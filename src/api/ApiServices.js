@@ -62,6 +62,17 @@ export const GetSinglePO = async(po_id)=>{
     throw error;
   }
 }
+export const GetSingleReceipt = async(po_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(po_id));
+    console.log(response,"GET_SINGLE_PO_DATA");
+    return response.data;
+    
+  }catch (error) {
+    console.error("Error on Getting Single Purchase receipt:", error.message, error.response?.data);
+    throw error;
+  }
+}
 export const GetOrgsData = async()=>{
   try {
     const response = await api.get(API_ENDPOINTS.GET_ORGS_DATA);

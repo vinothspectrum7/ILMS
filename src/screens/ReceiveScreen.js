@@ -488,7 +488,7 @@ const ReceiveScreen = () => {
           onPress={() =>
             navigation.navigate('ReceivedSummaryScreen', {
                 readonly: true,
-                id: item.po_id,
+                id: item.receipt_id,
                 listType: 'Received',
                 header: {
                   receiptNumber: item.receipt_num,
