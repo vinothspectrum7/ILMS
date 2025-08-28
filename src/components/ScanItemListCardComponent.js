@@ -59,7 +59,6 @@ const ScanItemListCardComponent = ({
             <View style={styles.cardWrap}>
               <ScannedItemListCardComponent
                 item={item}
-                qtyLabel="Qty To Receive"
                 // index={index}
                 // isSelected={selectedItems.includes(item.id)}
                 // onCheckToggle={handleCheckToggle}
