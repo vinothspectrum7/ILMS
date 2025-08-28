@@ -377,6 +377,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
         itemDescription: it.itemDescription ?? it.description ?? '—',
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         openQty: Number(it.openQty ?? 0),
+        uom:it.uom,
         receivingQty: qty,
         receivingStatus: 'In-progress',
         lpn: s?.lpn ?? it.lpn ?? '',
