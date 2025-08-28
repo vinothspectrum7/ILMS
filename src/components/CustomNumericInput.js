@@ -63,7 +63,7 @@ const CustomNumericInput = ({
 
   return (
     <View style={[styles.container, dynamicStyles.border, { width }, { height }]}>
-      <TouchableOpacity disabled={!canDec} onPress={handleMinus}  style={[styles.button, dynamicStyles.bg]}>
+      <TouchableOpacity disabled={!canDec ||disabledinput} onPress={handleMinus}  style={[styles.button, dynamicStyles.bg]}>
         <Text style={[styles.buttonText, { color: activeTextColor, opacity: canDec ? 1 : 0.5 }]}>−</Text>
       </TouchableOpacity>
 
@@ -75,7 +75,7 @@ const CustomNumericInput = ({
         editable={!disabledinput}
       />
 
-      <TouchableOpacity disabled={!canInc} onPress={handlePlus}  style={[styles.button, dynamicStyles.bg]}>
+      <TouchableOpacity disabled={!canInc||disabledinput} onPress={handlePlus}  style={[styles.button, dynamicStyles.bg]}>
         <Text style={[styles.buttonText, { color: activeTextColor, opacity: canInc ? 1 : 0.5 }]}>＋</Text>
       </TouchableOpacity>
     </View>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -6,6 +6,8 @@ import EnnVeeLogoSmall from '../assets/icons/EnnVeeLogoSmall.svg';
 import BellIcon from '../assets/icons/bellnotification.svg';
 import BackLeftArrow from '../assets/icons/backleftarrow.svg';
 import HamburgerMenu from '../assets/icons/hamburgermenu.svg';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BRAND_BG = '#233E55';
 const NAV_BG = '#5D768B';
@@ -41,8 +43,28 @@ export default function GlobalHeaderComponent({
   onProfilePress = () => {},
 }) {
   const title = `${org3(organizationName)} – ${screenTitle}${contextInfo ? `(${contextInfo})` : ''}`;
-  const initials = getInitials(profileName);
+  // const initials = getInitials(profileName);
   const showDot = Number(notificationCount) > 0;
+
+    const [profileNames,setprofileName] = useState(null);
+
+    const loadUserName = useCallback(async () => {
+        const raw = await AsyncStorage.getItem('user_name');
+        if(raw){
+          const initials = getInitials(raw);
+          setprofileName(initials);
+        }
+    }, []);
+  
+    useEffect(() => {
+      loadUserName();
+    }, [loadUserName]);
+  
+    useFocusEffect(
+      React.useCallback(() => {
+        loadUserName();
+      }, [loadUserName])
+    );
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -54,14 +76,14 @@ export default function GlobalHeaderComponent({
         </View>
 
         <View style={styles.brandRight}>
-        <Text style={styles.version}>V: 25082601</Text>
+        <Text style={styles.version}>V: 25082702</Text>
           <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={scale(22)} height={scale(22)} />
             {showDot && <View style={styles.dot} />}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={onProfilePress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            <Text style={styles.avatarText}>{profileNames}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -136,5 +158,5 @@ color:'#FFFFFF'
   },
   navLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: ms(12) },
   backBtn: { paddingRight: ms(12) },
-  title: { color: WHITE, fontSize: ms(18), fontWeight: '800', letterSpacing: 0.3, flexShrink: 1 },
+  title: { fontFamily:'Mulish', fontWeight: '700', color: WHITE, fontSize: ms(14), fontWeight: '800', letterSpacing: 0.3, flexShrink: 1 },
 });

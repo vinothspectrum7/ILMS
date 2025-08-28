@@ -160,7 +160,7 @@ const ConfirmModalComponent = ({
           {phase === 'loading' && (
             <View style={styles.statusBody}>
               <ActivityIndicator size="large" />
-              <Text style={styles.statusText}>Processing…</Text>
+              <Text style={styles.statusText}>Loading...</Text>
             </View>
           )}
 

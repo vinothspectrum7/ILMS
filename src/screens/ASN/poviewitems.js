@@ -158,7 +158,7 @@ React.useEffect(() => {
           screenTitle="Receive"
           contextInfo={selectedPO}
           notificationCount={0}
-          profileName="Vinoth Umasankar"
+          // profileName="Vinoth Umasankar"
           onBack={() => navigation.goBack()}
           onMenu={() => setMenuOpen(true)}
           onNotificationPress={() => navigation.navigate('Home')}

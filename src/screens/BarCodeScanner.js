@@ -188,7 +188,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Barcode Scanner"
         notificationCount={0}
-        profileName="Vinoth Umasankar"
+        // profileName="Vinoth Umasankar"
         onBack={onClose}
         onMenu={() => setMenuOpen(true)}
         onNotificationPress={() => navigation.navigate('Home')}
@@ -227,7 +227,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
       ) : (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text style={styles.loadingText}>Processing...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       )}
     </View>

@@ -44,13 +44,15 @@ const styles = StyleSheet.create({
     marginRight: 24,
   },
   tabText: {
+    fontFamily:'Mulish',
     fontSize: 12,
     color: BRAND,
     marginLeft: 8,
-    fontWeight: '500',
+    fontWeight: '300',
   },
   tabTextSelected: {
-    fontWeight: '500',
+    fontFamily:'Mulish',
+    fontWeight: '300',
   },
 });
 

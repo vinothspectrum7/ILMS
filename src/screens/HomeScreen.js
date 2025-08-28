@@ -108,7 +108,6 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const handleQrScanPress = () => navigation.navigate('QrScanner');
 
   const chartData = [
     { value: 35, label: 'Item 1', color: '#6398D5' },
@@ -183,7 +182,7 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <HeaderComponent
         notificationCount={0}
-        profileName={profileName}
+        // profileName={profileName}
         onNotificationPress={handleNotificationPress}
         onOrganizationChange={handleOrganizationChange}
         Defaultorg={(value) => setDefaultorg(value)}
@@ -191,7 +190,6 @@ export default function HomeScreen({ navigation }) {
           setOrgCode(value);
         }}
         onCardPress={(screen) => navigation.navigate(screen)}
-        // onMenu={handleProfilePress}
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>

@@ -47,6 +47,43 @@ const ConfirmLineItemComponent = ({
     return `${dd}/${mm}/${yyyy}`;
   };
 
+  const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+
+  // Split input like "05 july 2025"
+  const parts = dateStr.trim().split(" ");
+  if (parts.length !== 3) return dateStr; // fallback if unexpected format
+
+  const [day, monthStr, year] = parts;
+
+  // Map month names (full & short → index)
+  const months = {
+    jan: 0, january: 0,
+    feb: 1, february: 1,
+    mar: 2, march: 2,
+    apr: 3, april: 3,
+    may: 4,
+    jun: 5, june: 5,
+    jul: 6, july: 6,
+    aug: 7, august: 7,
+    sep: 8, sept: 8, september: 8,
+    oct: 9, october: 9,
+    nov: 10, november: 10,
+    dec: 11, december: 11,
+  };
+
+  const monthIndex = months[monthStr.toLowerCase()];
+  if (monthIndex === undefined) return dateStr; // fallback if unknown month
+
+  // Always format back to dd MMM yyyy
+  const dd = day.padStart(2, "0");
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const mmm = monthNames[monthIndex];
+
+  return `${dd} ${mmm} ${year}`;
+};
+
   return (
     <View style={styles.cardwrapper}>
       <View style={styles.rowContainer}>
@@ -84,13 +121,13 @@ const ConfirmLineItemComponent = ({
           <View style={styles.dateRowtop}>
             <Text style={styles.dateLabel}>Promised Date: </Text>
             <Text style={styles.dateValue} numberOfLines={1} ellipsizeMode="tail">
-              {formatDDMMYYYY(item.promisedDate)}
+              {formatDate(item.promisedDate)}
             </Text>
           </View>
           <View style={styles.dateRowbottom}>
             <Text style={styles.dateLabel}>Need By Date: </Text>
             <Text style={styles.dateValue} numberOfLines={1} ellipsizeMode="tail">
-              {formatDDMMYYYY(item.needByDate)}
+              {formatDate(item.needByDate)}
             </Text>
           </View>
         </View>
@@ -153,7 +190,7 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   uomText: {
-    fontSize: ms(8),
+    fontSize: ms(10),
     color: '#242424',
     marginTop: ms(-6),
     marginBottom: ms(10),

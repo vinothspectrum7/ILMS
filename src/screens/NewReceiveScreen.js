@@ -110,7 +110,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     org_id:OrgData?.selectedOrg,
     locator: '',
     status:backend.line_status,
-    uom: backend.item?.uom === "EA" ? "Each" : backend.uom, // convert if needed
+    uom: backend.item?.uom === "EA" ? "Each" : backend.item?.uom, // convert if needed
     promisedDate: backend.promised_dlry_dt 
       ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
       : null,
@@ -258,10 +258,10 @@ useEffect(() => {
         qtyToReceive: i.qtyToReceive,
         po_line_id:i.po_line_id,
         item_id:i.item_id,
-        lpn: i.lpn?i.lpn:'',
+        lpn: i.lpn?i.lpn:null,
         subInventory: i.subInventory?i.subInventory:OrgData?.selectedinventory,
         org_id:OrgData?.selectedOrg,
-        locator: i.locator?i.locator:'',
+        locator: i.locator?i.locator:null,
         status:i.status
       }));
     console.log(source,"sourcesourcesourcesourcesourcesourcesourcesourcesource")
@@ -359,6 +359,7 @@ useEffect(() => {
           orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
           openQty: Number(it.openQty ?? 0),
           receivingQty: qty,
+          uom:it.uom,
           receivingStatus: 'In-progress',
           lpn: s?.lpn ?? it.lpn ?? '',
           subInventory: s?.subInventory ?? it.subInventory ?? '',
@@ -407,7 +408,97 @@ useEffect(() => {
     setShowScanner(false);
     Toast.show({ type: 'success', text1: 'Item added from scan', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
   };
+const goToScanItemDetails = (
 
+      startIdx = 0,
+
+      source = draftItems,
+
+      readonly = false,
+
+      listType = 'scan'
+
+    ) => {
+
+      const withLatestFromStore = source.map((it, i) => {
+
+        const s = receiveItems.find(r => String(r.id) === String(it.id));
+
+        const qty = Number(s?.qtyToReceive ?? it.qtyToReceive ?? 0);
+
+        return {
+
+          id: String(it.id),
+
+          poNumber: poHeader?.poNumber ?? '—',
+
+          lineNumber: i + 1,
+
+          itemName: it.name,
+
+          itemDescription: it.itemDescription ?? it.description ?? '—',
+
+          orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+
+          openQty: Number(it.openQty ?? 0),
+
+          receivingQty: qty,
+
+          receivingStatus: 'In-progress',
+
+          lpn: s?.lpn ?? it.lpn ?? '',
+
+          subInventory: s?.subInventory ?? it.subInventory ?? '',
+
+          locator: s?.locator ?? it.locator ?? '',
+
+          max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+
+        };
+
+      });
+ 
+      navigation.navigate({
+
+        name: 'ScanItemDetails',
+
+        params: {
+
+          items: withLatestFromStore,
+
+          startIndex: startIdx,
+
+          readonly,
+
+          returnTo: 'NewReceiveScreen',
+
+          listType,
+
+        },
+
+        merge: true,
+
+      });
+
+    };
+
+ const handlescanitemQtyChange = (id, newQty) => {
+    setScannedItems(prev => {
+      const next = prev.map(item =>
+        item.id === id ? { ...item, qtyToReceive: clampToLimit(newQty, item.max_open_qty) } : item
+      );
+      const changed = next.find(x => x.id === id);
+      const clamped = Number(changed?.qtyToReceive ?? 0);
+      setSelectedItems(curr => {
+        const has = curr.includes(id);
+        if (clamped > 0 && !has) return [...curr, id];
+        if (clamped === 0 && has) return curr.filter(x => x !== id);
+        return curr;
+      });
+      persistQty(id, clamped, changed || {});
+      return next;
+    });
+  };
   const hasAnyItems = useMemo(
     () => (selectedTab === 'lineItems' ? selectedItems.length > 0 : scannedItems.length > 0),
     [selectedTab, selectedItems.length, scannedItems.length]
@@ -453,23 +544,24 @@ useEffect(() => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {phase === 'loading' && (
-        <View style={styles.loaderWrapper}>
-          <ActivityIndicator size="large" color="#233E55" />
-        </View>
-      )}
-      {phase !== 'loading' && (
-        <>
+
           <GlobalHeaderComponent
             organizationName={OrgData?.selectedOrgCode}
             screenTitle="Receiving"
             notificationCount={0}
-            profileName={profileName}
+            // profileName={profileName}
             onBack={() => navigation.navigate('Receive')}
             // onNotificationPress={() => navigation.navigate('Home')}
             // onProfilePress={() => navigation.navigate('Home')}
           />
-
+                      {phase === 'loading' && (
+        <View style={styles.loaderWrapper}>
+          <ActivityIndicator size="large" color="#233E55" />
+          {/* <Text style={styles.statusText}>Loading...</Text> */}
+        </View>
+      )}
+            {phase !== 'loading' && (
+        <>
           <ScrollView contentContainerStyle={styles.contentContainer}>
             <POinfoCardComponent
               receiptNumber={poHeader?.purchaseReceipt || '—'}
@@ -531,11 +623,12 @@ useEffect(() => {
                   onChange={setScannedItems}
                   onRequestScan={() => setShowScanner(true)}
                   onFirstFilled={() => setSelectedTab('scanItems')}
-                  onViewDetails={(item) => {
-                    const source = scannedItems.length ? scannedItems : PoListItems;
-                    const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-                    goToLineItemDetails(idx, source, true, 'scan');
-                  }}
+                  onQtyChange={handlescanitemQtyChange}
+                  // onViewDetails={(item) => {
+                  //   const source = scannedItems.length ? scannedItems : PoListItems;
+                  //   const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
+                  //   goToScanItemDetails(idx, source, false, 'scan');
+                  // }}
                   header={
                     <View style={styles.tableHeader}>
                       <SummaryTabHdrComponent allSelected={false} onToggleAll={() => {}} />
@@ -568,7 +661,7 @@ useEffect(() => {
           <Modal visible={showScanner} animationType="slide">
             <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
           </Modal>
-        </>
+                  </>
       )}
     </SafeAreaView>
   );

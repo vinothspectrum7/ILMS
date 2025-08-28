@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import ConfirmLineItemComponent from './ConfirmLineItemComponent';
+import ScannedItemListCardComponent from './ScannedItemListCardComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 
 const ScanItemListCardComponent = ({
@@ -8,6 +9,7 @@ const ScanItemListCardComponent = ({
   scannedItems = [],
   onChange = () => {},
   onViewDetails = () => {},
+  onQtyChange= () => {},
   header = null,
   onRequestScan = () => {},
   onFirstFilled = () => {},
@@ -55,13 +57,25 @@ const ScanItemListCardComponent = ({
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
             <View style={styles.cardWrap}>
-              <ConfirmLineItemComponent
+              <ScannedItemListCardComponent
+                item={item}
+                qtyLabel="Qty To Receive"
+                // index={index}
+                // isSelected={selectedItems.includes(item.id)}
+                // onCheckToggle={handleCheckToggle}
+                onQtyChange={onQtyChange}
+                onViewDetails={() => onViewDetails(item)}
+              />
+
+
+
+              {/* <ConfirmLineItemComponent
                 item={item}
                 qtyLabel="Qty To Receive"
                 qtyValue={item.qtyToReceive}
                 readOnly
                 onViewDetails={() => onViewDetails(item)}
-              />
+              /> */}
             </View>
           )}
           scrollEnabled={false}

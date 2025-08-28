@@ -22,7 +22,7 @@ import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import SearchIcon from '../assets/icons/search.svg';
 import { useReceivingStore } from '../store/receivingStore';
-import { FetchData, GetPoItems } from '../api/ApiServices';
+import { FetchData, GetPoItems, GetReceivedItems } from '../api/ApiServices';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
@@ -38,12 +38,12 @@ const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 //   { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', poDate: '24 JUL 2025', status: 'OPEN', received: 90, billed: 90 },
 // ];
 
-const receivedData = [
-  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',         receivedDate: '21 Jul 2025', status: 'Fully Received' },
-  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechNerds',     receivedDate: '22 Jul 2025', status: 'Partially Received' },
-  { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'CreativeTools', receivedDate: '23 Jul 2025', status: 'Fully Received' },
-  { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp',     receivedDate: '24 Jul 2025', status: 'Fully Received' },
-];
+// const receivedData = [
+//   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng',         receivedDate: '21 Jul 2025', status: 'Fully Received' },
+//   { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechNerds',     receivedDate: '22 Jul 2025', status: 'Partially Received' },
+//   { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'CreativeTools', receivedDate: '23 Jul 2025', status: 'Fully Received' },
+//   { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp',     receivedDate: '24 Jul 2025', status: 'Fully Received' },
+// ];
 
 const ReceiveScreen = () => {
   const navigation = useNavigation();
@@ -68,8 +68,9 @@ const ReceiveScreen = () => {
 
   const [searchText, setSearchText] = useState('');
   const [POData, setPOData] = useState([]);
-  const [filteredReceived, setFilteredReceived] = useState(receivedData);
   const [POIntialData, setPOIntialData] = useState([]);
+  const [ReceivedData,SetReceivedData] = useState([]);
+  const [IntialReceivedData,SetIntialReceivedData] = useState([]);
 
   const [phase, setPhase] = useState('idle');
 
@@ -112,11 +113,18 @@ const ReceiveScreen = () => {
             const total_ord_qty = element.total_ord_qty;
             const total_received_qty = element.total_received_qty;
             // calculate percentage
+            if(total_received_qty>total_ord_qty){
+              element["received"] = 100;
+            }else{
             const receivedPercent =
               total_ord_qty > 0
                 ? (total_received_qty / total_ord_qty) * 100
                 : 0;
+            
+                //  width: `${((Number(item.received) / Number(item.ordered)) * 100)}%`,
+
             element["received"] = receivedPercent;
+            }
           });
         }
         setPOData(podata);
@@ -135,9 +143,37 @@ const ReceiveScreen = () => {
         setPhase('error');
       }
     };
+    const loadReceivedData = async () => {
+      // setPhase('loading');
+      SetReceivedData([]);
+      SetIntialReceivedData([]);
+      try {
+        const receivedapidata = await GetReceivedItems(OrgData?.selectedOrg);
+        if(receivedapidata!=undefined && receivedapidata.length!=0){
+          receivedapidata.forEach((element,index) => {
+            element["id"] = index+1;
+          });
+        }
+        SetReceivedData(receivedapidata);
+        SetIntialReceivedData(receivedapidata);
+        setPhase('success');
+        console.log(receivedapidata, "receivedapidatareceivedapidata");
+      } catch (err) {
+        console.error("Error loading Received data:", err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load Received data. Please try again.',
+          position: 'top',
+          visibilityTime: 5000
+        });
+        setPhase('error');
+      }
+    };
 
     loadPoData();
     loadData();
+    loadReceivedData();
   }, [OrgData?.selectedOrg]);
 
   useFocusEffect(
@@ -164,12 +200,11 @@ const ReceiveScreen = () => {
     const q = text.trim().toLowerCase();
 
     if (activeKey === 'received') {
-      setFilteredReceived(
-        receivedData.filter(
+      SetReceivedData(
+        IntialReceivedData.filter(
           r =>
-            r.purchaseReceipt.toLowerCase().includes(q) ||
-            r.poNumber.toLowerCase().includes(q) ||
-            r.supplier.toLowerCase().includes(q)
+            r.po_number.toLowerCase().includes(q) ||
+            r.supplier_name.toLowerCase().includes(q)
         )
       );
     }
@@ -246,12 +281,12 @@ const ReceiveScreen = () => {
     return (
       <TouchableOpacity
         onPress={() => {
-          if (isReceived) return;
+          // if (isReceived) return;
           setShowScanner(true);
         }}
       >
         {isReceived ? (
-          <SearchIcon width={20} height={20} fill="#233E55" />
+          <BarcodeScannerIcon width={24} height={24} fill="#233E55" />
         ) : (
           <BarcodeScannerIcon width={24} height={24} fill="#233E55" />
         )}
@@ -283,7 +318,11 @@ const ReceiveScreen = () => {
               </View>
               <View style={styles.topcardRight}>
               <Text style={styles.labelText}>Supplier</Text>
-              <Text style={styles.valueText}>{item.supplier_name}</Text>
+                <Text style={styles.valueText}>
+    {item.supplier_name?.length > 20 
+      ? item.supplier_name.substring(0, 20) + "..." 
+      : item.supplier_name}
+  </Text>
               </View>
             </View>
             <View style={styles.bottomrow}>
@@ -301,19 +340,30 @@ const ReceiveScreen = () => {
               <Text style={styles.subLabel}>Received</Text>
               </View>
               <View style={styles.bottomcardRight}>
-              <Text style={styles.subLabel}>Billed</Text>
+              <Text style={styles.subLabel}></Text>
               </View>
             </View>
             <View style={styles.bottomrow}>
               <View style={styles.bottomcardLeft}>
               <View style={styles.progressWrapper}>
-                <View style={[styles.progressBarleft, { width: `${item.received}%` }]} />
+                <View style={{margin:5}}>
+                <View
+                  style={[
+                    styles.progressBarleft,
+                    {
+                      width: `${item.received}%`,
+                    },
+                  ]}
+                >
+              </View>
+              </View>
               </View>
               </View>
               <View style={styles.bottomcardRight}>
-              <View style={styles.progressWrapper}>
+                  <Text style={styles.subLabel}></Text>
+              {/* <View style={styles.progressWrapper}>
                 <View style={[styles.progressBarright, { width: `40%` }]} />
-              </View>
+              </View> */}
               </View>
             </View>
 
@@ -425,7 +475,7 @@ const ReceiveScreen = () => {
 
   const ReceivedList = () => (
     <FlatList
-      data={filteredReceived}
+      data={ReceivedData}
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ paddingBottom: 80 }}
                 ListEmptyComponent={() => (
@@ -433,60 +483,71 @@ const ReceiveScreen = () => {
         <Text style={{ fontSize: 16, color: 'gray' }}>No data found</Text>
       </View>
     )}
-      renderItem={({ item }) => {
-        const statusColor =
-          item.status === 'Fully Received' ? '#18A558' :
-          item.status === 'Partially Received' ? '#2FB67A' : '#333';
-        return (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() =>
-              navigation.navigate('ReceiveSummaryScreen', {
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('ReceivedSummaryScreen', {
                 readonly: true,
-                id: item.id,
+                id: item.po_id,
                 listType: 'Received',
                 header: {
-                  receiptNumber: item.purchaseReceipt,
-                  supplier: item.supplier,
-                  poNumber: item.poNumber,
-                  receiptDate: item.receivedDate,
+                  receiptNumber: item.receipt_num,
+                  supplier: item.supplier_name,
+                  poNumber: item.po_number,
+                  receiptDate: item.received_date,
                 },
                 selectedItems: [],
               })
-            }
-          >
-            <View style={styles.rcvCard}>
-              <View style={styles.rcvCols}>
-                <View style={styles.rcvColLeft}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.rcvLabel}>Purchase Receipt</Text>
-                    <Text style={[styles.rcvValue, styles.bold]}>{item.purchaseReceipt}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.rcvLabel}>Supplier</Text>
-                    <Text style={styles.rcvValue}>{item.supplier}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.rcvLabel}>Status</Text>
-                    <Text style={[styles.rcvStatus, { color: statusColor }]}>{item.status}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.rcvColRight}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.rcvLabel}>PO Number</Text>
-                    <Text style={styles.rcvValue}>{item.poNumber}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.rcvLabel}>Received Date</Text>
-                    <Text style={styles.rcvValue}>{item.receivedDate}</Text>
-                  </View>
-                </View>
+          }
+          activeOpacity={0.9}
+        >
+          <View style={styles.card}>
+            <View style={styles.toprow}>
+              <View style={styles.topcardLeft}>
+              <Text style={styles.labelText}>Receipt</Text>
+              <Text style={styles.valueText}>{item.receipt_num}</Text>
+              </View>
+              <View style={styles.topcardRight}>
+              <Text style={styles.labelText}>Po Number</Text>
+              <Text style={styles.valueText}>{item.po_number}</Text>
               </View>
             </View>
-          </TouchableOpacity>
-        );
-      }}
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <Text style={styles.labelText}>Supplier</Text>
+              <Text style={[styles.valueText]}>{item.supplier_name}</Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <Text style={styles.labelText}>Received Date</Text>
+              <Text style={styles.valueText}>{formatDate(item.received_date)}</Text>
+              </View>
+            </View>
+            {/* <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <Text style={styles.subLabel}>Received</Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <Text style={styles.subLabel}>Billed</Text>
+              </View>
+            </View> */}
+            {/* <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <View style={styles.progressWrapper}>
+                <View style={[styles.progressBarleft, { width: `${item.received}%` }]} />
+              </View>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <View style={styles.progressWrapper}>
+                <View style={[styles.progressBarright, { width: `40%` }]} />
+              </View>
+              </View>
+            </View> */}
+
+
+
+          </View>
+        </TouchableOpacity>
+      )}
     />
   );
 
@@ -545,7 +606,7 @@ const formatDate = (date) => {
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Receiving"
         notificationCount={0}
-        profileName={profileName}
+        // profileName={profileName}
         onBack={() => navigation.navigate('Home')}
         // onMenu={() => setMenuOpen(true)}
         // onNotificationPress={() => navigation.navigate('Home')}
@@ -555,7 +616,7 @@ const formatDate = (date) => {
       {phase === 'loading' && (
         <View style={styles.loaderWrapper}>
           <ActivityIndicator size="large" color="#233E55" />
-          <Text style={styles.statusText}>Loading data…</Text>
+          <Text style={styles.statusText}>Loading...</Text>
         </View>
       )}
 
@@ -608,7 +669,7 @@ const formatDate = (date) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f8f8' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   statusText: { marginTop: 12, color: '#333', fontSize: 14 },
   inputContainer: {
@@ -649,9 +710,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: scale(5),
   },
-  labelText: { fontSize: 10, color: '#555', flex: 1 },
-  valueText: { fontSize: 10, fontWeight: 'bold', color: '#1C1C1C', flex: 1, textAlign: 'left' },
-  openText: { color: 'green' },
+  labelText: { fontSize: 12, color: '#595A5C', flex: 1,fontFamily:'Mulish' },
+  valueText: { fontFamily:'Mulish',fontSize: 12, fontWeight: '700', color: '#242424', flex: 1, textAlign: 'left' },
+  openText: { color: '#168035' },
   subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
   progressWrapper: {
     backgroundColor: '#ECF1F7',
@@ -667,7 +728,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  progressBarleft: { height: 8, backgroundColor: '#233E55', borderRadius: 20, marginHorizontal: 4 },
+  progressBarleft: { height: 8, backgroundColor: '#233E55', borderRadius: 20, marginHorizontal: 0 },
   rcvCard: {
     backgroundColor: '#fff',
     marginHorizontal: 12,

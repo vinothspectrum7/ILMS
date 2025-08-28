@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Modal, Alert } from 'react-native';
 import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -72,6 +72,7 @@ const LineItemDetailsScreen = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [index, setIndex] = useState(startIndex);
   const [edited, setEdited] = useState({});
+  const [SUB_WIDTH,setSubWidth] = useState(80);
     const [LpnList, setLpnList] = useState([]);
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -110,11 +111,39 @@ const LineItemDetailsScreen = () => {
     return open > 0 ? open : ord;
   })();
 
+    const estimateWidth = (label) => {
+      // Alert.alert(label);
+    const text = String(label ?? '').trim();
+        console.log(text,"MINWMINWNIMIMININIW")
+    const charW = 7.2;
+    const padding = 24;
+    const minW = CONTROL_WIDTH;
+    const maxW = Math.min(SCREEN_WIDTH * 0.6, 280);
+    const w = Math.ceil(text.length * charW + padding);
+    console.log(w,minW,"MINWMINWNIMIMININIW")
+    return Math.max(minW, Math.min(maxW, w));
+  };
+
+  const findLabel = (value, options) => {
+  if (!value) return '';
+  if (Array.isArray(options)) {
+    const hit = options.find(o => String(o?.id) === String(value) || String(o?.value) === String(value));
+    if (hit?.name) return hit.name;
+    if (hit?.label) return hit.label;
+  }
+  return String(value);
+};
+
   const handleSubInventoryChange = async (itemId, sub_id) => {
     setEdited((prev) => ({
       ...prev,
       [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id },
-    }));
+    })); 
+    // Alert.alert("TEst");
+        // console.log(InventoryList,"FINDLABELFINDLBVELELVMEF")
+    const findLabels = findLabel(sub_id,InventoryList);
+    const dynamicwidth = estimateWidth(findLabels);
+    setSubWidth(dynamicwidth);
     try {
       const locdata = await GetLocatorsData(sub_id);
       if (locdata) {
@@ -215,6 +244,11 @@ const LineItemDetailsScreen = () => {
       locator: fromStore?.locator ?? item.locator ?? '',
       openQty:fromStore?.openQty ?? item.openQty ?? ''
     };
+    // useEffect(()=>{
+    const findLabels = findLabel(pageState?.subInventory,InventoryList);
+    const dynamicwidth = estimateWidth(findLabels);
+    setSubWidth(dynamicwidth);
+    // },[pageState]);
 
     const limit = Number(item.max_open_qty ?? item.openQty ?? 0);
 
@@ -227,19 +261,19 @@ const LineItemDetailsScreen = () => {
             <View style={styles.block}><Text style={styles.label}>Item Description</Text><Text style={styles.descText}>{item.itemDescription || '—'}</Text></View>
             <View style={styles.divider} />
 
+            <View style={styles.divider} />
+
             <View style={styles.row}>
-              <Text style={styles.label}>Order Quantity (Each)</Text>
-              <Text style={styles.qtyRight}>{String(item.orderQty ?? 0)} Qty</Text>
+              <Text style={styles.label}>Order Quantity ( {item.uom} )</Text>
+              <Text style={styles.qtyRight}>{String(item.orderQty ?? 0)}</Text>
             </View>
 
-            <View style={styles.divider} />
-            <View style={styles.row}><Text style={styles.label}>Open Quantity</Text><Text style={styles.qtyRight}>{String(item.openQty ?? 0)} Qty</Text></View>
             <View style={styles.divider} />
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Quantity</Text>
               <View style={styles.numericRight}>
                 {readOnly ? (
-                  <Text style={styles.qtyRight}>{String(readonlyQty)} <Text style={styles.qtyUnit}>Qty</Text></Text>
+                  <Text style={styles.qtyRight}>{String(readonlyQty)}</Text>
                 ) : (
                   <CustomNumericInput
                     key={`qty-${String(item.id)}`}
@@ -263,6 +297,8 @@ const LineItemDetailsScreen = () => {
                 )}
               </View>
             </View>
+                        <Text style={styles.uomText}>{item.uom}</Text>
+
             <View style={styles.divider} />
 
             <View style={styles.row}>
@@ -295,6 +331,7 @@ const LineItemDetailsScreen = () => {
   placeholder="Select Locator"
   disabled={!isEditable || item.openQty==0}
   width={CONTROL_WIDTH}
+  selectedwidth={CONTROL_WIDTH}
   height={CONTROL_HEIGHT}
   compact
               />
@@ -309,6 +346,7 @@ const LineItemDetailsScreen = () => {
                 placeholder="Select Sub Inventory"
                 disabled={!isEditable || item.openQty==0}
                 width={CONTROL_WIDTH}
+                selectedwidth={SUB_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
               />
@@ -318,11 +356,13 @@ const LineItemDetailsScreen = () => {
               <PencilDropdownRow
                 key={`locator-${String(item.id)}`}
                 value={pageState.locator}
-                onChange={isEditable ? (id) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
+                onChange={isEditable ? (id) => setEdited((prev) =>
+                   ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
                 options={LocatorList}
                 placeholder="Select Locator"
                 disabled={!isEditable || item.openQty==0}
                 width={CONTROL_WIDTH}
+                selectedwidth={CONTROL_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
               />
@@ -337,20 +377,6 @@ const LineItemDetailsScreen = () => {
   const leftBtnLabel = 'Cancel';
   const rightBtnLabel = returnTo === 'ReceiveSummaryScreen' ? 'Update' : 'Save';
 
-  const loadUserName = useCallback(async () => {
-    try {
-      const raw = await AsyncStorage.getItem('user_name');
-      if (!raw) { setProfileName(''); return; }
-      let name = '';
-      try { const parsed = JSON.parse(raw); name = typeof parsed === 'string' ? parsed : parsed?.user_name ?? ''; }
-      catch { name = raw; }
-      setProfileName(name.trim());
-    } catch { setProfileName(''); }
-  }, []);
-
-  useEffect(() => { loadUserName(); }, [loadUserName]);
-  useFocusEffect(React.useCallback(() => { loadUserName(); }, [loadUserName]));
-
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
@@ -358,7 +384,7 @@ const LineItemDetailsScreen = () => {
         screenTitle="Receive"
         contextInfo={titlePo}
         notificationCount={0}
-        profileName={profileName}
+        // profileName={profileName}
         onBack={() => navigation.goBack()}
         onMenu={() => setMenuOpen(true)}
         // onNotificationPress={() => navigation.navigate('Home')}
@@ -456,6 +482,14 @@ const styles = StyleSheet.create({
   successCard: { width: '75%', backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16, alignItems: 'center', elevation: 6 },
   successTitle: { fontSize: 14, fontWeight: '700', color: '#233E55', marginBottom: 6 },
   successMsg: { fontSize: 13, fontWeight: '600', color: '#111827' },
+      uomText: {
+    fontSize: 10,
+    color: '#595A5C',
+    marginTop: -6,
+    marginBottom: 10,
+    marginRight: 2,
+    textAlign:'right'
+  },
 });
 
 export default LineItemDetailsScreen;

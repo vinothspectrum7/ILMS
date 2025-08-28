@@ -8,7 +8,8 @@ import HomeScreen from './src/screens/HomeScreen';
 import ReceiveScreen from './src/screens/ReceiveScreen';
 import NewReceiveScreen from './src/screens/NewReceiveScreen';
 import AsnReceiptScreen from './src/screens/AsnReceipt'; 
-import ReceiveSummaryScreen from './src/screens/ReceiveSummaryScreen'; 
+import ReceiveSummaryScreen from './src/screens/ReceiveSummaryScreen';
+import ReceivedSummaryScreen from './src/screens/ReceivedSummary'; 
 import LineItemDetailsScreen from './src/screens/LineItemDetailsScreen';
 import PODetailSummary from './src/screens/POdetailsummary'; 
 import PovViewItems from './src/screens/ASN/poviewitems';
@@ -61,6 +62,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="ReceiveSummaryScreen"
 component={ReceiveSummaryScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="ReceivedSummaryScreen"
+component={ReceivedSummaryScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen

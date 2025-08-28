@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler,ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
@@ -10,8 +10,9 @@ import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import Toast from 'react-native-toast-message';
 import { createOrderReceipt } from '../api/mockApi';
 import { useReceivingStore } from '../store/receivingStore';
-import { Submit_Receive_Qty } from '../api/ApiServices';
+import { GetSinglePO, Submit_Receive_Qty } from '../api/ApiServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SummaryTabHdrsComponent from '../components/ReceivedSummaryheader';
 
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', receivedDate: '21 Jul 2025', status: 'Fully Received' },
@@ -26,7 +27,7 @@ const defaultReceiptItems = [
   { id: 'c', name: 'Des Impusum', description: 'dolor ipsum dolor sit amet…', orderedQty: 200, receivedQty: 200, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN3', subInventory: 'SUBINVENTORY3', locator: 'LOCATOR3' },
 ];
 
-const ReceiveSummaryScreen = () => {
+const ReceivedSummaryScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
@@ -35,8 +36,9 @@ const ReceiveSummaryScreen = () => {
   const listTypeFromRoute = route?.params?.listType || 'line';
   const headerFromRoute = route?.params?.header || null;
   const purchaseReceipt = route?.params?.purchaseReceipt;
+  const [receivedData,SetReceivedData] = useState([]);
+  const [phase, setPhase] = useState('idle');
   const sourceId = route?.params?.id ? String(route.params.id) : null;
-  const passedItems = Array.isArray(route?.params?.selectedItems) ? route.params.selectedItems : [];
 
   const {
     poHeader,
@@ -83,39 +85,78 @@ const ReceiveSummaryScreen = () => {
     }, [navigation, modalVisible, listTypeFromRoute])
   );
 
+  const  mapBackendArrayToFrontend = (data,posingledata)=> {
+  return data.map((backend,index) => ({
+    id: index+1,
+    po_line_id:backend?.po_line_id,
+    item_id:backend?.item_id,
+    purchaseReceipt:posingledata?.next_receipt_num || "", // placeholder (if needed)
+    name: backend.item?.item_code || "",
+    description: backend.item?.description || "",
+    orderedQty: backend.ord_qty,
+    receivedQty: backend.rcvd_qty,
+    openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
+    max_open_qty:backend.max_open_qty,
+    lpn: '',
+    subInventory: OrgData?.selectedinventory,
+    org_id:OrgData?.selectedOrg,
+    locator: '',
+    status:backend.line_status,
+    uom: backend.item?.uom === "EA" ? "Each" : backend.item?.uom, // convert if needed
+    promisedDate: backend.promised_dlry_dt 
+      ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+      : null,
+    needByDate: backend.need_by_dt 
+      ? new Date(backend.need_by_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+      : null
+  }));
+}
+
   useEffect(() => {
-    if (poHeader) return;
+    if (!sourceId) return;
+      setPhase('loading');
+    const loadPoData = async () => {
+      // Alert.alert(selectedPO?.po_id)
+      try {
+        const posingledata = await GetSinglePO(sourceId);
+        console.log(posingledata,"TESTESTETSTETSTETTET");
+        if (posingledata?.purchase_order_lines) {
+        //   SetPurchaseReceipt(posingledata?.next_receipt_num);
+          const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines,posingledata);
+          console.log(frontendArray,"frontendArrayfrontendArrayfrontendArrayfrontendArray")
+          SetReceivedData(frontendArray); // ✅ only set once
+        } else {
+          SetReceivedData([]);
+        }
+        setPhase('success');
+      } catch (err) {
+        console.error("Error loading PO data:", err);
+                Toast.show({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: 'Failed to load PO Items. Please try again.',
+                  position: 'top',
+                  visibilityTime: 5000
+                });
+            setPhase('error');
+      }
+    };
+  
+    loadPoData();
+  }, [sourceId]);
+
+  useEffect(() => {
     if (headerFromRoute) {
+      setPoHeader(null);
       setPoHeader(headerFromRoute);
       return;
     }
-    if (readonly) {
-      let rec = null;
-      if (sourceId) rec = receivedData.find(r => r.id === sourceId);
-      if (!rec) {
-        const poNo = route?.params?.header?.poNumber || route?.params?.poNumber || null;
-        if (poNo) rec = receivedData.find(r => r.poNumber === poNo);
-      }
-      if (rec) {
-        setPoHeader({ purchaseReceipt: rec.purchaseReceipt, supplier: rec.supplier, poNumber: rec.poNumber, poDate: rec.receivedDate });
-      }
-    }
-  }, [poHeader, headerFromRoute, readonly, sourceId, setPoHeader, route?.params?.header?.poNumber, route?.params?.poNumber]);
+
+  }, [headerFromRoute]);
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    if (readonly) {
-      setDraft(passedItems.length ? passedItems : defaultReceiptItems);
-    } else if (Array.isArray(receiveItems) && receiveItems.length > 0) {
-      setDraft(receiveItems);
-    } else if (Array.isArray(passedItems) && passedItems.length > 0) {
-      setDraft(passedItems);
-      initSummaryItems(passedItems);
-    } else if (Array.isArray(summaryItems) && summaryItems.length > 0) {
-      setDraft(summaryItems);
-    }
-    initializedRef.current = true;
-  }, [readonly, receiveItems, passedItems, summaryItems, initSummaryItems]);
+      setDraft(receivedData);
+  }, [receivedData]);
 
   const patch = route?.params?.patch;
 
@@ -147,42 +188,10 @@ const ReceiveSummaryScreen = () => {
     [poHeader]
   );
 
-const  mapConfirmData = (data)=> {
-  return data.map((backend) => ({
-    po_line_id:backend?.po_line_id,
-    item_id:backend?.item_id,
-    org_id:backend?.org_id, // placeholder (if needed)
-    sub_inv_id: backend?.subInventory,
-    locator_id: backend.locator?backend?.locator:null,
-    lot_number: "",
-    expiry_date: formatToday(),
-    received_qty: Number(backend?.qtyToReceive)
-  }));
-}
-
-  const confirmAction = async () => {
-    console.log(renderItems,"draftdraftdraftdraftdraft")
-    const formatdata = mapConfirmData(renderItems);
-    console.log(formatdata,"formatdataformatdata");
-        try {
-          const response = await Submit_Receive_Qty(formatdata);
-          console.log(response,"posingledataposingledata");
-      if (response?.results) return { success: true, message:'Received Quantity Updated Successfully!' };
-      return { success: false, message: response?.message || 'Failed to create order receipt' };
-        } catch (err) {
-          return { success: false, message: err.detail?.[0].msg || 'Network error. Please try again.' };
-        }
-  };
   const renderItems = useMemo(() => {
-  if (!readonly && Array.isArray(receiveItems) && receiveItems.length > 0) {
-    return receiveItems.filter(
-      it => Number(it?.qtyToReceive ?? it?.receivingQty ?? 0) > 0
-    );
-  }
-  if (Array.isArray(summaryItems) && summaryItems.length > 0) return summaryItems;
   if (Array.isArray(draft) && draft.length > 0) return draft;
   return [];
-}, [readonly, receiveItems, summaryItems, draft]);
+}, [draft]);
 
   const qtyFor = useCallback(
     it => {
@@ -200,20 +209,20 @@ const  mapConfirmData = (data)=> {
     [receiveItems, summaryItems]
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      const hasLive = Array.isArray(receiveItems) && receiveItems.length > 0;
-      const nonePassed = !Array.isArray(passedItems) || passedItems.length === 0;
-      const noneSummary = !Array.isArray(summaryItems) || summaryItems.length === 0;
-      if (!readonly && !hasLive && nonePassed && noneSummary) {
-        if (listTypeFromRoute === 'Received') {
-          navigation.replace('Receive');
-        } else {
-          navigation.replace('NewReceiveScreen', { listType: listTypeFromRoute || 'line' });
-        }
-      }
-    }, [readonly, receiveItems, passedItems, summaryItems, listTypeFromRoute, navigation])
-  );
+//   useFocusEffect(
+//     useCallback(() => {
+//       const hasLive = Array.isArray(receiveItems) && receiveItems.length > 0;
+//       const nonePassed = !Array.isArray(passedItems) || passedItems.length === 0;
+//       const noneSummary = !Array.isArray(summaryItems) || summaryItems.length === 0;
+//       if (!readonly && !hasLive && nonePassed && noneSummary) {
+//         if (listTypeFromRoute === 'Received') {
+//           navigation.replace('Receive');
+//         } else {
+//           navigation.replace('NewReceiveScreen', { listType: listTypeFromRoute || 'line' });
+//         }
+//       }
+//     }, [readonly, receiveItems, passedItems, summaryItems, listTypeFromRoute, navigation])
+//   );
 
   const handleCancel = () => setModalVisible(false);
 
@@ -251,6 +260,7 @@ const  mapConfirmData = (data)=> {
       receivingQty: Number(readonly ? readonlyReceivingQty : qtyFor(it)),
       receivingStatus: readonly ? 'Received' : 'In-progress',
       lpn: it.lpn ?? '',
+      uom:it.uom,
       subInventory: it.subInventory ?? '',
       locator: it.locator ?? '',
     };
@@ -262,18 +272,11 @@ const  mapConfirmData = (data)=> {
     const mapped = source.map(toDetailItemFromSummary);
     navigation.navigate({
       name: 'LineItemDetails',
-      params: { items: mapped, startIndex: idx, readonly, returnTo: 'ReceiveSummaryScreen', listType: listTypeFromRoute },
+      params: { items: mapped, startIndex: idx, readonly, returnTo: 'ReceivedSummaryScreen', listType: listTypeFromRoute },
       merge: true,
     });
   };
 
-  const formatToday = () => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${yyyy}-${mm}-${dd}`;
-  };
   const loadUserName = useCallback(async () => {
     try {
       const raw = await AsyncStorage.getItem('user_name');
@@ -321,10 +324,16 @@ const  mapConfirmData = (data)=> {
         // onNotificationPress={() => navigation.navigate('Home')}
         // onProfilePress={() => navigation.navigate('Home')}
       />
-
+            {phase === 'loading' && (
+              <View style={styles.loaderWrapper}>
+                <ActivityIndicator size="large" color="#233E55" />
+                <Text style={styles.statusText}>Loading data…</Text>
+              </View>
+            )}
+          {phase !== 'loading' && (
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <POinfoCardComponent
-          receiptNumber={purchaseReceipt}
+          receiptNumber={headerData.receiptNumber}
           supplier={headerData.supplier}
           poNumber={headerData.poNumber}
           receiptDate={headerData.poDate}
@@ -334,7 +343,7 @@ const  mapConfirmData = (data)=> {
           <Text style={styles.itemName}>Item Summary</Text>
 
           <View style={styles.tableHeader}>
-            <SummaryTabHdrComponent />
+            <SummaryTabHdrsComponent />
           </View>
 
           <FlatList
@@ -356,34 +365,16 @@ const  mapConfirmData = (data)=> {
           />
         </View>
       </ScrollView>
+        )}
 
-      {!readonly && (
-        <>
-          <FooterButtonsComponent
-            leftLabel="Save"
-            rightLabel="Confirm"
-            onLeftPress={() => setModalVisible(true)}
-            onRightPress={() => setModalVisible(true)}
-            leftEnabled
-            rightEnabled
-          />
-          <ConfirmModalComponent
-            visible={modalVisible}
-            title="Confirmation"
-            message="Are you sure want to receive this Purchase Order?"
-            confirmAction={confirmAction}
-            onCancel={handleCancel}
-            onSuccess={handleSuccess}
-            onFailure={handleFailure}
-          />
-        </>
-      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { backgroundColor: '#F6F8FA', flex: 1 },
+  loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  statusText: { marginTop: 12, color: '#333', fontSize: 14 },
   contentContainer: { paddingBottom: 120 },
   tableHeader: { marginTop: 8, marginBottom: 10 },
   lineItemWrapper: { marginBottom: 12 },
@@ -408,4 +399,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ReceiveSummaryScreen;
+export default ReceivedSummaryScreen;

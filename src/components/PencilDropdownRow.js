@@ -28,6 +28,7 @@ const PencilDropdownRow = ({
   searchPlaceholder = "Search..",
   maxMenuHeight = 220,
   width,
+  selectedwidth,
   height = 44,
   compact = false,
   containerStyle = {},
@@ -72,6 +73,7 @@ const PencilDropdownRow = ({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    console.log(options,"optionkcsdfgbvcxdserthbv xsdrfgv ")
     if (!q)
       return options.filter((o) => (enabledKey ? o[enabledKey] : true));
     return options.filter(
@@ -92,7 +94,7 @@ const PencilDropdownRow = ({
     <View
       style={[
         styles.wrap,
-        { zIndex: open ? 10 : 1 },
+        { zIndex: open ? 10 : 1},
         compact && styles.wrapCompact,
         disabled && styles.wrapDisabled,
         containerStyle,
@@ -111,7 +113,7 @@ const PencilDropdownRow = ({
         activeOpacity={0.8}
         onPress={toggleOpen}
         disabled={disabled}
-        style={[styles.input, { height: finalHeight, width: finalWidth }]}
+        style={[styles.input, { height: finalHeight,minWidth:'60%',width:selectedwidth,maxWidth:'auto' }]}
         ref={inputRef}
       >
         <Text
@@ -133,7 +135,7 @@ const PencilDropdownRow = ({
       </TouchableOpacity>
 
       {open && !disabled && (
-        <View style={styles.menuContainer} pointerEvents="box-none">
+        <View style={[styles.menuContainer]} pointerEvents="box-none">
           <View style={[styles.menu, { maxHeight: menuMaxHeight }]}>
             {enableSearch && (
               <View style={styles.searchRow}>
@@ -225,10 +227,11 @@ const styles = StyleSheet.create({
   menuContainer: {
     position: "absolute",
     top: "100%",
-    left: -(SCREEN_WIDTH * 0.7),
-    right: -(SCREEN_WIDTH * 0.02),
+    left: -(SCREEN_WIDTH * 0.53),
+    right: -(SCREEN_WIDTH * 0.03),
     zIndex: 10,
     marginTop: ms(6),
+    // width:399
   },
   menu: {
     borderRadius: ms(10),

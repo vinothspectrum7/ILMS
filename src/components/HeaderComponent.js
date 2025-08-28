@@ -1,5 +1,5 @@
-import React, { useState,useEffect } from 'react';
-import { View, Text, StatusBar, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState,useEffect, useCallback } from 'react';
+import { View, Text, StatusBar, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 
@@ -16,6 +16,8 @@ import { useReceivingStore } from '../store/receivingStore';
 import EnnVeeLogoSmall from '../assets/icons/EnnVeeLogoSmall.svg';
 import BellIcon from '../assets/icons/bellnotification.svg';
 import HamburgerMenu from '../assets/icons/hamburgermenu.svg';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -73,12 +75,14 @@ export default function HeaderComponent({
           const defaultOrg = orgformatdata.find(o => o.is_default);
           if (OrgData?.selectedOrg){
           setSelectedOrganization(OrgData?.selectedOrg);
+          Defaultorg?.(OrgData?.selectedOrg);
+          OrgCode?.(OrgData?.selectedOrgCode);
           }else{
+          Defaultorg?.(defaultOrg?.value ?? orgformatdata[0]?.value);
+          OrgCode?.(defaultOrg?.org_code ?? orgformatdata[0]?.org_code);
           setSelectedOrganization(defaultOrg?.value ?? orgformatdata[0]?.value);
           }
-          Defaultorg?.(defaultOrg?.value ?? orgformatdata[0]?.value);
-          console.log(defaultOrg,"defaultOrgdefaultOrg")
-          OrgCode?.(defaultOrg?.org_code ?? orgformatdata[0]?.org_code);
+
         } else {
           setOrganizations([]);
         }
@@ -105,8 +109,26 @@ const maporgdata = (data) => {
     is_default: element.is_default,
   }));
 };
-  const initials = getInitials(profileName);
   const showDot = Number(notificationCount) > 0;
+  const [profileNames,setprofileName] = useState(null);
+
+    const loadUserName = useCallback(async () => {
+        const raw = await AsyncStorage.getItem('user_name');
+        if(raw){
+          const initials = getInitials(raw);
+          setprofileName(initials);
+        }
+    }, []);
+  
+    useEffect(() => {
+      loadUserName();
+    }, [loadUserName]);
+  
+    useFocusEffect(
+      React.useCallback(() => {
+        loadUserName();
+      }, [loadUserName])
+    );
 
   return (
     <View style={styles.headerContainer}>
@@ -118,21 +140,21 @@ const maporgdata = (data) => {
         </View>
 
         <View style={styles.brandRight}>
-          <Text style={styles.version}>V: 25082601</Text>
+          <Text style={styles.version}>V: 25082702</Text>
           <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={rs(22)} height={rs(22)} />
             {showDot && <View style={styles.dot} />}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={onProfilePress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            <Text style={styles.avatarText}>{profileNames}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.headerContent}>
         <View style={styles.organizationSection}>
-          <OrganizationIcon width={rs(21)} height={rs(21)} />
+          <OrganizationIcon width={rs(21)} height={rs(21)} style={{marginTop:5}} />
           <DropDownPicker
             open={openOrgDropdown}
             value={selectedOrganization}
@@ -171,7 +193,7 @@ const maporgdata = (data) => {
       </View>
 
       <View style={styles.navigationCardsRow}>
-        <NavigationCard title="Receiveing"   icon={ReceiveIcon}   onPress={() => onCardPress('Receive')} />
+        <NavigationCard title="Receiving"   icon={ReceiveIcon}   onPress={() => onCardPress('Receive')} />
         <NavigationCard title="Inventory" icon={InventoryIcon} onPress={() => onCardPress('Inventory')} />
         <NavigationCard title="Shipping"  icon={ShippingIcon}  onPress={() => onCardPress('Shipping')} />
       </View>
@@ -241,7 +263,7 @@ const styles = StyleSheet.create({
   dropdownContainer: {
     width: rs(103),
     height: rs(21),
-    marginLeft: rs(5),
+    // marginLeft: rs(5),
   },
   dropdownStyle: {
     backgroundColor: 'transparent',
