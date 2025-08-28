@@ -306,7 +306,7 @@ const LineItemDetailsScreen = () => {
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
               <Text style={[styles.statusText,{
-      color:
+      color:returnTo && returnTo=='ReceivedSummaryScreen'?'#168035':
         pageState.receivingQty && pageState.receivingQty > 0
           ? "#F06000" // ✅ when receivingQty is valid and > 0
           : item.openQty == 0
