@@ -328,7 +328,16 @@ const ReceiveScreen = () => {
             <View style={styles.bottomrow}>
               <View style={styles.bottomcardLeft}>
               <Text style={styles.labelText}>PO Status</Text>
-              <Text style={[styles.valueText, styles.openText]}>{item.status}</Text>
+              <Text style={[styles.valueText, styles.openText,
+                {
+      color:
+        item.status && item.status =='OPEN'
+          ? "#033EFF" // ✅ when receivingQty is valid and > 0
+          : item.status == 'CLOSED'
+          ? "#168035" // ✅ when openQty is 0 → CLOSED
+          : "#F06000", // ✅ fallback → OPEN
+    }
+              ]}>{item.status}</Text>
               </View>
               <View style={styles.bottomcardRight}>
               <Text style={styles.labelText}>PO Order Date</Text>
@@ -515,7 +524,11 @@ const ReceiveScreen = () => {
             <View style={styles.bottomrow}>
               <View style={styles.bottomcardLeft}>
               <Text style={styles.labelText}>Supplier</Text>
-              <Text style={[styles.valueText]}>{item.supplier_name}</Text>
+              <Text style={[styles.valueText]}>
+                    {item.supplier_name?.length > 20 
+      ? item.supplier_name.substring(0, 20) + "..." 
+      : item.supplier_name}
+              </Text>
               </View>
               <View style={styles.bottomcardRight}>
               <Text style={styles.labelText}>Received Date</Text>
@@ -644,6 +657,7 @@ const formatDate = (date) => {
             renderTabBar={(props) => (
               <TabBar
                 {...props}
+                screenOptions={{ unmountOnBlur: false }}
                 indicatorStyle={{ backgroundColor: '#233E55', height: 3 }}
                 style={{ backgroundColor: '#fff', elevation: 0 }}
                 scrollEnabled

@@ -98,9 +98,9 @@ const ReceivedSummaryScreen = () => {
     openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
     max_open_qty:backend.max_open_qty,
     lpn: '',
-    subInventory: OrgData?.selectedinventory,
+    sub_inv_name: backend.sub_inv_name,
     org_id:OrgData?.selectedOrg,
-    locator: '',
+    locator_name: backend.locator_name,
     status:backend.line_status,
     uom: backend.item?.uom === "EA" ? "Each" : backend.item?.uom, // convert if needed
     promisedDate: backend.promised_dlry_dt 
@@ -260,9 +260,11 @@ const ReceivedSummaryScreen = () => {
       openQty: Number(it.openQty ?? 0),
       receivingQty: readonlyReceivingQty,
       receivedQty:Number(it.receivedQty ?? 0),
-      receivingStatus: readonly ? 'Received' : 'In-progress',
+      receivingStatus: it.status,
       lpn: it.lpn ?? '',
       uom:it.uom,
+      sub_inv_name: it.sub_inv_name,
+      locator_name: it.locator_name,
       subInventory: it.subInventory ?? '',
       locator: it.locator ?? '',
     };
