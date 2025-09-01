@@ -266,9 +266,10 @@ const LineItemDetailsScreen = () => {
             <View style={styles.divider} />
 
             <View style={styles.row}>
-              <Text style={styles.label}>Order Quantity ( {item.uom} )</Text>
+              <Text style={styles.label}>Order Quantity</Text>
               <Text style={styles.qtyRight}>{String(item.orderQty ?? 0)}</Text>
             </View>
+            <Text style={styles.uomText}>{item.uom}</Text>
 
             <View style={styles.divider} />
             <View style={styles.row}>
@@ -299,22 +300,25 @@ const LineItemDetailsScreen = () => {
                 )}
               </View>
             </View>
-                        <Text style={styles.uomText}>{item.uom}</Text>
-
+            <Text style={styles.uomText}>{item.uom}</Text>
             <View style={styles.divider} />
 
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
               <Text style={[styles.statusText,{
-      color:returnTo && returnTo=='ReceivedSummaryScreen'?'#168035':
-        pageState.receivingQty && pageState.receivingQty > 0
-          ? "#F06000" // ✅ when receivingQty is valid and > 0
-          : item.openQty == 0
+      color: readOnly?(item.receivingStatus && item.receivingStatus =='OPEN'
+          ? "#033EFF" // ✅ when receivingQty is valid and > 0
+          : item.receivingStatus == 'CLOSED'
           ? "#168035" // ✅ when openQty is 0 → CLOSED
-          : "#033EFF", // ✅ fallback → OPEN
+          : "#F06000"):
+          (item.openQty && item.openQty ==0
+          ? "#168035" // ✅ when receivingQty is valid and > 0
+          : pageState.receivingQty??pageState.receivingQty>0 == 'In Progress'
+          ? "#F06000" // ✅ when openQty is 0 → CLOSED
+          : "#033EFF"), // ✅ fallback → OPEN
     },]}>
                 {readOnly
-                    ? (listType === 'scan' ? `${item.receivingStatus}` : 'Received')
+                    ? (`${item.receivingStatus}`)
                     : (pageState.receivingQty??pageState.receivingQty>0?'In Progress':item.openQty==0?'CLOSED':'OPEN')}
                 </Text>
             </View>
@@ -322,7 +326,7 @@ const LineItemDetailsScreen = () => {
             <View style={styles.divider} />
 
             <InlineFieldRow label="LPN">
-              <PencilDropdownRow
+             {!readOnly?<PencilDropdownRow
                 key={`lpn-${String(item.id)}`}
                 value={pageState.lpn}
                   onChange={
@@ -343,11 +347,12 @@ const LineItemDetailsScreen = () => {
   selectedwidth={CONTROL_WIDTH}
   height={CONTROL_HEIGHT}
   compact
-              />
+              />:
+          <Text style={[styles.valueBold,{minWidth:'60%'}]} numberOfLines={1}> - </Text>}
             </InlineFieldRow>
             <View style={styles.divider} />
             <InlineFieldRow label="Sub Inventory*">
-              <PencilDropdownRow
+              {!readOnly?<PencilDropdownRow
                 key={`subinv-${String(item.id)}`}
                 value={pageState.subInventory}
                 onChange={isEditable ? (sub_id) => handleSubInventoryChange(item.id, sub_id) : undefined}
@@ -358,11 +363,12 @@ const LineItemDetailsScreen = () => {
                 selectedwidth={SUB_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
-              />
+              />:
+              <Text style={[styles.valueBold,{minWidth:'60%'}]} numberOfLines={1}>{item.sub_inv_name}</Text>}
             </InlineFieldRow>
             <View style={styles.divider} />
             <InlineFieldRow label="Locator">
-              <PencilDropdownRow
+              {!readOnly?<PencilDropdownRow
                 key={`locator-${String(item.id)}`}
                 value={pageState.locator}
                 onChange={isEditable ? (id) => setEdited((prev) =>
@@ -374,7 +380,8 @@ const LineItemDetailsScreen = () => {
                 selectedwidth={CONTROL_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
-              />
+              />:
+              <Text style={[styles.valueBold,{minWidth:'60%'}]} numberOfLines={1}>{item.locator_name}</Text>}
             </InlineFieldRow>
           </View>
           <View style={{ height: 24 }} />
