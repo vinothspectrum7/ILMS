@@ -48,7 +48,7 @@ const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 const ReceiveScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { resetReceiving,OrgData } = useReceivingStore();
+  const { resetReceiving,OrgData,ActiveTab,setActiveTab } = useReceivingStore();
   // const selectedorg = route?.params?.selectedOrg || null;
 
   const [index, setIndex] = useState(0);
@@ -73,6 +73,11 @@ const ReceiveScreen = () => {
   const [IntialReceivedData,SetIntialReceivedData] = useState([]);
 
   const [phase, setPhase] = useState('idle');
+
+  useEffect(()=>{
+    if(!ActiveTab) return;
+    setIndex(ActiveTab);
+  },[ActiveTab])
 
   useEffect(() => {
     console.log(OrgData,"selectedorgselectedorgselectedorgselectedorg")
@@ -651,6 +656,7 @@ const formatDate = (date) => {
             renderScene={SceneMap(renderScene)}
             onIndexChange={(i) => {
               setIndex(i);
+              setActiveTab(i);
               handleSearch(searchText);
             }}
             initialLayout={initialLayout}

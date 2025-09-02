@@ -11,6 +11,7 @@ const clampToOpen = (qty, open) => {
 export const useReceivingStore = create((set, get) => ({
   poHeader: null,
   setPoHeader: (header) => set({ poHeader: header }),
+  setActiveTab: (tab) => set({ActiveTab:tab}),
   setOrgData: (data) => set({OrgData:data}),
   setInventoryList: (data) => set({InventoryList:data}),
   setLocatorList: (data) => set({LocatorList:data}),
@@ -54,6 +55,11 @@ export const useReceivingStore = create((set, get) => ({
     );
     set({ summaryItems: next });
   },
+
+    resetTab: () =>
+    set({
+      ActiveTab: null
+    }),
 
   resetReceiving: () =>
     set({

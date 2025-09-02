@@ -95,7 +95,7 @@ const ReceivedSummaryScreen = () => {
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
     receivedQty: backend.rcvd_qty,
-    openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
+    openQty: backend.open_qty,
     max_open_qty:backend.max_open_qty,
     lpn: '',
     sub_inv_name: backend.sub_inv_name,
@@ -274,9 +274,10 @@ const ReceivedSummaryScreen = () => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
     const mapped = source.map(toDetailItemFromSummary);
+    console.log(headerData?.receiptNumber,"headerData?.receiptNumberheaderData?.receiptNumber")
     navigation.navigate({
       name: 'LineItemDetails',
-      params: { items: mapped, startIndex: idx, readonly, returnTo: 'ReceivedSummaryScreen', listType: listTypeFromRoute },
+      params: { items: mapped, startIndex: idx, readonly, returnTo: 'ReceivedSummaryScreen', listType: listTypeFromRoute,receiptNumber:headerData?.receiptNumber },
       merge: true,
     });
   };

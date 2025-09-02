@@ -285,11 +285,14 @@ const ScanItemDetailsScreen = () => {
             <View style={styles.divider} />
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
-              <Text style={styles.statusText}>
-                {readOnly
-                  ? (listType === 'scan' ? `${item.receivingStatus}` : 'Received')
-                  : (pageState.receivingQty && pageState.receivingQty > 0 ? 'In Progress' : item.openQty == 0 ? 'CLOSED' : 'OPEN')}
-              </Text>
+              <Text style={[styles.statusText,{
+      color:item.receivingStatus && item.receivingStatus =='OPEN'
+          ? "#033EFF"
+          : item.receivingStatus == 'FULLY RECEIVED'
+          ? "#168035" 
+          : "#F06000"},]}>
+            {item.receivingStatus}
+                </Text>
             </View>
             <View style={styles.divider} />
                         <InlineFieldRow label="LPN">

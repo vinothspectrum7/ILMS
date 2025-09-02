@@ -379,7 +379,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
         openQty: Number(it.openQty ?? 0),
         uom:it.uom,
         receivingQty: qty,
-        receivingStatus: 'In-progress',
+        receivingStatus: it.status,
         lpn: s?.lpn ?? it.lpn ?? '',
         subInventory: s?.subInventory ?? it.subInventory ?? '',
         locator: s?.locator ?? it.locator ?? '',
@@ -414,14 +414,13 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
         openQty: Number(it.openQty ?? 0),
         uom:it.uom,
         receivingQty: qty,
-        receivingStatus: 'In-progress',
+        receivingStatus: it.status,
         lpn: s?.lpn ?? it.lpn ?? '',
         subInventory: s?.subInventory ?? it.subInventory ?? '',
         locator: s?.locator ?? it.locator ?? '',
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
       };
     });
-
     navigation.navigate({
       name: 'LineItemDetails',
       params: {

@@ -128,6 +128,15 @@ export default function HomeScreen({ navigation }) {
     }, [resetReceiving])
   );
 
+  const resetTab = useReceivingStore((s) => s.resetTab);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      resetTab();
+      return () => {};
+    }, [resetTab])
+  );
+
   useFocusEffect(
     React.useCallback(() => {
       if (Platform.OS !== 'android') return;

@@ -43,6 +43,7 @@ const LineItemDetailsScreen = () => {
 
   const readOnly = !!route?.params?.readonly;
   const returnTo = route?.params?.returnTo || null;
+  const receiptNumber = route?.params?.receiptNumber || null;
   const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
 
@@ -168,7 +169,7 @@ const LineItemDetailsScreen = () => {
     });
   }, [edited, allItems, readOnly]);
 
-  const titlePo = current?.poNumber ? `${String(current.poNumber)}` : 'Receive';
+  const titlePo = returnTo=='ReceivedSummaryScreen'?receiptNumber:current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
@@ -273,7 +274,7 @@ const LineItemDetailsScreen = () => {
 
             <View style={styles.divider} />
             <View style={styles.row}>
-              <Text style={styles.label}>Receiving Quantity</Text>
+              <Text style={styles.label}>{readOnly?'Received':'Receiving'} Quantity</Text>
               <View style={styles.numericRight}>
                 {readOnly ? (
                   <Text style={styles.qtyRight}>{String(readonlyQty)}</Text>
@@ -306,20 +307,12 @@ const LineItemDetailsScreen = () => {
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
               <Text style={[styles.statusText,{
-      color: readOnly?(item.receivingStatus && item.receivingStatus =='OPEN'
-          ? "#033EFF" // ✅ when receivingQty is valid and > 0
-          : item.receivingStatus == 'CLOSED'
-          ? "#168035" // ✅ when openQty is 0 → CLOSED
-          : "#F06000"):
-          (item.openQty && item.openQty ==0
-          ? "#168035" // ✅ when receivingQty is valid and > 0
-          : pageState.receivingQty??pageState.receivingQty>0 == 'In Progress'
-          ? "#F06000" // ✅ when openQty is 0 → CLOSED
-          : "#033EFF"), // ✅ fallback → OPEN
-    },]}>
-                {readOnly
-                    ? (`${item.receivingStatus}`)
-                    : (pageState.receivingQty??pageState.receivingQty>0?'In Progress':item.openQty==0?'CLOSED':'OPEN')}
+      color:item.receivingStatus && item.receivingStatus =='OPEN'
+          ? "#033EFF"
+          : item.receivingStatus == 'FULLY RECEIVED'
+          ? "#168035" 
+          : "#F06000"},]}>
+            {item.receivingStatus}
                 </Text>
             </View>
 
@@ -397,7 +390,7 @@ const LineItemDetailsScreen = () => {
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
         organizationName={OrgData?.selectedOrgCode}
-        screenTitle="Receive"
+        screenTitle="Receiving "
         contextInfo={titlePo}
         notificationCount={0}
         // profileName={profileName}
