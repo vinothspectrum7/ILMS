@@ -168,7 +168,7 @@ const IC_LineItemDetailsScreen = () => {
     });
   }, [edited, allItems, readOnly]);
 
-  const titlePo = current?.poNumber ? `${String(current.poNumber)}` : 'Receive';
+  const titlePo = current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
@@ -389,7 +389,7 @@ const IC_LineItemDetailsScreen = () => {
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
         organizationName={OrgData?.selectedOrgCode}
-        screenTitle="Receive"
+        screenTitle="Receiving "
         contextInfo={titlePo}
         notificationCount={0}
         // profileName={profileName}
@@ -422,7 +422,7 @@ const IC_LineItemDetailsScreen = () => {
         onScroll={(e) => {
           const x = e.nativeEvent.contentOffset.x;
           const newIndex = Math.round(x / SCREEN_WIDTH);
-          if (newIndex !== index) setIndex(newIndex);
+          // if (newIndex !== index) setIndex(newIndex);
         }}
         scrollEventThrottle={16}
       />

@@ -147,7 +147,7 @@ const IC_ScanItemDetailsScreen = () => {
 
   const isSubmitEnabled = true;
 
-  const titlePo = current?.poNumber ? `${String(current.poNumber)}` : 'Receive';
+  const titlePo = current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
@@ -367,7 +367,7 @@ const IC_ScanItemDetailsScreen = () => {
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
         organizationName={OrgData?.selectedOrgCode}
-        screenTitle="Receive"
+        screenTitle="Receiving "
         contextInfo={titlePo}
         notificationCount={0}
         onBack={() => navigation.goBack()}
@@ -397,7 +397,7 @@ const IC_ScanItemDetailsScreen = () => {
         onScroll={(e) => {
           const x = e.nativeEvent.contentOffset.x;
           const newIndex = Math.round(x / SCREEN_WIDTH);
-          if (newIndex !== index) setIndex(newIndex);
+          // if (newIndex !== index) setIndex(newIndex);
         }}
         scrollEventThrottle={16}
       />
