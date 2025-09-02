@@ -7,11 +7,14 @@ import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ReceiveScreen from './src/screens/ReceiveScreen';
 import NewReceiveScreen from './src/screens/NewReceiveScreen';
+import InCompleteReceiveScreen from './src/screens/InCompleteReceiveScreen';
 import AsnReceiptScreen from './src/screens/AsnReceipt'; 
 import ReceiveSummaryScreen from './src/screens/ReceiveSummaryScreen';
 import ReceivedSummaryScreen from './src/screens/ReceivedSummary'; 
 import LineItemDetailsScreen from './src/screens/LineItemDetailsScreen';
+import IC_LineItemDetailsScreen from './src/screens/IC_LineItemDetailsScreen';
 import ScanItemDetailsScreen from './src/screens/ScanItemDetailsScreen';
+import IC_ScanItemDetailsScreen from './src/screens/IC_ScanItemDetailsScreen';
 import PODetailSummary from './src/screens/POdetailsummary'; 
 import PovViewItems from './src/screens/ASN/poviewitems';
 import { navigationRef } from './src/api/api';
@@ -56,6 +59,11 @@ component={NewReceiveScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen
+name="InCompleteReceiveScreen"
+component={InCompleteReceiveScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
 name="AsnReceiptScreen"
 component={AsnReceiptScreen}
 options={{ headerShown: false }}
@@ -76,8 +84,18 @@ component={LineItemDetailsScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen
+name="IC_LineItemDetails"
+component={IC_LineItemDetailsScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
 name="ScanItemDetails"
 component={ScanItemDetailsScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="IC_ScanItemDetails"
+component={IC_ScanItemDetailsScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen

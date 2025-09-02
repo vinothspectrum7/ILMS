@@ -22,7 +22,7 @@ import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import SearchIcon from '../assets/icons/search.svg';
 import { useReceivingStore } from '../store/receivingStore';
-import { FetchData, GetPoItems, GetReceivedItems } from '../api/ApiServices';
+import { FetchData, GetPoItems, GetReceivedItems, GetICPoItems } from '../api/ApiServices';
 
 const initialLayout = { width: Dimensions.get('window').width };
 
@@ -59,8 +59,8 @@ const ReceiveScreen = () => {
   const [routes] = useState([
     { key: 'poir', title: 'PO/IR' },
     { key: 'asn', title: 'ASN' },
-    { key: 'received', title: 'Received' },
-    { key: 'inprogress', title: 'In-progress' },
+    { key: 'received', title: 'Receipt' },
+    { key: 'InComplete', title: 'Incomplete' },
   ]);
   const activeKey = routes[index].key;
 
@@ -69,7 +69,10 @@ const ReceiveScreen = () => {
   const [searchText, setSearchText] = useState('');
   const [POData, setPOData] = useState([]);
   const [POIntialData, setPOIntialData] = useState([]);
+  const [ICPOData, setICPOData] = useState([]);
+  const [ICPOIntialData, setICPOIntialData] = useState([]);
   const [ReceivedData,SetReceivedData] = useState([]);
+  const [InCompleteData,SetInCompleteData] = useState([]);
   const [IntialReceivedData,SetIntialReceivedData] = useState([]);
 
   const [phase, setPhase] = useState('idle');
@@ -171,7 +174,51 @@ const ReceiveScreen = () => {
       }
     };
 
+    const loadICPoData = async () => {
+      // setPhase('loading');
+      setICPOData([]);
+      setICPOIntialData([]);
+      try {
+        const ICpodata = await GetICPoItems(OrgData?.selectedOrg);
+        if(ICpodata!=undefined && ICpodata.length!=0){
+          ICpodata.forEach((element,index) => {
+            element["id"] = index+1;
+            const total_ord_qty = element.total_ord_qty;
+            const total_received_qty = element.total_received_qty;
+            // calculate percentage
+            if(total_received_qty>total_ord_qty){
+              element["received"] = 100;
+            }else{
+            const receivedPercent =
+              total_ord_qty > 0
+                ? (total_received_qty / total_ord_qty) * 100
+                : 0;
+            
+                //  width: `${((Number(item.received) / Number(item.ordered)) * 100)}%`,
+
+            element["received"] = receivedPercent;
+            }
+          });
+        }
+        setICPOData(ICpodata);
+        setICPOIntialData(ICpodata);
+        setPhase('success');
+        console.log(ICpodata, "ICpodatapodatapodata");
+      } catch (err) {
+        console.error("Error loading PO data:", err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load Purchase Order data. Please try again.',
+          position: 'top',
+          visibilityTime: 5000
+        });
+        setPhase('error');
+      }
+    };
+
     loadPoData();
+    loadICPoData();
     loadData();
     loadReceivedData();
   }, [OrgData?.selectedOrg]);
@@ -564,11 +611,98 @@ const ReceiveScreen = () => {
     />
   );
 
+  const InCompleteList = () => (
+    <FlatList
+      data={ICPOData}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ paddingBottom: 80 }}
+                ListEmptyComponent={() => (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ fontSize: 16, color: 'gray' }}>No data found</Text>
+      </View>
+    )}
+      renderItem={({ item }) => (
+        // <TouchableOpacity
+        //   onPress={() =>
+        //     navigation.navigate('InCompleteScreen', {
+        //         readonly: true,
+        //         id: item.receipt_id,
+        //         listType: 'Received',
+        //         header: {
+        //           receiptNumber: item.receipt_num,
+        //           supplier: item.supplier_name,
+        //           poNumber: item.po_number,
+        //           receiptDate: item.received_date,
+        //         },
+        //         selectedItems: [],
+        //       })
+        //   }
+        //   activeOpacity={0.9}
+        // >
+        <TouchableOpacity
+          onPress={() => navigation.navigate('InCompleteReceiveScreen', 
+            { selectedPO: item,fromScan: false,scannedPoNumber: null, })}
+          activeOpacity={0.9}
+        >
+          <View style={styles.card}>
+            <View style={styles.toprow}>
+              <View style={styles.topcardLeft}>
+              <Text style={styles.labelText}>Receipt</Text>
+              <Text style={styles.valueText}>{item.receipt_num  || '—'}</Text>
+              </View>
+              <View style={styles.topcardRight}>
+              <Text style={styles.labelText}>PO Number</Text>
+              <Text style={styles.valueText}>{item.po_number}</Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <Text style={styles.labelText}>Supplier</Text>
+              <Text style={[styles.valueText]}>
+                    {item.supplier_name?.length > 20 
+      ? item.supplier_name.substring(0, 20) + "..." 
+      : item.supplier_name}
+              </Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <Text style={styles.labelText}>Receiving Date</Text>
+              <Text style={styles.valueText}>{formatDate(new Date)}</Text>
+              </View>
+            </View>
+            {/* <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <Text style={styles.subLabel}>Received</Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <Text style={styles.subLabel}>Billed</Text>
+              </View>
+            </View> */}
+            {/* <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+              <View style={styles.progressWrapper}>
+                <View style={[styles.progressBarleft, { width: `${item.received}%` }]} />
+              </View>
+              </View>
+              <View style={styles.bottomcardRight}>
+              <View style={styles.progressWrapper}>
+                <View style={[styles.progressBarright, { width: `40%` }]} />
+              </View>
+              </View>
+            </View> */}
+
+
+
+          </View>
+        </TouchableOpacity>
+      )}
+    />
+  );
+
   const renderScene = {
     poir: POList,
     asn: ASNList,
     received: ReceivedList,
-    inprogress: POList,
+    InComplete: InCompleteList,
   };
 
 const formatDate = (date) => {

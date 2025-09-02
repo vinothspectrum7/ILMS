@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Modal, Alert } from 'react-native';
 import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -18,9 +18,9 @@ const CONTROL_HEIGHT = 28;
 const NUMCONTROL_WIDTH = 80;
 const NUMCONTROL_HEIGHT = 28;
 
-const fallbackLineItems = [
-  { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINV1', locator: 'LOC1' },
-];
+// const fallbackLineItems = [
+//   { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINV1', locator: 'LOC1' },
+// ];
 
 const InlineFieldRow = ({ label, children }) => (
   <View style={styles.inlineRow}>
@@ -37,27 +37,27 @@ const clampToLimit = (qty, limit) => {
   return Math.min(q, lim);
 };
 
-const ScanItemDetailsScreen = () => {
+const IC_LineItemDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
   const readOnly = !!route?.params?.readonly;
-  theReturnTo = route?.params?.returnTo || null;
-  const listType = route?.params?.listType || 'scan';
+  const returnTo = route?.params?.returnTo || null;
+  const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
 
   const { InventoryList, OrgData, LocatorList, setLocatorList, receiveItems, mergePatchIntoReceiveItems } = useReceivingStore();
 
   const baseItems = Array.isArray(route?.params?.items) && route.params.items.length > 0
     ? route.params.items
-    : fallbackLineItems;
+    : [];
 
   const mergedItems = useMemo(() => {
     return baseItems.map((it) => {
       const stored = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
       return {
         ...it,
-        receivingQty: Number(stored?.qtyToReceive ?? stored?.receivingQty ?? it.receivingQty ?? it.qtyToReceive ?? 0),
+        receivingQty: Number(stored?.qtyToReceive ?? 0),
         lpn: stored?.lpn ?? it.lpn ?? '',
         subInventory: stored?.subInventory ?? it.subInventory ?? '',
         locator: stored?.locator ?? it.locator ?? '',
@@ -72,36 +72,46 @@ const ScanItemDetailsScreen = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [index, setIndex] = useState(startIndex);
   const [edited, setEdited] = useState({});
-  const [LpnList, setLpnList] = useState([]);
+  const [SUB_WIDTH,setSubWidth] = useState(80);
+    const [LpnList, setLpnList] = useState([]);
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const listRef = useRef(null);
-  const [SUB_WIDTH,setSubWidth] = useState(80);
+  const prefilledRef = useRef(false);
 
   const allItems = mergedItems;
   const current = useMemo(() => allItems[index], [allItems, index]);
 
   useEffect(() => {
     if (readOnly) return;
+    if (prefilledRef.current) return;
     const next = { ...edited };
-    let changed = false;
     for (const it of allItems) {
       if (next[it.id]) continue;
       const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
       if (fromStore) {
         next[it.id] = {
-          receivingQty: Number(fromStore.qtyToReceive ?? fromStore.receivingQty ?? 0),
+          receivingQty: Number(fromStore.qtyToReceive ?? 0),
           lpn: fromStore.lpn ?? it.lpn ?? '',
           subInventory: fromStore.subInventory ?? it.subInventory ?? '',
           locator: fromStore.locator ?? it.locator ?? '',
         };
-        changed = true;
       }
     }
-    if (changed) setEdited(next);
-  }, [allItems, receiveItems, readOnly]);
+    if (Object.keys(next).length !== Object.keys(edited).length) {
+      setEdited(next);
+    }
+    prefilledRef.current = true;
+  }, [allItems, receiveItems, readOnly, edited]);
 
-  const estimateWidth = (label) => {
+  const readonlyScanQty = (() => {
+    if (!readOnly || listType !== 'scan') return null;
+    const open = Number(current.openQty ?? 0);
+    const ord = Number(current.orderQty ?? 0);
+    return open > 0 ? open : ord;
+  })();
+
+    const estimateWidth = (label) => {
       // Alert.alert(label);
     const text = String(label ?? '').trim();
         console.log(text,"MINWMINWNIMIMININIW")
@@ -125,27 +135,38 @@ const ScanItemDetailsScreen = () => {
 };
 
   const handleSubInventoryChange = async (itemId, sub_id) => {
-      setEdited((prev) => ({
-        ...prev,
-        [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id },
-      })); 
-      // Alert.alert("TEst");
-          // console.log(InventoryList,"FINDLABELFINDLBVELELVMEF")
-      const findLabels = findLabel(sub_id,InventoryList);
-      const dynamicwidth = estimateWidth(findLabels);
-      setSubWidth(dynamicwidth);
-      try {
-        const locdata = await GetLocatorsData(sub_id);
-        if (locdata) {
-          const Locatorsdata = locdata.map((d) => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
-          setLocatorList(Locatorsdata);
-        }
-      } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators', position: 'top',visibilityTime: 5000 });
+    setEdited((prev) => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id },
+    })); 
+    // Alert.alert("TEst");
+        // console.log(InventoryList,"FINDLABELFINDLBVELELVMEF")
+    const findLabels = findLabel(sub_id,InventoryList);
+    const dynamicwidth = estimateWidth(findLabels);
+    setSubWidth(dynamicwidth);
+    try {
+      const locdata = await GetLocatorsData(sub_id);
+      if (locdata) {
+        const Locatorsdata = locdata.map((d) => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
+        setLocatorList(Locatorsdata);
       }
-    };
+    } catch {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators', position: 'top',visibilityTime: 5000 });
+    }
+  };
 
-  const isSubmitEnabled = true;
+  const isSubmitEnabled = useMemo(() => {
+    if (readOnly) return false;
+    return allItems.some((it) => {
+      const st = edited[it.id];
+      if (!st) return false;
+      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
+      const q = Number(st.receivingQty ?? 0);
+      const qtyOk = q > 0 && q <= limit;
+      const subInvOk = !!st.subInventory;
+      return qtyOk && subInvOk;
+    });
+  }, [edited, allItems, readOnly]);
 
   const titlePo = current?.poNumber ? `${String(current.poNumber)}` : 'Receive';
 
@@ -159,9 +180,9 @@ const ScanItemDetailsScreen = () => {
   const goNext = useCallback(() => { if (index < allItems.length - 1) scrollToIndex(index + 1); }, [index, allItems.length, scrollToIndex]);
 
   const handleCancelNav = useCallback(() => {
-    if (theReturnTo) navigation.navigate(theReturnTo, { selectedTab: 'scanItems' });
+    if (returnTo) navigation.navigate(returnTo);
     else navigation.goBack();
-  }, [navigation, theReturnTo]);
+  }, [navigation, returnTo]);
 
   const buildPatches = useCallback(() => {
     const patches = [];
@@ -170,16 +191,15 @@ const ScanItemDetailsScreen = () => {
       if (!st) continue;
       const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
       const clampedQty = clampToLimit(Number(st.receivingQty ?? 0), limit);
-      const valid = clampedQty >= 0 && clampedQty <= limit && !!st.subInventory;
+      const valid = clampedQty > 0 && clampedQty <= limit && !!st.subInventory;
       if (!valid) continue;
       patches.push({
         id: String(it.id),
-        qtyToReceive: clampedQty,
-        receivingQty: clampedQty,   // <-- add this
+        receivingQty: clampedQty,
         lpn: st.lpn ?? '',
         subInventory: st.subInventory ?? '',
         locator: st.locator ?? '',
-        });
+      });
     }
     return patches;
   }, [allItems, edited]);
@@ -188,31 +208,32 @@ const ScanItemDetailsScreen = () => {
     const patches = buildPatches();
     if (!patches.length) {
       Toast.show({ type: 'info', text1: 'No changes to save', position: 'top', visibilityTime: 5000 });
-      if (theReturnTo) navigation.navigate(theReturnTo, { selectedTab: 'scanItems' });
       return;
     }
     try {
       for (const p of patches) mergePatchIntoReceiveItems(p);
-      const label = theReturnTo === 'ReceiveSummaryScreen' ? 'Updated Successfully' : 'Saved Successfully';
+      const label = returnTo === 'ReceiveSummaryScreen' ? 'Updated Successfully' : 'Saved Successfully';
       setSuccessMessage(label);
       setSuccessVisible(true);
       setTimeout(() => {
         setSuccessVisible(false);
-        if (theReturnTo) navigation.dispatch(StackActions.replace(theReturnTo, { listType, selectedTab: 'scanItems' }));
+        if (returnTo) navigation.dispatch(StackActions.replace(returnTo, { listType }));
         else navigation.goBack();
       }, 1200);
     } catch {
       Toast.show({ type: 'error', text1: 'Save failed', text2: 'Please try again.', position: 'top', visibilityTime: 5000 });
     }
-  }, [buildPatches, mergePatchIntoReceiveItems, navigation, theReturnTo, listType]);
+  }, [buildPatches, mergePatchIntoReceiveItems, navigation, returnTo, listType]);
 
   const renderPage = ({ item }) => {
     const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(item.id)) : undefined;
-    const storeQty = Number(fromStore?.qtyToReceive ?? fromStore?.receivingQty);
-    const mergedQty = Number(item.receivingQty ?? item.qtyToReceive ?? 0);
+    const storeQty = Number(fromStore?.qtyToReceive);
+    const mergedQty = Number(item.receivingQty ?? 0);
     const defaultEditableQty = Number.isFinite(storeQty) ? storeQty : mergedQty;
+    console.log(item,"readOnlyreadOnlyreadOnlyreadOnlyreadOnlyreadOnlyreadOnly")
 
-    const readonlyQty = readOnly
+    const readonlyQty = returnTo=='ReceivedSummaryScreen'?item.receivedQty:
+    readOnly
       ? (listType === 'scan'
           ? (Number(item.openQty ?? 0) > 0 ? Number(item.openQty ?? 0) : Number(item.orderQty ?? 0))
           : Number(item.orderQty ?? mergedQty ?? 0))
@@ -223,9 +244,8 @@ const ScanItemDetailsScreen = () => {
       lpn: fromStore?.lpn ?? item.lpn ?? '',
       subInventory: fromStore?.subInventory ?? item.subInventory ?? '',
       locator: fromStore?.locator ?? item.locator ?? '',
-      openQty: fromStore?.openQty ?? item.openQty ?? ''
+      openQty:fromStore?.openQty ?? item.openQty ?? ''
     };
-
     // useEffect(()=>{
     const findLabels = findLabel(pageState?.subInventory,InventoryList);
     const dynamicwidth = estimateWidth(findLabels);
@@ -238,21 +258,19 @@ const ScanItemDetailsScreen = () => {
       <View style={{ width: SCREEN_WIDTH }}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.card} key={`card-${item.id}`}>
-            <View style={styles.row}>
-              <Text style={styles.label}>Item Name</Text>
-              <Text style={styles.valueBold} numberOfLines={1}>{item.itemName || '—'}</Text>
-            </View>
+            <View style={styles.row}><Text style={styles.label}>Item Name</Text><Text style={styles.valueBold} numberOfLines={1}>{item.itemName || '—'}</Text></View>
             <View style={styles.divider} />
-            <View style={styles.block}>
-              <Text style={styles.label}>Item Description</Text>
-              <Text style={styles.descText}>{item.itemDescription || '—'}</Text>
-            </View>
+            <View style={styles.block}><Text style={styles.label}>Item Description</Text><Text style={styles.descText}>{item.itemDescription || '—'}</Text></View>
             <View style={styles.divider} />
+
+            <View style={styles.divider} />
+
             <View style={styles.row}>
               <Text style={styles.label}>Order Quantity</Text>
               <Text style={styles.qtyRight}>{String(item.orderQty ?? 0)}</Text>
             </View>
             <Text style={styles.uomText}>{item.uom}</Text>
+
             <View style={styles.divider} />
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Quantity</Text>
@@ -268,33 +286,47 @@ const ScanItemDetailsScreen = () => {
                       const currentVal = Number(pageState.receivingQty) || 0;
                       const raw = typeof v === 'function' ? v(currentVal) : v;
                       const n = Number(raw);
-                      const clamped = clampToLimit(n, limit);
+                      const clamped = clampToLimit(n, Number(item.max_open_qty ?? 0));
                       setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), receivingQty: clamped } }));
                     }}
-                    max={limit}
+                    max={Number(item.max_open_qty ?? 0)}
                     min={0}
                     step={1}
                     width={NUMCONTROL_WIDTH}
                     height={NUMCONTROL_HEIGHT}
                     isSelected={isEditable}
-                    disabledinput={item.openQty == 0}
+                    disabledinput={item.openQty==0?true:false}
                   />
                 )}
               </View>
             </View>
             <Text style={styles.uomText}>{item.uom}</Text>
             <View style={styles.divider} />
+
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
-              <Text style={styles.statusText}>
+              <Text style={[styles.statusText,{
+      color: readOnly?(item.receivingStatus && item.receivingStatus =='OPEN'
+          ? "#033EFF" // ✅ when receivingQty is valid and > 0
+          : item.receivingStatus == 'CLOSED'
+          ? "#168035" // ✅ when openQty is 0 → CLOSED
+          : "#F06000"):
+          (item.openQty && item.openQty ==0
+          ? "#168035" // ✅ when receivingQty is valid and > 0
+          : pageState.receivingQty??pageState.receivingQty>0 == 'In Progress'
+          ? "#F06000" // ✅ when openQty is 0 → CLOSED
+          : "#033EFF"), // ✅ fallback → OPEN
+    },]}>
                 {readOnly
-                  ? (listType === 'scan' ? `${item.receivingStatus}` : 'Received')
-                  : (pageState.receivingQty && pageState.receivingQty > 0 ? 'In Progress' : item.openQty == 0 ? 'CLOSED' : 'OPEN')}
-              </Text>
+                    ? (`${item.receivingStatus}`)
+                    : (pageState.receivingQty??pageState.receivingQty>0?'In Progress':item.openQty==0?'CLOSED':'OPEN')}
+                </Text>
             </View>
+
             <View style={styles.divider} />
-                        <InlineFieldRow label="LPN">
-              <PencilDropdownRow
+
+            <InlineFieldRow label="LPN">
+             {!readOnly?<PencilDropdownRow
                 key={`lpn-${String(item.id)}`}
                 value={pageState.lpn}
                   onChange={
@@ -315,11 +347,12 @@ const ScanItemDetailsScreen = () => {
   selectedwidth={CONTROL_WIDTH}
   height={CONTROL_HEIGHT}
   compact
-              />
+              />:
+          <Text style={[styles.valueBold,{minWidth:'60%'}]} numberOfLines={1}> - </Text>}
             </InlineFieldRow>
             <View style={styles.divider} />
             <InlineFieldRow label="Sub Inventory*">
-              <PencilDropdownRow
+              {!readOnly?<PencilDropdownRow
                 key={`subinv-${String(item.id)}`}
                 value={pageState.subInventory}
                 onChange={isEditable ? (sub_id) => handleSubInventoryChange(item.id, sub_id) : undefined}
@@ -330,11 +363,12 @@ const ScanItemDetailsScreen = () => {
                 selectedwidth={SUB_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
-              />
+              />:
+              <Text style={[styles.valueBold,{minWidth:'60%'}]} numberOfLines={1}>{item.sub_inv_name}</Text>}
             </InlineFieldRow>
             <View style={styles.divider} />
             <InlineFieldRow label="Locator">
-              <PencilDropdownRow
+              {!readOnly?<PencilDropdownRow
                 key={`locator-${String(item.id)}`}
                 value={pageState.locator}
                 onChange={isEditable ? (id) => setEdited((prev) =>
@@ -346,7 +380,8 @@ const ScanItemDetailsScreen = () => {
                 selectedwidth={CONTROL_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
-              />
+              />:
+              <Text style={[styles.valueBold,{minWidth:'60%'}]} numberOfLines={1}>{item.locator_name}</Text>}
             </InlineFieldRow>
           </View>
           <View style={{ height: 24 }} />
@@ -356,9 +391,7 @@ const ScanItemDetailsScreen = () => {
   };
 
   const leftBtnLabel = 'Cancel';
-  const rightBtnLabel = theReturnTo === 'ReceiveSummaryScreen' ? 'Update' : 'Save';
-
-
+  const rightBtnLabel = returnTo === 'ReceiveSummaryScreen' ? 'Update' : 'Save';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -367,8 +400,11 @@ const ScanItemDetailsScreen = () => {
         screenTitle="Receive"
         contextInfo={titlePo}
         notificationCount={0}
+        // profileName={profileName}
         onBack={() => navigation.goBack()}
         onMenu={() => setMenuOpen(true)}
+        // onNotificationPress={() => navigation.navigate('Home')}
+        // onProfilePress={() => navigation.navigate('Home')}
       />
       <View style={styles.navBar}>
         <TouchableOpacity onPress={goPrev} disabled={index === 0} style={styles.navEdge} activeOpacity={0.7}>
@@ -403,9 +439,9 @@ const ScanItemDetailsScreen = () => {
           leftLabel={leftBtnLabel}
           rightLabel={rightBtnLabel}
           onLeftPress={handleCancelNav}
-          onRightPress={handleSaveAll}
-          leftEnabled
-          rightEnabled
+          onRightPress={isSubmitEnabled ? handleSaveAll : undefined}
+          leftEnabled={true}
+          rightEnabled={isSubmitEnabled}
         />
       )}
       <SuccessModal
@@ -433,13 +469,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   navEdge: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center' },
-  navTitle: { flex: 1, color: '#233E55', textAlign: 'center', fontSize: 12, fontWeight: '600' },
+  navTitle: { flex: 1, color:"#233E55", textAlign: 'center', fontSize: 12, fontWeight: '600' },
   content: { paddingBottom: 120 },
   card: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
     marginTop: 8,
-    marginBottom: 80,
+    marginBottom:80,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingTop: 12,
@@ -458,7 +494,11 @@ const styles = StyleSheet.create({
   qtyUnit: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
   statusText: { color: '#F5B429', fontWeight: '700' },
-  uomText: {
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
+  successCard: { width: '75%', backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16, alignItems: 'center', elevation: 6 },
+  successTitle: { fontSize: 14, fontWeight: '700', color: '#233E55', marginBottom: 6 },
+  successMsg: { fontSize: 13, fontWeight: '600', color: '#111827' },
+      uomText: {
     fontSize: 10,
     color: '#595A5C',
     marginTop: -6,
@@ -468,4 +508,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ScanItemDetailsScreen;
+export default IC_LineItemDetailsScreen;

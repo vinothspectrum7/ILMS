@@ -5,11 +5,11 @@ import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
 import ToggleTabsComponent from '../components/ToggleTabsComponent';
-import LineItemListCardComponent from '../components/LineItemListCardComponent';
+import IC_LineItemListCardComponent from '../components/IC_LineItemListCardComponent';
 import FooterButtonsComponent from '../components/FooterButtonsComponent';
-import TableHeaderComponent from '../components/TableHeaderComponent';
-import ScanItemListCardComponent from '../components/ScanItemListCardComponent';
-import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
+import IC_TableHeaderComponent from '../components/IC_TableHeaderComponent';
+import IC_ScanItemListCardComponent from '../components/IC_ScanItemListCardComponent';
+import IC_SummaryTabHdrComponent from '../components/IC_SummaryTabHdrComponent';
 import BarcodeScanner from './BarCodeScanner';
 import { useReceivingStore } from '../store/receivingStore';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
@@ -47,7 +47,7 @@ const sameScanList = (a, b) => {
   return true;
 };
 
-const NewReceiveScreen = () => {
+const InCompleteReceiveScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
@@ -61,12 +61,14 @@ const NewReceiveScreen = () => {
   const selectedPO = route?.params?.selectedPO || null;
 
   const [modalVisible, setModalVisible] = useState(false);
-  const didCompleteRef = useRef(false);
 
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [saveModalStatus, setSaveModalStatus] = useState('success');
 
   const didsaveCompleteRef = useRef(false);
+
+
+  const didCompleteRef = useRef(false);
 
   const [selectedTab, setSelectedTab] = useState('lineItems');
   const [draftItems, setDraftItems] = useState([]);
@@ -100,6 +102,7 @@ const NewReceiveScreen = () => {
           setSaveModalVisible(false);
           return true;
         }
+
         navigation.navigate('Receive');
         return true;
       };
@@ -362,57 +365,56 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
   };
 
   const mapConfirmSaveData = (data) => {
-    return data.map((backend) => ({
-      po_line_id: backend?.po_line_id,
-      item_id: backend?.item_id,
-      org_id: backend?.org_id,
-      sub_inv_id: backend?.subInventory,
-      locator_id: backend?.subInventory,
-      lot_number: '',
-      expiry_date: formatToday(),
-      received_qty: Number(backend?.qtyToReceive),
-    }));
-  };
-
-  const handlesave = async () => {
-  didCompleteRef.current = false;
-  try {
-    const payload = mapConfirmSaveData(draftItems);
-    const response = await Save_Receive_Qty(payload);
-    if (response?.results) {
-      setSaveModalStatus('success');
-      setSaveModalVisible(true);
-      setTimeout(() => handlesaveSuccess(), 3500);
-    } else {
+      return data.map((backend) => ({
+        po_line_id: backend?.po_line_id,
+        item_id: backend?.item_id,
+        org_id: backend?.org_id,
+        sub_inv_id: backend?.subInventory,
+        locator_id: backend?.subInventory,
+        lot_number: '',
+        expiry_date: formatToday(),
+        received_qty: Number(backend?.qtyToReceive),
+      }));
+    };
+  
+    const handlesave = async () => {
+    didCompleteRef.current = false;
+    try {
+      const payload = mapConfirmSaveData(draftItems);
+      const response = await Save_Receive_Qty(payload);
+      if (response?.results) {
+        setSaveModalStatus('success');
+        setSaveModalVisible(true);
+        setTimeout(() => handlesaveSuccess(), 3500);
+      } else {
+        setSaveModalStatus('failure');
+        setSaveModalVisible(true);
+        setTimeout(() => handlesaveFailure(), 3500);
+      }
+    } catch {
       setSaveModalStatus('failure');
       setSaveModalVisible(true);
       setTimeout(() => handlesaveFailure(), 3500);
     }
-  } catch {
-    setSaveModalStatus('failure');
-    setSaveModalVisible(true);
-    setTimeout(() => handlesaveFailure(), 3500);
-  }
-};
-
-const handlesaveSuccess = () => {
-  if (didCompleteRef.current) return;
-  didCompleteRef.current = true;
-  Toast.hide();
-  Toast.show({ type: 'success', text1: 'Order receipt Saved successfully', position: 'top', visibilityTime: 5000 });
-  setSaveModalVisible(false);
-  resetReceiving();
-  navigation.navigate('Receive');
-};
-
-const handlesaveFailure = () => {
-  if (didCompleteRef.current) return;
-  didCompleteRef.current = true;
-  Toast.hide();
-  setSaveModalVisible(false);
-  Toast.show({ type: 'error', text1: 'Save failed', position: 'top', visibilityTime: 5000 });
-};
-
+  };
+  
+  const handlesaveSuccess = () => {
+    if (didCompleteRef.current) return;
+    didCompleteRef.current = true;
+    Toast.hide();
+    Toast.show({ type: 'success', text1: 'Order receipt Saved successfully', position: 'top', visibilityTime: 5000 });
+    setSaveModalVisible(false);
+    resetReceiving();
+    navigation.navigate('Receive');
+  };
+  
+  const handlesaveFailure = () => {
+    if (didCompleteRef.current) return;
+    didCompleteRef.current = true;
+    Toast.hide();
+    setSaveModalVisible(false);
+    Toast.show({ type: 'error', text1: 'Save failed', position: 'top', visibilityTime: 5000 });
+  };
 
 
   const handleCancel = () => setModalVisible(false);
@@ -455,12 +457,12 @@ const handlesaveFailure = () => {
     });
 
     navigation.navigate({
-      name: 'ScanItemDetails',
+      name: 'IC_ScanItemDetails',
       params: {
         items: withLatestFromStore,
         startIndex: startIdx,
         readonly,
-        returnTo: 'NewReceiveScreen',
+        returnTo: 'InCompleteReceiveScreen',
         listType,
       },
       merge: true,
@@ -490,12 +492,12 @@ const handlesaveFailure = () => {
     });
 
     navigation.navigate({
-      name: 'LineItemDetails',
+      name: 'IC_LineItemDetails',
       params: {
         items: withLatestFromStore,
         startIndex: startIdx,
         readonly,
-        returnTo: 'NewReceiveScreen',
+        returnTo: 'InCompleteReceiveScreen',
         listType,
       },
       merge: true,
@@ -611,7 +613,7 @@ const handlesaveFailure = () => {
               {selectedTab === 'lineItems' ? (
                 <>
                   <View style={styles.tableHeader}>
-                    <TableHeaderComponent
+                    <IC_TableHeaderComponent
                       allSelected={selectedItems.length === draftItems.length && draftItems.every(d => Number(d.qtyToReceive ?? 0) > 0)}
                       onToggleAll={() => {
                         const selecting = !(selectedItems.length === draftItems.length && draftItems.every(d => Number(d.qtyToReceive ?? 0) > 0));
@@ -637,7 +639,7 @@ const handlesaveFailure = () => {
                     keyExtractor={(item) => String(item.id)}
                     renderItem={({ item, index }) => (
                       <View style={styles.lineItemWrapper}>
-                        <LineItemListCardComponent
+                        <IC_LineItemListCardComponent
                           item={item}
                           index={index}
                           isSelected={selectedItems.includes(item.id)}
@@ -651,7 +653,7 @@ const handlesaveFailure = () => {
                   />
                 </>
               ) : (
-                <ScanItemListCardComponent
+                <IC_ScanItemListCardComponent
                   dummyItems={PoListItems}
                   scannedItems={scannedItems}
                   onChange={setScannedItems}
@@ -665,7 +667,7 @@ const handlesaveFailure = () => {
                   }}
                   header={
                     <View style={styles.tableHeader}>
-                      <SummaryTabHdrComponent allSelected={false} onToggleAll={() => {}} />
+                      <IC_SummaryTabHdrComponent allSelected={false} onToggleAll={() => {}} />
                     </View>
                   }
                 />
@@ -693,26 +695,26 @@ const handlesaveFailure = () => {
             <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
           </Modal>
           <Modal
-              visible={saveModalVisible}
-              transparent
-              animationType="fade"
-              onRequestClose={() => {}}
-            >
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-                <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: '80%' }}>
-                  {saveModalStatus === 'success' ? (
-                    <ConfirmSvg width={72} height={72} />
-                  ) : (
-                    <FailureSvg width={72} height={72} />
-                  )}
-                  <Text style={{ marginTop: 16, fontSize: 16, color: '#333' }}>
-                    {saveModalStatus === 'success'
-                      ? 'Order receipt Saved successfully'
-                      : 'Save failed. Please try again.'}
-                  </Text>
-                </View>
+            visible={saveModalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => {}}
+          >
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+              <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: '80%' }}>
+                {saveModalStatus === 'success' ? (
+                  <ConfirmSvg width={72} height={72} />
+                ) : (
+                  <FailureSvg width={72} height={72} />
+                )}
+                <Text style={{ marginTop: 16, fontSize: 16, color: '#333' }}>
+                  {saveModalStatus === 'success'
+                    ? 'Order receipt Saved successfully'
+                    : 'Save failed. Please try again.'}
+                </Text>
               </View>
-            </Modal>
+            </View>
+          </Modal>
                   </>
       )}
     </SafeAreaView>
@@ -737,4 +739,4 @@ const styles = StyleSheet.create({
   lineItemWrapper: { marginBottom: 12 },
 });
 
-export default NewReceiveScreen;
+export default InCompleteReceiveScreen;
