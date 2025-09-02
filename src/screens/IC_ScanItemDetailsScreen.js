@@ -37,7 +37,7 @@ const clampToLimit = (qty, limit) => {
   return Math.min(q, lim);
 };
 
-const ScanItemDetailsScreen = () => {
+const IC_ScanItemDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
@@ -287,12 +287,20 @@ const ScanItemDetailsScreen = () => {
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
               <Text style={[styles.statusText,{
-      color:item.receivingStatus && item.receivingStatus =='OPEN'
-          ? "#033EFF"
-          : item.receivingStatus == 'FULLY RECEIVED'
-          ? "#168035" 
-          : "#F06000"},]}>
-            {item.receivingStatus}
+      color: readOnly?(item.receivingStatus && item.receivingStatus =='OPEN'
+          ? "#033EFF" // ✅ when receivingQty is valid and > 0
+          : item.receivingStatus == 'CLOSED'
+          ? "#168035" // ✅ when openQty is 0 → CLOSED
+          : "#F06000"):
+          (item.openQty && item.openQty ==0
+          ? "#168035" // ✅ when receivingQty is valid and > 0
+          : pageState.receivingQty??pageState.receivingQty>0 == 'In Progress'
+          ? "#F06000" // ✅ when openQty is 0 → CLOSED
+          : "#033EFF"), // ✅ fallback → OPEN
+    },]}>
+                {readOnly
+                    ? (listType === 'scan' ? `${item.receivingStatus}`: 'Received')
+                    : (pageState.receivingQty??pageState.receivingQty>0?'In Progress':item.openQty==0?'CLOSED':'OPEN')}
                 </Text>
             </View>
             <View style={styles.divider} />
@@ -471,4 +479,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ScanItemDetailsScreen;
+export default IC_ScanItemDetailsScreen;

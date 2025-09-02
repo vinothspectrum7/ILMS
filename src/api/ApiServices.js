@@ -113,3 +113,23 @@ export const Submit_Receive_Qty = async(data)=>{
     throw error.response?.data;
   }  
 }
+export const Save_Receive_Qty = async(data)=>{
+    try {
+    const response = await api.patch(API_ENDPOINTS.SAVE_RECEIVED_QTY,data);
+    console.log("Response Data:", response);
+    return response.data;
+  } catch (error) {
+    console.error("Fetch Error:", error.message, error.response?.data);
+    throw error.response?.data;
+  }  
+}
+export const GetICPoItems = async(org_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_IC_PO_DATA(org_id));
+        console.log("Response Data:popopo", response);
+    return response.data;
+  }catch (error) {
+    console.error("Get PO Error:", error.message, error.response?.data);
+    throw error;
+  }
+}
