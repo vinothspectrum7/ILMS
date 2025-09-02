@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, Modal, BackHandler, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
@@ -10,8 +10,10 @@ import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import Toast from 'react-native-toast-message';
 import { createOrderReceipt } from '../api/mockApi';
 import { useReceivingStore } from '../store/receivingStore';
-import { Submit_Receive_Qty } from '../api/ApiServices';
+import { Submit_Receive_Qty, Save_Receive_Qty } from '../api/ApiServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ConfirmSvg from '../assets/icons/success.svg';
+import FailureSvg from '../assets/icons/failure.svg';
 
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', receivedDate: '21 Jul 2025', status: 'Fully Received' },
@@ -54,6 +56,12 @@ const ReceiveSummaryScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
 
   const didCompleteRef = useRef(false);
+
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+    const [saveModalStatus, setSaveModalStatus] = useState('success');
+  
+    const didsaveCompleteRef = useRef(false);
+
   const handledPatchIdsRef = useRef(new Set());
   const initializedRef = useRef(false);
 
@@ -71,6 +79,10 @@ const ReceiveSummaryScreen = () => {
           setModalVisible(false);
           return true;
         }
+        if (saveModalVisible) {
+          setSaveModalVisible(false);
+          return true;
+        }
         if (listTypeFromRoute === 'Received') {
           navigation.navigate('Receive');
         } else {
@@ -80,7 +92,7 @@ const ReceiveSummaryScreen = () => {
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [navigation, modalVisible, listTypeFromRoute])
+    }, [navigation, modalVisible, listTypeFromRoute, saveModalVisible])
   );
 
   useEffect(() => {
@@ -173,6 +185,60 @@ const  mapConfirmData = (data)=> {
           return { success: false, message: err.detail?.[0].msg || 'Network error. Please try again.' };
         }
   };
+
+  const mapConfirmSaveData = (data) => {
+      return data.map((backend) => ({
+        po_line_id: backend?.po_line_id,
+        item_id: backend?.item_id,
+        org_id: backend?.org_id,
+        sub_inv_id: backend?.subInventory,
+        locator_id: backend?.locator?backend?.locator:null,
+        lot_number: '',
+        expiry_date: formatToday(),
+        received_qty: Number(backend?.qtyToReceive),
+      }));
+    };
+  
+    const handlesave = async () => {
+    didCompleteRef.current = false;
+    try {
+      console.log(renderItems,"Save items")
+      const payload = mapConfirmSaveData(renderItems);
+      const response = await Save_Receive_Qty(payload);
+      if (response?.results) {
+        setSaveModalStatus('success');
+        setSaveModalVisible(true);
+        setTimeout(() => handlesaveSuccess(), 3500);
+      } else {
+        setSaveModalStatus('failure');
+        setSaveModalVisible(true);
+        setTimeout(() => handlesaveFailure(), 3500);
+      }
+    } catch {
+      setSaveModalStatus('failure');
+      setSaveModalVisible(true);
+      setTimeout(() => handlesaveFailure(), 3500);
+    }
+  };
+  
+  const handlesaveSuccess = () => {
+    if (didCompleteRef.current) return;
+    didCompleteRef.current = true;
+    Toast.hide();
+    Toast.show({ type: 'success', text1: 'Order receipt Saved successfully', position: 'top', visibilityTime: 5000 });
+    setSaveModalVisible(false);
+    resetReceiving();
+    navigation.navigate('Receive');
+  };
+  
+  const handlesaveFailure = () => {
+    if (didCompleteRef.current) return;
+    didCompleteRef.current = true;
+    Toast.hide();
+    setSaveModalVisible(false);
+    Toast.show({ type: 'error', text1: 'Save failed', position: 'top', visibilityTime: 5000 });
+  };
+
   const renderItems = useMemo(() => {
   if (!readonly && Array.isArray(receiveItems) && receiveItems.length > 0) {
     return receiveItems.filter(
@@ -362,7 +428,7 @@ const  mapConfirmData = (data)=> {
           <FooterButtonsComponent
             leftLabel="Save"
             rightLabel="Confirm"
-            onLeftPress={() => setModalVisible(true)}
+            onLeftPress={() => {handlesave();}}
             onRightPress={() => setModalVisible(true)}
             leftEnabled
             rightEnabled
@@ -376,6 +442,27 @@ const  mapConfirmData = (data)=> {
             onSuccess={handleSuccess}
             onFailure={handleFailure}
           />
+          <Modal
+                        visible={saveModalVisible}
+                        transparent
+                        animationType="fade"
+                        onRequestClose={() => {}}
+                      >
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: '80%' }}>
+                            {saveModalStatus === 'success' ? (
+                              <ConfirmSvg width={72} height={72} />
+                            ) : (
+                              <FailureSvg width={72} height={72} />
+                            )}
+                            <Text style={{ marginTop: 16, fontSize: 16, color: '#333' }}>
+                              {saveModalStatus === 'success'
+                                ? 'Order receipt Saved successfully'
+                                : 'Save failed. Please try again.'}
+                            </Text>
+                          </View>
+                        </View>
+                      </Modal>
         </>
       )}
     </SafeAreaView>
