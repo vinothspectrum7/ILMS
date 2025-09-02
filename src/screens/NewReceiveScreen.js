@@ -362,7 +362,11 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
   };
 
   const mapConfirmSaveData = (data) => {
-    return data.map((backend) => ({
+  const FILTER_ZERO_QTY = false; // set to true if backend rejects zero-qty rows
+
+  const rows = data.map((backend) => {
+    const qty = Number(backend?.qtyToReceive ?? 0);
+    return {
       po_line_id: backend?.po_line_id,
       item_id: backend?.item_id,
       org_id: backend?.org_id,
@@ -370,27 +374,49 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
       locator_id: backend?.locator?backend?.locator:null,
       lot_number: '',
       expiry_date: formatToday(),
-      received_qty: Number(backend?.qtyToReceive),
-    }));
-  };
+      received_qty: qty,
+      is_checked: qty > 0 ? true : false,
+    };
+  });
 
-  const handlesave = async () => {
+  return FILTER_ZERO_QTY ? rows.filter(r => r.received_qty > 0) : rows;
+};
+
+  const isSaveSuccess = (res) => {
+  if (!res) return false;
+  if (res === true) return true;
+  if (typeof res?.results === 'boolean') return res.results === true;
+  if (typeof res?.results === 'number') return res.results > 0;
+  if (Array.isArray(res?.results)) return res.results.length > 0;
+  if (res?.status === 'success' || res?.status === 'ok') return true;
+  if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
+  return false;
+};
+
+const handlesave = async () => {
   didCompleteRef.current = false;
   try {
     const payload = mapConfirmSaveData(draftItems);
+    console.log('Save payload:', payload);
     const response = await Save_Receive_Qty(payload);
-    if (response?.results) {
+    console.log('Save response:', response);
+    if (isSaveSuccess(response)) {
       setSaveModalStatus('success');
       setSaveModalVisible(true);
       setTimeout(() => handlesaveSuccess(), 3500);
     } else {
       setSaveModalStatus('failure');
       setSaveModalVisible(true);
+      const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
+      Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
       setTimeout(() => handlesaveFailure(), 3500);
     }
-  } catch {
+  } catch (e) {
+    console.log('Save error:', e);
     setSaveModalStatus('failure');
     setSaveModalVisible(true);
+    const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
+    Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
     setTimeout(() => handlesaveFailure(), 3500);
   }
 };

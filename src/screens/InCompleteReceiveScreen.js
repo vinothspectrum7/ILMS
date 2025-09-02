@@ -13,7 +13,7 @@ import IC_SummaryTabHdrComponent from '../components/IC_SummaryTabHdrComponent';
 import BarcodeScanner from './BarCodeScanner';
 import { useReceivingStore } from '../store/receivingStore';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
-import { GetSinglePO, Submit_Receive_Qty, Save_Receive_Qty } from '../api/ApiServices';
+import { GetSavedSinglePO, Submit_Receive_Qty, Save_Receive_Qty } from '../api/ApiServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ConfirmSvg from '../assets/icons/success.svg';
 import FailureSvg from '../assets/icons/failure.svg';
@@ -153,7 +153,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     setPhase('loading');
     const loadPoData = async () => {
       try {
-        const posingledata = await GetSinglePO(selectedPO.po_id);
+        const posingledata = await GetSavedSinglePO(selectedPO.po_id);
         if (posingledata?.purchase_order_lines) {
           setPurchaseReceipt(posingledata?.next_receipt_num);
           const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines, posingledata);
@@ -177,11 +177,18 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
   }, [selectedPO?.po_id]);
 
   useEffect(() => {
-    if (PoListItems.length > 0) {
-      const seeded = PoListItems.map(i => ({ ...i, qtyToReceive: 0 }));
-      initReceiveItems(seeded);
-    }
-  }, [PoListItems, initReceiveItems]);
+  if (PoListItems.length > 0) {
+    const seeded = PoListItems.map(i => {
+      const base = Number(i?.receivedQty ?? 0);
+      const prefill = base > 0 ? clampToLimit(base, i?.max_open_qty) : 0;
+      return {
+        ...i,
+        qtyToReceive: prefill,
+      };
+    });
+    initReceiveItems(seeded);
+  }
+}, [PoListItems, initReceiveItems]);
 
   useFocusEffect(
     useCallback(() => {
@@ -365,35 +372,61 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
   };
 
   const mapConfirmSaveData = (data) => {
-      return data.map((backend) => ({
+    const FILTER_ZERO_QTY = false; // set to true if backend rejects zero-qty rows
+  
+    const rows = data.map((backend) => {
+      const qty = Number(backend?.qtyToReceive ?? 0);
+      return {
         po_line_id: backend?.po_line_id,
         item_id: backend?.item_id,
         org_id: backend?.org_id,
         sub_inv_id: backend?.subInventory,
-        locator_id: backend?.subInventory,
+        locator_id: backend?.locator?backend?.locator:null,
         lot_number: '',
         expiry_date: formatToday(),
-        received_qty: Number(backend?.qtyToReceive),
-      }));
-    };
+        received_qty: qty,
+        is_checked: qty > 0 ? true : false,
+      };
+    });
   
-    const handlesave = async () => {
+    return FILTER_ZERO_QTY ? rows.filter(r => r.received_qty > 0) : rows;
+  };
+  
+    const isSaveSuccess = (res) => {
+    if (!res) return false;
+    if (res === true) return true;
+    if (typeof res?.results === 'boolean') return res.results === true;
+    if (typeof res?.results === 'number') return res.results > 0;
+    if (Array.isArray(res?.results)) return res.results.length > 0;
+    if (res?.status === 'success' || res?.status === 'ok') return true;
+    if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
+    return false;
+  };
+  
+  const handlesave = async () => {
     didCompleteRef.current = false;
     try {
       const payload = mapConfirmSaveData(draftItems);
+      console.log('Save payload:', payload);
       const response = await Save_Receive_Qty(payload);
-      if (response?.results) {
+      console.log('Save response:', response);
+      if (isSaveSuccess(response)) {
         setSaveModalStatus('success');
         setSaveModalVisible(true);
         setTimeout(() => handlesaveSuccess(), 3500);
       } else {
         setSaveModalStatus('failure');
         setSaveModalVisible(true);
+        const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
+        Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
         setTimeout(() => handlesaveFailure(), 3500);
       }
-    } catch {
+    } catch (e) {
+      console.log('Save error:', e);
       setSaveModalStatus('failure');
       setSaveModalVisible(true);
+      const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
+      Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
       setTimeout(() => handlesaveFailure(), 3500);
     }
   };
@@ -415,6 +448,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     setSaveModalVisible(false);
     Toast.show({ type: 'error', text1: 'Save failed', position: 'top', visibilityTime: 5000 });
   };
+  
 
 
   const handleCancel = () => setModalVisible(false);
