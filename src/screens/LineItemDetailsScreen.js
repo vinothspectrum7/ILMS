@@ -199,7 +199,7 @@ const LineItemDetailsScreen = () => {
         receivingQty: clampedQty,
         lpn: st.lpn ?? '',
         subInventory: st.subInventory ?? '',
-        locator: st.locator ?? '',
+        locator: st.locator ?? null,
       });
     }
     return patches;
@@ -423,7 +423,7 @@ const LineItemDetailsScreen = () => {
         onScroll={(e) => {
           const x = e.nativeEvent.contentOffset.x;
           const newIndex = Math.round(x / SCREEN_WIDTH);
-          if (newIndex !== index) setIndex(newIndex);
+          // if (newIndex !== index) setIndex(newIndex);
         }}
         scrollEventThrottle={16}
       />

@@ -503,7 +503,7 @@ const handlesaveFailure = () => {
 
   const handleScan = (value) => {
     const id = String(value).trim();
-    const source = PoListItems.find(x => String(x.name) === id);
+    const source = draftItems.find(x => String(x.name) === id)
     if (!source) {
       Toast.show({ type: 'error', text1: 'Unknown barcode', text2: `No item with id ${id}`, position: 'top', visibilityTime: 5000 });
       setShowScanner(false);
@@ -651,14 +651,14 @@ const handlesaveFailure = () => {
                 </>
               ) : (
                 <ScanItemListCardComponent
-                  dummyItems={PoListItems}
+                  dummyItems={draftItems}
                   scannedItems={scannedItems}
                   onChange={setScannedItems}
                   onRequestScan={() => setShowScanner(true)}
                   onFirstFilled={() => setSelectedTab('scanItems')}
                   onQtyChange={handleScanItemQtyChange}
                   onViewDetails={(item) => {
-                    const source = scannedItems.length ? scannedItems : PoListItems;
+                    const source = scannedItems.length ? scannedItems : draftItems;
                     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
                     goToScanItemDetails(idx, source, false, 'scan');
                   }}

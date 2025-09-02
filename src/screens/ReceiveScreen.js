@@ -365,7 +365,7 @@ const ReceiveScreen = () => {
           <View style={styles.card}>
             <View style={styles.toprow}>
               <View style={styles.topcardLeft}>
-              <Text style={styles.labelText}>PO Number</Text>
+              <Text style={styles.labelText}>Purchase Order</Text>
               <Text style={styles.valueText}>{item.po_number}</Text>
               </View>
               <View style={styles.topcardRight}>
@@ -392,7 +392,7 @@ const ReceiveScreen = () => {
               ]}>{item.status}</Text>
               </View>
               <View style={styles.bottomcardRight}>
-              <Text style={styles.labelText}>PO Order Date</Text>
+              <Text style={styles.labelText}>Order Date</Text>
               <Text style={styles.valueText}>{formatDate(item.order_date)}</Text>
               </View>
             </View>
@@ -569,7 +569,7 @@ const ReceiveScreen = () => {
               <Text style={styles.valueText}>{item.receipt_num}</Text>
               </View>
               <View style={styles.topcardRight}>
-              <Text style={styles.labelText}>Po Number</Text>
+              <Text style={styles.labelText}>Purchase Order</Text>
               <Text style={styles.valueText}>{item.po_number}</Text>
               </View>
             </View>
@@ -656,7 +656,7 @@ const ReceiveScreen = () => {
               <Text style={styles.valueText}>{item.receipt_num  || '—'}</Text>
               </View>
               <View style={styles.topcardRight}>
-              <Text style={styles.labelText}>PO Number</Text>
+              <Text style={styles.labelText}>Purchase Order</Text>
               <Text style={styles.valueText}>{item.po_number}</Text>
               </View>
             </View>

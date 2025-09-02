@@ -300,12 +300,7 @@ const  mapConfirmData = (data)=> {
   };
 
   const toDetailItemFromSummary = (it, i) => {
-    const readonlyReceivingQty =
-      listTypeFromRoute === 'scan'
-        ? Number(it.openQty ?? 0) > 0
-          ? Number(it.openQty ?? 0)
-          : Number(it.orderedQty ?? it.orderQty ?? 0)
-        : Number(it.orderedQty ?? it.orderQty ?? 0);
+      const qty = Number(it.qtyToReceive ?? 0);
     return {
       id: String(it.id),
       poNumber: headerData.poNumber ?? '—',
@@ -314,17 +309,20 @@ const  mapConfirmData = (data)=> {
       itemDescription: it.itemDescription ?? it.description ?? '—',
       orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
       openQty: Number(it.openQty ?? 0),
-      receivingQty: Number(readonly ? readonlyReceivingQty : qtyFor(it)),
-      receivingStatus: readonly ? 'Received' : 'In-progress',
+      uom:it.uom,
+      receivingQty: qty,
+      receivingStatus: it.status,
       lpn: it.lpn ?? '',
       subInventory: it.subInventory ?? '',
       locator: it.locator ?? '',
+      max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
     };
   };
 
   const openLineDetailsFromSummary = item => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
+    console.log(source,"VIEWDETAILSsourceSUMMARY")
     const mapped = source.map(toDetailItemFromSummary);
     navigation.navigate({
       name: 'LineItemDetails',

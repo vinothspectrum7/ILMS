@@ -207,12 +207,11 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.section}>
           <Text style={styles.sectionShippingTitle}>Shipping Status</Text>
           <View style={styles.shippingStatusCardsContainer}>
-            <ShippingStatusCard label="Order Shipped" count="8" icon={OrderShippedIcon} iconColor="#033EFF" onPress={() => {}} />
+            <ShippingStatusCard label="Shipped Orders" count="8" icon={OrderShippedIcon} iconColor="#033EFF" onPress={() => {}} />
             <ShippingStatusCard
               label={
                 <>
-                  Order{'\n'}
-                  Scheduled today
+                 Scheduled Orders
                 </>
               }
               count="15"
@@ -220,7 +219,7 @@ export default function HomeScreen({ navigation }) {
               iconColor="#10b981"
               onPress={() => {}}
             />
-            <ShippingStatusCard label="Backordered" count="9" icon={BackOrderedIcon} iconColor="#f59e0b" onPress={() => {}} />
+            <ShippingStatusCard label="Backorders" count="9" icon={BackOrderedIcon} iconColor="#f59e0b" onPress={() => {}} />
           </View>
         </View>
 

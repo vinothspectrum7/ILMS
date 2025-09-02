@@ -178,7 +178,7 @@ const ScanItemDetailsScreen = () => {
         receivingQty: clampedQty,   // <-- add this
         lpn: st.lpn ?? '',
         subInventory: st.subInventory ?? '',
-        locator: st.locator ?? '',
+        locator: LocatorList.length>0?st.locator ?? null:null,
         });
     }
     return patches;

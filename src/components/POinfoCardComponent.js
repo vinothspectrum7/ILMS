@@ -37,7 +37,7 @@ const formatDate = () => {
         </View>
         <View style={styles.bottomrow}>
           <View style={styles.bottomcardLeft}>
-          <Text style={styles.labelText}>PO Number</Text>
+          <Text style={styles.labelText}>Purchase Order</Text>
           <Text style={styles.valueText}>{po}</Text>
           </View>
           <View style={styles.bottomcardRight}>
