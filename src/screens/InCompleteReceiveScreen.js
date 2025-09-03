@@ -437,8 +437,8 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     Toast.hide();
     Toast.show({ type: 'success', text1: 'Order receipt Saved successfully', position: 'top', visibilityTime: 5000 });
     setSaveModalVisible(false);
-    resetReceiving();
-    navigation.navigate('Receive');
+    // resetReceiving();
+    // navigation.navigate('Receive');
   };
   
   const handlesaveFailure = () => {
@@ -485,7 +485,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
         receivingStatus: it.status,
         lpn: s?.lpn ?? it.lpn ?? '',
         subInventory: s?.subInventory ?? it.subInventory ?? '',
-        locator: s?.locator ?? it.locator ?? '',
+        locator: s?.locator?? null,
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
       };
     });
@@ -520,7 +520,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
         receivingStatus: it.status,
         lpn: s?.lpn ?? it.lpn ?? '',
         subInventory: s?.subInventory ?? it.subInventory ?? '',
-        locator: s?.locator ?? it.locator ?? '',
+        locator: s?.locator?? null,
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
       };
     });
