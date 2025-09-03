@@ -33,7 +33,7 @@ export const GetASNPoItems = async(asn_id)=>{
 }
 export const GetPoItems = async(org_id)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_PO_DATA(org_id));
+    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_DATA(org_id));
         console.log("Response Data:popopo", response);
     return response.data;
   }catch (error) {
