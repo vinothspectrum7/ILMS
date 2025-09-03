@@ -481,7 +481,7 @@ const  mapConfirmData = (data)=> {
                             )}
                             <Text style={{ marginTop: 16, fontSize: 16, color: '#333' }}>
                               {saveModalStatus === 'success'
-                                ? 'Order receipt Saved successfully'
+                                ? 'Order Saved Successfully. Please continue Receipt.'
                                 : 'Save failed. Please try again.'}
                             </Text>
                           </View>

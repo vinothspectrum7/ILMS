@@ -135,9 +135,9 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
     max_open_qty: Math.floor(backend.max_open_qty ?? 0),
     lpn: '',
-    subInventory: OrgData?.selectedinventory,
+    subInventory: backend.sub_inv_id,
     org_id:OrgData?.selectedOrg,
-    locator: '',
+    locator: backend.locator_id,
     status:backend.line_status,
     uom: backend.item?.uom === "EA" ? "Each" : backend.item?.uom, // convert if needed
     promisedDate: backend.promised_dlry_dt 

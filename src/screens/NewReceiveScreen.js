@@ -427,8 +427,8 @@ const handlesaveSuccess = () => {
   Toast.hide();
   Toast.show({ type: 'success', text1: 'Order receipt Saved successfully', position: 'top', visibilityTime: 5000 });
   setSaveModalVisible(false);
-  resetReceiving();
-  navigation.navigate('Receive');
+  // resetReceiving();
+  // navigation.navigate('Receive');
 };
 
 const handlesaveFailure = () => {
@@ -510,7 +510,7 @@ const handlesaveFailure = () => {
         receivingStatus: it.status,
         lpn: s?.lpn ?? it.lpn ?? '',
         subInventory: s?.subInventory ?? it.subInventory ?? '',
-        locator: s?.locator ?? it.locator ?? '',
+        locator: s?.locator?? null,
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
       };
     });
@@ -732,7 +732,7 @@ const handlesaveFailure = () => {
                   )}
                   <Text style={{ marginTop: 16, fontSize: 16, color: '#333' }}>
                     {saveModalStatus === 'success'
-                      ? 'Order receipt Saved successfully'
+                      ? 'Order Saved Successfully. Please continue Receipt.'
                       : 'Save failed. Please try again.'}
                   </Text>
                 </View>

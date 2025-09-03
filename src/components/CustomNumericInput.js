@@ -70,7 +70,20 @@ const CustomNumericInput = ({
       <TextInput
         style={[styles.input, dynamicStyles.bg, { color: activeTextColor }]}
         value={String(safeValue)}
-        onChangeText={handleManualInput}
+          onChangeText={(text) => {
+    // only digits allowed in the state
+    const onlyDigits = text.replace(/[^0-9]/g, '');
+    handleManualInput(onlyDigits);
+  }}
+  onKeyPress={({ nativeEvent }) => {
+    const { key } = nativeEvent;
+
+    // Block invalid keys like '.' or letters
+    if (!/^[0-9]$/.test(key) && key !== 'Backspace') {
+      // do nothing (ignore this key)
+      return;
+    }
+  }}
         keyboardType="numeric"
         editable={!disabledinput}
       />

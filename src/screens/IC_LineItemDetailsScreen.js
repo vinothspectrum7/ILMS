@@ -77,6 +77,7 @@ const IC_LineItemDetailsScreen = () => {
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const listRef = useRef(null);
+  const isProgrammaticScroll = useRef(false);
   const prefilledRef = useRef(false);
 
   const allItems = mergedItems;
@@ -172,6 +173,7 @@ const IC_LineItemDetailsScreen = () => {
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
+    isProgrammaticScroll.current = true; // mark as programmatic
     listRef.current?.scrollToIndex({ index: i, animated: true });
     setIndex(i);
   }, [allItems.length]);
@@ -420,10 +422,15 @@ const IC_LineItemDetailsScreen = () => {
         removeClippedSubviews={false}
         windowSize={3}
         onScroll={(e) => {
+          if (isProgrammaticScroll.current) return; // ignore programmatic scrolls
           const x = e.nativeEvent.contentOffset.x;
           const newIndex = Math.round(x / SCREEN_WIDTH);
-          // if (newIndex !== index) setIndex(newIndex);
+          if (newIndex !== index) setIndex(newIndex);
         }}
+          onMomentumScrollEnd={() => {
+    // reset the flag after programmatic scroll finishes
+    isProgrammaticScroll.current = false;
+  }}
         scrollEventThrottle={16}
       />
       {!readOnly && (
