@@ -576,35 +576,6 @@ const handlesaveFailure = () => {
     [selectedTab, selectedItems.length, scannedItems.length]
   );
 
-  const loadUserName = useCallback(async () => {
-    try {
-      const raw = await AsyncStorage.getItem('user_name');
-      if (!raw) {
-        setProfileName('');
-        return;
-      }
-      let name = '';
-      try {
-        const parsed = JSON.parse(raw);
-        name = typeof parsed === 'string' ? parsed : parsed?.user_name ?? '';
-      } catch {
-        name = raw;
-      }
-      setProfileName(name.trim());
-    } catch {
-      setProfileName('');
-    }
-  }, []);
-
-  useEffect(() => {
-    loadUserName();
-  }, [loadUserName]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadUserName();
-    }, [loadUserName])
-  );
 
   return (
     <SafeAreaView style={styles.container}>
