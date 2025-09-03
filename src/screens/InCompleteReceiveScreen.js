@@ -712,10 +712,10 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
                 ) : (
                   <FailureSvg width={72} height={72} />
                 )}
-                <Text style={{ marginTop: 16, fontSize: 16, color: '#333' }}>
+                <Text style={{ marginTop: 16, textAlign:'center', fontSize: 16, color: '#333' }}>
                   {saveModalStatus === 'success'
-                    ? 'Order receipt Saved successfully'
-                    : 'Save failed. Please try again.'}
+                      ? 'Order Saved Successfully. Please continue Receipt.'
+                      : 'Save failed. Please try again.'}
                 </Text>
               </View>
             </View>
