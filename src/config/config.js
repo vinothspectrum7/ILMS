@@ -6,6 +6,7 @@ export const API_ENDPOINTS = {
   GET_ASN_DATA: (orgId) => `${BASE_URL}/asn/asn_headers/${orgId}/all`,
   GET_SINGLE_ASN_DATA: (asn_id) => `${BASE_URL}/asn/asn/${asn_id}`,
   GET_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all`,
+  GET_ALL_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all?status=all`,
   GET_RECEIVED_DATA: (org_id) => `${BASE_URL}/purchase_orders/received/${org_id}/all`,
   GET_SINGLE_PO_DATA: (po_id) => `${BASE_URL}/purchase_orders/${po_id}`,
   GET_SAVED_SINGLE_PO_DATA: (po_id) => `${BASE_URL}/receipt_interface/${po_id}`,

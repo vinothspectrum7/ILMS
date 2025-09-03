@@ -247,37 +247,75 @@ const ReceiveScreen = () => {
       }, [navigation])
     );
 
-  const handleSearch = (text) => {
-    setSearchText(text);
-    const q = text.trim().toLowerCase();
+    const isPOIRActive = useCallback(() => {
+  const k = String(activeKey ?? '').toLowerCase();
+  if (k === 'asn' || k === 'received') return false;
+  return true; 
+}, [activeKey]);
 
-    if (activeKey === 'received') {
-      SetReceivedData(
-        IntialReceivedData.filter(
-          r =>
-            r.po_number.toLowerCase().includes(q) ||
-            r.supplier_name.toLowerCase().includes(q)
+
+const getOpenPOs = useCallback(
+  (list) =>
+    Array.isArray(list)
+      ? list.filter(
+          (p) =>
+            String(p?.status ?? '').toUpperCase() === 'OPEN' &&
+            Number(p?.total_received_qty ?? 0) < Number(p?.total_ord_qty ?? 0)
         )
-      );
-    }
-    else if(activeKey === 'asn'){
-      setAsnData(
-        AsnIntialData.filter(
-          p =>
-            p.asn_num.toLowerCase().includes(q) ||
-            p.supplier_name.toLowerCase().includes(q)
-        )
-      );
-    } else {
-      setPOData(
-        POIntialData.filter(
-          p =>
-            p.po_number.toLowerCase().includes(q) ||
-            p.supplier_name.toLowerCase().includes(q)
-        )
-      );
-    }
-  };
+      : [],
+  []
+);
+
+useEffect(() => {
+  const q = String(searchText ?? '').trim();
+  if (isPOIRActive() && q === '') {
+    setPOData(getOpenPOs(POIntialData || []));
+  }
+}, [isPOIRActive, POIntialData, searchText, getOpenPOs]);
+
+  const handleSearch = (text) => {
+  setSearchText(text);
+  const q = String(text ?? '').trim().toLowerCase();
+
+  if (activeKey === 'received') {
+    SetReceivedData(
+      IntialReceivedData.filter(
+        (r) =>
+          String(r?.po_number ?? '').toLowerCase().includes(q) ||
+          String(r?.supplier_name ?? '').toLowerCase().includes(q)
+      )
+    );
+    return;
+  }
+
+  if (activeKey === 'asn') {
+    setAsnData(
+      AsnIntialData.filter(
+        (p) =>
+          String(p?.asn_num ?? '').toLowerCase().includes(q) ||
+          String(p?.supplier_name ?? '').toLowerCase().includes(q)
+      )
+    );
+    return;
+  }
+
+  
+  if (q === '') {
+    
+    setPOData(getOpenPOs(POIntialData || []));
+    return;
+  }
+
+  
+  setPOData(
+    POIntialData.filter(
+      (p) =>
+        String(p?.po_number ?? '').toLowerCase().includes(q) ||
+        String(p?.supplier_name ?? '').toLowerCase().includes(q) ||
+        String(p?.status ?? '').toLowerCase().includes(q)
+    )
+  );
+};
 
   const handleScan = (value) => {
     const code = String(value).trim().toUpperCase();
