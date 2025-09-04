@@ -210,11 +210,11 @@ const ReceiveScreen = () => {
         setPhase('success');
         console.log(ICpodata, "ICpodatapodatapodata");
       } catch (err) {
-        console.error("Error loading PO data:", err);
+        console.error("Error loading Incomplete PO data:", err);
         Toast.show({
           type: 'error',
           text1: 'Error',
-          text2: 'Failed to load Purchase Order data. Please try again.',
+          text2: 'Failed to load Incomplete PO data. Please try again.',
           position: 'top',
           visibilityTime: 5000
         });

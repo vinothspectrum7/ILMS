@@ -232,16 +232,12 @@ const  mapConfirmData = (data)=> {
       } else {
         setSaveModalStatus('failure');
         setSaveModalVisible(true);
-        const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
-        Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
         setTimeout(() => handlesaveFailure(), 3500);
       }
     } catch (e) {
       console.log('Save error:', e);
       setSaveModalStatus('failure');
       setSaveModalVisible(true);
-      const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
-      Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
       setTimeout(() => handlesaveFailure(), 3500);
     }
   };
@@ -249,8 +245,6 @@ const  mapConfirmData = (data)=> {
   const handlesaveSuccess = () => {
     if (didCompleteRef.current) return;
     didCompleteRef.current = true;
-    Toast.hide();
-    Toast.show({ type: 'success', text1: 'Order receipt Saved successfully', position: 'top', visibilityTime: 5000 });
     setSaveModalVisible(false);
     resetReceiving();
     navigation.navigate('Receive');
@@ -259,9 +253,7 @@ const  mapConfirmData = (data)=> {
   const handlesaveFailure = () => {
     if (didCompleteRef.current) return;
     didCompleteRef.current = true;
-    Toast.hide();
     setSaveModalVisible(false);
-    Toast.show({ type: 'error', text1: 'Save failed', position: 'top', visibilityTime: 5000 });
   };
   
 
