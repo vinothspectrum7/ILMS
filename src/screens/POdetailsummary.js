@@ -80,12 +80,12 @@ export default function PODetailSummary() {
     const handleCancel = () => setModalVisible(false);
   
     const handleSuccess = () => {
-      Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
+      // Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
       setModalVisible(false);
     };
   
     const handleFailure = () => {
-      Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 5000 });
+      // Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 5000 });
       setModalVisible(false);
     };
   const openConfirmModal = () => setModalVisible(true);

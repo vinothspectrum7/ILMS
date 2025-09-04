@@ -438,8 +438,8 @@ const handlesaveFailure = () => {
   const handleSuccess = () => {
     if (didCompleteRef.current) return;
     didCompleteRef.current = true;
-    Toast.hide();
-    Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
+    // Toast.hide();
+    // Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
     setModalVisible(false);
     resetReceiving();
     navigation.navigate('Receive');
