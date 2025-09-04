@@ -132,6 +132,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
     receivedQty: backend.rcvd_qty,
+    incomplte_qty:backend.incomplte_qty,
     openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
     max_open_qty: Math.floor(backend.max_open_qty ?? 0),
     lpn: '',
@@ -179,11 +180,11 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
   useEffect(() => {
   if (PoListItems.length > 0) {
     const seeded = PoListItems.map(i => {
-      const base = Number(i?.receivedQty ?? 0);
-      const prefill = base > 0 ? clampToLimit(base, i?.max_open_qty) : 0;
+      const base = Number(i?.incomplte_qty ?? 0);
+      // const prefill = base > 0 ? clampToLimit(base, i?.max_open_qty) : 0;
       return {
         ...i,
-        qtyToReceive: prefill,
+        qtyToReceive: base,
       };
     });
     initReceiveItems(seeded);
