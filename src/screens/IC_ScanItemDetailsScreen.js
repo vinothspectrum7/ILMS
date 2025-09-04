@@ -288,14 +288,15 @@ const IC_ScanItemDetailsScreen = () => {
             <View style={styles.divider} />
             <View style={styles.row}>
                           <Text style={styles.label}>Receiving Status</Text>
-                          <Text style={[styles.statusText,{
-                  color:item.receivingStatus && item.receivingStatus =='OPEN'
-                      ? "#033EFF"
-                      : item.receivingStatus == 'FULLY RECEIVED'
-                      ? "#168035" 
-                      : "#F06000"},]}>
-                        {item.receivingStatus}
-                            </Text>
+              <Text style={[styles.statusText,{
+      color:(pageState.receivingQty>0&&item.receivingStatus=='OPEN')?'#F06000':
+      item.receivingStatus && item.receivingStatus =='OPEN'
+          ? "#033EFF"
+          : item.receivingStatus == 'FULLY RECEIVED'
+          ? "#168035" 
+          : "#F06000"},]}>
+           {(pageState.receivingQty>0&&item.receivingStatus=='OPEN')?'In Progress': item.receivingStatus}
+                </Text>
                         </View>
             <View style={styles.divider} />
                         <InlineFieldRow label="LPN">

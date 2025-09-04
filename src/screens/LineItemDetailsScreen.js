@@ -309,12 +309,13 @@ const LineItemDetailsScreen = () => {
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
               <Text style={[styles.statusText,{
-      color:item.receivingStatus && item.receivingStatus =='OPEN'
+      color:(pageState.receivingQty>0&&item.receivingStatus=='OPEN')?'#F06000':
+      item.receivingStatus && item.receivingStatus =='OPEN'
           ? "#033EFF"
           : item.receivingStatus == 'FULLY RECEIVED'
           ? "#168035" 
           : "#F06000"},]}>
-            {item.receivingStatus}
+           {(pageState.receivingQty>0&&item.receivingStatus=='OPEN')?'In Progress': item.receivingStatus}
                 </Text>
             </View>
 
