@@ -11,6 +11,7 @@ const ConfirmLineItemComponent = ({
   qtyLabel = 'Qty',
   qtyValue,
   readOnly = true,
+  isSwipe = false,
   onViewDetails = () => {},
   showReceivedBreakdown = false,
   receivedQtyOverride,
@@ -85,7 +86,9 @@ const ConfirmLineItemComponent = ({
 };
 
   return (
-    <View style={styles.cardwrapper}>
+    <View style={[styles.cardwrapper,
+      { marginRight: isSwipe ? -20 : scale(15) } // ✅ per-item margin
+    ]}>
       <View style={styles.rowContainer}>
         <View style={styles.section2}>
           <Text style={styles.itemName} numberOfLines={2} ellipsizeMode="tail">

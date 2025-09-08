@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, Modal, BackHandler, ActivityIndicator } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, Modal, BackHandler, ActivityIndicator, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
@@ -14,6 +14,8 @@ import { Submit_Receive_Qty, Save_Receive_Qty } from '../api/ApiServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ConfirmSvg from '../assets/icons/success.svg';
 import FailureSvg from '../assets/icons/failure.svg';
+import DeleteSvg from '../assets/icons/delete.svg';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', receivedDate: '21 Jul 2025', status: 'Fully Received' },
@@ -27,12 +29,15 @@ const defaultReceiptItems = [
   { id: 'b', name: 'Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 150, receivedQty: 150, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN2', subInventory: 'SUBINVENTORY2', locator: 'LOCATOR2' },
   { id: 'c', name: 'Des Impusum', description: 'dolor ipsum dolor sit amet…', orderedQty: 200, receivedQty: 200, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN3', subInventory: 'SUBINVENTORY3', locator: 'LOCATOR3' },
 ];
-
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const ACTION_WIDTH = SCREEN_WIDTH * 0.8;
 const ReceiveSummaryScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-
+// const [isSwiping, setIsSwiping] = useState(false);
+const [openItems, setOpenItems] = useState(new Set());
   const [profileName, setProfileName] = useState('');
+  const [deletedIds, setDeletedIds] = useState([]);
   const readonly = !!route?.params?.readonly;
   const listTypeFromRoute = route?.params?.listType || 'line';
   const headerFromRoute = route?.params?.header || null;
@@ -64,6 +69,24 @@ const ReceiveSummaryScreen = () => {
 
   const handledPatchIdsRef = useRef(new Set());
   const initializedRef = useRef(false);
+
+  const handleSwipeOpen = useCallback((id) => {
+  setOpenItems(prev => {
+    if (prev.has(id)) return prev; // ✅ avoid useless re-renders
+    const newSet = new Set(prev);
+    newSet.add(id);
+    return newSet;
+  });
+}, []);
+
+const handleSwipeClose = useCallback((id) => {
+  setOpenItems(prev => {
+    if (!prev.has(id)) return prev; // ✅ avoid useless re-renders
+    const newSet = new Set(prev);
+    newSet.delete(id);
+    return newSet;
+  });
+}, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -349,6 +372,16 @@ const  mapConfirmData = (data)=> {
     });
   };
 
+  const renderRightActions = (onDelete) => {
+  return (
+    <View style={styles.deleteContainer}>
+      <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
+        <DeleteSvg width={30} height={30} />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
   const formatToday = () => {
     const d = new Date();
     const dd = String(d.getDate()).padStart(2, '0');
@@ -357,6 +390,55 @@ const  mapConfirmData = (data)=> {
     return `${yyyy}-${mm}-${dd}`;
   };
 
+const handleDelete = (itemId) => {
+    setDeletedIds(prev => [...prev, itemId]);
+// Case 1: receiveItems from store
+if (!readonly && Array.isArray(receiveItems) && receiveItems.length > 0) {
+  useReceivingStore.setState({
+    receiveItems: receiveItems.map(it => 
+      String(it.id) === String(itemId)
+        ? { ...it, subInventory:OrgData?.selectedinventory, qtyToReceive: 0, locator: OrgData?.selectedOrg } // reset values
+        : it
+    ),
+  });
+  return;
+}
+
+// Case 2: summaryItems from store
+if (Array.isArray(summaryItems) && summaryItems.length > 0) {
+  useReceivingStore.setState({
+    summaryItems: summaryItems.map(it =>
+      String(it.id) === String(itemId)
+        ? { ...it, subInventory:OrgData?.selectedinventory, qtyToReceive: 0, locator: OrgData?.selectedOrg } // reset values
+        : it
+    ),
+  });
+  return;
+}
+
+// Case 3: local draft state
+if (Array.isArray(draft) && draft.length > 0) {
+  setDraft(prev => prev.map(it =>
+    String(it.id) === String(itemId)
+        ? { ...it, subInventory:OrgData?.selectedinventory, qtyToReceive: 0, locator: OrgData?.selectedOrg } // reset values
+      : it
+  ));
+  return;
+}
+
+};
+
+const filteredItems = renderItems.filter(item => !deletedIds.includes(item.id));
+
+useEffect(() => {
+  if (filteredItems.length === 0) {
+        if (listTypeFromRoute === 'Received') {
+            navigation.navigate('Receive');
+          } else {
+            navigation.navigate('NewReceiveScreen');
+          }
+  }
+}, [filteredItems]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -392,18 +474,30 @@ const  mapConfirmData = (data)=> {
           </View>
 
           <FlatList
-            data={renderItems}
+            data={filteredItems}
             keyExtractor={item => String(item.id)}
             renderItem={({ item }) => (
-              <View style={styles.lineItemWrapper}>
+              <GestureHandlerRootView>
+                <Swipeable
+         renderRightActions={() => renderRightActions(() => handleDelete(item.id))}
+         onSwipeableOpen={() => handleSwipeOpen(item.id)}
+         onSwipeableClose={() => handleSwipeClose(item.id)}
+         onSwipeableOpenStartDrag={()=>handleSwipeOpen(item.id)}
+         onSwipeableCloseStartDrag={()=>handleSwipeClose(item.id)}
+
+  >
+              <View style={[styles.lineItemWrapper]}>
                 <ConfirmLineItemComponent
                   item={item}
                   qtyLabel={item.uom}
                   qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? qtyFor(item)) : qtyFor(item)}
                   readOnly
+                  isSwipe={openItems.has(item.id)}
                   onViewDetails={() => openLineDetailsFromSummary(item)}
                 />
               </View>
+              </Swipeable>
+              </GestureHandlerRootView>
             )}
             scrollEnabled={false}
             ListEmptyComponent={<View style={{ height: 16 }} />}
@@ -481,6 +575,30 @@ const styles = StyleSheet.create({
     marginTop: 3,
     paddingTop: 3,
   },
+  // lineItemWrapper: {
+  //   marginVertical: 6,
+  // },
+  deleteContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80, // controls how much shows when swiped
+    backgroundColor: '#F8D2D4', // red background
+    borderRadius: 10,
+    marginVertical: 10,
+    // paddingVertical: 10,
+    // paddingLeft: 5,
+    // paddingRight: 5,
+    // marginHorizontal: 16,
+    marginRight:20
+  },
+  deleteButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  //   cardSwiping: {
+  //   marginRight: -40,    // 👈 reduce margin when swiping
+  // },
 });
 
 export default ReceiveSummaryScreen;
