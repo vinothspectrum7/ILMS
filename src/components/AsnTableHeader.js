@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity,   Platform, Dimensions } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import FilterIcon from '../assets/icons/filter.svg';
 
 const FILTERS = ['all', 'pending', 'received'];
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const s = (n) => (SCREEN_WIDTH / BASE_WIDTH) * n;             // size scale
+const fs = (n, f = 0.35) => n + (s(n) - n) * f;               // font moderate scale
+
 
 const AsnHeaderComponent = ({ allSelected, onToggleAll, activeFilter, onChangeFilter }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -72,9 +78,10 @@ const styles = StyleSheet.create({
     zIndex: 5
   },
   checkbox: {
-    width: 16,
-    height: 16,
-    marginLeft: -15
+    width: s(16),
+    height: s(16),
+    transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }],
+    marginLeft: -s(15),
   },
   section1: {
     width: 30,
@@ -84,7 +91,7 @@ const styles = StyleSheet.create({
   section2: {
     flex: 1,
     justifyContent: 'center',
-    paddingLeft: 8,
+    paddingLeft: 15,
     position: 'relative'
   },
   section3: {
@@ -114,7 +121,7 @@ const styles = StyleSheet.create({
   menu: {
     position: 'absolute',
     top: 34,
-    left: 18,
+    left: -30,
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     paddingVertical: 6,

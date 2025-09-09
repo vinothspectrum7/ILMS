@@ -114,6 +114,7 @@ const ASNListCardComponent = ({
         </View>
 
         <View style={styles.section2}>
+          <Text style={styles.labelText}>Purchase order</Text>
           <Text style={styles.itemName}>{item.Poid}</Text>
           {/* <View style={styles.qtyBreakdownRow}>
             <Text style={styles.metaText}>Ordered Qty: {item.orderedQty}</Text>
@@ -177,9 +178,10 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   checkbox: {
-    width: 16,
-    height: 16,
-    marginLeft: -15,
+    width: s(16),
+    height: s(16),
+    transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }],
+    marginLeft: -s(15),
     zIndex: 1,
   },
   section2: {
@@ -294,6 +296,7 @@ rightSection: {
     backgroundColor: 'red',
     marginRight: 5,
   },
+  labelText: { fontSize: 12, color: '#595A5C', fontFamily:'Mulish', fontWeight: '300' },
 });
 
 export default ASNListCardComponent;

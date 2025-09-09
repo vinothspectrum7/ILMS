@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Dimensions, Modal } from 'react-native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import FooterButtonsComponent from '../components/FooterButtonsComponent';
 import ASNinfoCardComponent from '../components/ASNinfoCardComponent';
@@ -10,6 +10,7 @@ import Toast from 'react-native-toast-message';
 import { GetASNPoItems } from '../api/ApiServices';
 import { useReceivingStore } from '../store/receivingStore';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
+import BarcodeScanner from './BarCodeScanner';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -23,6 +24,7 @@ const AsnReceiptScreen = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [showScanner, setShowScanner] = useState(false);
 
   const fromScan = !!route?.params?.fromScan;
   const scannedAsnNumber = route?.params?.scannedAsnNumber ?? null;
@@ -32,6 +34,8 @@ const AsnReceiptScreen = () => {
   const [forceScanRow, setForceScanRow] = useState(false);
   const selectedPO = route?.params?.selectedPO || null;
   const { OrgData } = useReceivingStore();
+
+  const listRef = useRef(null);
 
   useEffect(() => {
     if (fromScan && scannedAsnNumber) {
@@ -45,7 +49,7 @@ const AsnReceiptScreen = () => {
             const li = Array.isArray(el.asn_line_items) ? el.asn_line_items[0] : el.asn_line_items;
             return {
               id: String(el.asn_ln_id ?? idx + 1),
-              Poid: li?.item_code ?? '-',
+              Poid: el.po_number ?? '-',
               status: 'Yet to Receive',
               orderedByDate: li?.shipped_date ?? '-',
               asn_ln_id: el.asn_ln_id,
@@ -109,17 +113,19 @@ const AsnReceiptScreen = () => {
     console.log('Saved:', items);
   };
 
-  const handleReceive = (items) => {
-    navigation.navigate('podetailsummary', {selectedASN: selectedItems,
-        fromScan: false,
-        scannedAsnId:items.asn_id,
-        scannedAsnNumber: items.asn_num, });
+  const handleReceive = (itemsParam) => {
+    navigation.navigate('podetailsummary', {
+      selectedASN: selectedItems,
+      fromScan: false,
+      scannedAsnId: itemsParam?.asn_id,
+      scannedAsnNumber: itemsParam?.asn_num
+    });
   };
 
   const isReceiveEnabled = selectedItems.length > 0;
 
   const handleScanRowPress = () => {
-    setForceScanRow(false);
+    setShowScanner(true);
   };
 
   const toggleAllVisible = () => {
@@ -136,12 +142,49 @@ const AsnReceiptScreen = () => {
     }
   };
 
+  const handleScan = (value) => {
+    const code = String(value).trim().toUpperCase();
+    const matches = items.filter((p) => String(p.po_number ?? '').toUpperCase() === code);
+    if (matches.length > 0) {
+      setShowScanner(false);
+      setSelectedItems((prev) => {
+        const ids = new Set(prev);
+        matches.forEach((m) => ids.add(m.id));
+        return Array.from(ids);
+      });
+      setItems((prev) =>
+        prev.map((it) => (matches.some((m) => m.id === it.id) ? { ...it, status: 'Receive In progress' } : it))
+      );
+      Toast.show({
+        type: 'success',
+        text1: 'Scanned PO ',
+        text2: `${code} • ${matches.length} is selected`,
+        position: 'top',
+        visibilityTime: 4000
+      });
+      const firstIdx = visibleItems.findIndex((vi) => vi.id === matches[0].id);
+      if (firstIdx >= 0 && listRef.current) {
+        try {
+          listRef.current.scrollToIndex({ index: firstIdx, animated: true });
+        } catch {}
+      }
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'PO/IR number not found',
+        text2: `Scanned PO number ${code} not found`,
+        position: 'top',
+        visibilityTime: 5000
+      });
+      setShowScanner(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Receive"
-        contextInfo={selectedASN.asn_num}
         notificationCount={0}
         onBack={() => navigation.goBack()}
         onMenu={() => {}}
@@ -173,6 +216,7 @@ const AsnReceiptScreen = () => {
           </View>
 
           <FlatList
+            ref={listRef}
             data={visibleItems}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
@@ -186,6 +230,10 @@ const AsnReceiptScreen = () => {
       </ScrollView>
 
       <FooterButtonsComponent onSave={handleSave} onReceive={handleReceive} isReceiveEnabled={isReceiveEnabled} />
+
+      <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
+        <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+      </Modal>
     </SafeAreaView>
   );
 };
