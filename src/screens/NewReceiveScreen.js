@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, Modal, BackHandler, ActivityIndicator } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, Modal, BackHandler, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -407,16 +407,12 @@ const handlesave = async () => {
     } else {
       setSaveModalStatus('failure');
       setSaveModalVisible(true);
-      const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
-      Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
       setTimeout(() => handlesaveFailure(), 3500);
     }
   } catch (e) {
     console.log('Save error:', e);
     setSaveModalStatus('failure');
     setSaveModalVisible(true);
-    const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
-    Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
     setTimeout(() => handlesaveFailure(), 3500);
   }
 };
@@ -424,8 +420,6 @@ const handlesave = async () => {
 const handlesaveSuccess = () => {
   if (didCompleteRef.current) return;
   didCompleteRef.current = true;
-  Toast.hide();
-  Toast.show({ type: 'success', text1: 'Order receipt Saved successfully', position: 'top', visibilityTime: 5000 });
   setSaveModalVisible(false);
   // resetReceiving();
   // navigation.navigate('Receive');
@@ -434,9 +428,7 @@ const handlesaveSuccess = () => {
 const handlesaveFailure = () => {
   if (didCompleteRef.current) return;
   didCompleteRef.current = true;
-  Toast.hide();
   setSaveModalVisible(false);
-  Toast.show({ type: 'error', text1: 'Save failed', position: 'top', visibilityTime: 5000 });
 };
 
 
@@ -446,8 +438,8 @@ const handlesaveFailure = () => {
   const handleSuccess = () => {
     if (didCompleteRef.current) return;
     didCompleteRef.current = true;
-    Toast.hide();
-    Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
+    // Toast.hide();
+    // Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
     setModalVisible(false);
     resetReceiving();
     navigation.navigate('Receive');
@@ -541,7 +533,8 @@ const handlesaveFailure = () => {
       return;
     }
     if (scannedItems.some(x => String(x.name) === id)) {
-      Toast.show({ type: 'orange', text1: 'Scanned item already added to the list', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
+      Alert.alert("Failure","Scanned item already added to the list");
+      // Toast.show({ type: 'orange', text1: 'Scanned item already added to the list', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
       setShowScanner(false);
       return;
     }

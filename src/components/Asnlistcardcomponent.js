@@ -5,9 +5,17 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Platform,
+  Dimensions,
 } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import { useNavigation } from '@react-navigation/native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const s = (n) => (SCREEN_WIDTH / BASE_WIDTH) * n;             // size scale
+const fs = (n, f = 0.35) => n + (s(n) - n) * f;               // font moderate scale
+
 
 const ASNListCardComponent = ({
   item,
@@ -24,6 +32,68 @@ const ASNListCardComponent = ({
       setTouched(false);
     }
   }, [isSelected]);
+
+  const formatDate = (input) => {
+  const monthShort = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const monthMap = {
+    jan:0, january:0, feb:1, february:1, mar:2, march:2, apr:3, april:3,
+    may:4, jun:5, june:5, jul:6, july:6, aug:7, august:7, sep:8, sept:8,
+    september:8, oct:9, october:9, nov:10, november:10, dec:11, december:11,
+  };
+
+  const out = (y,m,d) => `${String(d).padStart(2,'0')} ${monthShort[m]} ${y}`;
+
+  if (input == null) return dash;
+  const v = String(input).trim();
+  if (!v) return dash;
+
+  
+  {
+    const m = /^(\d{4})[-/](\d{2})[-/](\d{2})$/.exec(v);
+    if (m) {
+      const [, y, mm, dd] = m;
+      const mi = Math.max(0, Math.min(11, Number(mm) - 1));
+      return out(Number(y), mi, Number(dd));
+    }
+  }
+
+  
+  {
+    const m = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(v);
+    if (m) {
+      const [, dd, mm, y] = m;
+      const mi = Math.max(0, Math.min(11, Number(mm) - 1));
+      return out(Number(y), mi, Number(dd));
+    }
+  }
+
+  
+  {
+    const parts = v.split(/\s+/);
+    if (parts.length === 3) {
+      const [dStr, monStr, yStr] = parts;
+      const mi = monthMap[(monStr || '').toLowerCase()];
+      if (mi !== undefined && /^\d{1,2}$/.test(dStr) && /^\d{4}$/.test(yStr)) {
+        return out(Number(yStr), mi, Number(dStr));
+      }
+    }
+  }
+
+  
+  {
+    const n = Number(v);
+    const dt = !Number.isNaN(n) && n > 0 ? new Date(n) : new Date(v);
+    if (!Number.isNaN(dt.getTime())) {
+      const y = dt.getUTCFullYear();
+      const m = dt.getUTCMonth();      
+      const d = dt.getUTCDate();
+      return out(y, m, d);
+    }
+  }
+
+  
+  return v || dash;
+};
 
 
   return (
@@ -70,7 +140,7 @@ const ASNListCardComponent = ({
           <Text style={styles.statusname}>{item.status}</Text>
         </View>
         <Text style={styles.dateText}>
-          Ordered Date: <Text style={styles.dateText}>{item.orderedByDate}</Text>
+          Ordered Date: <Text style={styles.dateText}>{formatDate(item.orderedByDate)}</Text>
         </Text>
       </View>
 
@@ -81,16 +151,15 @@ const ASNListCardComponent = ({
 
 const styles = StyleSheet.create({
   cardwrapper: {
-    paddingRight: 12,
+    paddingRight: s(12),
     paddingLeft: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
-    marginRight: 15,
-    marginLeft: 15,
-    height: 80,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    elevation: 2,
+    marginRight: s(15),
+    marginLeft: s(15),
+    height: s(80),
+    backgroundColor: '#FBFBFB',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: s(10),
   },
   rowContainer: {
     flexDirection: 'row',
@@ -99,9 +168,12 @@ const styles = StyleSheet.create({
   section1: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F6FAFA',
-    width: 40,
+    backgroundColor: '#ECF1F7',
+    width: s(35),
     height: '100%',
+    borderRadius: s(10),
+    borderBottomEndRadius: 0,
+    borderTopRightRadius: 0,
     position: 'relative',
   },
   checkbox: {

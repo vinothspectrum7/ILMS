@@ -62,9 +62,9 @@ export const GetSinglePO = async(po_id)=>{
     throw error;
   }
 }
-export const GetSavedSinglePO = async(po_id)=>{
+export const GetSavedSinglePO = async(po_id,interface_id)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_SAVED_SINGLE_PO_DATA(po_id));
+    const response = await api.get(API_ENDPOINTS.GET_SAVED_SINGLE_PO_DATA(po_id,interface_id));
     console.log(response,"GET_SAVED_SINGLE_PO_DATA");
     return response.data;
     
@@ -135,10 +135,10 @@ export const Save_Receive_Qty = async (data) => {
 export const GetICPoItems = async(org_id)=>{
   try {
     const response = await api.get(API_ENDPOINTS.GET_IC_PO_DATA(org_id));
-        console.log("Response Data:popopo", response);
+        console.log("Response Data:INCOMP", response);
     return response.data;
   }catch (error) {
-    console.error("Get PO Error:", error.message, error.response?.data);
+    console.error("Get Incomplete PO Error:", error.message, error.response?.data);
     throw error;
   }
 }

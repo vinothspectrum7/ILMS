@@ -141,7 +141,7 @@ const maporgdata = (data) => {
         </View>
 
         <View style={styles.brandRight}>
-          <Text style={styles.version}>V: 25090306</Text>
+          <Text style={styles.version}>V: 25090909</Text>
           <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={rs(22)} height={rs(22)} />
             {showDot && <View style={styles.dot} />}

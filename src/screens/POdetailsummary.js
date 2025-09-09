@@ -10,7 +10,10 @@ import {
   Dimensions
 } from "react-native";
 import NavHeaderComponent from "../components/NavHeaderComponent";
+import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import ASNinfoCardComponent from "../components/ASNinfoCardComponent";
+import { useReceivingStore } from '../store/receivingStore';
 
 const data = [
   {
@@ -58,6 +61,10 @@ const scale = screenWidth / baseWidth;
 const responsiveSize = (size) => Math.round(size * scale);
 export default function PODetailSummary() {
   const [expandedPO, setExpandedPO] = useState(null);
+  const { OrgData } = useReceivingStore();
+  const route = useRoute();
+  const navigation = useNavigation();
+  const selectedASN = route?.params?.selectedASN;
 
   const toggleExpand = (id) => {
     setExpandedPO((prev) => (prev === id ? null : id));
@@ -136,7 +143,16 @@ export default function PODetailSummary() {
 
   return (
 <SafeAreaView style={styles.container}>
-    <NavHeaderComponent />
+    <GlobalHeaderComponent
+            organizationName={OrgData?.selectedOrgCode}
+            screenTitle="Receive"
+            contextInfo={selectedASN.asn_num}
+            notificationCount={0}
+            onBack={() => navigation.goBack()}
+            onMenu={() => {}}
+            onNotificationPress={() => navigation.navigate('Home')}
+            onProfilePress={() => navigation.navigate('Home')}
+          />
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <ASNinfoCardComponent
           receiptNumber="12300002"

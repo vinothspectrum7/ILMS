@@ -132,6 +132,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
     receivedQty: backend.rcvd_qty,
+    incomplte_qty:backend.incomplte_qty,
     openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
     max_open_qty: Math.floor(backend.max_open_qty ?? 0),
     lpn: '',
@@ -153,7 +154,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     setPhase('loading');
     const loadPoData = async () => {
       try {
-        const posingledata = await GetSavedSinglePO(selectedPO.po_id);
+        const posingledata = await GetSavedSinglePO(selectedPO.po_id,selectedPO.interface_id);
         if (posingledata?.purchase_order_lines) {
           setPurchaseReceipt(posingledata?.next_receipt_num);
           const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines, posingledata);
@@ -179,11 +180,11 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
   useEffect(() => {
   if (PoListItems.length > 0) {
     const seeded = PoListItems.map(i => {
-      const base = Number(i?.receivedQty ?? 0);
-      const prefill = base > 0 ? clampToLimit(base, i?.max_open_qty) : 0;
+      const base = Number(i?.incomplte_qty ?? 0);
+      // const prefill = base > 0 ? clampToLimit(base, i?.max_open_qty) : 0;
       return {
         ...i,
-        qtyToReceive: prefill,
+        qtyToReceive: base,
       };
     });
     initReceiveItems(seeded);
@@ -417,16 +418,12 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
       } else {
         setSaveModalStatus('failure');
         setSaveModalVisible(true);
-        const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
-        Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
         setTimeout(() => handlesaveFailure(), 3500);
       }
     } catch (e) {
       console.log('Save error:', e);
       setSaveModalStatus('failure');
       setSaveModalVisible(true);
-      const msg = (response?.message || response?.detail || 'Save failed. Please try again.');
-      Toast.show({ type: 'error', text1: String(msg), position: 'top', visibilityTime: 2500 });
       setTimeout(() => handlesaveFailure(), 3500);
     }
   };
@@ -434,8 +431,6 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
   const handlesaveSuccess = () => {
     if (didCompleteRef.current) return;
     didCompleteRef.current = true;
-    Toast.hide();
-    Toast.show({ type: 'success', text1: 'Order receipt Saved successfully', position: 'top', visibilityTime: 5000 });
     setSaveModalVisible(false);
     // resetReceiving();
     // navigation.navigate('Receive');
@@ -444,9 +439,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
   const handlesaveFailure = () => {
     if (didCompleteRef.current) return;
     didCompleteRef.current = true;
-    Toast.hide();
     setSaveModalVisible(false);
-    Toast.show({ type: 'error', text1: 'Save failed', position: 'top', visibilityTime: 5000 });
   };
   
 
@@ -456,8 +449,8 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
   const handleSuccess = () => {
     if (didCompleteRef.current) return;
     didCompleteRef.current = true;
-    Toast.hide();
-    Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
+    // Toast.hide();
+    // Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
     setModalVisible(false);
     resetReceiving();
     navigation.navigate('Receive');
