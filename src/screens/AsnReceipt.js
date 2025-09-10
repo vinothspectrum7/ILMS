@@ -83,7 +83,7 @@ const AsnReceiptScreen = () => {
       return items.filter((it) => {
         const r = Number(it?.line_item?.rcvd_qty ?? 0);
         const o = Number(it?.line_item?.ordered_qty ?? 0);
-        return r > 0 && r < o;
+        return o > 0 && r < o;
       });
     }
     return items;
@@ -157,8 +157,8 @@ const AsnReceiptScreen = () => {
       );
       Toast.show({
         type: 'success',
-        text1: 'Scanned PO ',
-        text2: `${code} • ${matches.length} is selected`,
+        text1: 'Scanned PO',
+        text2: `${code} • ${matches.length} selected`,
         position: 'top',
         visibilityTime: 4000
       });
