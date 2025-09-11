@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ViewMore from '../assets/icons/viewmore.svg';
 
 const dash = '—';
-const CARD_BG = '#FFFFFF';
+const CARD_BG = '#F6F8FA';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;

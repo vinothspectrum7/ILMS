@@ -33,7 +33,7 @@ const AsnReceiptScreen = () => {
 
   const [forceScanRow, setForceScanRow] = useState(false);
   const selectedPO = route?.params?.selectedPO || null;
-  const { OrgData } = useReceivingStore();
+  const { OrgData, setAsnHeader, initAsnSelectedLines } = useReceivingStore();
 
   const listRef = useRef(null);
 
@@ -113,12 +113,31 @@ const AsnReceiptScreen = () => {
     console.log('Saved:', items);
   };
 
-  const handleReceive = (itemsParam) => {
+  const handleReceive = () => {
+    const selected = items.filter(it => selectedItems.includes(it.id));
+    if (selected.length === 0) {
+      Toast.show({ type: 'info', text1: 'No items selected', position: 'top', visibilityTime: 2000 });
+      return;
+    }
+    const lines = selected.map(it => {
+      const raw = it?.line_item ?? {};
+      const rq = Number(raw?.receiving_qty);
+      const oq = Number(raw?.ordered_qty);
+      const fixedReceiving = !Number.isFinite(rq) || rq <= 0 ? (Number.isFinite(oq) ? oq : 0) : rq;
+      return {
+        id: String(it.asn_ln_id),
+        po_id: it.po_id ?? '',
+        po_number: it.po_number ?? '',
+        line: { ...raw, receiving_qty: fixedReceiving },
+      };
+    });
+    setAsnHeader(selectedASN);
+    initAsnSelectedLines(lines);
     navigation.navigate('podetailsummary', {
       selectedASN: selectedItems,
       fromScan: false,
-      scannedAsnId: itemsParam?.asn_id,
-      scannedAsnNumber: itemsParam?.asn_num
+      scannedAsnId,
+      scannedAsnNumber,
     });
   };
 
@@ -184,7 +203,7 @@ const AsnReceiptScreen = () => {
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
         organizationName={OrgData?.selectedOrgCode}
-        screenTitle="Receive"
+        screenTitle="Receiving"
         notificationCount={0}
         onBack={() => navigation.goBack()}
         onMenu={() => {}}
@@ -239,7 +258,7 @@ const AsnReceiptScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#F6F8FA' },
   contentContainer: { paddingBottom: 120 },
   tableHeader: { marginTop: 8, marginBottom: 10, zIndex: 5 },
   lineItemWrapper: { marginBottom: 12, zIndex: 1, elevation: 1 },

@@ -11,10 +11,10 @@ const clampToOpen = (qty, open) => {
 export const useReceivingStore = create((set, get) => ({
   poHeader: null,
   setPoHeader: (header) => set({ poHeader: header }),
-  setActiveTab: (tab) => set({ActiveTab:tab}),
-  setOrgData: (data) => set({OrgData:data}),
-  setInventoryList: (data) => set({InventoryList:data}),
-  setLocatorList: (data) => set({LocatorList:data}),
+  setActiveTab: (tab) => set({ ActiveTab: tab }),
+  setOrgData: (data) => set({ OrgData: data }),
+  setInventoryList: (data) => set({ InventoryList: data }),
+  setLocatorList: (data) => set({ LocatorList: data }),
 
   receiveItems: [],
   initReceiveItems: (items) => set({ receiveItems: items }),
@@ -24,9 +24,10 @@ export const useReceivingStore = create((set, get) => ({
       String(it.id) === String(patch.id)
         ? {
             ...it,
-            qtyToReceive: typeof patch.receivingQty === 'number'
-              ? clampToOpen(patch.receivingQty, it.max_open_qty)
-              : it.qtyToReceive,
+            qtyToReceive:
+              typeof patch.receivingQty === 'number'
+                ? clampToOpen(patch.receivingQty, it.max_open_qty)
+                : it.qtyToReceive,
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
@@ -44,9 +45,10 @@ export const useReceivingStore = create((set, get) => ({
       String(it.id) === String(patch.id)
         ? {
             ...it,
-            qtyToReceive: typeof patch.receivingQty === 'number'
-              ? clampToOpen(patch.receivingQty, it.openQty)
-              : it.qtyToReceive,
+            qtyToReceive:
+              typeof patch.receivingQty === 'number'
+                ? clampToOpen(patch.receivingQty, it.openQty)
+                : it.qtyToReceive,
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
@@ -56,15 +58,21 @@ export const useReceivingStore = create((set, get) => ({
     set({ summaryItems: next });
   },
 
-    resetTab: () =>
-    set({
-      ActiveTab: null
-    }),
+  resetTab: () => set({ ActiveTab: null }),
+  resetReceiving: () => set({ poHeader: null, receiveItems: [], summaryItems: [] }),
 
-  resetReceiving: () =>
-    set({
-      poHeader: null,
-      receiveItems: [],
-      summaryItems: [],
-    }),
+  asnHeader: null,
+  setAsnHeader: (header) => set({ asnHeader: header }),
+  asnSelectedLines: [],
+  initAsnSelectedLines: (lines) => set({ asnSelectedLines: Array.isArray(lines) ? lines : [] }),
+  updateAsnLine: (patch) => {
+    if (!patch || !patch.id) return;
+    const next = get().asnSelectedLines.map(it =>
+      String(it.id) === String(patch.id)
+        ? { ...it, line: { ...it.line, ...patch.line } }
+        : it
+    );
+    set({ asnSelectedLines: next });
+  },
+  clearAsnFlow: () => set({ asnHeader: null, asnSelectedLines: [] }),
 }));
