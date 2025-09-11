@@ -3,7 +3,7 @@ export const BASE_URL ='http://3.17.31.222:8000';
 // export const BASE_URL = 'http://192.168.1.15:3003/api/v1/';
 export const API_ENDPOINTS = {
   LOGIN: `${BASE_URL}/token`,
-  GET_ASN_DATA: (orgId) => `${BASE_URL}/asn/asn_headers/${orgId}/all`,
+  GET_ASN_DATA: (org_uuid) => `${BASE_URL}/asn/asn_headers/${org_uuid}/all/`,
   GET_SINGLE_ASN_DATA: (asn_id) => `${BASE_URL}/asn/asn/${asn_id}`,
   GET_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all`,
   GET_ALL_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all?status=all`,

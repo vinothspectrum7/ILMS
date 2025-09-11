@@ -508,11 +508,20 @@ useEffect(() => {
             <View style={styles.bottomrow}>
               <View style={styles.bottomcardLeft}>
               <Text style={styles.labelText}>Status</Text>
-                <Text style={[styles.valueText, styles.openText]}>{item.status}</Text>
+                <Text style={[styles.valueText, styles.openText,
+                {
+      color:
+        item.status && item.status =='OPEN'
+          ? "#033EFF" // ✅ when receivingQty is valid and > 0
+          : item.status == 'CLOSED'
+          ? "#168035" // ✅ when openQty is 0 → CLOSED
+          : "#F06000", // ✅ fallback → OPEN
+    }
+              ]}>{item.status}</Text>
               </View>
               <View style={styles.bottomcardRight}>
               <Text style={styles.labelText}>Shipped Date</Text>
-                <Text style={styles.valueText}>{item.shipped_date}</Text>
+                <Text style={styles.valueText}>{formatDate(item.shipped_date)}</Text>
               </View>
             </View>
             <View style={styles.bottomrow}>
@@ -748,14 +757,66 @@ useEffect(() => {
     InComplete: InCompleteList,
   };
 
-const formatDate = (date) => {
-  const d = new Date(date);
-  const dd = String(d.getDate()).padStart(2, '0');
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const mmm = monthNames[d.getMonth()];
-  const yyyy = d.getFullYear();
-  return `${dd} ${mmm} ${yyyy}`;
+const formatDate = (input) => {
+  const monthShort = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const monthMap = {
+    jan:0, january:0, feb:1, february:1, mar:2, march:2, apr:3, april:3,
+    may:4, jun:5, june:5, jul:6, july:6, aug:7, august:7, sep:8, sept:8,
+    september:8, oct:9, october:9, nov:10, november:10, dec:11, december:11,
+  };
+
+  const out = (y,m,d) => `${String(d).padStart(2,'0')} ${monthShort[m]} ${y}`;
+
+  if (input == null) return dash;
+  const v = String(input).trim();
+  if (!v) return dash;
+
+  
+  {
+    const m = /^(\d{4})[-/](\d{2})[-/](\d{2})$/.exec(v);
+    if (m) {
+      const [, y, mm, dd] = m;
+      const mi = Math.max(0, Math.min(11, Number(mm) - 1));
+      return out(Number(y), mi, Number(dd));
+    }
+  }
+
+  
+  {
+    const m = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(v);
+    if (m) {
+      const [, dd, mm, y] = m;
+      const mi = Math.max(0, Math.min(11, Number(mm) - 1));
+      return out(Number(y), mi, Number(dd));
+    }
+  }
+
+  
+  {
+    const parts = v.split(/\s+/);
+    if (parts.length === 3) {
+      const [dStr, monStr, yStr] = parts;
+      const mi = monthMap[(monStr || '').toLowerCase()];
+      if (mi !== undefined && /^\d{1,2}$/.test(dStr) && /^\d{4}$/.test(yStr)) {
+        return out(Number(yStr), mi, Number(dStr));
+      }
+    }
+  }
+
+  
+  {
+    const n = Number(v);
+    const dt = !Number.isNaN(n) && n > 0 ? new Date(n) : new Date(v);
+    if (!Number.isNaN(dt.getTime())) {
+      const y = dt.getUTCFullYear();
+      const m = dt.getUTCMonth();      
+      const d = dt.getUTCDate();
+      return out(y, m, d);
+    }
+  }
+
+  
+  return v || dash;
 };
 
 

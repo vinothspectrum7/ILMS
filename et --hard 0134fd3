@@ -1,0 +1,74 @@
+[33m3517209[m[33m ([m[1;36mHEAD -> [m[1;32mvinoth-dev[m[33m, [m[1;31morigin/naveen-dev[m[33m)[m HEAD@{Tue Sep 9 01:38:42 2025}: pull origin naveen-dev: Fast-forward
+[33m3d4d0c0[m HEAD@{Thu Sep 4 17:17:09 2025}: pull origin naveen-dev: Fast-forward
+[33m0134fd3[m[33m ([m[1;31morigin/vinoth-dev[m[33m)[m HEAD@{Wed Sep 3 16:56:41 2025}: commit: Modal issue
+[33m63a04a3[m HEAD@{Wed Sep 3 16:55:56 2025}: commit: Modal updated
+[33m02e8776[m HEAD@{Wed Sep 3 16:38:41 2025}: commit: Save modal bug fixed
+[33m328fa34[m HEAD@{Wed Sep 3 16:27:35 2025}: pull origin naveen-dev: Fast-forward
+[33m1d152b5[m HEAD@{Wed Sep 3 15:27:46 2025}: commit: Receive Screen Filter updated
+[33m7b4f8fd[m HEAD@{Tue Sep 2 18:46:29 2025}: commit: Version updated
+[33md7ca7f3[m HEAD@{Tue Sep 2 18:17:52 2025}: pull origin naveen-dev: Fast-forward
+[33m6d60069[m HEAD@{Tue Sep 2 17:31:45 2025}: commit: Receive Incomplete Tab PO Details
+[33m2fad754[m HEAD@{Tue Sep 2 12:36:15 2025}: commit: Receive Summary Save flow
+[33md27b438[m HEAD@{Tue Sep 2 12:14:16 2025}: pull origin naveen-dev: Fast-forward
+[33m16fe541[m HEAD@{Tue Sep 2 11:57:25 2025}: commit: Incomplete Receive Tab Flow Listing
+[33m476b8d7[m HEAD@{Mon Sep 1 13:41:22 2025}: commit (merge): Merge branch 'naveen-dev' of https://github.com/vinothspectrum7/ILMS into vinoth-dev
+[33m67e740e[m HEAD@{Thu Aug 28 14:56:17 2025}: pull origin naveen-dev: Merge made by the 'ort' strategy.
+[33mc69261b[m HEAD@{Thu Aug 28 14:55:48 2025}: commit: Version Updated
+[33m5aa37f2[m HEAD@{Thu Aug 28 14:39:47 2025}: pull origin naveen-dev: Fast-forward
+[33ma3f5bc7[m HEAD@{Thu Aug 28 14:34:53 2025}: commit: Scan item detail screen
+[33m96810bb[m HEAD@{Thu Aug 28 13:32:06 2025}: pull origin naveen-dev: Fast-forward
+[33m276016d[m HEAD@{Thu Aug 28 03:44:18 2025}: commit: Updated Scan item flow
+[33m0a81584[m HEAD@{Tue Aug 26 21:00:50 2025}: pull origin naveen-dev: Fast-forward
+[33m288d0ec[m HEAD@{Tue Aug 26 11:31:25 2025}: pull origin naveen-dev: Fast-forward
+[33ma00decc[m HEAD@{Tue Aug 26 09:07:58 2025}: commit: APK issue fixed
+[33mcfed31e[m HEAD@{Tue Aug 26 04:17:40 2025}: commit: Data flow between Details Screen , New Receive Screen and Summary Screen
+[33m1dd3524[m HEAD@{Mon Aug 25 21:33:13 2025}: commit: UI & Profile name bug fixing
+[33mee5f642[m HEAD@{Mon Aug 25 11:53:45 2025}: pull origin naveen-dev: Fast-forward
+[33mb9d538b[m HEAD@{Mon Aug 25 11:47:32 2025}: commit: UI Changes fo PO
+[33mb1f85bc[m HEAD@{Fri Aug 22 11:49:17 2025}: pull origin naveen-dev: Fast-forward
+[33m4a6ef8b[m HEAD@{Fri Aug 22 04:08:38 2025}: commit: UI Changes with New Header
+[33m33575e7[m HEAD@{Thu Aug 21 14:58:01 2025}: commit: UI Changes
+[33mada4bae[m HEAD@{Wed Aug 20 19:04:11 2025}: pull origin naveen-dev: Merge made by the 'ort' strategy.
+[33m8d41484[m HEAD@{Wed Aug 20 18:32:18 2025}: pull origin naveen-dev: Merge made by the 'ort' strategy.
+[33m14f00da[m HEAD@{Wed Aug 20 18:31:36 2025}: commit: receivescreen UI bug fixes
+[33m10f53d9[m HEAD@{Wed Aug 20 16:41:26 2025}: commit: Custom numeric alignment fixing
+[33m7a7723c[m HEAD@{Wed Aug 20 16:37:39 2025}: commit: UI Bug fixing
+[33meb8b2c0[m HEAD@{Wed Aug 20 09:01:49 2025}: commit: UI Bug fixing for PO
+[33ma8db8ab[m HEAD@{Tue Aug 19 12:39:37 2025}: commit: navigation issue fixed
+[33mf426fc4[m HEAD@{Mon Aug 18 20:56:04 2025}: commit: "ReceiveSummaryScreen logic updated for Navigation with data flow"
+[33mef0489e[m HEAD@{Mon Aug 18 16:48:02 2025}: pull origin naveen-dev: Fast-forward
+[33m7463888[m HEAD@{Fri Aug 15 19:45:28 2025}: commit: Receive Line items and Scan items logic updated
+[33m42ffbbf[m HEAD@{Fri Aug 15 16:26:13 2025}: commit: BarcodeScanner UI Updated
+[33m81bf055[m HEAD@{Fri Aug 15 03:07:03 2025}: commit: Barcode Sanner and Receive Line item logic updated
+[33ma0f25e8[m HEAD@{Wed Aug 13 20:17:11 2025}: commit: Confirmmodal style updated
+[33mc1777cd[m HEAD@{Wed Aug 13 20:13:33 2025}: commit: Barcode Scanning added for Receive Module
+[33ma99ee60[m HEAD@{Wed Aug 13 15:27:21 2025}: pull origin naveen-dev: Fast-forward
+[33m86814dd[m HEAD@{Wed Aug 13 14:41:07 2025}: commit: HomeScreen Header issue
+[33m4909849[m HEAD@{Wed Aug 13 14:08:39 2025}: commit: HomeScreen Header alignment issue fixed
+[33m5c56404[m HEAD@{Wed Aug 13 07:40:43 2025}: commit: UI Issue fixing New Receive
+[33m8441547[m HEAD@{Wed Aug 13 05:59:00 2025}: commit: View Details alignment issue fixing
+[33mca52141[m HEAD@{Tue Aug 12 05:02:39 2025}: commit: View Details Line Item Bug fixing
+[33m642bacc[m HEAD@{Tue Aug 12 04:41:40 2025}: commit: View Details Scrolling issue fixed
+[33md049fb9[m HEAD@{Tue Aug 12 04:24:59 2025}: commit: View Detail Line item Submit
+[33mdd71885[m HEAD@{Tue Aug 12 04:00:23 2025}: commit: View Details Screen updated
+[33mb2892de[m HEAD@{Mon Aug 11 15:20:07 2025}: commit: HomeScreen and NewReceiveScreen Bug fixing
+[33m971fd71[m HEAD@{Mon Aug 11 11:24:10 2025}: commit: Receive Summary UI Fixed
+[33mf86ae05[m HEAD@{Sun Aug 10 14:51:46 2025}: commit: View Details Bug fixing
+[33me434f14[m HEAD@{Sun Aug 10 13:48:25 2025}: commit: Receive View Details
+[33m32df651[m HEAD@{Sun Aug 10 12:55:55 2025}: commit: test author
+[33m626c6df[m HEAD@{Sat Aug 9 15:19:12 2025}: commit: HomeScreen and Receive Screen alignment issue fixed
+[33mb13808d[m HEAD@{Sat Aug 9 14:29:34 2025}: commit: Recevied Tab list and Summary added
+[33mcaa49ce[m HEAD@{Sat Aug 9 06:41:40 2025}: commit: New Receive Scan Items flow
+[33m91e10d1[m HEAD@{Fri Aug 8 19:52:40 2025}: commit: Receive PO Confirm Modal
+[33mfa58121[m HEAD@{Fri Aug 8 14:35:12 2025}: commit: Receive Summary Screen Added
+[33mde2f685[m HEAD@{Fri Aug 8 10:44:31 2025}: commit: Global header component added
+[33m0b72a83[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mnaveen-dev[m[33m, [m[1;32mmain[m[33m)[m HEAD@{Fri Aug 8 10:36:26 2025}: checkout: moving from vinoth-dev to vinoth-dev
+[33m0b72a83[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mnaveen-dev[m[33m, [m[1;32mmain[m[33m)[m HEAD@{Thu Aug 7 17:54:29 2025}: checkout: moving from naveen-dev to vinoth-dev
+[33m0b72a83[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mnaveen-dev[m[33m, [m[1;32mmain[m[33m)[m HEAD@{Thu Aug 7 17:51:08 2025}: checkout: moving from main to naveen-dev
+[33m0b72a83[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mnaveen-dev[m[33m, [m[1;32mmain[m[33m)[m HEAD@{Thu Aug 7 17:50:13 2025}: checkout: moving from vinoth-dev to main
+[33m0b72a83[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mnaveen-dev[m[33m, [m[1;32mmain[m[33m)[m HEAD@{Thu Aug 7 17:46:36 2025}: checkout: moving from main to vinoth-dev
+[33m0b72a83[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mnaveen-dev[m[33m, [m[1;32mmain[m[33m)[m HEAD@{Thu Aug 7 17:46:16 2025}: checkout: moving from main to main
+[33m0b72a83[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mnaveen-dev[m[33m, [m[1;32mmain[m[33m)[m HEAD@{Thu Aug 7 17:42:28 2025}: Branch: renamed refs/heads/main to refs/heads/main
+[33m0b72a83[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mnaveen-dev[m[33m, [m[1;32mmain[m[33m)[m HEAD@{Thu Aug 7 17:39:27 2025}: commit: Initial commit with .gitignore
+[33ma127822[m HEAD@{Thu Aug 7 17:34:42 2025}: commit: Updated .gitignore for React Native CLI (Android & iOS)
+[33mb44eb4d[m HEAD@{Tue Aug 5 07:09:10 2025}: commit (initial): Initial commit
