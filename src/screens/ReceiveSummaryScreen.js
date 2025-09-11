@@ -43,6 +43,7 @@ const [openItems, setOpenItems] = useState(new Set());
   const headerFromRoute = route?.params?.header || null;
   const purchaseReceipt = route?.params?.purchaseReceipt;
   const sourceId = route?.params?.id ? String(route.params.id) : null;
+  const Interface_Id = route?.params?.interface_id ? route.params.interface_id : null;
   const passedItems = Array.isArray(route?.params?.selectedItems) ? route.params.selectedItems : [];
 
   const {
@@ -191,7 +192,8 @@ const  mapConfirmData = (data)=> {
     locator_id: backend.locator?backend?.locator:null,
     lot_number: "",
     expiry_date: formatToday(),
-    received_qty: Number(backend?.qtyToReceive)
+    received_qty: Number(backend?.qtyToReceive),
+    interface_header_id: Interface_Id
   }));
 }
 
@@ -202,7 +204,7 @@ const  mapConfirmData = (data)=> {
         try {
           const response = await Submit_Receive_Qty(formatdata);
           console.log(response,"posingledataposingledata");
-      if (response?.results) return { success: true, message:'Received Quantity Updated Successfully!' };
+      if (response?.results?.[0].status == 'success') return { success: true, message:'Received Quantity Updated Successfully!' };
       return { success: false, message: response?.message || 'Failed to create order receipt' };
         } catch (err) {
           return { success: false, message: err.detail?.[0].msg || 'Network error. Please try again.' };
@@ -236,6 +238,8 @@ const  mapConfirmData = (data)=> {
     if (typeof res?.results === 'boolean') return res.results === true;
     if (typeof res?.results === 'number') return res.results > 0;
     if (Array.isArray(res?.results)) return res.results.length > 0;
+    if (res?.results[0].status=='success') return true;
+    if (res?.results[0].status=='error') return false;
     if (res?.status === 'success' || res?.status === 'ok') return true;
     if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
     return false;
@@ -248,6 +252,7 @@ const  mapConfirmData = (data)=> {
       console.log('Save payload:', payload);
       const response = await Save_Receive_Qty(payload);
       console.log('Save response:', response);
+      console.log(isSaveSuccess(response),"isSaveSuccess(response)isSaveSuccess(response)")
       if (isSaveSuccess(response)) {
         setSaveModalStatus('success');
         setSaveModalVisible(true);

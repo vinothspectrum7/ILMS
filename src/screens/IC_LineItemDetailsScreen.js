@@ -46,7 +46,7 @@ const IC_LineItemDetailsScreen = () => {
   const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
 
-  const { InventoryList, OrgData, LocatorList, setLocatorList, receiveItems, mergePatchIntoReceiveItems } = useReceivingStore();
+  const { InventoryList, OrgData, LocatorList, setLocatorList, receiveItems, mergePatchIntoReceiveItems, setLocatorInCache, getLocatorFromCache } = useReceivingStore();
 
   const baseItems = Array.isArray(route?.params?.items) && route.params.items.length > 0
     ? route.params.items
@@ -68,12 +68,12 @@ const IC_LineItemDetailsScreen = () => {
 
   const startIndex = Math.max(0, Math.min(Number(route?.params?.startIndex ?? 0), mergedItems.length - 1));
 
-  const [profileName, setProfileName] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [index, setIndex] = useState(startIndex);
   const [edited, setEdited] = useState({});
   const [SUB_WIDTH,setSubWidth] = useState(80);
-    const [LpnList, setLpnList] = useState([]);
+  const [LpnList, setLpnList] = useState([]);
+  const [locatorDataMap, setLocatorDataMap] = useState({});
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const listRef = useRef(null);
@@ -104,6 +104,33 @@ const IC_LineItemDetailsScreen = () => {
     }
     prefilledRef.current = true;
   }, [allItems, receiveItems, readOnly, edited]);
+
+  useEffect(() => {
+    if (readOnly) return;
+  
+    allItems.forEach(async (it) => {
+      const sub_id = it.subInventory || edited[it.id]?.subInventory;
+      if (!sub_id) return;
+  
+      const cached = getLocatorFromCache(sub_id);
+      if (cached) {
+        setLocatorDataMap((prev) => ({ ...prev, [it.id]: cached }));
+      } else {
+        try {
+          const locdata = await GetLocatorsData(sub_id);
+          if (locdata) {
+            const apiLocators = locdata.map((d) => ({
+              id: d.locator_id,
+              name: d.locator_name,
+              enabled: d.locator_enabled,
+            }));
+            setLocatorDataMap((prev) => ({ ...prev, [it.id]: apiLocators }));
+            setLocatorInCache(sub_id, apiLocators);
+          }
+        } catch {}
+      }
+    });
+  }, [allItems, readOnly]);
 
   const readonlyScanQty = (() => {
     if (!readOnly || listType !== 'scan') return null;
@@ -138,22 +165,33 @@ const IC_LineItemDetailsScreen = () => {
   const handleSubInventoryChange = async (itemId, sub_id) => {
     setEdited((prev) => ({
       ...prev,
-      [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id },
+      [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id, locator: '' },
     })); 
     // Alert.alert("TEst");
         // console.log(InventoryList,"FINDLABELFINDLBVELELVMEF")
     const findLabels = findLabel(sub_id,InventoryList);
     const dynamicwidth = estimateWidth(findLabels);
     setSubWidth(dynamicwidth);
+
+  const cached = getLocatorFromCache(sub_id);
+  if (cached) {
+    setLocatorDataMap((prev) => ({ ...prev, [itemId]: cached }));
+  } else {
     try {
       const locdata = await GetLocatorsData(sub_id);
       if (locdata) {
-        const Locatorsdata = locdata.map((d) => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
-        setLocatorList(Locatorsdata);
+        const apiLocators = locdata.map((d) => ({
+          id: d.locator_id,
+          name: d.locator_name,
+          enabled: d.locator_enabled,
+        }));
+        setLocatorDataMap((prev) => ({ ...prev, [itemId]: apiLocators }));
+        setLocatorInCache(sub_id, apiLocators);
       }
     } catch {
       Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators', position: 'top',visibilityTime: 5000 });
     }
+  }
   };
 
   const isSubmitEnabled = useMemo(() => {
@@ -368,7 +406,7 @@ const IC_LineItemDetailsScreen = () => {
                 value={pageState.locator}
                 onChange={isEditable ? (id) => setEdited((prev) =>
                    ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
-                options={LocatorList}
+                options={locatorDataMap[item.id] ?? []}
                 placeholder="Select Locator"
                 disabled={!isEditable || item.openQty==0}
                 width={CONTROL_WIDTH}

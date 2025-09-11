@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions,Image, Alert } from 'react-native';
 import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -11,6 +11,11 @@ import SuccessModal from '../components/SuccessModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useReceivingStore } from '../store/receivingStore';
 import { GetLocatorsData } from '../api/ApiServices';
+import FailureSvg from '../assets/icons/failure.svg';
+import CameraIcon from '../assets/icons/CameraIcon.svg';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTROL_WIDTH = 80;
@@ -46,8 +51,40 @@ const LineItemDetailsScreen = () => {
   const receiptNumber = route?.params?.receiptNumber || null;
   const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
+  const [imageUri, setImageUri] = useState(null);
 
-  const { InventoryList, OrgData, LocatorList, setLocatorList, receiveItems, mergePatchIntoReceiveItems } = useReceivingStore();
+const handleImagePick = () => {
+  Alert.alert(
+    'Select Image',
+    'Choose an option',
+    [
+      {
+        text: 'Camera',
+        onPress: () => {
+          launchCamera({ mediaType: 'photo', quality: 0.7 }, response => {
+            if (!response.didCancel && !response.errorCode) {
+              setImageUri(response.assets?.[0]?.uri || null);
+            }
+          });
+        },
+      },
+      {
+        text: 'Gallery',
+        onPress: () => {
+          launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, response => {
+            if (!response.didCancel && !response.errorCode) {
+              setImageUri(response.assets?.[0]?.uri || null);
+            }
+          });
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]
+  );
+};
+
+
+  const { InventoryList, OrgData, receiveItems, mergePatchIntoReceiveItems, setLocatorInCache, getLocatorFromCache } = useReceivingStore();
 
   const baseItems = Array.isArray(route?.params?.items) && route.params.items.length > 0
     ? route.params.items
@@ -69,10 +106,10 @@ const LineItemDetailsScreen = () => {
 
   const startIndex = Math.max(0, Math.min(Number(route?.params?.startIndex ?? 0), mergedItems.length - 1));
 
-  const [profileName, setProfileName] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [index, setIndex] = useState(startIndex);
   const [edited, setEdited] = useState({});
+  const [locatorDataMap, setLocatorDataMap] = useState({});
   const [SUB_WIDTH,setSubWidth] = useState(80);
     const [LpnList, setLpnList] = useState([]);
   const [successVisible, setSuccessVisible] = useState(false);
@@ -136,26 +173,70 @@ const LineItemDetailsScreen = () => {
   return String(value);
 };
 
-  const handleSubInventoryChange = async (itemId, sub_id) => {
-    setEdited((prev) => ({
-      ...prev,
-      [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id },
-    })); 
-    // Alert.alert("TEst");
-        // console.log(InventoryList,"FINDLABELFINDLBVELELVMEF")
-    const findLabels = findLabel(sub_id,InventoryList);
-    const dynamicwidth = estimateWidth(findLabels);
-    setSubWidth(dynamicwidth);
+useEffect(() => {
+  if (readOnly) return;
+
+  allItems.forEach(async (it) => {
+    const sub_id = it.subInventory || edited[it.id]?.subInventory;
+    if (!sub_id) return;
+
+    const cached = getLocatorFromCache(sub_id);
+    if (cached) {
+      setLocatorDataMap((prev) => ({ ...prev, [it.id]: cached }));
+    } else {
+      try {
+        const locdata = await GetLocatorsData(sub_id);
+        if (locdata) {
+          const apiLocators = locdata.map((d) => ({
+            id: d.locator_id,
+            name: d.locator_name,
+            enabled: d.locator_enabled,
+          }));
+          setLocatorDataMap((prev) => ({ ...prev, [it.id]: apiLocators }));
+          setLocatorInCache(sub_id, apiLocators);
+        }
+      } catch {}
+    }
+  });
+}, [allItems, readOnly]);
+
+const handleSubInventoryChange = async (itemId, sub_id) => {
+  setEdited((prev) => ({
+    ...prev,
+    [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id, locator: '' }, // reset locator
+  }));
+
+  const findLabels = findLabel(sub_id, InventoryList);
+  const dynamicwidth = estimateWidth(findLabels);
+  setSubWidth(dynamicwidth);
+
+  const cached = getLocatorFromCache(sub_id);
+  if (cached) {
+    setLocatorDataMap((prev) => ({ ...prev, [itemId]: cached }));
+  } else {
     try {
       const locdata = await GetLocatorsData(sub_id);
       if (locdata) {
-        const Locatorsdata = locdata.map((d) => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
-        setLocatorList(Locatorsdata);
+        const apiLocators = locdata.map((d) => ({
+          id: d.locator_id,
+          name: d.locator_name,
+          enabled: d.locator_enabled,
+        }));
+        setLocatorDataMap((prev) => ({ ...prev, [itemId]: apiLocators }));
+        setLocatorInCache(sub_id, apiLocators);
       }
     } catch {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators', position: 'top',visibilityTime: 5000 });
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load Locators',
+        position: 'top',
+        visibilityTime: 5000,
+      });
     }
-  };
+  }
+};
+
 
   const isSubmitEnabled = useMemo(() => {
     if (readOnly) return false;
@@ -209,6 +290,7 @@ const LineItemDetailsScreen = () => {
 
   const handleSaveAll = useCallback(async () => {
     const patches = buildPatches();
+    console.log(patches,"buildPatchesbuildPatchesbuildPatchesbuildPatchesbuildPatches")
     if (!patches.length) {
       Toast.show({ type: 'info', text1: 'No changes to save', position: 'top', visibilityTime: 5000 });
       return;
@@ -263,7 +345,26 @@ const LineItemDetailsScreen = () => {
           <View style={styles.card} key={`card-${item.id}`}>
             <View style={styles.row}><Text style={styles.label}>Item Name</Text><Text style={styles.valueBold} numberOfLines={1}>{item.itemName || '—'}</Text></View>
             <View style={styles.divider} />
-            <View style={styles.block}><Text style={styles.label}>Item Description</Text><Text style={styles.descText}>{item.itemDescription || '—'}</Text></View>
+              <View style={styles.block}>
+                <Text style={styles.label}>Item Description</Text>
+                <View style={styles.row}>
+                 {/* Description */}
+                <Text style={styles.descText} numberOfLines={3}>
+                    {item.itemDescription || '—'}
+                </Text>
+
+                {/* Image with camera icon */}
+              <TouchableOpacity style={styles.cameraIcon} onPress={handleImagePick}>
+                <CameraIcon width={25} height={25} />
+              </TouchableOpacity>
+                <View style={styles.imageWrapper}>
+                {/* {FailureSvg && ( */}
+                     <Image source={{ uri: imageUri }} style={styles.image} />
+                {/* )} */}
+
+              </View>
+            </View>
+          </View>
             <View style={styles.divider} />
 
             <View style={styles.divider} />
@@ -369,7 +470,7 @@ const LineItemDetailsScreen = () => {
                 value={pageState.locator}
                 onChange={isEditable ? (id) => setEdited((prev) =>
                    ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
-                options={LocatorList}
+                options={locatorDataMap[item.id] ?? []}
                 placeholder="Select Locator"
                 disabled={!isEditable || item.openQty==0}
                 width={CONTROL_WIDTH}
@@ -510,6 +611,31 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginRight: 2,
     textAlign:'right'
+  },
+   imageWrapper: {
+    position: 'relative',
+    width: 70,
+    height: 70,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    top: -3,
+    right:-5,
+    // left:20,
+    // backgroundColor: '#fff',
+    // borderRadius: 15,
+    // padding: 3,
+    elevation: 2,
   },
 });
 

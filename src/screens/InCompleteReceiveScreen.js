@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, Modal, BackHandler, ActivityIndicator } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, Modal, BackHandler, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -17,6 +17,7 @@ import { GetSavedSinglePO, Submit_Receive_Qty, Save_Receive_Qty } from '../api/A
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ConfirmSvg from '../assets/icons/success.svg';
 import FailureSvg from '../assets/icons/failure.svg';
+import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 
 
 const clampToLimit = (qty, limit) => {
@@ -70,7 +71,6 @@ const InCompleteReceiveScreen = () => {
 
   const didCompleteRef = useRef(false);
 
-  const [selectedTab, setSelectedTab] = useState('lineItems');
   const [draftItems, setDraftItems] = useState([]);
   const [phase, setPhase] = useState('idle');
   const [PoListItems, setPoListItems] = useState([]);
@@ -78,6 +78,7 @@ const InCompleteReceiveScreen = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [scannedItems, setScannedItems] = useState([]);
   const [showScanner, setShowScanner] = useState(false);
+  const [filter, setFilter] = useState('all');
 
   useFocusEffect(
     useCallback(() => {
@@ -111,11 +112,6 @@ const InCompleteReceiveScreen = () => {
     }, [navigation, showScanner, modalVisible, saveModalVisible])
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (route?.params?.selectedTab === 'scanItems') setSelectedTab('scanItems');
-    }, [route?.params?.selectedTab])
-  );
 
   useEffect(() => {
     if (!selectedPO) return;
@@ -276,17 +272,6 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     });
   };
 
-  const handleScanItemQtyChange = (id, newQty) => {
-    setScannedItems(prev => {
-      const next = prev.map(item =>
-        item.id === id ? { ...item, qtyToReceive: clampToLimit(newQty, item.max_open_qty) } : item
-      );
-      const changed = next.find(x => x.id === id);
-      const clamped = Number(changed?.qtyToReceive ?? 0);
-      persistQty(id, clamped, changed || {});
-      return next;
-    });
-  };
 
   const commitDraftToStore = () => {
     draftItems.forEach(it => {
@@ -298,11 +283,11 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
 
   const handleReceive = () => {
     commitDraftToStore();
-    const isScan = selectedTab === 'scanItems';
-    if (isScan) {
-      setModalVisible(true);
-      return;
-    }
+    // const isScan = selectedTab === 'scanItems';
+    // if (isScan) {
+    //   setModalVisible(true);
+    //   return;
+    // }
     const source = draftItems;
     const payload = source
       .filter(i => Number(i.qtyToReceive ?? 0) > 0)
@@ -333,6 +318,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
       purchaseReceipt: PurchaseReceipt,
       header: mapHeader(selectedPO),
       listType: 'line',
+      interface_id: selectedPO.interface_id
     });
   };
 
@@ -344,33 +330,6 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  const mapConfirmData = (data) => {
-    return data.map((backend) => ({
-      po_line_id: backend?.po_line_id,
-      item_id: backend?.item_id,
-      org_id: backend?.org_id,
-      sub_inv_id: backend?.subInventory,
-      locator_id: backend?.subInventory,
-      lot_number: '',
-      expiry_date: formatToday(),
-      received_qty: Number(backend?.qtyToReceive),
-    }));
-  };
-
-  const confirmAction = async () => {
-    try {
-      const payload = mapConfirmData(scannedItems);
-      try {
-        const response = await Submit_Receive_Qty(payload);
-        if (response?.results) return { success: true, message: 'Received Quantity Updated Successfully!' };
-        return { success: false, message: response?.message || 'Failed to create order receipt' };
-      } catch (err) {
-        return { success: false, message: err.detail?.[0].msg || 'Network error. Please try again.' };
-      }
-    } catch (error) {
-      return { success: false, message: error?.message || 'Network error. Please try again.' };
-    }
-  };
 
   const mapConfirmSaveData = (data) => {
     const FILTER_ZERO_QTY = false; // set to true if backend rejects zero-qty rows
@@ -399,6 +358,8 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     if (typeof res?.results === 'boolean') return res.results === true;
     if (typeof res?.results === 'number') return res.results > 0;
     if (Array.isArray(res?.results)) return res.results.length > 0;
+    if (res?.results[0].status=='success') return true;
+    if (res?.results[0].status=='error') return false;
     if (res?.status === 'success' || res?.status === 'ok') return true;
     if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
     return false;
@@ -446,55 +407,21 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
 
   const handleCancel = () => setModalVisible(false);
 
-  const handleSuccess = () => {
-    if (didCompleteRef.current) return;
-    didCompleteRef.current = true;
-    // Toast.hide();
-    // Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
-    setModalVisible(false);
-    resetReceiving();
-    navigation.navigate('Receive');
-  };
+  // const handleSuccess = () => {
+  //   if (didCompleteRef.current) return;
+  //   didCompleteRef.current = true;
+  //   // Toast.hide();
+  //   // Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
+  //   setModalVisible(false);
+  //   resetReceiving();
+  //   navigation.navigate('Receive');
+  // };
 
   const handleFailure = () => {
     Toast.hide();
     setModalVisible(false);
   };
 
-  const goToScanItemDetails = (startIdx = 0, source = draftItems, readonly = false, listType = 'scan') => {
-    const withLatestFromStore = source.map((it, i) => {
-      const s = receiveItems.find(r => String(r.id) === String(it.id));
-      const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
-      return {
-        id: String(it.id),
-        poNumber: poHeader?.poNumber ?? '—',
-        lineNumber: i + 1,
-        itemName: it.name,
-        itemDescription: it.itemDescription ?? it.description ?? '—',
-        orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
-        openQty: Number(it.openQty ?? 0),
-        uom:it.uom,
-        receivingQty: qty,
-        receivingStatus: it.status,
-        lpn: s?.lpn ?? it.lpn ?? '',
-        subInventory: s?.subInventory ?? it.subInventory ?? '',
-        locator: s?.locator ?? it.locator ?? '',
-        max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
-      };
-    });
-
-    navigation.navigate({
-      name: 'IC_ScanItemDetails',
-      params: {
-        items: withLatestFromStore,
-        startIndex: startIdx,
-        readonly,
-        returnTo: 'InCompleteReceiveScreen',
-        listType,
-      },
-      merge: true,
-    });
-  };
 
   const goToLineItemDetails = (startIdx = 0, source = draftItems, readonly = false, listType = 'line') => {
     const withLatestFromStore = source.map((it, i) => {
@@ -531,6 +458,26 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     });
   };
 
+  const visibleItems = useMemo(() => {
+      if (!Array.isArray(draftItems) || !draftItems.length) return [];
+      if (filter === 'all') return draftItems;
+      if (filter === 'received') {
+        return draftItems.filter((it) => {
+          const r = Number(it?.receivedQty ?? 0);
+          const o = Number(it?.orderedQty ?? 0);
+          return r >= o && o > 0;
+        });
+      }
+      if (filter === 'pending') {
+        return draftItems.filter((it) => {
+          const r = Number(it?.receivedQty ?? 0);
+          const o = Number(it?.orderedQty ?? 0);
+          return r > 0 && r < o;
+        });
+      }
+      return draftItems;
+    }, [draftItems, filter]);
+
   const handleScan = (value) => {
     const id = String(value).trim();
     const source = PoListItems.find(x => String(x.name) === id);
@@ -553,31 +500,14 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     const scanned = { ...source, qtyToReceive: fullReceiving };
     setScannedItems(prev => [...prev, scanned]);
     persistQty(source.id, fullReceiving, source);
-    setSelectedTab('scanItems');
+    // setSelectedTab('scanItems');
     setShowScanner(false);
     Toast.show({ type: 'success', text1: 'Item added from scan', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
   };
 
- const handlescanitemQtyChange = (id, newQty) => {
-    setScannedItems(prev => {
-      const next = prev.map(item =>
-        item.id === id ? { ...item, qtyToReceive: clampToLimit(newQty, item.max_open_qty) } : item
-      );
-      const changed = next.find(x => x.id === id);
-      const clamped = Number(changed?.qtyToReceive ?? 0);
-      setSelectedItems(curr => {
-        const has = curr.includes(id);
-        if (clamped > 0 && !has) return [...curr, id];
-        if (clamped === 0 && has) return curr.filter(x => x !== id);
-        return curr;
-      });
-      persistQty(id, clamped, changed || {});
-      return next;
-    });
-  };
   const hasAnyItems = useMemo(
-    () => (selectedTab === 'lineItems' ? selectedItems.length > 0 : scannedItems.length > 0),
-    [selectedTab, selectedItems.length, scannedItems.length]
+    () => (selectedItems.length > 0? selectedItems.length>0 : scannedItems.length > 0),
+    [selectedItems&&selectedItems.length, scannedItems&&scannedItems.length]
   );
 
 
@@ -607,9 +537,10 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
               receiptDate={poHeader?.poDate || '—'}
             />
             <View style={styles.itemcontainer}>
-              <ToggleTabsComponent selectedTab={selectedTab} onSelectTab={setSelectedTab} />
-              {selectedTab === 'lineItems' ? (
-                <>
+              <TouchableOpacity style={styles.scanRow} onPress={()=>setShowScanner(true)} activeOpacity={0.8}>
+                  <Text style={styles.scanText}>Scan your item</Text>
+                  <BarcodeScannerIcon width={20} height={20} fill="#7A7A7A" />
+              </TouchableOpacity>
                   <View style={styles.tableHeader}>
                     <IC_TableHeaderComponent
                       allSelected={selectedItems.length === draftItems.length && draftItems.every(d => Number(d.qtyToReceive ?? 0) > 0)}
@@ -630,10 +561,12 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
                         setSelectedItems(next.filter(x => Number(x.qtyToReceive ?? 0) > 0).map(x => x.id));
                         next.forEach(it => persistQty(it.id, it.qtyToReceive, it));
                       }}
+                      activeFilter={filter}
+                      onChangeFilter={setFilter}
                     />
                   </View>
                   <FlatList
-                    data={draftItems}
+                    data={visibleItems}
                     keyExtractor={(item) => String(item.id)}
                     renderItem={({ item, index }) => (
                       <View style={styles.lineItemWrapper}>
@@ -649,27 +582,6 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
                     )}
                     scrollEnabled={false}
                   />
-                </>
-              ) : (
-                <IC_ScanItemListCardComponent
-                  dummyItems={PoListItems}
-                  scannedItems={scannedItems}
-                  onChange={setScannedItems}
-                  onRequestScan={() => setShowScanner(true)}
-                  onFirstFilled={() => setSelectedTab('scanItems')}
-                  onQtyChange={handleScanItemQtyChange}
-                  onViewDetails={(item) => {
-                    const source = scannedItems.length ? scannedItems : PoListItems;
-                    const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-                    goToScanItemDetails(idx, source, false, 'scan');
-                  }}
-                  header={
-                    <View style={styles.tableHeader}>
-                      <IC_SummaryTabHdrComponent allSelected={false} onToggleAll={() => {}} />
-                    </View>
-                  }
-                />
-              )}
             </View>
           </ScrollView>
           <FooterButtonsComponent
@@ -680,40 +592,10 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
             leftEnabled={hasAnyItems}
             rightEnabled={hasAnyItems}
           />
-          <ConfirmModalComponent
-            visible={modalVisible}
-            title="Confirmation"
-            message="Are you sure want to receive this Purchase Order?"
-            confirmAction={confirmAction}
-            onCancel={handleCancel}
-            onSuccess={handleSuccess}
-            onFailure={handleFailure}
-          />
           <Modal visible={showScanner} animationType="slide">
             <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
           </Modal>
-          <Modal
-            visible={saveModalVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => {}}
-          >
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-              <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: '80%' }}>
-                {saveModalStatus === 'success' ? (
-                  <ConfirmSvg width={72} height={72} />
-                ) : (
-                  <FailureSvg width={72} height={72} />
-                )}
-                <Text style={{ marginTop: 16, textAlign:'center', fontSize: 16, color: '#333' }}>
-                  {saveModalStatus === 'success'
-                      ? 'Order Saved Successfully. Please continue Receipt.'
-                      : 'Save failed. Please try again.'}
-                </Text>
-              </View>
-            </View>
-          </Modal>
-                  </>
+        </>
       )}
     </SafeAreaView>
   );
@@ -735,6 +617,21 @@ const styles = StyleSheet.create({
   },
   tableHeader: { marginBottom: 10, marginTop: 8 },
   lineItemWrapper: { marginBottom: 12 },
+  scanRow: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#00000040',
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 40,
+    marginHorizontal: 15,
+    marginTop: 6,
+    // marginBottom:420,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  scanText: { color: '#777' },
 });
 
 export default InCompleteReceiveScreen;

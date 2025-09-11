@@ -14,6 +14,18 @@ export const useReceivingStore = create((set, get) => ({
   setActiveTab: (tab) => set({ActiveTab:tab}),
   setOrgData: (data) => set({OrgData:data}),
   setInventoryList: (data) => set({InventoryList:data}),
+    // cache helpers
+  getLocatorFromCache: (subInventoryId) => {
+    return get().locatorCache[subInventoryId] || null;
+  },
+  setLocatorInCache: (subInventoryId, locators) => {
+    set((state) => ({
+      locatorCache: {
+        ...state.locatorCache,
+        [subInventoryId]: locators,
+      },
+    }));
+  },
   setLocatorList: (data) => set({LocatorList:data}),
 
   receiveItems: [],
@@ -63,6 +75,10 @@ export const useReceivingStore = create((set, get) => ({
       ActiveTab: null
     }),
 
+  resetLocators: () =>
+    set({
+      locatorCache: null
+    }),
 
   resetReceiving: () =>
     set({

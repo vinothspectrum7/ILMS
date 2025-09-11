@@ -33,7 +33,7 @@ export default function HomeScreen({ navigation }) {
   const [Defaultorg, setDefaultorg] = useState(null);
   const [OrgCode, setOrgCode] = useState(null);
   const [defaultinventory, Setdefaultinventory] = useState(null);
-  const { OrgData, setOrgData, setInventoryList, setLocatorList } = useReceivingStore();
+  const { OrgData, setOrgData, setInventoryList, setLocatorList, setLocatorInCache } = useReceivingStore();
   const [selectedInventoryOrg, setSelectedInventoryOrg] = useState('Inventory ORG1');
   const [inventoryOrganizations] = useState([
     { label: 'Inventory ORG1', value: 'Inventory ORG1' },
@@ -95,6 +95,7 @@ export default function HomeScreen({ navigation }) {
           enabled: d.locator_enabled,
         }));
         setLocatorList(LocatorList);
+        setLocatorInCache(sub_id, LocatorList);
       }
     } catch (err) {
       console.error('Error loading Locator data:', err);
