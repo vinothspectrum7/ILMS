@@ -1,29 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity,   Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import FilterIcon from '../assets/icons/filter.svg';
 
-const FILTERS = ['all', 'pending', 'received'];
+const FILTERS = ['Yet to Receive', 'Receive In progress', 'Partly Received', 'Fully Received'];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
-const s = (n) => (SCREEN_WIDTH / BASE_WIDTH) * n;             // size scale
-const fs = (n, f = 0.35) => n + (s(n) - n) * f;               // font moderate scale
-
+const s = (n) => (SCREEN_WIDTH / BASE_WIDTH) * n;
 
 const AsnHeaderComponent = ({ allSelected, onToggleAll, activeFilter, onChangeFilter }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handlePick = (value) => {
-    onChangeFilter?.(value);
+    const next = value === activeFilter ? null : value;
+    onChangeFilter?.(next);
     setMenuOpen(false);
-  };
-
-  const pretty = (v) => {
-    if (v === 'all') return 'All';
-    if (v === 'pending') return 'Pending';
-    if (v === 'received') return 'Received';
-    return v;
   };
 
   return (
@@ -48,8 +40,13 @@ const AsnHeaderComponent = ({ allSelected, onToggleAll, activeFilter, onChangeFi
         {menuOpen && (
           <View style={styles.menu}>
             {FILTERS.map((f) => (
-              <TouchableOpacity key={f} style={[styles.menuItem, activeFilter === f && styles.menuItemActive]} onPress={() => handlePick(f)}>
-                <Text style={[styles.menuText, activeFilter === f && styles.menuTextActive]}>{pretty(f)}</Text>
+              <TouchableOpacity
+                key={f}
+                style={[styles.menuItem, activeFilter === f && styles.menuItemActive]}
+                onPress={() => handlePick(f)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.menuText, activeFilter === f && styles.menuTextActive]}>{f}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -69,13 +66,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F4F5F6',
-    paddingVertical: 10,
+    paddingVertical: 5,
     paddingLeft: 5,
     paddingRight: 5,
     borderRadius: 8,
     marginHorizontal: 16,
     marginTop: 12,
-    zIndex: 5
+    zIndex: 5,
   },
   checkbox: {
     width: s(16),
@@ -86,23 +83,22 @@ const styles = StyleSheet.create({
   section1: {
     width: 30,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   section2: {
     flex: 1,
     justifyContent: 'center',
     paddingLeft: 15,
-    position: 'relative'
+    position: 'relative',
   },
   section3: {
     justifyContent: 'center',
     alignItems: 'flex-end',
-    minWidth: 100
+    minWidth: 100,
   },
   detailsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
+    alignItems: 'center',    
   },
   filterBtn: {
     padding: 4
@@ -110,13 +106,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#333'
+    color: '#333',
   },
   qtyLabel: {
     fontSize: 14,
     fontWeight: '500',
     color: '#333',
-    marginRight: 20
+    marginRight: 20,
   },
   menu: {
     position: 'absolute',
@@ -132,23 +128,23 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     zIndex: 100,
     elevation: 5,
-    overflow: 'visible'
+    overflow: 'visible',
   },
   menuItem: {
     paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 8
+    borderRadius: 2,
   },
   menuItemActive: {
-    backgroundColor: '#E6F0FA'
+    backgroundColor: '#E6F0FA',
   },
   menuText: {
     fontSize: 14,
-    color: '#111'
+    color: '#111',
   },
   menuTextActive: {
-    fontWeight: '600'
-  }
+    fontWeight: '600',
+  },
 });
 
 export default AsnHeaderComponent;
