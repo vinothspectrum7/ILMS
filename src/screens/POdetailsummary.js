@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, FlatList } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, FlatList, Modal } from 'react-native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import { useNavigation } from '@react-navigation/native';
 import ASNinfoCardComponent from '../components/ASNinfoCardComponent';
@@ -9,6 +9,10 @@ import Toast from 'react-native-toast-message';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import EditIcon from '../assets/icons/edit.svg';
 import DeleteIcon from '../assets/icons/delete.svg';
+import ConfirmModalComponent from '../components/ConfirmModalComponent';
+import ConfirmSvg from '../assets/icons/success.svg';
+import FailureSvg from '../assets/icons/failure.svg';
+import { Submit_Receive_Qty, Save_Receive_Qty } from '../api/ApiServices';
 
 const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
@@ -16,59 +20,157 @@ const scale = screenWidth / baseWidth;
 const responsiveSize = (size) => Math.round(size * scale);
 
 const PODetailSummary = () => {
-  const [expandedId, setExpandedId] = useState(null);
-  const { OrgData, asnHeader, asnSelectedLines } = useReceivingStore();
   const navigation = useNavigation();
+  const {
+    OrgData,
+    asnHeader,
+    asnSelectedLines,
+    getAsnEditedLinesForPO,
+    setAsnEditedLinesForPO,
+    clearAsnFlow,
+    setActiveTab,
+  } = useReceivingStore();
+
+  const [expandedId, setExpandedId] = useState(null);
   const [lines, setLines] = useState(asnSelectedLines || []);
   const [deletedIds, setDeletedIds] = useState([]);
   const [openItems, setOpenItems] = useState(new Set());
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [saveModalStatus, setSaveModalStatus] = useState('success');
+
+  const rawItemsByPORef = useRef({});
 
   useEffect(() => {
     setLines(asnSelectedLines || []);
-  }, [asnSelectedLines]);
+    const map = {};
+    (asnSelectedLines || []).forEach((row) => {
+      const poId = row?.po_id;
+      const edited = getAsnEditedLinesForPO(poId);
+      const src = Array.isArray(edited) && edited.length ? edited : Array.isArray(row?.line?.asn_line_items) ? row.line.asn_line_items : [];
+      map[poId] = JSON.parse(JSON.stringify(src));
+    });
+    rawItemsByPORef.current = map;
+    setDeletedIds((prev) => prev.filter((id) => (asnSelectedLines || []).some((r) => r.id === id)));
+  }, [asnSelectedLines, getAsnEditedLinesForPO]);
+
+  const n = (v) => {
+    const x = Number(v);
+    return Number.isFinite(x) ? x : 0;
+  };
+
+  const formatToday = () => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const pickQty = (obj) => {
+    const a = Number(obj?.receiving_qty ?? 0);
+    const b = Number(obj?.qtyToReceive ?? 0);
+    const c = Number(obj?.rcvd_qty_delta ?? 0);
+    const q = (Number.isFinite(a) && a > 0) ? a : (Number.isFinite(b) && b > 0) ? b : (Number.isFinite(c) && c > 0) ? c : 0;
+    return q;
+  };
+
+  const itemsSrcForRow = (row) => {
+    const poId = row?.po_id;
+    const frozen = rawItemsByPORef.current[poId];
+    return Array.isArray(frozen) ? frozen : [];
+  };
+
+  const allZeroInItems = (items) => items.every((li) => n(pickQty(li)) === 0);
+
+  const applyUiRule = (items) => {
+    if (!items.length) return [];
+    if (allZeroInItems(items)) {
+      return items.map((li, idx) => ({
+        key: String(li?.item_code ?? li?.item_id ?? idx),
+        name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
+        ordered: n(li?.ordered_qty ?? 0),
+        receiving: n(li?.ordered_qty ?? 0),
+        _raw: li,
+      }));
+    }
+    return items
+      .filter((li) => n(pickQty(li)) > 0)
+      .map((li, idx) => ({
+        key: String(li?.item_code ?? li?.item_id ?? idx),
+        name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
+        ordered: n(li?.ordered_qty ?? 0),
+        receiving: n(pickQty(li)),
+        _raw: li,
+      }));
+  };
+
+  const mapRowItemsForPayload = (row) => {
+    const src = itemsSrcForRow(row);
+    const uiAllZero = allZeroInItems(src);
+    const today = formatToday();
+    return src.map((li) => {
+      const qty = uiAllZero ? n(li?.ordered_qty ?? 0) : n(pickQty(li));
+      return {
+        po_line_id: li?.po_line_id ?? row?.line?.po_line_id ?? null,
+        item_id: li?.item_id ?? null,
+        org_id: li?.org_id ?? OrgData?.selectedOrg ?? null,
+        sub_inv_id: li?.subInventory ?? li?.sub_inv_id ?? OrgData?.selectedinventory ?? null,
+        locator_id: li?.locator ?? li?.locator_id ?? null,
+        lot_number: '',
+        expiry_date: today,
+        received_qty: qty,
+        received_type: "asn",
+        asn_header_uuid:asnHeader?.asn_id,
+        interface_header_id: asnHeader?.interface_id ?? null,
+        is_checked: qty > 0,
+      };
+    });
+  };
+
+  const filteredLines = useMemo(() => lines.filter((item) => !deletedIds.includes(item.id)), [lines, deletedIds]);
+
+  const collectAllItems = useCallback(
+    () => filteredLines.flatMap((row) => mapRowItemsForPayload(row)).filter((x) => x.item_id || x.po_line_id),
+    [filteredLines, OrgData, asnHeader]
+  );
+
+  const mapAsnConfirmData = (items) => items.filter((x) => Number(x.received_qty) > 0).map(({ is_checked, ...rest }) => rest);
+
+  const mapAsnSaveData = (items) => items;
+
+  const isSaveSuccess = (res) => {
+    if (!res) return false;
+    if (res === true) return true;
+    if (typeof res?.results === 'boolean') return res.results === true;
+    if (typeof res?.results === 'number') return res.results > 0;
+    if (Array.isArray(res?.results)) {
+      const okArr = res.results.filter(Boolean);
+      if (okArr.length > 0) return true;
+      const hasSuccess = res.results.some((r) => String(r?.status).toLowerCase() === 'success');
+      if (hasSuccess) return true;
+    }
+    if (res?.results?.status && String(res.results.status).toLowerCase() === 'success') return true;
+    if (res?.status && String(res.status).toLowerCase() === 'success') return true;
+    if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
+    return false;
+  };
 
   const toggleExpand = (id) => setExpandedId((prev) => (prev === id ? null : id));
 
-  const onSave = () => {
-    const remainingItems = lines.filter(item => !deletedIds.includes(item.id));
-    if (!remainingItems.length) {
-      Toast.show({ type: 'info', text1: 'No items to save', position: 'top', visibilityTime: 2000 });
-      return;
-    }
-    Toast.show({ type: 'success', text1: 'Saved draft', position: 'top', visibilityTime: 1500 });
-  };
-
-  const onConfirm = () => {
-    const remainingItems = lines.filter(item => !deletedIds.includes(item.id));
-    if (!remainingItems.length) {
-      Toast.show({ type: 'info', text1: 'No items to confirm', position: 'top', visibilityTime: 2000 });
-      return;
-    }
-    Toast.show({ type: 'success', text1: 'Confirm initiated', position: 'top', visibilityTime: 1500 });
-  };
-
-  const handleEdit = useCallback((id) => {
-    Toast.show({ type: 'info', text1: `Edit tapped for ID: ${id}`, position: 'top', visibilityTime: 1500 });
-  }, []);
-
-  const handleDelete = useCallback((id) => {
-    setDeletedIds((prev) => [...prev, id]);
-    Toast.show({ type: 'success', text1: 'Item deleted', position: 'top', visibilityTime: 1200 });
-  }, []);
-
   const handleSwipeOpen = useCallback((id) => {
-    setOpenItems(prev => {
-      const newSet = new Set(prev);
-      newSet.add(id);
-      return newSet;
+    setOpenItems((prev) => {
+      const s = new Set(prev);
+      s.add(id);
+      return s;
     });
   }, []);
 
   const handleSwipeClose = useCallback((id) => {
-    setOpenItems(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(id);
-      return newSet;
+    setOpenItems((prev) => {
+      const s = new Set(prev);
+      s.delete(id);
+      return s;
     });
   }, []);
 
@@ -88,35 +190,132 @@ const PODetailSummary = () => {
     </View>
   );
 
+  const handleEdit = useCallback(
+    (row) => {
+      const poId = row.po_id;
+      const raw = rawItemsByPORef.current[poId] || [];
+      const deepCopy = JSON.parse(JSON.stringify(raw));
+      if (allZeroInItems(raw)) {
+        const edited = getAsnEditedLinesForPO(poId);
+        if (Array.isArray(edited) && edited.length) {
+          setAsnEditedLinesForPO(poId, []);
+        }
+      }
+      navigation.navigate('poviewitems', {
+        source: 'asn',
+        mode: 'edit',
+        selectedPO: { po_id: row.po_id, po_number: row.po_number },
+        lines: deepCopy,
+      });
+    },
+    [navigation, getAsnEditedLinesForPO, setAsnEditedLinesForPO]
+  );
+
+  const handleDelete = useCallback(
+    (id) => {
+      setDeletedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      Toast.show({ type: 'success', text1: 'Item hidden in summary', position: 'top', visibilityTime: 1200 });
+    },
+    []
+  );
+
+  const onSave = async () => {
+    const remainingItems = filteredLines;
+    if (!remainingItems.length) {
+      Toast.show({ type: 'info', text1: 'No items to save', position: 'top', visibilityTime: 2000 });
+      return;
+    }
+    const all = collectAllItems();
+    if (!all.length) {
+      Toast.show({ type: 'info', text1: 'No items to save', position: 'top', visibilityTime: 2000 });
+      return;
+    }
+    try {
+      const payload = mapAsnSaveData(all);
+      console.log('Save payload:', payload);
+      const res = await Save_Receive_Qty(payload);
+      if (isSaveSuccess(res)) {
+        setSaveModalStatus('success');
+        setSaveModalVisible(true);
+        setTimeout(() => {
+          setSaveModalVisible(false);
+          clearAsnFlow();
+          setActiveTab && setActiveTab('asn');
+          navigation.navigate('Receive');
+        }, 1500);
+      } else {
+        setSaveModalStatus('failure');
+        setSaveModalVisible(true);
+        setTimeout(() => {
+          setSaveModalVisible(false);
+        }, 1500);
+      }
+    } catch {
+      setSaveModalStatus('failure');
+      setSaveModalVisible(true);
+      setTimeout(() => {
+        setSaveModalVisible(false);
+      }, 1500);
+    }
+  };
+
+  const confirmAction = async () => {
+    const all = collectAllItems();
+    const payload = mapAsnConfirmData(all);
+    console.log('Confirm payload:', payload);
+    if (!payload.length) {
+      return { success: false, message: 'No items with quantity to confirm' };
+    }
+    try {
+      const res = await Submit_Receive_Qty(payload);
+      const ok =
+        Array.isArray(res?.results)
+          ? res.results.some((r) => String(r?.status).toLowerCase() === 'success')
+          : String(res?.status || '').toLowerCase() === 'success';
+      if (ok) return { success: true, message: 'Received Quantity Updated Successfully!' };
+      return { success: false, message: res?.message || 'Failed to receive items' };
+    } catch {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  };
+
+  const onConfirmOpen = () => {
+    const remainingItems = filteredLines;
+    if (!remainingItems.length) {
+      Toast.show({ type: 'info', text1: 'No items to confirm', position: 'top', visibilityTime: 2000 });
+      return;
+    }
+    setConfirmVisible(true);
+  };
+
+  const onConfirmSuccess = () => {
+    setConfirmVisible(false);
+    clearAsnFlow();
+    navigation.navigate('Receive');
+  };
+
+  const onConfirmFailure = () => {
+    setConfirmVisible(false);
+  };
+
   const renderLineCard = ({ item: row }) => {
     const isExpanded = expandedId === row.id;
     const l = row?.line ?? {};
     const poNumber = String(row?.po_number ?? '');
-    const ordered = Number(l?.ordered_qty ?? 0);
-    const received = Number(l?.rcvd_qty ?? 0);
-    const shipped = l?.shipped_qty == null ? null : Number(l?.shipped_qty);
-    const receivingQty = Number(l?.receiving_qty ?? 0);
+    const ordered = n(l?.ordered_qty ?? 0);
+    const received = n(l?.rcvd_qty ?? 0);
+    const shippedRaw = l?.shipped_qty == null ? null : Number(l?.shipped_qty);
+    const shippedQty = shippedRaw == null || !Number.isFinite(Number(shippedRaw)) ? '—' : n(shippedRaw);
 
-    const itemRows = Array.isArray(l?.asn_line_items)
-      ? l.asn_line_items.map((li, idx) => ({
-          key: String(li?.item_code ?? li?.item_id ?? idx),
-          name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
-          ordered: Number(li?.ordered_qty ?? 0),
-          receiving: Number(li?.receiving_qty ?? receivingQty)
-        }))
-      : [
-          {
-            key: String(l?.item_code ?? l?.item_id ?? row.id),
-            name: String(l?.item_code ?? l?.item_description ?? 'Item'),
-            ordered: ordered,
-            receiving: receivingQty
-          }
-        ];
-    
+    const orderedQty = asnHeader?.total_order_qty != null ? n(asnHeader.total_order_qty) : ordered;
+    const receivedQty = asnHeader?.total_rcvd_qty != null ? n(asnHeader.total_rcvd_qty) : received;
+
+    const uiItems = applyUiRule(itemsSrcForRow(row));
+
     return (
       <View style={styles.cardElevatedContainer}>
         <Swipeable
-          renderLeftActions={() => renderLeftActions(() => handleEdit(row.id))}
+          renderLeftActions={() => renderLeftActions(() => handleEdit(row))}
           renderRightActions={() => renderRightActions(() => handleDelete(row.id))}
           onSwipeableWillOpen={() => handleSwipeOpen(row.id)}
           onSwipeableWillClose={() => handleSwipeClose(row.id)}
@@ -127,24 +326,24 @@ const PODetailSummary = () => {
               <View style={styles.qtyRow}>
                 <Text style={styles.qtyheader}>
                   Ordered Qty{'\n'}
-                  <Text style={styles.qtyvalue}>{Number.isFinite(ordered) ? ordered : 0}</Text>
+                  <Text style={styles.qtyvalue}>{orderedQty}</Text>
                 </Text>
-
                 <Text style={styles.qtyheader}>
                   Received Qty{'\n'}
-                  <Text style={styles.qtyvalue}>{Number.isFinite(received) ? received : 0}</Text>
+                  <Text style={styles.qtyvalue}>{receivedQty}</Text>
                 </Text>
-
                 <Text style={styles.qtyheader}>
                   Shipped Qty{'\n'}
-                  <Text style={styles.qtyvalue}>{shipped == null || !Number.isFinite(shipped) ? '—' : shipped}</Text>
+                  <Text style={styles.qtyvalue}>{shippedQty}</Text>
                 </Text>
               </View>
             </View>
+
             <TouchableOpacity style={styles.viewButton} onPress={() => toggleExpand(row.id)}>
               <Text style={styles.viewButtonText}>View Items</Text>
               <Text style={styles.caret}>{isExpanded ? '▲' : '▼'}</Text>
             </TouchableOpacity>
+
             {isExpanded && (
               <View style={styles.itemsContainer}>
                 <View style={styles.itemsHeader}>
@@ -153,7 +352,7 @@ const PODetailSummary = () => {
                   <Text style={[styles.itemsHeaderText, styles.colReceiving]}>Receiving Qty</Text>
                 </View>
                 <FlatList
-                  data={itemRows}
+                  data={uiItems}
                   keyExtractor={(it) => it.key}
                   renderItem={({ item }) => (
                     <View style={styles.itemRow}>
@@ -179,12 +378,11 @@ const PODetailSummary = () => {
 
   const listData = useMemo(() => {
     const initialData = [{ type: 'asn' }];
-    const filteredLines = lines.filter(item => !deletedIds.includes(item.id));
     if (filteredLines.length > 0) {
       return [...initialData, ...filteredLines];
     }
     return initialData;
-  }, [lines, deletedIds]);
+  }, [filteredLines]);
 
   const renderItem = ({ item }) => {
     if (item.type === 'asn') {
@@ -204,27 +402,24 @@ const PODetailSummary = () => {
         />
       );
     }
-    
     return (
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionShippingTitle}>PO Detailed Summary</Text>
         <View style={styles.sectionHeader}>
-            <View style={styles.sectionLeft}>
-                <Text style={styles.label}>Details</Text>
-            </View>
-            <View style={styles.sectionRight}>
-                <Text style={styles.qtyLabel}>Qty To Receive</Text>
-            </View>
+          <View style={styles.sectionLeft}>
+            <Text style={styles.label}>Details</Text>
+          </View>
+          <View style={styles.sectionRight}>
+            <Text style={styles.qtyLabel}>Qty To Receive</Text>
+          </View>
         </View>
-        <View style={styles.cardsWrap}>
-          {renderLineCard({ item })}
-        </View>
+        <View style={styles.cardsWrap}>{renderLineCard({ item })}</View>
       </View>
     );
   };
-  
+
   const ListEmptyComponent = () => {
-    const hasASNHeader = listData.some(item => item.type === 'asn');
+    const hasASNHeader = listData.some((item) => item.type === 'asn');
     if (hasASNHeader) {
       return (
         <View style={styles.sectionContainer}>
@@ -262,19 +457,34 @@ const PODetailSummary = () => {
           windowSize={7}
           ListEmptyComponent={ListEmptyComponent}
         />
-        <FooterButtonsComponent
-          leftLabel="Save"
-          rightLabel="Confirm"
-          onLeftPress={onSave}
-          onRightPress={onConfirm}
-          leftEnabled
-          rightEnabled
-        />
+        <FooterButtonsComponent leftLabel="Save" rightLabel="Confirm" onLeftPress={onSave} onRightPress={onConfirmOpen} leftEnabled rightEnabled />
       </SafeAreaView>
+
+      <ConfirmModalComponent
+        visible={confirmVisible}
+        title="Confirmation"
+        message="Are you sure want to receive these ASN items?"
+        confirmAction={confirmAction}
+        onCancel={() => setConfirmVisible(false)}
+        onSuccess={onConfirmSuccess}
+        onFailure={onConfirmFailure}
+      />
+
+      <Modal visible={saveModalVisible} transparent animationType="fade" onRequestClose={() => {}}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: '80%' }}>
+            {saveModalStatus === 'success' ? <ConfirmSvg width={72} height={72} /> : <FailureSvg width={72} height={72} />}
+            <Text style={{ marginTop: 16, textAlign: 'center', fontSize: 16, color: '#333' }}>
+              {saveModalStatus === 'success' ? 'Order Saved Successfully. Please continue Receipt.' : 'Save failed. Please try again.'}
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
       <Toast />
     </GestureHandlerRootView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F6F8FA' },
@@ -287,14 +497,14 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 6,
     elevation: 2,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   sectionShippingTitle: {
     fontSize: responsiveSize(16),
     fontWeight: '700',
     color: '#1f2937',
     paddingVertical: 16,
-    marginHorizontal: responsiveSize(10)
+    marginHorizontal: responsiveSize(10),
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -304,7 +514,7 @@ const styles = StyleSheet.create({
     paddingLeft: 5,
     paddingRight: 5,
     borderRadius: 8,
-    marginHorizontal: responsiveSize(10)
+    marginHorizontal: responsiveSize(10),
   },
   sectionLeft: { flex: 1, justifyContent: 'center', paddingLeft: 8 },
   sectionRight: { justifyContent: 'center', alignItems: 'flex-end', minWidth: 120 },
@@ -321,57 +531,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  card: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#fff'
-  },
+  card: { borderRadius: 12, overflow: 'hidden', backgroundColor: '#fff' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 10 },
   poNumber: { fontSize: 14, fontWeight: '700', color: '#242424', textAlign: 'center' },
   qtyRow: { flexDirection: 'row', gap: 20 },
   qtyheader: { fontSize: 10, fontWeight: '600', color: '#595A5C', textAlign: 'center' },
   qtyvalue: { fontSize: 10, fontWeight: '600', color: '#242424', textAlign: 'center' },
-  qtyText: { fontSize: 12, textAlign: 'center' },
   viewButton: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#F0F4F7', padding: 8, alignItems: 'center' },
-  viewButtonText: { fontSize: 12, color: '#5D768B', },
+  viewButtonText: { fontSize: 12, color: '#5D768B' },
   caret: { fontSize: 16 },
   itemsContainer: { paddingHorizontal: responsiveSize(10), backgroundColor: '#FAFAFA' },
-  itemsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 6,
-    paddingBottom: 6,
-    borderBottomWidth: 0,
-    borderBottomColor: '#ddd'
-  },
-  itemsHeaderText: { fontWeight: '600', fontStyle:'italic', fontSize: 12, width: 140 },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 6, backgroundColor: '#FAFAFA',borderBottomWidth: 1,
-    borderBottomColor: '#ddd' },
+  itemsHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 6 },
+  itemsHeaderText: { fontWeight: '600', fontStyle: 'italic', fontSize: 12, width: 140 },
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 6, backgroundColor: '#FAFAFA', borderBottomWidth: 1, borderBottomColor: '#ddd' },
   itemText: { fontSize: 12, fontWeight: '400', color: '#242424', width: 100 },
   itemTextStrong: { fontSize: 12, fontWeight: '700', color: '#242424', width: 140 },
   colItem: { width: 170 },
   colOrdered: { width: 100, textAlign: 'left' },
   colReceiving: { width: 100, textAlign: 'left' },
-  leftActionContainer: {
-    backgroundColor: '#ECF1F7',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    width: 40,
-    borderRadius: 1
-  },
-  rightActionContainer: {
-    backgroundColor: '#F8D2D4',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    width: 40,
-    borderRadius: 1,
-  },
-  actionButton: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 10
-  },
+  leftActionContainer: { backgroundColor: '#ECF1F7', justifyContent: 'center', alignItems: 'flex-start', width: 40 },
+  rightActionContainer: { backgroundColor: '#F8D2D4', justifyContent: 'center', alignItems: 'flex-end', width: 40 },
+  actionButton: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 },
 });
 
 export default PODetailSummary;

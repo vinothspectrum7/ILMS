@@ -12,11 +12,12 @@ import AsnReceiptScreen from './src/screens/AsnReceipt';
 import ReceiveSummaryScreen from './src/screens/ReceiveSummaryScreen';
 import ReceivedSummaryScreen from './src/screens/ReceivedSummary'; 
 import LineItemDetailsScreen from './src/screens/LineItemDetailsScreen';
+import ASNPOLineItemDetailsScreen from './src/screens/ASNPOLineItemDetailsScreen';
 import IC_LineItemDetailsScreen from './src/screens/IC_LineItemDetailsScreen';
 import ScanItemDetailsScreen from './src/screens/ScanItemDetailsScreen';
 import IC_ScanItemDetailsScreen from './src/screens/IC_ScanItemDetailsScreen';
 import PODetailSummary from './src/screens/POdetailsummary'; 
-import PovViewItems from './src/screens/ASN/poviewitems';
+import PovViewItems from './src/screens/poviewitems';
 import { navigationRef } from './src/api/api';
 
 const Stack = createNativeStackNavigator();
@@ -81,6 +82,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="LineItemDetails"
 component={LineItemDetailsScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="ASNPOLineItemDetails"
+component={ASNPOLineItemDetailsScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen

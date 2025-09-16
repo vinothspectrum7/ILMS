@@ -63,7 +63,15 @@ const ASNListCardComponent = ({ item, isSelected, onCheckToggle }) => {
         <View style={styles.section2}>
           <Text style={styles.labelText}>Purchase order</Text>
           <Text style={styles.itemName}>{item.Poid}</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('poviewitems', { selectedPO: item })}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('poviewitems', {
+                source: 'asn',
+                selectedPO: { po_id: item.po_id, po_number: item.po_number || item.Poid },
+                lines: Array.isArray(item.line_items) ? item.line_items : [],
+              })
+            }
+          >
             <Text style={styles.viewDetails}>View Items</Text>
           </TouchableOpacity>
         </View>
@@ -93,13 +101,8 @@ const styles = StyleSheet.create({
     borderColor: '#E5E5E5',
     borderRadius: s(10),
   },
-  disabledCard: {
-    opacity: 0.6,
-  },
-  rowContainer: {
-    flexDirection: 'row',
-    height: '100%',
-  },
+  disabledCard: { opacity: 0.6 },
+  rowContainer: { flexDirection: 'row', height: '100%' },
   section1: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -118,60 +121,14 @@ const styles = StyleSheet.create({
     marginLeft: -s(15),
     zIndex: 1,
   },
-  section2: {
-    flex: 1,
-    paddingLeft: 8,
-    marginTop: 8,
-    justifyContent: 'space-evenly',
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-    color: '#000000',
-    fontFamily: 'Mulish',
-  },
-  statusname: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 4,
-    textAlign:'left',    
-    color: '#6C6C6C',
-    fontFamily: 'Mulish',
-  },
-  viewDetails: {
-    fontSize: 10,
-    color: '#033EFF',
-    marginTop: 4,
-    textDecorationLine: 'underline',
-  },
-  datelabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    marginBottom: 4,
-    textAlign:'left',    
-    color: '#595A5C',
-    fontFamily: 'Mulish',
-    marginTop: 4,
-  },
-  dateText: {
-    fontSize: 10,
-    fontWeight: '500',
-    marginBottom: 4,
-    textAlign:'left',    
-    color: '#242424',
-    fontFamily: 'Mulish',
-    marginTop: 4,
-  },
-  rightSection: {
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
+  section2: { flex: 1, paddingLeft: 8, marginTop: 8, justifyContent: 'space-evenly' },
+  itemName: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#000000', fontFamily: 'Mulish' },
+  statusname: { fontSize: 12, fontWeight: '700', marginBottom: 4, textAlign: 'left', color: '#6C6C6C', fontFamily: 'Mulish' },
+  viewDetails: { fontSize: 10, color: '#033EFF', marginTop: 4, textDecorationLine: 'underline' },
+  datelabel: { fontSize: 10, fontWeight: '500', marginBottom: 4, textAlign: 'left', color: '#595A5C', fontFamily: 'Mulish', marginTop: 4 },
+  dateText: { fontSize: 10, fontWeight: '500', marginBottom: 4, textAlign: 'left', color: '#242424', fontFamily: 'Mulish', marginTop: 4 },
+  rightSection: { alignItems: 'flex-start', justifyContent: 'center' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   labelText: { fontSize: 12, color: '#595A5C', fontFamily: 'Mulish', fontWeight: '500' },
 });
 
