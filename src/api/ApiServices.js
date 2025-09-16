@@ -142,3 +142,13 @@ export const GetICPoItems = async(org_id)=>{
     throw error;
   }
 }
+export const DeleteIncompleteRecord = async(header_id)=>{
+  try {
+    const response = await api.delete(API_ENDPOINTS.DELETE_INCOMPLETE_RECORD(header_id));
+        console.log("Delete:INCOMP", response);
+    return response.data;
+  }catch (error) {
+    console.error("Delete Incomplete PO Error:", error.message, error.response?.data);
+    throw error;
+  }
+}

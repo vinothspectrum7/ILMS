@@ -193,7 +193,9 @@ const  mapConfirmData = (data)=> {
     lot_number: "",
     expiry_date: formatToday(),
     received_qty: Number(backend?.qtyToReceive),
-    interface_header_id: Interface_Id
+    interface_header_id: Interface_Id,
+    received_type: "purchase_order",
+    asn_header_uuid: null
   }));
 }
 
@@ -274,8 +276,8 @@ const  mapConfirmData = (data)=> {
     if (didCompleteRef.current) return;
     didCompleteRef.current = true;
     setSaveModalVisible(false);
-    resetReceiving();
-    navigation.navigate('Receive');
+    // resetReceiving();
+    // navigation.navigate('Receive');
   };
   
   const handlesaveFailure = () => {
@@ -435,7 +437,8 @@ if (Array.isArray(draft) && draft.length > 0) {
 
 const filteredItems = renderItems.filter(item => !deletedIds.includes(item.id));
 
-useEffect(() => {
+  useFocusEffect(
+useCallback(() => {
   if (filteredItems.length === 0) {
         if (listTypeFromRoute === 'Received') {
             navigation.navigate('Receive');
@@ -443,7 +446,8 @@ useEffect(() => {
             navigation.navigate('NewReceiveScreen');
           }
   }
-}, [filteredItems]);
+}, [filteredItems])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -589,7 +593,8 @@ const styles = StyleSheet.create({
     width: 80, // controls how much shows when swiped
     backgroundColor: '#F8D2D4', // red background
     borderRadius: 10,
-    marginVertical: 10,
+    marginBottom:13,
+    // marginVertical: 10,
     // paddingVertical: 10,
     // paddingLeft: 5,
     // paddingRight: 5,

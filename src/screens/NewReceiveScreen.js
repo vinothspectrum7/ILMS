@@ -129,6 +129,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     max_open_qty: Math.floor(backend.max_open_qty ?? 0),
     lpn: '',
     subInventory: OrgData?.selectedinventory,
+    imageUri:backend?.image_uri || null,
     org_id:OrgData?.selectedOrg,
     locator: '',
     status:backend.line_status,
@@ -276,6 +277,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     //   setModalVisible(true);
     //   return;
     // }
+    // Alert.alert("COMING")
     const source = draftItems;
     const payload = source
       .filter(i => Number(i.qtyToReceive ?? 0) > 0)
@@ -299,7 +301,8 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
         locator: i.locator?i.locator:null,
         status:i.status
       }));
-    navigation.navigate('ReceiveSummaryScreen', {
+      console.log(payload,"AFTERCLICKRECECIEJCIEC")
+    navigation.push('ReceiveSummaryScreen', {
       id: selectedPO?.id ?? null,
       selectedItems: payload,
       readonly: false,
@@ -341,12 +344,12 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
 
   const isSaveSuccess = (res) => {
   if (!res) return false;
+  if (res?.results[0].status=='success') return true;
+  if (res?.results[0].status=='error') return false;
   if (res === true) return true;
   if (typeof res?.results === 'boolean') return res.results === true;
   if (typeof res?.results === 'number') return res.results > 0;
   if (Array.isArray(res?.results)) return res.results.length > 0;
-  if (res?.results[0].status=='success') return true;
-  if (res?.results[0].status=='error') return false;
   if (res?.status === 'success' || res?.status === 'ok') return true;
   if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
   return false;
@@ -430,8 +433,10 @@ const handlesaveFailure = () => {
         subInventory: s?.subInventory ?? it.subInventory ?? '',
         locator: s?.locator?? null,
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+        imageUri: s?.imageUri ?? it.imageUri ?? null
       };
     });
+    console.log(withLatestFromStore,"withLatestFromStorewithLatestFromStore")
     navigation.navigate({
       name: 'LineItemDetails',
       params: {

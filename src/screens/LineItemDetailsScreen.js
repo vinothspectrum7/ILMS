@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions,Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Image, Alert, Modal, Pressable } from 'react-native';
 import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -15,17 +15,11 @@ import FailureSvg from '../assets/icons/failure.svg';
 import CameraIcon from '../assets/icons/CameraIcon.svg';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
-
-
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTROL_WIDTH = 80;
 const CONTROL_HEIGHT = 28;
 const NUMCONTROL_WIDTH = 80;
 const NUMCONTROL_HEIGHT = 28;
-
-// const fallbackLineItems = [
-//   { id: '1', poNumber: 'PO-00002', lineNumber: 1, itemName: 'Lorem Imusum', itemDescription: 'Lorem ipsum dolor sit amet', orderQty: 100, openQty: 0, receivingQty: 100, receivingStatus: 'Received', lpn: 'LPN1', subInventory: 'SUBINV1', locator: 'LOC1' },
-// ];
 
 const InlineFieldRow = ({ label, children }) => (
   <View style={styles.inlineRow}>
@@ -51,38 +45,10 @@ const LineItemDetailsScreen = () => {
   const receiptNumber = route?.params?.receiptNumber || null;
   const listType = route?.params?.listType || 'line';
   const isEditable = !readOnly;
-  const [imageUri, setImageUri] = useState(null);
 
-const handleImagePick = () => {
-  Alert.alert(
-    'Select Image',
-    'Choose an option',
-    [
-      {
-        text: 'Camera',
-        onPress: () => {
-          launchCamera({ mediaType: 'photo', quality: 0.7 }, response => {
-            if (!response.didCancel && !response.errorCode) {
-              setImageUri(response.assets?.[0]?.uri || null);
-            }
-          });
-        },
-      },
-      {
-        text: 'Gallery',
-        onPress: () => {
-          launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, response => {
-            if (!response.didCancel && !response.errorCode) {
-              setImageUri(response.assets?.[0]?.uri || null);
-            }
-          });
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]
-  );
-};
-
+  // preview modal state
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewUri, setPreviewUri] = useState(null);
 
   const { InventoryList, OrgData, receiveItems, mergePatchIntoReceiveItems, setLocatorInCache, getLocatorFromCache } = useReceivingStore();
 
@@ -90,6 +56,7 @@ const handleImagePick = () => {
     ? route.params.items
     : [];
 
+  // mergedItems remains a memo of baseItems + receiveItems values (unchanged)
   const mergedItems = useMemo(() => {
     return baseItems.map((it) => {
       const stored = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
@@ -99,6 +66,8 @@ const handleImagePick = () => {
         lpn: stored?.lpn ?? it.lpn ?? '',
         subInventory: stored?.subInventory ?? it.subInventory ?? '',
         locator: stored?.locator ?? it.locator ?? '',
+        // if API already returns imageUri keep it
+        imageUri: stored?.imageUri ?? it.imageUri ?? null,
         max_open_qty: Number(it.max_open_qty ?? stored?.max_open_qty ?? it.openQty ?? 0),
       };
     });
@@ -108,10 +77,12 @@ const handleImagePick = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [index, setIndex] = useState(startIndex);
+
+  // edited map stores per-item temporary edits (receivingQty, lpn, subInventory, locator, imageUri)
   const [edited, setEdited] = useState({});
   const [locatorDataMap, setLocatorDataMap] = useState({});
-  const [SUB_WIDTH,setSubWidth] = useState(80);
-    const [LpnList, setLpnList] = useState([]);
+  const [SUB_WIDTH, setSubWidth] = useState(80);
+  const [LpnList, setLpnList] = useState([]);
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const listRef = useRef(null);
@@ -121,27 +92,42 @@ const handleImagePick = () => {
   const allItems = mergedItems;
   const current = useMemo(() => allItems[index], [allItems, index]);
 
+  // PREFILL edited map with values from receiveItems / mergedItems (including imageUri)
   useEffect(() => {
     if (readOnly) return;
     if (prefilledRef.current) return;
     const next = { ...edited };
+
     for (const it of allItems) {
       if (next[it.id]) continue;
       const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
+      // include imageUri from store or item
       if (fromStore) {
         next[it.id] = {
           receivingQty: Number(fromStore.qtyToReceive ?? 0),
           lpn: fromStore.lpn ?? it.lpn ?? '',
           subInventory: fromStore.subInventory ?? it.subInventory ?? '',
           locator: fromStore.locator ?? it.locator ?? '',
+          imageUri: fromStore.imageUri ?? it.imageUri ?? null,
+        };
+      } else {
+        // still put defaults if nothing in store
+        next[it.id] = {
+          receivingQty: 0,
+          lpn: it.lpn ?? '',
+          subInventory: it.subInventory ?? '',
+          locator: it.locator ?? '',
+          imageUri: it.imageUri ?? null,
         };
       }
     }
+
     if (Object.keys(next).length !== Object.keys(edited).length) {
       setEdited(next);
     }
     prefilledRef.current = true;
-  }, [allItems, receiveItems, readOnly, edited]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allItems, receiveItems, readOnly]);
 
   const readonlyScanQty = (() => {
     if (!readOnly || listType !== 'scan') return null;
@@ -150,39 +136,67 @@ const handleImagePick = () => {
     return open > 0 ? open : ord;
   })();
 
-    const estimateWidth = (label) => {
-      // Alert.alert(label);
+  const estimateWidth = (label) => {
     const text = String(label ?? '').trim();
-        console.log(text,"MINWMINWNIMIMININIW")
     const charW = 7.2;
     const padding = 24;
     const minW = CONTROL_WIDTH;
     const maxW = Math.min(SCREEN_WIDTH * 0.6, 280);
     const w = Math.ceil(text.length * charW + padding);
-    console.log(w,minW,"MINWMINWNIMIMININIW")
     return Math.max(minW, Math.min(maxW, w));
   };
 
   const findLabel = (value, options) => {
-  if (!value) return '';
-  if (Array.isArray(options)) {
-    const hit = options.find(o => String(o?.id) === String(value) || String(o?.value) === String(value));
-    if (hit?.name) return hit.name;
-    if (hit?.label) return hit.label;
-  }
-  return String(value);
-};
+    if (!value) return '';
+    if (Array.isArray(options)) {
+      const hit = options.find(o => String(o?.id) === String(value) || String(o?.value) === String(value));
+      if (hit?.name) return hit.name;
+      if (hit?.label) return hit.label;
+    }
+    return String(value);
+  };
 
-useEffect(() => {
-  if (readOnly) return;
+  useEffect(() => {
+    if (readOnly) return;
 
-  allItems.forEach(async (it) => {
-    const sub_id = it.subInventory || edited[it.id]?.subInventory;
-    if (!sub_id) return;
+    allItems.forEach(async (it) => {
+      const sub_id = it.subInventory || edited[it.id]?.subInventory;
+      if (!sub_id) return;
+
+      const cached = getLocatorFromCache(sub_id);
+      if (cached) {
+        setLocatorDataMap((prev) => ({ ...prev, [it.id]: cached }));
+      } else {
+        try {
+          const locdata = await GetLocatorsData(sub_id);
+          if (locdata) {
+            const apiLocators = locdata.map((d) => ({
+              id: d.locator_id,
+              name: d.locator_name,
+              enabled: d.locator_enabled,
+            }));
+            setLocatorDataMap((prev) => ({ ...prev, [it.id]: apiLocators }));
+            setLocatorInCache(sub_id, apiLocators);
+          }
+        } catch {}
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allItems, readOnly]);
+
+  const handleSubInventoryChange = async (itemId, sub_id) => {
+    setEdited((prev) => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id, locator: '' }, // reset locator
+    }));
+
+    const findLabels = findLabel(sub_id, InventoryList);
+    const dynamicwidth = estimateWidth(findLabels);
+    setSubWidth(dynamicwidth);
 
     const cached = getLocatorFromCache(sub_id);
     if (cached) {
-      setLocatorDataMap((prev) => ({ ...prev, [it.id]: cached }));
+      setLocatorDataMap((prev) => ({ ...prev, [itemId]: cached }));
     } else {
       try {
         const locdata = await GetLocatorsData(sub_id);
@@ -192,51 +206,59 @@ useEffect(() => {
             name: d.locator_name,
             enabled: d.locator_enabled,
           }));
-          setLocatorDataMap((prev) => ({ ...prev, [it.id]: apiLocators }));
+          setLocatorDataMap((prev) => ({ ...prev, [itemId]: apiLocators }));
           setLocatorInCache(sub_id, apiLocators);
         }
-      } catch {}
-    }
-  });
-}, [allItems, readOnly]);
-
-const handleSubInventoryChange = async (itemId, sub_id) => {
-  setEdited((prev) => ({
-    ...prev,
-    [itemId]: { ...(prev[itemId] ?? {}), subInventory: sub_id, locator: '' }, // reset locator
-  }));
-
-  const findLabels = findLabel(sub_id, InventoryList);
-  const dynamicwidth = estimateWidth(findLabels);
-  setSubWidth(dynamicwidth);
-
-  const cached = getLocatorFromCache(sub_id);
-  if (cached) {
-    setLocatorDataMap((prev) => ({ ...prev, [itemId]: cached }));
-  } else {
-    try {
-      const locdata = await GetLocatorsData(sub_id);
-      if (locdata) {
-        const apiLocators = locdata.map((d) => ({
-          id: d.locator_id,
-          name: d.locator_name,
-          enabled: d.locator_enabled,
-        }));
-        setLocatorDataMap((prev) => ({ ...prev, [itemId]: apiLocators }));
-        setLocatorInCache(sub_id, apiLocators);
+      } catch {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load Locators',
+          position: 'top',
+          visibilityTime: 5000,
+        });
       }
-    } catch {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to load Locators',
-        position: 'top',
-        visibilityTime: 5000,
-      });
     }
-  }
-};
+  };
 
+  // IMAGE PICKER: updates edited[itemId].imageUri (same pattern used for subinventory/locator)
+  const handleImagePick = (itemId) => {
+    Alert.alert(
+      'Select Image',
+      'Choose an option',
+      [
+        {
+          text: 'Camera',
+          onPress: () => {
+            launchCamera({ mediaType: 'photo', quality: 0.7 }, response => {
+              if (!response.didCancel && !response.errorCode) {
+                const uri = response.assets?.[0]?.uri || null;
+                setEdited(prev => ({
+                  ...prev,
+                  [itemId]: { ...(prev[itemId] ?? {}), imageUri: uri },
+                }));
+              }
+            });
+          },
+        },
+        {
+          text: 'Gallery',
+          onPress: () => {
+            launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, response => {
+              if (!response.didCancel && !response.errorCode) {
+                const uri = response.assets?.[0]?.uri || null;
+                setEdited(prev => ({
+                  ...prev,
+                  [itemId]: { ...(prev[itemId] ?? {}), imageUri: uri },
+                }));
+              }
+            });
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
 
   const isSubmitEnabled = useMemo(() => {
     if (readOnly) return false;
@@ -251,11 +273,11 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
     });
   }, [edited, allItems, readOnly]);
 
-  const titlePo = returnTo=='ReceivedSummaryScreen'?receiptNumber:current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
+  const titlePo = returnTo == 'ReceivedSummaryScreen' ? receiptNumber : current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
-      isProgrammaticScroll.current = true; // mark as programmatic
+    isProgrammaticScroll.current = true;
     listRef.current?.scrollToIndex({ index: i, animated: true });
     setIndex(i);
   }, [allItems.length]);
@@ -268,6 +290,7 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
     else navigation.goBack();
   }, [navigation, returnTo]);
 
+  // BUILD PATCHES: include imageUri from edited map (same pattern as other fields)
   const buildPatches = useCallback(() => {
     const patches = [];
     for (const it of allItems) {
@@ -283,6 +306,7 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
         lpn: st.lpn ?? '',
         subInventory: st.subInventory ?? '',
         locator: st.locator ?? null,
+        imageUri: st.imageUri ?? it.imageUri ?? null, // include image
       });
     }
     return patches;
@@ -290,7 +314,6 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
 
   const handleSaveAll = useCallback(async () => {
     const patches = buildPatches();
-    console.log(patches,"buildPatchesbuildPatchesbuildPatchesbuildPatchesbuildPatches")
     if (!patches.length) {
       Toast.show({ type: 'info', text1: 'No changes to save', position: 'top', visibilityTime: 5000 });
       return;
@@ -315,58 +338,79 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
     const storeQty = Number(fromStore?.qtyToReceive);
     const mergedQty = Number(item.receivingQty ?? 0);
     const defaultEditableQty = Number.isFinite(storeQty) ? storeQty : mergedQty;
-    console.log(item,"readOnlyreadOnlyreadOnlyreadOnlyreadOnlyreadOnlyreadOnly")
 
-    const readonlyQty = returnTo=='ReceivedSummaryScreen'?item.receivedQty:
-    readOnly
-      ? (listType === 'scan'
+    const readonlyQty = returnTo == 'ReceivedSummaryScreen' ? item.receivedQty :
+      readOnly
+        ? (listType === 'scan'
           ? (Number(item.openQty ?? 0) > 0 ? Number(item.openQty ?? 0) : Number(item.orderQty ?? 0))
           : Number(item.orderQty ?? mergedQty ?? 0))
-      : defaultEditableQty;
+        : defaultEditableQty;
 
+    // pageState reads edited map; if not present fallback to values from item
     const pageState = edited[item.id] ?? {
       receivingQty: readonlyQty,
       lpn: fromStore?.lpn ?? item.lpn ?? '',
       subInventory: fromStore?.subInventory ?? item.subInventory ?? '',
       locator: fromStore?.locator ?? item.locator ?? '',
-      openQty:fromStore?.openQty ?? item.openQty ?? ''
+      imageUri: fromStore?.imageUri ?? item.imageUri ?? null,
+      openQty: fromStore?.openQty ?? item.openQty ?? ''
     };
-    // useEffect(()=>{
-    const findLabels = findLabel(pageState?.subInventory,InventoryList);
+
+    // dynamic width for subinventory
+    const findLabels = findLabel(pageState?.subInventory, InventoryList);
     const dynamicwidth = estimateWidth(findLabels);
     setSubWidth(dynamicwidth);
-    // },[pageState]);
 
     const limit = Number(item.max_open_qty ?? item.openQty ?? 0);
+
+    // imageUri to render (prefer edited value)
+    const shownImage = pageState.imageUri ?? item.imageUri ?? null;
 
     return (
       <View style={{ width: SCREEN_WIDTH }}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.card} key={`card-${item.id}`}>
-            <View style={styles.row}><Text style={styles.label}>Item Name</Text><Text style={styles.valueBold} numberOfLines={1}>{item.itemName || '—'}</Text></View>
+            <View style={styles.row}>
+              <Text style={styles.label}>Item Name</Text>
+              <Text style={styles.valueBold} numberOfLines={1}>{item.itemName || '—'}</Text>
+            </View>
+
             <View style={styles.divider} />
-              <View style={styles.block}>
-                <Text style={styles.label}>Item Description</Text>
-                <View style={styles.row}>
-                 {/* Description */}
+
+            <View style={styles.block}>
+              <Text style={styles.label}>Item Description</Text>
+              <View style={styles.row}>
                 <Text style={styles.descText} numberOfLines={3}>
-                    {item.itemDescription || '—'}
+                  {item.itemDescription || '—'}
                 </Text>
 
-                {/* Image with camera icon */}
-              <TouchableOpacity style={styles.cameraIcon} onPress={handleImagePick}>
-                <CameraIcon width={25} height={25} />
-              </TouchableOpacity>
-                <View style={styles.imageWrapper}>
-                {/* {FailureSvg && ( */}
-                     <Image source={{ uri: imageUri }} style={styles.image} />
-                {/* )} */}
+                {/* Camera icon (opens picker for this item) */}
+                <TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
+                  <CameraIcon width={25} height={25} />
+                </TouchableOpacity>
 
+                {/* Thumbnail area */}
+                <View style={styles.imageWrapper}>
+                  {shownImage ? (
+                    <TouchableOpacity
+                      style={{ flex: 1, width: '100%', height: '100%' }}
+                      onPress={() => { setPreviewUri(shownImage); setPreviewVisible(true); }}
+                      activeOpacity={0.9}
+                    >
+                      <Image
+                        source={{ uri: shownImage }}
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={{ fontSize: 10, color: '#999' }}>No Image</Text>
+                  )}
+                </View>
               </View>
             </View>
-          </View>
-            <View style={styles.divider} />
 
+            <View style={styles.divider} />
             <View style={styles.divider} />
 
             <View style={styles.row}>
@@ -377,7 +421,7 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
 
             <View style={styles.divider} />
             <View style={styles.row}>
-              <Text style={styles.label}>{readOnly?'Received':'Receiving'} Quantity</Text>
+              <Text style={styles.label}>{readOnly ? 'Received' : 'Receiving'} Quantity</Text>
               <View style={styles.numericRight}>
                 {readOnly ? (
                   <Text style={styles.qtyRight}>{String(readonlyQty)}</Text>
@@ -399,7 +443,7 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
                     width={NUMCONTROL_WIDTH}
                     height={NUMCONTROL_HEIGHT}
                     isSelected={isEditable}
-                    disabledinput={item.openQty==0?true:false}
+                    disabledinput={item.openQty == 0 ? true : false}
                   />
                 )}
               </View>
@@ -409,78 +453,79 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
 
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
-              <Text style={[styles.statusText,{
-      color:(pageState.receivingQty>0&&item.receivingStatus=='OPEN')?'#F06000':
-      item.receivingStatus && item.receivingStatus =='OPEN'
-          ? "#033EFF"
-          : item.receivingStatus == 'FULLY RECEIVED'
-          ? "#168035" 
-          : "#F06000"},]}>
-           {(pageState.receivingQty>0&&item.receivingStatus=='OPEN')?'In Progress': item.receivingStatus}
-                </Text>
+              <Text style={[styles.statusText, {
+                color: (pageState.receivingQty > 0 && item.receivingStatus == 'OPEN') ? '#F06000' :
+                  item.receivingStatus && item.receivingStatus == 'OPEN' ? "#033EFF" :
+                    item.receivingStatus == 'FULLY RECEIVED' ? "#168035" : "#F06000"
+              },]}>
+                {(pageState.receivingQty > 0 && item.receivingStatus == 'OPEN') ? 'In Progress' : item.receivingStatus}
+              </Text>
             </View>
 
             <View style={styles.divider} />
 
             <InlineFieldRow label="LPN">
-             {!readOnly?<PencilDropdownRow
+              {!readOnly ? <PencilDropdownRow
                 key={`lpn-${String(item.id)}`}
                 value={pageState.lpn}
-                  onChange={
-    isEditable
-      ? (id) => setEdited((prev) => ({
-          ...prev,
-          [item.id]: {
-            ...(prev[item.id] ?? {}),
-            lpn: id,           // store only ID
-          },
-        }))
-      : undefined
-  }
-  options={LpnList}                     // pass API array directly
-  placeholder="Select Locator"
-  disabled={!isEditable || item.openQty==0}
-  width={CONTROL_WIDTH}
-  selectedwidth={CONTROL_WIDTH}
-  height={CONTROL_HEIGHT}
-  compact
-              />:
-          <Text style={[styles.valueBold,{minWidth:'60%'}]} numberOfLines={1}> - </Text>}
+                onChange={
+                  isEditable
+                    ? (id) => setEdited((prev) => ({
+                      ...prev,
+                      [item.id]: {
+                        ...(prev[item.id] ?? {}),
+                        lpn: id,           // store only ID
+                      },
+                    }))
+                    : undefined
+                }
+                options={LpnList}                     // pass API array directly
+                placeholder="Select Locator"
+                disabled={!isEditable || item.openQty == 0}
+                width={CONTROL_WIDTH}
+                selectedwidth={CONTROL_WIDTH}
+                height={CONTROL_HEIGHT}
+                compact
+              /> :
+                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}> - </Text>}
             </InlineFieldRow>
+
             <View style={styles.divider} />
             <InlineFieldRow label="Sub Inventory*">
-              {!readOnly?<PencilDropdownRow
+              {!readOnly ? <PencilDropdownRow
                 key={`subinv-${String(item.id)}`}
                 value={pageState.subInventory}
                 onChange={isEditable ? (sub_id) => handleSubInventoryChange(item.id, sub_id) : undefined}
                 options={InventoryList}
                 placeholder="Select Sub Inventory"
-                disabled={!isEditable || item.openQty==0}
+                disabled={!isEditable || item.openQty == 0}
                 width={CONTROL_WIDTH}
                 selectedwidth={SUB_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
-              />:
-              <Text style={[styles.valueBold,{minWidth:'60%'}]} numberOfLines={1}>{item.sub_inv_name}</Text>}
+              /> :
+                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}>{item.sub_inv_name}</Text>}
             </InlineFieldRow>
+
             <View style={styles.divider} />
             <InlineFieldRow label="Locator">
-              {!readOnly?<PencilDropdownRow
+              {!readOnly ? <PencilDropdownRow
                 key={`locator-${String(item.id)}`}
                 value={pageState.locator}
                 onChange={isEditable ? (id) => setEdited((prev) =>
-                   ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
+                  ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
                 options={locatorDataMap[item.id] ?? []}
                 placeholder="Select Locator"
-                disabled={!isEditable || item.openQty==0}
+                disabled={!isEditable || item.openQty == 0}
                 width={CONTROL_WIDTH}
                 selectedwidth={CONTROL_WIDTH}
                 height={CONTROL_HEIGHT}
                 compact
-              />:
-              <Text style={[styles.valueBold,{minWidth:'60%'}]} numberOfLines={1}>{item.locator_name}</Text>}
+              /> :
+                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}>{item.locator_name}</Text>}
             </InlineFieldRow>
           </View>
+
           <View style={{ height: 24 }} />
         </ScrollView>
       </View>
@@ -497,11 +542,8 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
         screenTitle="Receiving "
         contextInfo={titlePo}
         notificationCount={0}
-        // profileName={profileName}
         onBack={() => navigation.goBack()}
         onMenu={() => setMenuOpen(true)}
-        // onNotificationPress={() => navigation.navigate('Home')}
-        // onProfilePress={() => navigation.navigate('Home')}
       />
       <View style={styles.navBar}>
         <TouchableOpacity onPress={goPrev} disabled={index === 0} style={styles.navEdge} activeOpacity={0.7}>
@@ -512,6 +554,7 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
           <ChevronRight size={22} color={index === allItems.length - 1 ? '#C8D0D6' : '#233E55'} />
         </TouchableOpacity>
       </View>
+
       <FlatList
         ref={listRef}
         data={allItems}
@@ -524,22 +567,20 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
         getItemLayout={(_, i) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * i, index: i })}
         removeClippedSubviews={false}
         windowSize={3}
-  onScroll={(e) => {
-    if (isProgrammaticScroll.current) return; // ignore programmatic scrolls
-
-    const x = e.nativeEvent.contentOffset.x;
-    const newIndex = Math.round(x / SCREEN_WIDTH);
-
-    if (newIndex !== index) {
-      setIndex(newIndex);
-    }
-  }}
-  onMomentumScrollEnd={() => {
-    // reset the flag after programmatic scroll finishes
-    isProgrammaticScroll.current = false;
-  }}
+        onScroll={(e) => {
+          if (isProgrammaticScroll.current) return; // ignore programmatic scrolls
+          const x = e.nativeEvent.contentOffset.x;
+          const newIndex = Math.round(x / SCREEN_WIDTH);
+          if (newIndex !== index) {
+            setIndex(newIndex);
+          }
+        }}
+        onMomentumScrollEnd={() => {
+          isProgrammaticScroll.current = false;
+        }}
         scrollEventThrottle={16}
       />
+
       {!readOnly && (
         <FooterButtonsComponent
           leftLabel={leftBtnLabel}
@@ -550,12 +591,38 @@ const handleSubInventoryChange = async (itemId, sub_id) => {
           rightEnabled={isSubmitEnabled}
         />
       )}
+
       <SuccessModal
         visible={successVisible}
         message={successMessage ?? 'Submitted Successfully'}
         onDismiss={() => setSuccessVisible(false)}
         autoHideMs={1800}
       />
+
+      {/* Fullscreen Preview Modal (full height with back button) */}
+      <Modal
+        visible={previewVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => { setPreviewVisible(false); setPreviewUri(null); }}
+      >
+        <SafeAreaView style={styles.fullScreenModal}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => { setPreviewVisible(false); setPreviewUri(null); }} style={styles.backBtn}>
+              <ChevronLeft size={24} color="#000" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Preview</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <View style={styles.modalBackground}> 
+            <Pressable style={styles.modalCloseArea} onPress={() => {setPreviewVisible(false);setPreviewUri(null)}} />
+            {previewUri ? (
+              <Image source={{ uri: previewUri }} style={styles.fullImage} resizeMode="contain" />
+            ) : null}
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -575,13 +642,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   navEdge: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center' },
-  navTitle: { flex: 1, color:"#233E55", textAlign: 'center', fontSize: 12, fontWeight: '600' },
+  navTitle: { flex: 1, color: "#233E55", textAlign: 'center', fontSize: 12, fontWeight: '600' },
   content: { paddingBottom: 120 },
   card: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
     marginTop: 8,
-    marginBottom:80,
+    marginBottom: 80,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingTop: 12,
@@ -604,15 +671,15 @@ const styles = StyleSheet.create({
   successCard: { width: '75%', backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16, alignItems: 'center', elevation: 6 },
   successTitle: { fontSize: 14, fontWeight: '700', color: '#233E55', marginBottom: 6 },
   successMsg: { fontSize: 13, fontWeight: '600', color: '#111827' },
-      uomText: {
+  uomText: {
     fontSize: 10,
     color: '#595A5C',
     marginTop: -6,
     marginBottom: 10,
     marginRight: 2,
-    textAlign:'right'
+    textAlign: 'right'
   },
-   imageWrapper: {
+  imageWrapper: {
     position: 'relative',
     width: 70,
     height: 70,
@@ -630,12 +697,58 @@ const styles = StyleSheet.create({
   cameraIcon: {
     position: 'absolute',
     top: -3,
-    right:-5,
-    // left:20,
-    // backgroundColor: '#fff',
-    // borderRadius: 15,
-    // padding: 3,
+    right: -5,
+    zIndex: 5,
     elevation: 2,
+  },
+
+  /* full screen preview styles */
+  fullScreenModal: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ccc',
+  },
+  backBtn: {
+    padding: 6,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  imageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseArea: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  previewImage: {
+    width: '90%',
+    height: '70%',
+    resizeMode: 'contain',
   },
 });
 

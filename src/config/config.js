@@ -16,6 +16,8 @@ export const API_ENDPOINTS = {
   GET_LOCATOR_DATA: (sub_inven_id) => `${BASE_URL}/organizations/${sub_inven_id}/locators`,
   UPDATE_RECEIVED_QTY: `${BASE_URL}/purchase_orders/update/batch_received_qty`,
   SAVE_RECEIVED_QTY: `${BASE_URL}/receipt_interface/batch_received_qty`,
-  GET_IC_PO_DATA: (orgId) => `${BASE_URL}/receipt_interface/list/${orgId}/all`
+  GET_IC_PO_DATA: (orgId) => `${BASE_URL}/receipt_interface/list/${orgId}/all`,
+  DELETE_INCOMPLETE_RECORD: (header_id) => `${BASE_URL}/receipt_interface/delete/${header_id}`
+
  
 };

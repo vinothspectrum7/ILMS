@@ -43,6 +43,7 @@ export const useReceivingStore = create((set, get) => ({
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
+            imageUri: patch.imageUri ?? it.imageUri
           }
         : it
     );

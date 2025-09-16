@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,12 +21,18 @@ import BarcodeScanner from './BarCodeScanner';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import SearchIcon from '../assets/icons/search.svg';
+import DeleteSvg from '../assets/icons/delete.svg';
+import SortIcon from '../assets/icons/sorticon.svg';
+import BackFilterIcon from '../assets/icons/filterbackicon.svg';
 import { useReceivingStore } from '../store/receivingStore';
-import { FetchData, GetPoItems, GetReceivedItems, GetICPoItems } from '../api/ApiServices';
+import { FetchData, GetPoItems, GetReceivedItems, GetICPoItems, DeleteIncompleteRecord } from '../api/ApiServices';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+
 
 const initialLayout = { width: Dimensions.get('window').width };
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const FILTERS = ['Open', 'Closed', 'Fully Received'];
 const BASE_WIDTH = 375;
 const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
@@ -52,9 +58,13 @@ const ReceiveScreen = () => {
   // const selectedorg = route?.params?.selectedOrg || null;
 
   const [index, setIndex] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [AsnIntialData,setAsnIntialData] = useState([]);
   const [AsnData,setAsnData] = useState([]);
+  const [openItems, setOpenItems] = useState(new Set());
+  const openSwipeableRef = useRef(null);
+  
 
   const [routes] = useState([
     { key: 'poir', title: 'PO/IR' },
@@ -70,12 +80,135 @@ const ReceiveScreen = () => {
   const [POData, setPOData] = useState([]);
   const [POIntialData, setPOIntialData] = useState([]);
   const [ICPOData, setICPOData] = useState([]);
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' | 'desc'
   const [ICPOIntialData, setICPOIntialData] = useState([]);
   const [ReceivedData,SetReceivedData] = useState([]);
   const [InCompleteData,SetInCompleteData] = useState([]);
   const [IntialReceivedData,SetIntialReceivedData] = useState([]);
+  const scrollRef = useRef(null);
+  const [filter, setFilter] = useState('all');
+
 
   const [phase, setPhase] = useState('idle');
+
+    const renderRightActions = (onDelete) => {
+    return (
+      <View style={styles.deleteContainer}>
+        <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
+          <DeleteSvg width={30} height={30} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+    const pretty = (v) => {
+    if (v === 'all') return 'All';
+    if (v === 'pending') return 'Pending';
+    if (v === 'received') return 'Received';
+    return v;
+  }
+const handlePick = (value) => {
+  setFilter(value);
+  setMenuOpen(false);
+
+  if (activeKey === 'poir') {
+    setPOData(
+      POIntialData.filter(
+        (p) =>
+          p?.status?.toLowerCase() === value.toLowerCase()
+      )
+    );
+  }
+    if (value === 'asn') {
+    setAsnData(
+      AsnIntialData.filter(
+        (p) =>
+          p?.status?.toLowerCase() === value.toLowerCase() &&
+          p?.status?.toLowerCase().includes(q.toLowerCase())
+      )
+    );
+  }
+};
+
+
+  const loadICPoData = async () => {
+      // setPhase('loading');
+      setICPOData([]);
+      setICPOIntialData([]);
+      try {
+        const ICpodata = await GetICPoItems(OrgData?.selectedOrg);
+        if(ICpodata!=undefined && ICpodata.length!=0){
+          ICpodata.forEach((element,index) => {
+            element["id"] = index+1;
+            const total_ord_qty = element.total_ord_qty;
+            const total_received_qty = element.total_received_qty;
+            // calculate percentage
+            if(total_received_qty>total_ord_qty){
+              element["received"] = 100;
+            }else{
+            const receivedPercent =
+              total_ord_qty > 0
+                ? (total_received_qty / total_ord_qty) * 100
+                : 0;
+            
+                //  width: `${((Number(item.received) / Number(item.ordered)) * 100)}%`,
+
+            element["received"] = receivedPercent;
+            }
+          });
+        }
+        setICPOData(ICpodata);
+        setICPOIntialData(ICpodata);
+        setPhase('success');
+        console.log(ICpodata, "ICpodatapodatapodata");
+      } catch (err) {
+        console.error("Error loading Incomplete PO data:", err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load Incomplete PO data. Please try again.',
+          position: 'top',
+          visibilityTime: 5000
+        });
+        setPhase('error');
+      }
+    };
+  const handleDelete = async(item) => {
+    setPhase('loading');
+      try {
+        const DeletePodata = await DeleteIncompleteRecord(item?.interface_id);
+        console.log(DeletePodata,"DeletePodataDeletePodata");
+        if(DeletePodata!=undefined){
+        loadICPoData();
+        }
+        // setPhase('success');
+      } catch (err) {
+        // console.error("Error loading Incomplete PO data:", err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: `Failed to Delete Po - ${item.po_number}. Please try again.`,
+          position: 'top',
+          visibilityTime: 5000
+        });
+        setPhase('error');
+      }
+  
+  };
+
+
+const handleSwipeOpen = (ref) => {
+  if (openSwipeableRef.current && openSwipeableRef.current !== ref) {
+    openSwipeableRef.current.close();  // 👈 close previous open row
+  }
+  openSwipeableRef.current = ref;
+};
+
+const handleSwipeClose = (ref) => {
+  if (openSwipeableRef.current === ref) {
+    openSwipeableRef.current = null;
+  }
+};
+
 
   useEffect(()=>{
     if(!ActiveTab) return;
@@ -112,7 +245,7 @@ const ReceiveScreen = () => {
     const loadPoData = async () => {
       // setPhase('loading');
       setPOData([]);
-      setPOIntialData([]);
+      ([]);
       try {
         const podata = await GetPoItems(OrgData?.selectedOrg);
         if(podata!=undefined && podata.length!=0){
@@ -253,6 +386,31 @@ const ReceiveScreen = () => {
   return true; 
 }, [activeKey]);
 
+const handleSort = () => {
+  setPOData(prev => {
+    const sorted = [...prev].sort((a, b) => {
+      const dateA = new Date(a.order_date);
+      const dateB = new Date(b.order_date);
+
+      if (dateA.getTime() !== dateB.getTime()) {
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+
+      return sortOrder === 'asc'
+        ? a.supplier_name.localeCompare(b.supplier_name)
+        : b.supplier_name.localeCompare(a.supplier_name);
+    });
+
+    return sorted;
+  });
+
+  // Toggle order for next click
+  setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+};
+
+
+
+
 
 const getOpenPOs = useCallback(
   (list) =>
@@ -280,6 +438,16 @@ useEffect(() => {
   if (activeKey === 'received') {
     SetReceivedData(
       IntialReceivedData.filter(
+        (r) =>
+          String(r?.po_number ?? '').toLowerCase().includes(q) ||
+          String(r?.supplier_name ?? '').toLowerCase().includes(q)
+      )
+    );
+    return;
+  }
+  if(activeKey === 'InComplete'){
+        setICPOData(
+      ICPOIntialData.filter(
         (r) =>
           String(r?.po_number ?? '').toLowerCase().includes(q) ||
           String(r?.supplier_name ?? '').toLowerCase().includes(q)
@@ -316,6 +484,61 @@ useEffect(() => {
     )
   );
 };
+
+const IncompleteRow = ({ item, onDelete, onSwipeOpen, onSwipeClose }) => {
+  const rowRef = useRef(null); // ✅ hook is valid here
+  console.log(rowRef,"ROWREFROWREFROEEEE")
+
+  return (
+    <GestureHandlerRootView>
+      <Swipeable
+        ref={rowRef}
+        renderRightActions={() =>
+          renderRightActions(() => onDelete(item))
+        }
+        onSwipeableOpen={() => onSwipeOpen(rowRef.current)}
+        onSwipeableClose={() => onSwipeClose(rowRef.current)}
+      >
+        <View style={[{marginHorizontal:rowRef.current? 0:12}]}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('InCompleteReceiveScreen', 
+            { selectedPO: item,fromScan: false,scannedPoNumber: null, })}
+          activeOpacity={0.9}
+        >
+          <View style={styles.incompletecard}>
+            <View style={styles.toprow}>
+              <View style={styles.topcardLeft}>
+                <Text style={styles.labelText}>Receipt</Text>
+                <Text style={styles.valueText}>{item.receipt_num || '—'}</Text>
+              </View>
+              <View style={styles.topcardRight}>
+                <Text style={styles.labelText}>Purchase Order</Text>
+                <Text style={styles.valueText}>{item.po_number}</Text>
+              </View>
+            </View>
+
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+                <Text style={styles.labelText}>Supplier</Text>
+                <Text style={styles.valueText}>
+                  {item.supplier_name?.length > 20
+                    ? item.supplier_name.substring(0, 20) + '...'
+                    : item.supplier_name}
+                </Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+                <Text style={styles.labelText}>Receiving Date</Text>
+                <Text style={styles.valueText}>{formatDate(new Date())}</Text>
+              </View>
+            </View>
+          </View>
+          </TouchableOpacity>
+        </View>
+      </Swipeable>
+    </GestureHandlerRootView>
+  );
+};
+
 
   const handleScan = (value) => {
     const code = String(value).trim().toUpperCase();
@@ -451,6 +674,9 @@ useEffect(() => {
                     styles.progressBarleft,
                     {
                       width: `${item.received}%`,
+                      backgroundColor:item.received && (item.received>0&&item.received<100)
+          ? "#F06000" // ✅ when receivingQty is valid and > 0
+          : "#168035"
                     },
                   ]}
                 >
@@ -668,85 +894,22 @@ useEffect(() => {
       data={ICPOData}
       keyExtractor={(item) => item.id}
       contentContainerStyle={{ paddingBottom: 80 }}
+        ref={scrollRef}
+
                 ListEmptyComponent={() => (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
         <Text style={{ fontSize: 16, color: 'gray' }}>No data found</Text>
       </View>
     )}
-      renderItem={({ item }) => (
-        // <TouchableOpacity
-        //   onPress={() =>
-        //     navigation.navigate('InCompleteScreen', {
-        //         readonly: true,
-        //         id: item.receipt_id,
-        //         listType: 'Received',
-        //         header: {
-        //           receiptNumber: item.receipt_num,
-        //           supplier: item.supplier_name,
-        //           poNumber: item.po_number,
-        //           receiptDate: item.received_date,
-        //         },
-        //         selectedItems: [],
-        //       })
-        //   }
-        //   activeOpacity={0.9}
-        // >
-        <TouchableOpacity
-          onPress={() => navigation.navigate('InCompleteReceiveScreen', 
-            { selectedPO: item,fromScan: false,scannedPoNumber: null, })}
-          activeOpacity={0.9}
-        >
-          <View style={styles.card}>
-            <View style={styles.toprow}>
-              <View style={styles.topcardLeft}>
-              <Text style={styles.labelText}>Receipt</Text>
-              <Text style={styles.valueText}>{item.receipt_num  || '—'}</Text>
-              </View>
-              <View style={styles.topcardRight}>
-              <Text style={styles.labelText}>Purchase Order</Text>
-              <Text style={styles.valueText}>{item.po_number}</Text>
-              </View>
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-              <Text style={styles.labelText}>Supplier</Text>
-              <Text style={[styles.valueText]}>
-                    {item.supplier_name?.length > 20 
-      ? item.supplier_name.substring(0, 20) + "..." 
-      : item.supplier_name}
-              </Text>
-              </View>
-              <View style={styles.bottomcardRight}>
-              <Text style={styles.labelText}>Receiving Date</Text>
-              <Text style={styles.valueText}>{formatDate(new Date)}</Text>
-              </View>
-            </View>
-            {/* <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-              <Text style={styles.subLabel}>Received</Text>
-              </View>
-              <View style={styles.bottomcardRight}>
-              <Text style={styles.subLabel}>Billed</Text>
-              </View>
-            </View> */}
-            {/* <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-              <View style={styles.progressWrapper}>
-                <View style={[styles.progressBarleft, { width: `${item.received}%` }]} />
-              </View>
-              </View>
-              <View style={styles.bottomcardRight}>
-              <View style={styles.progressWrapper}>
-                <View style={[styles.progressBarright, { width: `40%` }]} />
-              </View>
-              </View>
-            </View> */}
+        renderItem={({ item }) => (
+      <IncompleteRow
+        item={item}
+        onDelete={handleDelete}
+        onSwipeOpen={handleSwipeOpen}
+        onSwipeClose={handleSwipeClose}
+      />
+    )}
 
-
-
-          </View>
-        </TouchableOpacity>
-      )}
     />
   );
 
@@ -863,11 +1026,17 @@ const formatDate = (input) => {
               handleSearch(searchText);
             }}
             initialLayout={initialLayout}
+            swipeEnabled={index !== 3}  // 👈 disable swipe when on "Incomplete" tab
             renderTabBar={(props) => (
+            <View style={{ flexDirection: 'row',zIndex:999, alignItems: 'center',borderBottomWidth:1, borderBottomColor: '#7392AA',
+              marginBottom:10
+             }}>
+                  <View style={{ flex: 1 }}>
               <TabBar
+              
                 {...props}
                 screenOptions={{ unmountOnBlur: false }}
-                indicatorStyle={{ backgroundColor: '#233E55', height: 3 }}
+                indicatorStyle={{ backgroundColor: '#233E55', height: 3,bottom: -1, }}
                 style={{ backgroundColor: '#fff', elevation: 0 }}
                 scrollEnabled
                 tabStyle={{ width: 'auto', paddingHorizontal: 10 }}
@@ -879,6 +1048,28 @@ const formatDate = (input) => {
                   </Text>
                 )}
               />
+              </View>
+    <View style={{ flexDirection: 'row', marginRight: 12 }}>
+      <TouchableOpacity onPress={handleSort} style={{marginRight:10}}>
+         <SortIcon width={24} height={24} fill="#233E55" />
+        {/* Replace with your SortIcon svg */}
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => setMenuOpen((v) => !v)}>
+        <BackFilterIcon width={24} height={24} fill="#233E55" />
+        {/* Replace with your FilterIcon svg */}
+      </TouchableOpacity>
+              {menuOpen && (
+                <View style={styles.menu}>
+                  {FILTERS.map((f) => (
+                    <TouchableOpacity key={f} style={[styles.menuItem, filter === f && styles.menuItemActive]} onPress={() => handlePick(f)}>
+                      <Text style={[styles.menuText, filter === f && styles.menuTextActive]}>{pretty(f)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+    </View>
+    </View>
             )}
           />
         </>
@@ -909,6 +1100,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#FBFBFB',
     marginHorizontal: 12,
+    marginVertical: 6,
+    borderRadius: 12,
+    padding: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+    incompletecard: {
+    justifyContent: 'space-between',
+    backgroundColor: '#FBFBFB',
+    // marginHorizontal: 12,
     marginVertical: 6,
     borderRadius: 12,
     padding: 12,
@@ -951,7 +1155,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  progressBarleft: { height: 8, backgroundColor: '#233E55', borderRadius: 20, marginHorizontal: 0 },
+  progressBarleft: { height: 8,  borderRadius: 20, marginHorizontal: 0 },
   rcvCard: {
     backgroundColor: '#fff',
     marginHorizontal: 12,
@@ -985,6 +1189,54 @@ const styles = StyleSheet.create({
   rcvValue: { fontSize: 12, color: '#1C1C1C' },
   rcvStatus: { fontSize: 12, fontWeight: '600' },
   bold: { fontWeight: 'bold' },
+    deleteContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80, // controls how much shows when swiped
+    backgroundColor: '#F8D2D4', // red background
+    borderRadius: 10,
+    marginVertical: 10,
+    // marginBottom:13,
+    marginRight:20
+  },
+  deleteButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+    menu: {
+    position: 'absolute',
+    top: 34,
+    // left: 18,
+    right:0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 6,
+    minWidth: 150,
+    shadowColor: '#000000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    zIndex: 999,
+    elevation: 10,
+    overflow: 'visible'
+  },
+  menuItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    // zIndex:-66
+  },
+  menuItemActive: {
+    backgroundColor: '#E6F0FA'
+  },
+  menuText: {
+    fontSize: 14,
+    color: '#111'
+  },
+  menuTextActive: {
+    fontWeight: '600'
+  }
 });
 
 export default ReceiveScreen;
