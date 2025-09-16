@@ -340,7 +340,7 @@ const AsnReceiptScreen = () => {
           />
         </View>
       </ScrollView>
-      <FooterButtonsComponent onSave={() => {}} onReceive={handleReceive} isReceiveEnabled={(asnSelectedPOIds || []).length > 0} />
+      <FooterButtonsComponent onSave={() => {}} onReceive={handleReceive} rightEnabled={(asnSelectedPOIds || []).length > 0} />
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
       </Modal>

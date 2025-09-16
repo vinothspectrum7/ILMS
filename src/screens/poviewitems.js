@@ -368,7 +368,10 @@ const PovViewItems = () => {
       returnTo: 'poviewitems',
     });
   };
-
+  const hasAnyItems = useMemo(
+    () => (selectedItems.length > 0? selectedItems.length>0 : scannedItems.length > 0),
+    [selectedItems&&selectedItems.length, scannedItems&&scannedItems.length]
+  );
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
@@ -451,8 +454,8 @@ const PovViewItems = () => {
             rightLabel="Receive"
             onLeftPress={mode === 'edit' ? persistAndReturnToSummary : persistAndReturnToASN}
             onRightPress={handleReceive}
-            leftEnabled
-            rightEnabled
+            leftEnabled={hasAnyItems}
+            rightEnabled={hasAnyItems}
           />
           <Modal visible={showScanner} animationType="slide">
             <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
