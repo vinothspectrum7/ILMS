@@ -48,7 +48,7 @@ const mapLinesToFrontend = (arr, org) => {
       purchaseReceipt: '',
       name: li?.item_code || '',
       itemName: li?.item_code || '',
-      description: li?.item_description || '',
+      item_description: li?.item_description || '',
       itemDescription: li?.item_description || '',
       orderedQty: ordered,
       orderQty: ordered,
@@ -332,12 +332,23 @@ const PovViewItems = () => {
     const items = sourceList.map((it, i) => {
       const s = receiveItems.find((r) => String(r.id) === String(it.id));
       const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
+      console.log('item pov:', it);
+
+      const itemDesc =
+        (it.itemDescription && String(it.itemDescription).trim()) ||
+        (it.item_description && String(it.item_description).trim()) ||
+        (it.description && String(it.description).trim()) ||
+        (it.desc && String(it.desc).trim()) ||
+        (it.item_desc && String(it.item_desc).trim()) ||
+        '';
+
       return {
         id: String(it.id),
         poNumber: asnHeader?.asn_num ?? selectedPO?.po_number ?? '—',
         lineNumber: i + 1,
         itemName: it.itemName ?? it.name,
-        itemDescription: it.itemDescription ?? it.description ?? '—',
+        itemDescription: itemDesc,
+        item_description: itemDesc,
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,

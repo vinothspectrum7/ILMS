@@ -83,6 +83,8 @@ const PODetailSummary = () => {
 
   const allZeroInItems = (items) => items.every((li) => n(pickQty(li)) === 0);
 
+  const openQty = (li) => Math.max(0, n(li?.ordered_qty) - n(li?.rcvd_qty));
+
   const applyUiRule = (items) => {
     if (!items.length) return [];
     if (allZeroInItems(items)) {
@@ -90,7 +92,7 @@ const PODetailSummary = () => {
         key: String(li?.item_code ?? li?.item_id ?? idx),
         name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
         ordered: n(li?.ordered_qty ?? 0),
-        receiving: n(li?.ordered_qty ?? 0),
+        receiving: openQty(li),
         _raw: li,
       }));
     }
@@ -110,7 +112,7 @@ const PODetailSummary = () => {
     const uiAllZero = allZeroInItems(src);
     const today = formatToday();
     return src.map((li) => {
-      const qty = uiAllZero ? n(li?.ordered_qty ?? 0) : n(pickQty(li));
+      const qty = uiAllZero ? openQty(li) : n(pickQty(li));
       return {
         po_line_id: li?.po_line_id ?? row?.line?.po_line_id ?? null,
         item_id: li?.item_id ?? null,
@@ -120,8 +122,8 @@ const PODetailSummary = () => {
         lot_number: '',
         expiry_date: today,
         received_qty: qty,
-        received_type: "asn",
-        asn_header_uuid:asnHeader?.asn_id,
+        received_type: 'asn',
+        asn_header_uuid: asnHeader?.asn_id,
         interface_header_id: asnHeader?.interface_id ?? null,
         is_checked: qty > 0,
       };
@@ -232,7 +234,6 @@ const PODetailSummary = () => {
     }
     try {
       const payload = mapAsnSaveData(all);
-      console.log('Save payload:', payload);
       const res = await Save_Receive_Qty(payload);
       if (isSaveSuccess(res)) {
         setSaveModalStatus('success');
@@ -262,7 +263,6 @@ const PODetailSummary = () => {
   const confirmAction = async () => {
     const all = collectAllItems();
     const payload = mapAsnConfirmData(all);
-    console.log('Confirm payload:', payload);
     if (!payload.length) {
       return { success: false, message: 'No items with quantity to confirm' };
     }

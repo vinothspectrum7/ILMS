@@ -38,6 +38,7 @@ const groupByPO = (arr) => {
     const key = String(po?.po_id ?? po?.po_number ?? '');
     if (!key) continue;
     const lines = Array.isArray(po?.asn_line_items) ? po.asn_line_items : [];
+    console.log('lines item:', lines);
     if (map.has(key)) {
       const ex = map.get(key);
       ex.line_items = ex.line_items.concat(lines);
@@ -59,6 +60,8 @@ const groupByPO = (arr) => {
   return Array.from(map.values());
 };
 
+const deepClone = (obj) => JSON.parse(JSON.stringify(obj ?? {}));
+
 const AsnReceiptScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -69,6 +72,7 @@ const AsnReceiptScreen = () => {
   const scannedAsnNumber = route?.params?.scannedAsnNumber ?? null;
   const selectedASN = route?.params?.selectedASN;
   const scannedAsnId = route?.params?.scannedAsnId;
+
   const {
     OrgData,
     setAsnHeader,
@@ -82,8 +86,8 @@ const AsnReceiptScreen = () => {
     getAsnEditedLinesForPO,
     asnHeader,
   } = useReceivingStore();
-  const listRef = useRef(null);
 
+  const listRef = useRef(null);
   const activeASN = selectedASN || asnHeader;
 
   useEffect(() => {
@@ -133,6 +137,21 @@ const AsnReceiptScreen = () => {
     return visibleItems.every((i) => selectedIdsSet.has(String(i.po_id)));
   }, [visibleItems, selectedIdsSet]);
 
+  const mergeLines = useCallback(
+    (poId, sourceLines) => {
+      const edited = getAsnEditedLinesForPO(poId);
+      if (!Array.isArray(edited) || edited.length === 0) return sourceLines || [];
+      const byId = new Map();
+      (sourceLines || []).forEach((li) => byId.set(String(li.po_line_id ?? li.item_id ?? Math.random()), li));
+      return edited.map((e) => {
+        const key = String(e.po_line_id ?? e.item_id ?? Math.random());
+        const base = byId.get(key) || {};
+        return { ...deepClone(base), ...deepClone(e) };
+      });
+    },
+    [getAsnEditedLinesForPO]
+  );
+
   const handleCheckToggle = (item) => {
     if (String(item.po_status).toUpperCase() === 'FULLY RECEIVED') return;
     if (selectedIdsSet.has(String(item.po_id))) {
@@ -140,8 +159,13 @@ const AsnReceiptScreen = () => {
       removeAsnEditedLinesForPO(item.po_id);
     } else {
       selectAsnPOId(item.po_id);
-      if (!getAsnEditedLinesForPO(item.po_id)?.length) {
-        const seeded = (item.line_items || []).map((li) => ({ ...li, receiving_qty: 0 }));
+      const existing = getAsnEditedLinesForPO(item.po_id);
+      if (!Array.isArray(existing) || existing.length === 0) {
+        const seeded = (item.line_items || []).map((li) => {
+          const clone = deepClone(li);
+          const hasRx = Number.isFinite(Number(clone?.receiving_qty));
+          return { ...clone, receiving_qty: hasRx ? Number(clone.receiving_qty) : 0 };
+        });
         setAsnEditedLinesForPO(item.po_id, seeded);
       }
     }
@@ -151,16 +175,15 @@ const AsnReceiptScreen = () => {
     const results = [];
     const selectedPOs = items.filter((it) => selectedIdsSet.has(String(it.po_id)));
     for (const po of selectedPOs) {
-      const edited = getAsnEditedLinesForPO(po.po_id);
-      const srcLines = Array.isArray(edited) && edited.length > 0 ? edited : Array.isArray(po.line_items) ? po.line_items : [];
-      const allZero = srcLines.every((li) => Number(li?.receiving_qty ?? 0) <= 0);
-      const enriched = srcLines.map((li) => {
+      const merged = mergeLines(po.po_id, po.line_items);
+      const allZero = merged.every((li) => Number(li?.receiving_qty ?? 0) <= 0);
+      const enriched = merged.map((li) => {
         const ord = Number(li?.ordered_qty ?? 0);
         const maxOpen = Number(li?.max_open_qty ?? ord);
         const existing = Number(li?.receiving_qty ?? 0);
         const clampedExisting = Math.min(Math.max(existing, 0), maxOpen);
         const receiving = allZero ? Math.min(ord, maxOpen) : clampedExisting;
-        return { ...li, receiving_qty: receiving };
+        return { ...deepClone(li), receiving_qty: receiving };
       });
       const sum = (arr, key) =>
         arr.reduce((acc, x) => {
@@ -293,24 +316,26 @@ const AsnReceiptScreen = () => {
             ref={listRef}
             data={visibleItems}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={styles.lineItemWrapper}>
-                <ASNListCardComponent
-                  item={{
-                    po_id: item.po_id,
-                    po_number: item.po_number,
-                    Poid: item.po_number,
-                    orderedByDate: item.orderedByDate,
-                    po_status: item.po_status,
-                    line_items: getAsnEditedLinesForPO(item.po_id)?.length
-                      ? getAsnEditedLinesForPO(item.po_id)
-                      : item.line_items,
-                  }}
-                  isSelected={selectedIdsSet.has(String(item.po_id))}
-                  onCheckToggle={() => handleCheckToggle(item)}
-                />
-              </View>
-            )}
+            renderItem={({ item }) => {
+              const mergedLines = mergeLines(item.po_id, item.line_items);
+              console.log('mergedLines:', mergedLines);
+              return (
+                <View style={styles.lineItemWrapper}>
+                  <ASNListCardComponent
+                    item={{
+                      po_id: item.po_id,
+                      po_number: item.po_number,
+                      Poid: item.po_number,
+                      orderedByDate: item.orderedByDate,
+                      po_status: item.po_status,
+                      line_items: mergedLines,
+                    }}
+                    isSelected={selectedIdsSet.has(String(item.po_id))}
+                    onCheckToggle={() => handleCheckToggle(item)}
+                  />
+                </View>
+              );
+            }}
             scrollEnabled={false}
           />
         </View>

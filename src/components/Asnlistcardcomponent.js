@@ -31,6 +31,7 @@ const ASNListCardComponent = ({ item, isSelected, onCheckToggle }) => {
   };
 
   const apiKey = String(item?.po_status || 'OPEN').toUpperCase();
+  console.log('item asnlistcard:', item);
   const base = STATUS_CONFIG[apiKey] || STATUS_CONFIG.OPEN;
   const isFullyReceived = apiKey === 'FULLY RECEIVED';
   const displayLabel = !isFullyReceived && isSelected ? 'Receive In progress' : base.label;
