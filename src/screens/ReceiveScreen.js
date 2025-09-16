@@ -188,7 +188,7 @@ const ReceiveScreen = () => {
       try {
         const data = await FetchData(OrgData?.selectedOrg);
         const withPct = (data || []).map((d, idx) => {
-          const pct = computePercent(d?.total_received_qty, d?.total_ord_qty);
+          const pct = computePercent(d?.total_rcvd_qty, d?.total_order_qty);
           return { ...d, id: d?.asn_id || `asn-${idx + 1}`, receivedPct: pct };
         });
         setAsnIntialData(withPct);
