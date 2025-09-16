@@ -1,201 +1,253 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Dimensions, Modal } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Modal } from 'react-native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import FooterButtonsComponent from '../components/FooterButtonsComponent';
 import ASNinfoCardComponent from '../components/ASNinfoCardComponent';
 import ASNListCardComponent from '../components/Asnlistcardcomponent';
 import AsnHeaderComponent from '../components/AsnTableHeader';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { GetASNPoItems } from '../api/ApiServices';
 import { useReceivingStore } from '../store/receivingStore';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import BarcodeScanner from './BarCodeScanner';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BASE_WIDTH = 375;
-const s = (n) => (SCREEN_WIDTH / BASE_WIDTH) * n;
-const fs = (n, f = 0.35) => n + (s(n) - n) * f;
+const statusLabelToApi = {
+  'Yet to Receive': 'OPEN',
+  'Partly Received': 'PARTLY RECEIVED',
+  'Fully Received': 'FULLY RECEIVED',
+};
+
+const earliestDateISO = (lineItems) => {
+  if (!Array.isArray(lineItems) || lineItems.length === 0) return '-';
+  const ts = lineItems
+    .map((li) => {
+      const v = li?.shipped_date;
+      const d = v ? new Date(v) : null;
+      return d && !Number.isNaN(d.getTime()) ? d.getTime() : null;
+    })
+    .filter((t) => t !== null);
+  if (ts.length === 0) return '-';
+  return new Date(Math.min(...ts)).toISOString();
+};
+
+const groupByPO = (arr) => {
+  const rank = { 'FULLY RECEIVED': 3, 'PARTLY RECEIVED': 2, 'IN PROGRESS': 1, OPEN: 0 };
+  const map = new Map();
+  for (const po of Array.isArray(arr) ? arr : []) {
+    const key = String(po?.po_id ?? po?.po_number ?? '');
+    if (!key) continue;
+    const lines = Array.isArray(po?.asn_line_items) ? po.asn_line_items : [];
+    if (map.has(key)) {
+      const ex = map.get(key);
+      ex.line_items = ex.line_items.concat(lines);
+      const nextRank = rank[String(po.po_status || '').toUpperCase()] ?? -1;
+      const curRank = rank[String(ex.po_status || '').toUpperCase()] ?? -1;
+      if (nextRank > curRank) ex.po_status = po.po_status || ex.po_status;
+      ex.orderedByDate = earliestDateISO(ex.line_items);
+    } else {
+      map.set(key, {
+        id: String(po.po_id),
+        po_id: po.po_id,
+        po_number: po.po_number ?? '-',
+        po_status: String(po.po_status || 'OPEN').toUpperCase(),
+        orderedByDate: earliestDateISO(lines),
+        line_items: lines.slice(),
+      });
+    }
+  }
+  return Array.from(map.values());
+};
 
 const AsnReceiptScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const [selectedTab] = useState('podetails');
-  const [selectedItems, setSelectedItems] = useState([]);
   const [items, setItems] = useState([]);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
-
   const fromScan = !!route?.params?.fromScan;
   const scannedAsnNumber = route?.params?.scannedAsnNumber ?? null;
   const selectedASN = route?.params?.selectedASN;
   const scannedAsnId = route?.params?.scannedAsnId;
-
-  const [forceScanRow, setForceScanRow] = useState(false);
-  const selectedPO = route?.params?.selectedPO || null;
-  const { OrgData, setAsnHeader, initAsnSelectedLines } = useReceivingStore();
-
+  const {
+    OrgData,
+    setAsnHeader,
+    initAsnSelectedLines,
+    asnSelectedPOIds,
+    setAsnSelectedPOIds,
+    selectAsnPOId,
+    unselectAsnPOId,
+    setAsnEditedLinesForPO,
+    removeAsnEditedLinesForPO,
+    getAsnEditedLinesForPO,
+    asnHeader,
+  } = useReceivingStore();
   const listRef = useRef(null);
+
+  const activeASN = selectedASN || asnHeader;
 
   useEffect(() => {
     if (fromScan && scannedAsnNumber) {
       Toast.show({ type: 'success', text1: `Scanned ASN number is ${scannedAsnNumber}`, position: 'top', visibilityTime: 1500 });
     }
-    const loadData = async () => {
-      try {
-        const asn_data = await GetASNPoItems(selectedASN.asn_id);
-        if (Array.isArray(asn_data) && asn_data.length) {
-          const normalized = asn_data.map((el, idx) => {
-            const li = Array.isArray(el.asn_line_items) ? el.asn_line_items[0] : el.asn_line_items;
-            return {
-              id: String(el.asn_ln_id ?? idx + 1),
-              Poid: el.po_number ?? '-',
-              status: 'Yet to Receive',
-              orderedByDate: li?.shipped_date ?? '-',
-              asn_ln_id: el.asn_ln_id,
-              asn_ln_num: el.asn_ln_num,
-              po_id: el.po_id,
-              po_number: el.po_number,
-              next_receipt_num: el.next_receipt_num,
-              line_item: li
-            };
-          });
-          setItems(normalized);
-        }
-      } catch (err) {
-        console.error('Error loading user data:', err);
-      }
-    };
-    loadData();
-  }, [fromScan, scannedAsnNumber, selectedASN?.asn_id]);
+  }, [fromScan, scannedAsnNumber]);
+
+  const loadData = useCallback(async () => {
+    if (!activeASN?.asn_id) {
+      setItems([]);
+      return;
+    }
+    try {
+      const resp = await GetASNPoItems(activeASN.asn_id);
+      const grouped = groupByPO(resp || []);
+      setItems(grouped);
+      setAsnHeader(activeASN);
+    } catch {
+      setItems([]);
+    }
+  }, [activeASN?.asn_id, setAsnHeader]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const selectedIdsSet = useMemo(() => new Set((asnSelectedPOIds || []).map(String)), [asnSelectedPOIds]);
 
   const visibleItems = useMemo(() => {
     if (!Array.isArray(items) || !items.length) return [];
-    if (filter === 'all') return items;
-    if (filter === 'received') {
-      return items.filter((it) => {
-        const r = Number(it?.line_item?.rcvd_qty ?? 0);
-        const o = Number(it?.line_item?.ordered_qty ?? 0);
-        return r >= o && o > 0;
-      });
+    if (filter == null) return items;
+    if (filter === 'Receive In progress') {
+      return items.filter((it) => selectedIdsSet.has(String(it.po_id)) && it.po_status !== 'FULLY RECEIVED');
     }
-    if (filter === 'pending') {
-      return items.filter((it) => {
-        const r = Number(it?.line_item?.rcvd_qty ?? 0);
-        const o = Number(it?.line_item?.ordered_qty ?? 0);
-        return o > 0 && r < o;
-      });
-    }
-    return items;
-  }, [items, filter]);
+    const apiStatus = statusLabelToApi[filter] ?? null;
+    if (!apiStatus) return [];
+    return items.filter(
+      (it) => String(it.po_status).toUpperCase() === apiStatus.toUpperCase() && !selectedIdsSet.has(String(it.po_id))
+    );
+  }, [items, filter, selectedIdsSet]);
 
   const allSelectedVisible = useMemo(() => {
     if (visibleItems.length === 0) return false;
-    return visibleItems.every((i) => selectedItems.includes(i.id));
-  }, [visibleItems, selectedItems]);
+    return visibleItems.every((i) => selectedIdsSet.has(String(i.po_id)));
+  }, [visibleItems, selectedIdsSet]);
 
   const handleCheckToggle = (item) => {
-    const isChecked = selectedItems.includes(item.id);
-    const newSelected = isChecked ? selectedItems.filter((id) => id !== item.id) : [...selectedItems, item.id];
-    setSelectedItems(newSelected);
-    setItems((prev) =>
-      prev.map((it) =>
-        it.id === item.id
-          ? !isChecked
-            ? { ...it, status: 'Receive In progress' }
-            : { ...it, status: 'Yet to Receive' }
-          : { ...it }
-      )
-    );
+    if (String(item.po_status).toUpperCase() === 'FULLY RECEIVED') return;
+    if (selectedIdsSet.has(String(item.po_id))) {
+      unselectAsnPOId(item.po_id);
+      removeAsnEditedLinesForPO(item.po_id);
+    } else {
+      selectAsnPOId(item.po_id);
+      if (!getAsnEditedLinesForPO(item.po_id)?.length) {
+        const seeded = (item.line_items || []).map((li) => ({ ...li, receiving_qty: 0 }));
+        setAsnEditedLinesForPO(item.po_id, seeded);
+      }
+    }
   };
 
-  const handleSave = () => {
-    console.log('Saved:', items);
+  const buildSummaryForSelected = () => {
+    const results = [];
+    const selectedPOs = items.filter((it) => selectedIdsSet.has(String(it.po_id)));
+    for (const po of selectedPOs) {
+      const edited = getAsnEditedLinesForPO(po.po_id);
+      const srcLines = Array.isArray(edited) && edited.length > 0 ? edited : Array.isArray(po.line_items) ? po.line_items : [];
+      const allZero = srcLines.every((li) => Number(li?.receiving_qty ?? 0) <= 0);
+      const enriched = srcLines.map((li) => {
+        const ord = Number(li?.ordered_qty ?? 0);
+        const maxOpen = Number(li?.max_open_qty ?? ord);
+        const existing = Number(li?.receiving_qty ?? 0);
+        const clampedExisting = Math.min(Math.max(existing, 0), maxOpen);
+        const receiving = allZero ? Math.min(ord, maxOpen) : clampedExisting;
+        return { ...li, receiving_qty: receiving };
+      });
+      const sum = (arr, key) =>
+        arr.reduce((acc, x) => {
+          const v = Number(x?.[key]);
+          return acc + (Number.isFinite(v) ? v : 0);
+        }, 0);
+      const ordered_qty = sum(enriched, 'ordered_qty');
+      const rcvd_qty = sum(enriched, 'rcvd_qty');
+      const receiving_qty = sum(enriched, 'receiving_qty');
+      const shippedVals = enriched.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
+      const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
+      results.push({
+        id: String(po.po_id),
+        po_id: po.po_id ?? '',
+        po_number: po.po_number ?? '',
+        line: {
+          ordered_qty,
+          rcvd_qty,
+          shipped_qty,
+          receiving_qty,
+          asn_line_items: enriched,
+        },
+      });
+    }
+    return results;
   };
 
   const handleReceive = () => {
-    const selected = items.filter(it => selectedItems.includes(it.id));
-    if (selected.length === 0) {
+    const selectedPOs = items.filter((it) => selectedIdsSet.has(String(it.po_id)));
+    if (selectedPOs.length === 0) {
       Toast.show({ type: 'info', text1: 'No items selected', position: 'top', visibilityTime: 2000 });
       return;
     }
-    const lines = selected.map(it => {
-      const raw = it?.line_item ?? {};
-      const rq = Number(raw?.receiving_qty);
-      const oq = Number(raw?.ordered_qty);
-      const fixedReceiving = !Number.isFinite(rq) || rq <= 0 ? (Number.isFinite(oq) ? oq : 0) : rq;
-      return {
-        id: String(it.asn_ln_id),
-        po_id: it.po_id ?? '',
-        po_number: it.po_number ?? '',
-        line: { ...raw, receiving_qty: fixedReceiving },
-      };
-    });
-    setAsnHeader(selectedASN);
-    initAsnSelectedLines(lines);
-    navigation.navigate('podetailsummary', {
-      selectedASN: selectedItems,
-      fromScan: false,
-      scannedAsnId,
-      scannedAsnNumber,
-    });
-  };
-
-  const isReceiveEnabled = selectedItems.length > 0;
-
-  const handleScanRowPress = () => {
-    setShowScanner(true);
+    const summary = buildSummaryForSelected();
+    setAsnHeader(activeASN);
+    initAsnSelectedLines(summary);
+    navigation.navigate('podetailsummary', { fromScan: false, scannedAsnId, scannedAsnNumber });
   };
 
   const toggleAllVisible = () => {
-    const visIds = visibleItems.map((i) => i.id);
-    const shouldSelectAll = !allSelectedVisible;
-    if (shouldSelectAll) {
-      const merged = Array.from(new Set([...selectedItems, ...visIds]));
-      setSelectedItems(merged);
-      setItems((prev) => prev.map((it) => (visIds.includes(it.id) ? { ...it, status: 'Receive In progress' } : it)));
+    const idsOnScreen = visibleItems.map((i) => String(i.po_id));
+    if (!allSelectedVisible) {
+      const addable = visibleItems.filter((i) => i.po_status !== 'FULLY RECEIVED').map((i) => String(i.po_id));
+      const merged = Array.from(new Set([...(asnSelectedPOIds || []).map(String), ...addable]));
+      setAsnSelectedPOIds(merged);
     } else {
-      const remaining = selectedItems.filter((id) => !visIds.includes(id));
-      setSelectedItems(remaining);
-      setItems((prev) => prev.map((it) => (visIds.includes(it.id) ? { ...it, status: 'Yet to Receive' } : it)));
+      const remaining = (asnSelectedPOIds || []).map(String).filter((id) => !idsOnScreen.includes(id));
+      setAsnSelectedPOIds(remaining);
     }
   };
+
+  const handleScanRowPress = () => setShowScanner(true);
 
   const handleScan = (value) => {
     const code = String(value).trim().toUpperCase();
     const matches = items.filter((p) => String(p.po_number ?? '').toUpperCase() === code);
     if (matches.length > 0) {
+      const selectable = matches.filter((m) => m.po_status !== 'FULLY RECEIVED');
+      const skipped = matches.length - selectable.length;
+      if (selectable.length > 0) {
+        const ids = new Set((asnSelectedPOIds || []).map(String));
+        selectable.forEach((m) => ids.add(String(m.po_id)));
+        setAsnSelectedPOIds(Array.from(ids));
+      }
       setShowScanner(false);
-      setSelectedItems((prev) => {
-        const ids = new Set(prev);
-        matches.forEach((m) => ids.add(m.id));
-        return Array.from(ids);
-      });
-      setItems((prev) =>
-        prev.map((it) => (matches.some((m) => m.id === it.id) ? { ...it, status: 'Receive In progress' } : it))
-      );
       Toast.show({
-        type: 'success',
-        text1: 'Scanned PO',
-        text2: `${code} • ${matches.length} selected`,
+        type: selectable.length > 0 ? 'success' : 'info',
+        text1: selectable.length > 0 ? 'Scanned PO' : 'PO already fully received',
+        text2: selectable.length > 0 ? `${code} • ${selectable.length} selected${skipped > 0 ? ` • ${skipped} skipped` : ''}` : `${code}`,
         position: 'top',
-        visibilityTime: 4000
+        visibilityTime: 4000,
       });
-      const firstIdx = visibleItems.findIndex((vi) => vi.id === matches[0].id);
+      const firstIdx = visibleItems.findIndex((vi) => String(vi.po_id) === String(selectable[0]?.po_id || matches[0]?.po_id));
       if (firstIdx >= 0 && listRef.current) {
         try {
           listRef.current.scrollToIndex({ index: firstIdx, animated: true });
         } catch {}
       }
     } else {
+      setShowScanner(false);
       Toast.show({
         type: 'error',
         text1: 'PO/IR number not found',
         text2: `Scanned PO number ${code} not found`,
         position: 'top',
-        visibilityTime: 5000
+        visibilityTime: 5000,
       });
-      setShowScanner(false);
     }
   };
 
@@ -210,21 +262,25 @@ const AsnReceiptScreen = () => {
         onNotificationPress={() => navigation.navigate('Home')}
         onProfilePress={() => navigation.navigate('Home')}
       />
-
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <ASNinfoCardComponent
-          receiptNumber={selectedASN?.receiptNumber || '-'}
-          supplier={selectedASN?.supplier_name || '-'}
-          asnnumber={selectedASN?.asn_num || '-'}
-          shippeddate={selectedASN?.shipped_date || '-'}
+          receiptNumber={activeASN?.receiptNumber || '-'}
+          supplier={activeASN?.supplier_name || '-'}
+          asnnumber={activeASN?.asn_num || '-'}
+          shippeddate={activeASN?.shipped_date || '-'}
+          exprcteddate={activeASN?.expected_receipt_date || '-'}
+          supplierSite={activeASN?.supplier_site || '-'}
+          carrier={activeASN?.carrier || '-'}
+          packSlip={activeASN?.pack_slip || '-'}
+          bol={activeASN?.bol || '-'}
+          waybill={activeASN?.waybill || '-'}
+          airbill={activeASN?.airbill || '-'}
         />
-
         <View style={styles.itemcontainer}>
           <TouchableOpacity style={styles.scanRow} onPress={handleScanRowPress} activeOpacity={0.8}>
             <Text style={styles.scanText}>Scan your item</Text>
             <BarcodeScannerIcon width={20} height={20} fill="#7A7A7A" />
           </TouchableOpacity>
-
           <View style={styles.tableHeader}>
             <AsnHeaderComponent
               allSelected={allSelectedVisible}
@@ -233,23 +289,33 @@ const AsnReceiptScreen = () => {
               onChangeFilter={setFilter}
             />
           </View>
-
           <FlatList
             ref={listRef}
             data={visibleItems}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <View style={styles.lineItemWrapper}>
-                <ASNListCardComponent item={item} isSelected={selectedItems.includes(item.id)} onCheckToggle={handleCheckToggle} />
+                <ASNListCardComponent
+                  item={{
+                    po_id: item.po_id,
+                    po_number: item.po_number,
+                    Poid: item.po_number,
+                    orderedByDate: item.orderedByDate,
+                    po_status: item.po_status,
+                    line_items: getAsnEditedLinesForPO(item.po_id)?.length
+                      ? getAsnEditedLinesForPO(item.po_id)
+                      : item.line_items,
+                  }}
+                  isSelected={selectedIdsSet.has(String(item.po_id))}
+                  onCheckToggle={() => handleCheckToggle(item)}
+                />
               </View>
             )}
             scrollEnabled={false}
           />
         </View>
       </ScrollView>
-
-      <FooterButtonsComponent onSave={handleSave} onReceive={handleReceive} isReceiveEnabled={isReceiveEnabled} />
-
+      <FooterButtonsComponent onSave={() => {}} onReceive={handleReceive} isReceiveEnabled={(asnSelectedPOIds || []).length > 0} />
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
       </Modal>
@@ -274,7 +340,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
   scanText: { color: '#777' },
   itemcontainer: {
@@ -286,8 +352,8 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 6,
     elevation: 2,
-    overflow: 'visible'
-  }
+    overflow: 'visible',
+  },
 });
 
 export default AsnReceiptScreen;

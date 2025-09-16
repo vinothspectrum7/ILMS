@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ViewMore from '../assets/icons/viewmore.svg';
+import ViewLess from '../assets/icons/viewless.svg';
 
 const dash = '—';
 const CARD_BG = '#F6F8FA';
@@ -16,6 +17,7 @@ const ASNinfoCardComponent = ({
   supplier,
   asnnumber,
   shippeddate,
+  exprcteddate,
   supplierSite,
   carrier,
   packSlip,
@@ -55,19 +57,19 @@ const ASNinfoCardComponent = ({
       <View style={styles.card}>
         <View style={styles.toprow}>
           <View style={styles.topcardLeft}>
-            <Text style={styles.labelText}>Receipt Number</Text>
+            <Text style={styles.labelText}>ASN Receipt</Text>
             <Text style={styles.valueText}>{rn}</Text>
           </View>
           <View style={styles.topcardRight}>
-            <Text style={styles.labelText}>Supplier</Text>
-            <Text style={styles.valueText}>{sup}</Text>
+            <Text style={styles.labelText}>ASN Number</Text>
+            <Text style={styles.valueText}>{asn}</Text>
           </View>
         </View>
 
         <View style={styles.bottomrow}>
-          <View style={styles.bottomcardLeft}>
-            <Text style={styles.labelText}>ASN Number</Text>
-            <Text style={styles.valueText}>{asn}</Text>
+          <View style={styles.bottomcardLeft}>            
+            <Text style={styles.labelText}>Supplier</Text>
+            <Text style={styles.valueText}>{sup}</Text>
           </View>
           <View style={styles.bottomcardRight}>
             <Text style={styles.labelText}>Supplier Site</Text>
@@ -110,13 +112,17 @@ const ASNinfoCardComponent = ({
         <View style={styles.newbottomrow}>
           <View style={styles.newbottomcardLeft}>
             <Text style={styles.newlabelText}>
-              Shipped Date: {formatDate(shippeddate)} | {'\n'}Expected Receipt Date: {formatDate(shippeddate)}
+              Shipped Date: {formatDate(shippeddate)} {'\n'}Expected Receipt Date: {formatDate(exprcteddate)}
             </Text>
           </View>
           <View style={styles.newbottomcardRight}>
             <TouchableOpacity style={styles.viewMoreBtn} activeOpacity={0.7} onPress={() => setExpanded(!expanded)}>
               <Text style={styles.viewMoreText}>{expanded ? 'View Less' : 'View More'}</Text>
-              <ViewMore width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" />
+              {expanded ? (
+                <ViewLess width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" />
+              ) : (
+                <ViewMore width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -158,7 +164,7 @@ const styles = StyleSheet.create({
   valueText: { fontSize: ms(10), fontWeight: 'bold', color: '#1C1C1C', flex: 1, textAlign: 'left' },
   newlabelText: { fontSize: ms(8), color: '#666666', flex: 1, marginRight: scale(6) },
   viewMoreBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: ms(6), marginTop: ms(6) },
-  viewMoreText: { fontSize: ms(10), color: '#033EFF', textDecorationLine: 'underline', textDecorationColor: '#033EFF', fontWeight: '500' },
+  viewMoreText: { fontSize: ms(10), marginRight: ms(-4), color: '#033EFF', textDecorationLine: 'underline', textDecorationColor: '#033EFF', fontWeight: '500' },
   openText: { color: 'green' },
   subLabel: { fontSize: ms(10), color: '#666666', marginTop: scale(4), marginBottom: scale(2) },
   column: { flex: 1 },

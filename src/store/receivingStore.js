@@ -11,10 +11,9 @@ const clampToOpen = (qty, open) => {
 export const useReceivingStore = create((set, get) => ({
   poHeader: null,
   setPoHeader: (header) => set({ poHeader: header }),
-  setActiveTab: (tab) => set({ActiveTab:tab}),
-  setOrgData: (data) => set({OrgData:data}),
-  setInventoryList: (data) => set({InventoryList:data}),
-    // cache helpers
+  setActiveTab: (tab) => set({ ActiveTab: tab }),
+  setOrgData: (data) => set({ OrgData: data }),
+  setInventoryList: (data) => set({ InventoryList: data }),
   getLocatorFromCache: (subInventoryId) => {
     return get().locatorCache[subInventoryId] || null;
   },
@@ -26,13 +25,13 @@ export const useReceivingStore = create((set, get) => ({
       },
     }));
   },
-  setLocatorList: (data) => set({LocatorList:data}),
+  setLocatorList: (data) => set({ LocatorList: data }),
 
   receiveItems: [],
   initReceiveItems: (items) => set({ receiveItems: items }),
   mergePatchIntoReceiveItems: (patch) => {
     if (!patch || !patch.id) return;
-    const next = get().receiveItems.map(it =>
+    const next = get().receiveItems.map((it) =>
       String(it.id) === String(patch.id)
         ? {
             ...it,
@@ -54,7 +53,7 @@ export const useReceivingStore = create((set, get) => ({
   initSummaryItems: (items) => set({ summaryItems: items }),
   mergePatchIntoSummaryItems: (patch) => {
     if (!patch || !patch.id) return;
-    const next = get().summaryItems.map(it =>
+    const next = get().summaryItems.map((it) =>
       String(it.id) === String(patch.id)
         ? {
             ...it,
@@ -80,12 +79,49 @@ export const useReceivingStore = create((set, get) => ({
   initAsnSelectedLines: (lines) => set({ asnSelectedLines: Array.isArray(lines) ? lines : [] }),
   updateAsnLine: (patch) => {
     if (!patch || !patch.id) return;
-    const next = get().asnSelectedLines.map(it =>
+    const next = get().asnSelectedLines.map((it) =>
       String(it.id) === String(patch.id)
         ? { ...it, line: { ...it.line, ...patch.line } }
         : it
     );
     set({ asnSelectedLines: next });
   },
-  clearAsnFlow: () => set({ asnHeader: null, asnSelectedLines: [] }),
+
+  asnSelectedPOIds: [],
+  setAsnSelectedPOIds: (ids) =>
+    set({ asnSelectedPOIds: Array.from(new Set((ids || []).map((x) => String(x)))) }),
+  selectAsnPOId: (id) => {
+    const cur = (get().asnSelectedPOIds || []).map(String);
+    const nid = String(id);
+    if (!cur.includes(nid)) set({ asnSelectedPOIds: [...cur, nid] });
+  },
+  unselectAsnPOId: (id) => {
+    set({
+      asnSelectedPOIds: (get().asnSelectedPOIds || []).map(String).filter((x) => x !== String(id)),
+    });
+  },
+
+  asnPoEdits: {},
+  setAsnEditedLinesForPO: (poId, lines) =>
+    set((state) => ({
+      asnPoEdits: { ...(state.asnPoEdits || {}), [String(poId)]: Array.isArray(lines) ? lines : [] },
+    })),
+  getAsnEditedLinesForPO: (poId) => {
+    const map = get().asnPoEdits || {};
+    return map[String(poId)] || [];
+  },
+  removeAsnEditedLinesForPO: (poId) =>
+    set((state) => {
+      const next = { ...(state.asnPoEdits || {}) };
+      delete next[String(poId)];
+      return { asnPoEdits: next };
+    }),
+
+  clearAsnFlow: () =>
+    set({
+      asnHeader: null,
+      asnSelectedLines: [],
+      asnSelectedPOIds: [],
+      asnPoEdits: {},
+    }),
 }));

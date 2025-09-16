@@ -55,6 +55,7 @@ const ReceiveScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { resetReceiving,OrgData,ActiveTab,setActiveTab } = useReceivingStore();
+  const dash = '—';
   // const selectedorg = route?.params?.selectedOrg || null;
 
   const [index, setIndex] = useState(0);
