@@ -12,34 +12,74 @@ import DeleteIcon from '../assets/icons/delete.svg';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import ConfirmSvg from '../assets/icons/success.svg';
 import FailureSvg from '../assets/icons/failure.svg';
-import { Submit_Receive_Qty, Save_Receive_Qty } from '../api/ApiServices';
+import { Submit_Receive_Qty, Save_Receive_Qty, GetASNPoItems } from '../api/ApiServices';
 
 const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
 const scale = screenWidth / baseWidth;
 const responsiveSize = (size) => Math.round(size * scale);
 
+const n = (v) => {
+  const x = Number(v);
+  return Number.isFinite(x) ? x : 0;
+};
+
+const remainingFor = (li) => {
+  const ord = n(li?.ordered_qty);
+  const rcv = n(li?.rcvd_qty);
+  const rem = ord - rcv;
+  return rem > 0 ? rem : 0;
+};
+
+const clampQty = (li, requested) => {
+  const req = n(requested);
+  if (req <= 0) return 0;
+  return Math.min(req, remainingFor(li));
+};
+
+const formatToday = () => {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).toString().padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const pickQty = (obj) => {
+  const a = Number(obj?.receiving_qty ?? 0);
+  const b = Number(obj?.qtyToReceive ?? 0);
+  const c = Number(obj?.rcvd_qty_delta ?? 0);
+  if (Number.isFinite(a) && a > 0) return a;
+  if (Number.isFinite(b) && b > 0) return b;
+  if (Number.isFinite(c) && c > 0) return c;
+  return 0;
+};
+
 const PODetailSummary = () => {
   const navigation = useNavigation();
+
   const {
     OrgData,
     asnHeader,
     asnSelectedLines,
     getAsnEditedLinesForPO,
     setAsnEditedLinesForPO,
+    initAsnSelectedLines,
+    asnSelectedPOIds,
+    setAsnSelectedPOIds,
+    removeAsnEditedLinesForPO,
     clearAsnFlow,
     setActiveTab,
   } = useReceivingStore();
 
   const [expandedId, setExpandedId] = useState(null);
   const [lines, setLines] = useState(asnSelectedLines || []);
-  const [deletedIds, setDeletedIds] = useState([]);
-  const [openItems, setOpenItems] = useState(new Set());
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [saveModalStatus, setSaveModalStatus] = useState('success');
 
   const rawItemsByPORef = useRef({});
+  const allPoByIdRef = useRef(new Map());
 
   useEffect(() => {
     setLines(asnSelectedLines || []);
@@ -51,39 +91,39 @@ const PODetailSummary = () => {
       map[poId] = JSON.parse(JSON.stringify(src));
     });
     rawItemsByPORef.current = map;
-    setDeletedIds((prev) => prev.filter((id) => (asnSelectedLines || []).some((r) => r.id === id)));
   }, [asnSelectedLines, getAsnEditedLinesForPO]);
 
-  const n = (v) => {
-    const x = Number(v);
-    return Number.isFinite(x) ? x : 0;
-  };
+  useEffect(() => {
+    const loadAll = async () => {
+      if (!asnHeader?.asn_id) return;
+      try {
+        const resp = await GetASNPoItems(asnHeader.asn_id);
+        const m = new Map();
+        for (const po of Array.isArray(resp) ? resp : []) {
+          const poid = String(po?.po_id ?? '');
+          if (!poid) continue;
+          const arr = Array.isArray(po?.asn_line_items) ? po.asn_line_items : [];
+          const prev = m.get(poid) || [];
+          m.set(poid, prev.concat(arr));
+        }
+        allPoByIdRef.current = m;
+      } catch {
+        allPoByIdRef.current = new Map();
+      }
+    };
+    loadAll();
+  }, [asnHeader?.asn_id]);
 
-  const formatToday = () => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${yyyy}-${mm}-${dd}`;
-  };
+  const toggleExpand = (id) => setExpandedId((prev) => (prev === id ? null : id));
 
-  const pickQty = (obj) => {
-    const a = Number(obj?.receiving_qty ?? 0);
-    const b = Number(obj?.qtyToReceive ?? 0);
-    const c = Number(obj?.rcvd_qty_delta ?? 0);
-    const q = (Number.isFinite(a) && a > 0) ? a : (Number.isFinite(b) && b > 0) ? b : (Number.isFinite(c) && c > 0) ? c : 0;
-    return q;
-  };
+  const openQty = (li) => Math.max(0, n(li?.ordered_qty) - n(li?.rcvd_qty));
+  const allZeroInItems = (items) => items.every((li) => n(pickQty(li)) === 0);
 
   const itemsSrcForRow = (row) => {
     const poId = row?.po_id;
     const frozen = rawItemsByPORef.current[poId];
     return Array.isArray(frozen) ? frozen : [];
   };
-
-  const allZeroInItems = (items) => items.every((li) => n(pickQty(li)) === 0);
-
-  const openQty = (li) => Math.max(0, n(li?.ordered_qty) - n(li?.rcvd_qty));
 
   const applyUiRule = (items) => {
     if (!items.length) return [];
@@ -107,12 +147,22 @@ const PODetailSummary = () => {
       }));
   };
 
-  const mapRowItemsForPayload = (row) => {
+  const filteredLines = useMemo(() => lines, [lines]);
+
+  const unselectedPoIds = useMemo(() => {
+    const allIds = Array.from(allPoByIdRef.current.keys());
+    const selectedIds = new Set((asnSelectedPOIds || []).map(String));
+    const visibleSelected = new Set(filteredLines.map((r) => String(r?.po_id)));
+    const selectedUnion = new Set([...selectedIds, ...visibleSelected]);
+    return allIds.filter((id) => !selectedUnion.has(String(id)));
+  }, [filteredLines, asnSelectedPOIds]);
+
+  const mapRowItemsForPayloadSelected = (row) => {
     const src = itemsSrcForRow(row);
     const uiAllZero = allZeroInItems(src);
     const today = formatToday();
     return src.map((li) => {
-      const qty = uiAllZero ? openQty(li) : n(pickQty(li));
+      const qty = uiAllZero ? remainingFor(li) : clampQty(li, pickQty(li));
       return {
         po_line_id: li?.po_line_id ?? row?.line?.po_line_id ?? null,
         item_id: li?.item_id ?? null,
@@ -125,20 +175,37 @@ const PODetailSummary = () => {
         received_type: 'asn',
         asn_header_uuid: asnHeader?.asn_id,
         interface_header_id: asnHeader?.interface_id ?? null,
-        is_checked: qty > 0,
+        is_checked: true,
       };
     });
   };
 
-  const filteredLines = useMemo(() => lines.filter((item) => !deletedIds.includes(item.id)), [lines, deletedIds]);
+  const mapRowItemsForPayloadUnselected = (poId) => {
+    const src = Array.isArray(allPoByIdRef.current.get(String(poId))) ? allPoByIdRef.current.get(String(poId)) : [];
+    const today = formatToday();
+    return src.map((li) => ({
+      po_line_id: li?.po_line_id ?? null,
+      item_id: li?.item_id ?? null,
+      org_id: li?.org_id ?? OrgData?.selectedOrg ?? null,
+      sub_inv_id: li?.sub_inv_id ?? OrgData?.selectedinventory ?? null,
+      locator_id: li?.locator_id ?? null,
+      lot_number: '',
+      expiry_date: today,
+      received_qty: 0,
+      received_type: 'asn',
+      asn_header_uuid: asnHeader?.asn_id,
+      interface_header_id: asnHeader?.interface_id ?? null,
+      is_checked: false,
+    }));
+  };
 
-  const collectAllItems = useCallback(
-    () => filteredLines.flatMap((row) => mapRowItemsForPayload(row)).filter((x) => x.item_id || x.po_line_id),
-    [filteredLines, OrgData, asnHeader]
-  );
+  const collectAllItemsForSave = useCallback(() => {
+    const selectedRows = filteredLines.flatMap((row) => mapRowItemsForPayloadSelected(row));
+    const unselectedRows = unselectedPoIds.flatMap((id) => mapRowItemsForPayloadUnselected(id));
+    return [...selectedRows, ...unselectedRows].filter((x) => x.item_id || x.po_line_id);
+  }, [filteredLines, unselectedPoIds, OrgData, asnHeader]);
 
   const mapAsnConfirmData = (items) => items.filter((x) => Number(x.received_qty) > 0).map(({ is_checked, ...rest }) => rest);
-
   const mapAsnSaveData = (items) => items;
 
   const isSaveSuccess = (res) => {
@@ -157,24 +224,6 @@ const PODetailSummary = () => {
     if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
     return false;
   };
-
-  const toggleExpand = (id) => setExpandedId((prev) => (prev === id ? null : id));
-
-  const handleSwipeOpen = useCallback((id) => {
-    setOpenItems((prev) => {
-      const s = new Set(prev);
-      s.add(id);
-      return s;
-    });
-  }, []);
-
-  const handleSwipeClose = useCallback((id) => {
-    setOpenItems((prev) => {
-      const s = new Set(prev);
-      s.delete(id);
-      return s;
-    });
-  }, []);
 
   const renderLeftActions = (onEdit) => (
     <View style={styles.leftActionContainer}>
@@ -197,11 +246,9 @@ const PODetailSummary = () => {
       const poId = row.po_id;
       const raw = rawItemsByPORef.current[poId] || [];
       const deepCopy = JSON.parse(JSON.stringify(raw));
-      if (allZeroInItems(raw)) {
-        const edited = getAsnEditedLinesForPO(poId);
-        if (Array.isArray(edited) && edited.length) {
-          setAsnEditedLinesForPO(poId, []);
-        }
+      const edited = getAsnEditedLinesForPO(poId);
+      if (Array.isArray(edited) && edited.length) {
+        setAsnEditedLinesForPO(poId, []);
       }
       navigation.navigate('poviewitems', {
         source: 'asn',
@@ -215,19 +262,29 @@ const PODetailSummary = () => {
 
   const handleDelete = useCallback(
     (id) => {
-      setDeletedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-      Toast.show({ type: 'success', text1: 'Item hidden in summary', position: 'top', visibilityTime: 1200 });
+      const row = (lines || []).find((r) => String(r.id) === String(id));
+      if (!row) return;
+      const poId = String(row.po_id);
+      const nextLines = (lines || []).filter((r) => String(r.id) !== String(id));
+      setLines(nextLines);
+      const nextSelectedIds = (asnSelectedPOIds || []).map(String).filter((x) => x !== poId);
+      setAsnSelectedPOIds(nextSelectedIds);
+      removeAsnEditedLinesForPO(poId);
+      const nextSummary = (asnSelectedLines || []).filter((r) => String(r.po_id) !== poId);
+      initAsnSelectedLines(nextSummary);
+      delete rawItemsByPORef.current[poId];
+      Toast.show({ type: 'success', text1: 'PO removed from selection', position: 'top', visibilityTime: 1200 });
     },
-    []
+    [lines, asnSelectedPOIds, asnSelectedLines, setAsnSelectedPOIds, removeAsnEditedLinesForPO, initAsnSelectedLines]
   );
 
   const onSave = async () => {
-    const remainingItems = filteredLines;
-    if (!remainingItems.length) {
+    const selectedCount = filteredLines.length;
+    if (!selectedCount && unselectedPoIds.length === 0) {
       Toast.show({ type: 'info', text1: 'No items to save', position: 'top', visibilityTime: 2000 });
       return;
     }
-    const all = collectAllItems();
+    const all = collectAllItemsForSave();
     if (!all.length) {
       Toast.show({ type: 'info', text1: 'No items to save', position: 'top', visibilityTime: 2000 });
       return;
@@ -241,7 +298,6 @@ const PODetailSummary = () => {
         setTimeout(() => {
           setSaveModalVisible(false);
           clearAsnFlow();
-          setActiveTab && setActiveTab('asn');
           navigation.navigate('Receive');
         }, 1500);
       } else {
@@ -261,17 +317,14 @@ const PODetailSummary = () => {
   };
 
   const confirmAction = async () => {
-    const all = collectAllItems();
-    const payload = mapAsnConfirmData(all);
+    const selectedRows = filteredLines.flatMap((row) => mapRowItemsForPayloadSelected(row));
+    const payload = mapAsnConfirmData(selectedRows);
     if (!payload.length) {
       return { success: false, message: 'No items with quantity to confirm' };
     }
     try {
       const res = await Submit_Receive_Qty(payload);
-      const ok =
-        Array.isArray(res?.results)
-          ? res.results.some((r) => String(r?.status).toLowerCase() === 'success')
-          : String(res?.status || '').toLowerCase() === 'success';
+      const ok = Array.isArray(res?.results) ? res.results.some((r) => String(r?.status).toLowerCase() === 'success') : String(res?.status || '').toLowerCase() === 'success';
       if (ok) return { success: true, message: 'Received Quantity Updated Successfully!' };
       return { success: false, message: res?.message || 'Failed to receive items' };
     } catch {
@@ -280,8 +333,7 @@ const PODetailSummary = () => {
   };
 
   const onConfirmOpen = () => {
-    const remainingItems = filteredLines;
-    if (!remainingItems.length) {
+    if (!filteredLines.length) {
       Toast.show({ type: 'info', text1: 'No items to confirm', position: 'top', visibilityTime: 2000 });
       return;
     }
@@ -317,8 +369,8 @@ const PODetailSummary = () => {
         <Swipeable
           renderLeftActions={() => renderLeftActions(() => handleEdit(row))}
           renderRightActions={() => renderRightActions(() => handleDelete(row.id))}
-          onSwipeableWillOpen={() => handleSwipeOpen(row.id)}
-          onSwipeableWillClose={() => handleSwipeClose(row.id)}
+          onSwipeableWillOpen={() => {}}
+          onSwipeableWillClose={() => {}}
         >
           <View style={styles.card}>
             <View style={styles.headerRow}>
@@ -378,7 +430,7 @@ const PODetailSummary = () => {
 
   const listData = useMemo(() => {
     const initialData = [{ type: 'asn' }];
-    if (filteredLines.length > 0) {
+    if ((filteredLines || []).length > 0) {
       return [...initialData, ...filteredLines];
     }
     return initialData;

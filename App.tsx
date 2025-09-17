@@ -11,6 +11,7 @@ import InCompleteReceiveScreen from './src/screens/InCompleteReceiveScreen';
 import AsnReceiptScreen from './src/screens/AsnReceipt'; 
 import ReceiveSummaryScreen from './src/screens/ReceiveSummaryScreen';
 import ReceivedSummaryScreen from './src/screens/ReceivedSummary'; 
+import AsnReceivedScreen from './src/screens/AsnReceivedScreen'; 
 import LineItemDetailsScreen from './src/screens/LineItemDetailsScreen';
 import ASNPOLineItemDetailsScreen from './src/screens/ASNPOLineItemDetailsScreen';
 import IC_LineItemDetailsScreen from './src/screens/IC_LineItemDetailsScreen';
@@ -77,6 +78,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="ReceivedSummaryScreen"
 component={ReceivedSummaryScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="AsnReceivedScreen"
+component={AsnReceivedScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen

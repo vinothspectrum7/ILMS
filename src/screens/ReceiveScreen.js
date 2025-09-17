@@ -4,7 +4,6 @@ import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
-
 import BarcodeScanner from './BarCodeScanner';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
@@ -13,7 +12,6 @@ import SortIcon from '../assets/icons/sorticon.svg';
 import BackFilterIcon from '../assets/icons/filterbackicon.svg';
 import ViewMoreIcon from '../assets/icons/viewmore.svg';
 import ViewLessIcon from '../assets/icons/viewless.svg';
-
 import { useReceivingStore } from '../store/receivingStore';
 import { FetchData, GetPoItems, GetReceivedItems, GetICPoItems, DeleteIncompleteRecord } from '../api/ApiServices';
 
@@ -81,8 +79,8 @@ const ReceiveScreen = () => {
   const [POData, setPOData] = useState([]);
   const [POIntialData, setPOIntialData] = useState([]);
 
-  const [ICPOData, setICPOData] = useState([]);
-  const [ICPOIntialData, setICPOIntialData] = useState([]);
+  const [ICListInitial, setICListInitial] = useState([]);
+  const [ICList, setICList] = useState([]);
 
   const [ReceivedData, SetReceivedData] = useState([]);
   const [IntialReceivedData, SetIntialReceivedData] = useState([]);
@@ -152,8 +150,30 @@ const ReceiveScreen = () => {
         setAsnData(base);
         return;
       }
+
+      if (tabKey === 'InComplete') {
+        let base = [...ICListInitial];
+        if (q) {
+          base = base.filter((it) => {
+            const hay = [
+              it?.po_number,
+              it?.asn_num,
+              it?.supplier_name,
+              it?.status,
+            ]
+              .filter(Boolean)
+              .map((x) => String(x).toLowerCase());
+            return hay.some((h) => h.includes(q));
+          });
+        }
+        if (filterStatus) {
+          base = base.filter((it) => String(it?.status || '').toUpperCase() === filterStatus);
+        }
+        setICList(base);
+        return;
+      }
     },
-    [POIntialData, AsnIntialData]
+    [POIntialData, AsnIntialData, ICListInitial]
   );
 
   const handlePick = (picked) => {
@@ -223,21 +243,33 @@ const ReceiveScreen = () => {
       }
     };
 
-    const loadICPo = async () => {
+    const loadIC = async () => {
       try {
         const data = await GetICPoItems(OrgData?.selectedOrg);
-        const withPct = (data || []).map((d, idx) => {
-          const pct = computePercent(d?.total_received_qty, d?.total_ord_qty);
-          return { ...d, id: d?.id || `${idx + 1}`, received: pct };
+        const normalized = (data || []).map((d, idx) => {
+          const isASN = String(d?.received_type || '').toLowerCase() === 'asn';
+          return {
+            ...d,
+            id: d?.interface_id || `ic-${idx + 1}`,
+            isASN,
+            asn_id: d?.asn_id,
+            asn_num: d?.asn_num,
+            po_number: d?.po_number,
+            supplier_name: d?.supplier_name,
+            received_date: d?.received_date,
+            shipped_date: d?.shipped_date,
+            expected_receipt_date: d?.expected_receipt_date,
+            status: d?.status,
+          };
         });
-        setICPOIntialData(withPct);
-        setICPOData(withPct);
+        setICListInitial(normalized);
+        setICList(normalized);
       } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Incomplete PO data. Please try again.', position: 'top', visibilityTime: 5000 });
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Incomplete list. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     };
 
-    Promise.all([loadASN(), loadPO(), loadReceived(), loadICPo()]).finally(() => setPhase('success'));
+    Promise.all([loadASN(), loadPO(), loadReceived(), loadIC()]).finally(() => setPhase('success'));
   }, [OrgData?.selectedOrg]);
 
   useFocusEffect(
@@ -286,6 +318,20 @@ const ReceiveScreen = () => {
       setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
       return;
     }
+
+    if (activeKey === 'InComplete') {
+      setICList((prev) => {
+        const sorted = [...prev].sort((a, b) => {
+          const da = a.isASN ? new Date(a.shipped_date || a.expected_receipt_date) : new Date(a.received_date);
+          const db = b.isASN ? new Date(b.shipped_date || b.expected_receipt_date) : new Date(b.received_date);
+          if (da.getTime() !== db.getTime()) return sortOrder === 'asc' ? da - db : db - da;
+          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+        });
+        return sorted;
+      });
+      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
   };
 
   const handleSearch = (text) => {
@@ -293,7 +339,7 @@ const ReceiveScreen = () => {
     applyVisible(activeKey, text, activeFilter);
   };
 
-  const IncompleteRow = ({ item, onDelete, onSwipeOpen, onSwipeClose }) => {
+  const IncompleteSwipeRow = ({ item, onDelete, onSwipeOpen, onSwipeClose, children }) => {
     const rowRef = useRef(null);
     return (
       <GestureHandlerRootView>
@@ -304,41 +350,7 @@ const ReceiveScreen = () => {
           onSwipeableClose={() => onSwipeClose(rowRef.current)}
         >
           <View style={[{ marginHorizontal: rowRef.current ? 0 : 12 }]}>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('InCompleteReceiveScreen', {
-                  selectedPO: item,
-                  fromScan: false,
-                  scannedPoNumber: null,
-                })
-              }
-              activeOpacity={0.9}
-            >
-              <View style={styles.incompletecard}>
-                <View style={styles.toprow}>
-                  <View style={styles.topcardLeft}>
-                    <Text style={styles.labelText}>Receipt</Text>
-                    <Text style={styles.valueText}>{item.receipt_num || dash}</Text>
-                  </View>
-                  <View style={styles.topcardRight}>
-                    <Text style={styles.labelText}>Purchase Order</Text>
-                    <Text style={styles.valueText}>{item.po_number}</Text>
-                  </View>
-                </View>
-                <View style={styles.bottomrow}>
-                  <View style={styles.bottomcardLeft}>
-                    <Text style={styles.labelText}>Supplier</Text>
-                    <Text style={styles.valueText}>
-                      {item.supplier_name?.length > 20 ? item.supplier_name.substring(0, 20) + '...' : item.supplier_name}
-                    </Text>
-                  </View>
-                  <View style={styles.bottomcardRight}>
-                    <Text style={styles.labelText}>Receiving Date</Text>
-                    <Text style={styles.valueText}>{formatDate(new Date())}</Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
+            {children}
           </View>
         </Swipeable>
       </GestureHandlerRootView>
@@ -488,7 +500,6 @@ const ReceiveScreen = () => {
   );
 
   const [expandedReceiptIds, setExpandedReceiptIds] = useState(new Set());
-
   const toggleExpand = (id) => {
     setExpandedReceiptIds((prev) => {
       const next = new Set(prev);
@@ -499,13 +510,13 @@ const ReceiveScreen = () => {
   };
 
   const ASNReceiptCard = ({ item }) => {
-    const expanded = expandedReceiptIds.has(item.receipt_id);
+    const expanded = expandedReceiptIds.has(item.id);
     return (
       <View style={styles.card}>
         <View style={styles.toprow}>
           <View style={styles.topcardLeft}>
             <Text style={styles.labelText}>ASN Receipt</Text>
-            <Text style={styles.valueText}>{item.receipt_num || dash}</Text>
+            <Text style={styles.valueText}>{dash}</Text>
           </View>
           <View style={styles.topcardRight}>
             <Text style={styles.labelText}>ASN Number</Text>
@@ -556,23 +567,18 @@ const ReceiveScreen = () => {
           </>
         )}
         <View style={styles.newbottomrow}>
-                  <View style={styles.newbottomcardLeft}>
-                    <Text style={styles.newlabelText}>
-                      Shipped Date: {formatDate(item.shipped_date)} {'\n'}Expected Receipt Date: {formatDate(item.expected_receipt_date)}
-                    </Text>
-                  </View>
-                  <View style={styles.newbottomcardRight}>
-                    <TouchableOpacity style={styles.viewMoreBtn} activeOpacity={0.7} onPress={() => toggleExpand(item.receipt_id)}>
-                      <Text style={styles.viewMoreText}>{expanded ? 'View Less' : 'View More'}</Text>
-                      {expanded ? (
-                        <ViewLessIcon width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" />
-                      ) : (
-                        <ViewMoreIcon width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" />
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
+          <View style={styles.newbottomcardLeft}>
+            <Text style={styles.newlabelText}>
+              Shipped Date: {formatDate(item.shipped_date)} {'\n'}Expected Receipt Date: {formatDate(item.expected_receipt_date)}
+            </Text>
+          </View>
+          <View style={styles.newbottomcardRight}>
+            <TouchableOpacity style={styles.viewMoreBtn} activeOpacity={0.7} onPress={() => toggleExpand(item.id)}>
+              <Text style={styles.viewMoreText}>{expanded ? 'View Less' : 'View More'}</Text>
+              {expanded ? <ViewLessIcon width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" /> : <ViewMoreIcon width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" />}
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     );
   };
@@ -582,7 +588,7 @@ const ReceiveScreen = () => {
       <View style={styles.toprow}>
         <View style={styles.topcardLeft}>
           <Text style={styles.labelText}>Receipt</Text>
-          <Text style={styles.valueText}>{item.receipt_num}</Text>
+          <Text style={styles.valueText}>{dash}</Text>
         </View>
         <View style={styles.topcardRight}>
           <Text style={styles.labelText}>Purchase Order</Text>
@@ -597,11 +603,97 @@ const ReceiveScreen = () => {
           </Text>
         </View>
         <View style={styles.bottomcardRight}>
-          <Text style={styles.labelText}>Received Date</Text>
-          <Text style={styles.valueText}>{formatDate(item.received_date)}</Text>
+          <Text style={styles.labelText}>Receiving Date</Text>
+          <Text style={styles.valueText}>{formatDate(item.received_date || new Date())}</Text>
         </View>
       </View>
     </View>
+  );
+
+  const InCompleteList = () => (
+    <FlatList
+      data={ICList}
+      keyExtractor={(item) => String(item.id)}
+      contentContainerStyle={{ paddingBottom: 80 }}
+      ref={scrollRef}
+      ListEmptyComponent={() => (
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyText}>No data found</Text>
+        </View>
+      )}
+      renderItem={({ item }) => {
+        const isASN = item.isASN;
+        return (
+          <IncompleteSwipeRow
+            item={item}
+            onDelete={async (it) => {
+              setPhase('loading');
+              try {
+                const res = await DeleteIncompleteRecord(it?.interface_id);
+                if (res !== undefined) {
+                  const refreshed = await GetICPoItems(OrgData?.selectedOrg);
+                  const normalized = (refreshed || []).map((d, idx) => ({
+                    ...d,
+                    id: d?.interface_id || `ic-${idx + 1}`,
+                    isASN: String(d?.received_type || '').toLowerCase() === 'asn',
+                  }));
+                  setICListInitial(normalized);
+                  setICList(normalized);
+                }
+                setPhase('success');
+              } catch {
+                Toast.show({ type: 'error', text1: 'Error', text2: `Failed to delete record. Please try again.`, position: 'top', visibilityTime: 5000 });
+                setPhase('error');
+              }
+            }}
+            onSwipeOpen={(ref) => {
+              if (openSwipeableRef.current && openSwipeableRef.current !== ref) {
+                openSwipeableRef.current.close();
+              }
+              openSwipeableRef.current = ref;
+            }}
+            onSwipeClose={(ref) => {
+              if (openSwipeableRef.current === ref) openSwipeableRef.current = null;
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                if (isASN) {
+                  navigation.navigate('AsnReceiptScreen', {
+                    selectedASN: {
+                      asn_id: item.asn_id,
+                      asn_num: item.asn_num,
+                      supplier_name: item.supplier_name,
+                      shipped_date: item.shipped_date,
+                      expected_receipt_date: item.expected_receipt_date,
+                      supplier_site: item.supplier_site,
+                      carrier: item.carrier,
+                      pack_slip: item.pack_slip,
+                      bol: item.bol,
+                      waybill: item.waybill,
+                      airbill: item.airbill,
+                      status: item.status,
+                    },
+                    fromScan: false,
+                    scannedAsnId: item.asn_id,
+                    scannedAsnNumber: item.asn_num,
+                  });
+                } else {
+                  navigation.navigate('InCompleteReceiveScreen', {
+                    selectedPO: item,
+                    fromScan: false,
+                    scannedPoNumber: null,
+                  });
+                }
+              }}
+              activeOpacity={0.9}
+            >
+              {isASN ? <ASNReceiptCard item={item} /> : <POReceiptCard item={item} />}
+            </TouchableOpacity>
+          </IncompleteSwipeRow>
+        );
+      }}
+    />
   );
 
   const ReceivedList = () => (
@@ -618,79 +710,52 @@ const ReceiveScreen = () => {
         const isASN = String(item.received_type || '').toLowerCase() === 'asn';
         return (
           <TouchableOpacity
-            onPress={() =>
-              navigation.navigate('ReceivedSummaryScreen', {
-                readonly: true,
-                id: item.receipt_id,
-                listType: 'Received',
-                header: isASN
-                  ? {
-                      receiptNumber: item.receipt_num,
-                      supplier: item.supplier_name,
-                      poNumber: dash,
-                      receiptDate: item.received_date || item.expected_receipt_date || item.shipped_date,
-                    }
-                  : {
-                      receiptNumber: item.receipt_num,
-                      supplier: item.supplier_name,
-                      poNumber: item.po_number,
-                      receiptDate: item.received_date,
-                    },
-                selectedItems: [],
-              })
-            }
+            onPress={() => {
+              if (isASN) {
+                navigation.navigate('AsnReceivedScreen', {
+                  asn_id: item.asn_id,
+                  header: {
+                    receipt_num: item.receipt_num,
+                    asn_num: item.asn_num,
+                    supplier_name: item.supplier_name,
+                    supplier_site: item.supplier_site,
+                    shipped_date: item.shipped_date,
+                    expected_receipt_date: item.expected_receipt_date,
+                    carrier: item.carrier,
+                    pack_slip: item.pack_slip,
+                    bol: item.bol,
+                    waybill: item.waybill,
+                    airbill: item.airbill,
+                  },
+                });
+              } else {
+                navigation.navigate('ReceivedSummaryScreen', {
+                  readonly: true,
+                  id: item.receipt_id,
+                  listType: 'Received',
+                  header: isASN
+                    ? {
+                        receiptNumber: item.receipt_num,
+                        supplier: item.supplier_name,
+                        poNumber: dash,
+                        receiptDate: item.received_date || item.expected_receipt_date || item.shipped_date,
+                      }
+                    : {
+                        receiptNumber: item.receipt_num,
+                        supplier: item.supplier_name,
+                        poNumber: item.po_number,
+                        receiptDate: item.received_date,
+                      },
+                  selectedItems: [],
+                });
+              }
+            }}
             activeOpacity={0.9}
           >
             {isASN ? <ASNReceiptCard item={item} /> : <POReceiptCard item={item} />}
           </TouchableOpacity>
         );
       }}
-    />
-  );
-
-  const loadICPoData = async () => {
-    setICPOData([]);
-    setICPOIntialData([]);
-    try {
-      const data = await GetICPoItems(OrgData?.selectedOrg);
-      const withPct = (data || []).map((d, idx) => {
-        const pct = computePercent(d?.total_received_qty, d?.total_ord_qty);
-        return { ...d, id: d?.id || `${idx + 1}`, received: pct };
-      });
-      setICPOIntialData(withPct);
-      setICPOData(withPct);
-      setPhase('success');
-    } catch {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Incomplete PO data. Please try again.', position: 'top', visibilityTime: 5000 });
-      setPhase('error');
-    }
-  };
-
-  const handleDelete = async (item) => {
-    setPhase('loading');
-    try {
-      const res = await DeleteIncompleteRecord(item?.interface_id);
-      if (res !== undefined) loadICPoData();
-    } catch {
-      Toast.show({ type: 'error', text1: 'Error', text2: `Failed to Delete Po - ${item.po_number}. Please try again.`, position: 'top', visibilityTime: 5000 });
-      setPhase('error');
-    }
-  };
-
-  const InCompleteList = () => (
-    <FlatList
-      data={ICPOData}
-      keyExtractor={(item) => String(item.id)}
-      contentContainerStyle={{ paddingBottom: 80 }}
-      ref={scrollRef}
-      ListEmptyComponent={() => (
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>No data found</Text>
-        </View>
-      )}
-      renderItem={({ item }) => (
-        <IncompleteRow item={item} onDelete={handleDelete} onSwipeOpen={handleSwipeOpen} onSwipeClose={handleSwipeClose} />
-      )}
     />
   );
 
@@ -704,14 +769,12 @@ const ReceiveScreen = () => {
   return (
     <View style={styles.container}>
       <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Home')} />
-
       {phase === 'loading' && (
         <View style={styles.loaderWrapper}>
           <ActivityIndicator size="large" color="#233E55" />
           <Text style={styles.statusText}>Loading...</Text>
         </View>
       )}
-
       {phase !== 'loading' && (
         <>
           <View style={styles.inputContainer}>
@@ -791,22 +854,18 @@ const styles = StyleSheet.create({
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   emptyText: { fontSize: 16, color: 'gray' },
   card: { justifyContent: 'space-between', backgroundColor: '#FBFBFB', marginHorizontal: 12, marginVertical: 6, borderRadius: 12, padding: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
-  incompletecard: { justifyContent: 'space-between', backgroundColor: '#FBFBFB', marginVertical: 6, borderRadius: 12, padding: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
   toprow: { flex: 1, flexDirection: 'row', marginBottom: scale(5) },
   bottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: scale(5) },
   topcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), paddingBottom: scale(6), minWidth: 0 },
   topcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), paddingBottom: scale(6), minWidth: 0 },
   bottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
   bottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), minWidth: 0 },
-
   newbottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: scale(10) },
   newbottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
   newbottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', minWidth: 0 },
-
   newlabelText: { fontSize: ms(8), color: '#666666', flex: 1, marginRight: scale(6) },
   viewMoreBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: ms(6), marginTop: ms(6) },
   viewMoreText: { fontSize: ms(10), marginRight: ms(-4), color: '#033EFF', textDecorationLine: 'underline', textDecorationColor: '#033EFF', fontWeight: '500' },
-
   labelText: { fontSize: 12, color: '#595A5C', flex: 1, fontFamily: 'Mulish' },
   valueText: { fontFamily: 'Mulish', fontSize: 12, fontWeight: '700', color: '#242424', flex: 1, textAlign: 'left' },
   subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
