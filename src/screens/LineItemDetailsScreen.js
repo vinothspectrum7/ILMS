@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Image, Alert, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Image, Alert, Modal, Pressable, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -10,7 +10,7 @@ import PencilDropdownRow from '../components/PencilDropdownRow';
 import SuccessModal from '../components/SuccessModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useReceivingStore } from '../store/receivingStore';
-import { GetLocatorsData } from '../api/ApiServices';
+import { GetItemImage, GetLocatorsData } from '../api/ApiServices';
 import FailureSvg from '../assets/icons/failure.svg';
 import CameraIcon from '../assets/icons/CameraIcon.svg';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
@@ -49,6 +49,8 @@ const LineItemDetailsScreen = () => {
   // preview modal state
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewUri, setPreviewUri] = useState(null);
+  const [imageMap, setImageMap] = useState({});
+
 
   const { InventoryList, OrgData, receiveItems, mergePatchIntoReceiveItems, setLocatorInCache, getLocatorFromCache } = useReceivingStore();
 
@@ -128,6 +130,47 @@ const LineItemDetailsScreen = () => {
     prefilledRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allItems, receiveItems, readOnly]);
+
+  useEffect(() => {
+  const currentItem = allItems[index];
+  console.log(currentItem,"currentItemcurrentItemcurrentItem")
+  if (currentItem && !currentItem.imageUri && !imageMap[currentItem.id]) {
+    fetchImageForItem(currentItem.itemid);
+  }
+}, [index, allItems]);
+
+
+const fetchImageForItem = async (itemId) => {
+  setImageMap((prev) => ({
+    ...prev,
+    [itemId]: { uri: null, loading: true },
+  }));
+  try {
+    const resp = await GetItemImage(itemId);
+    console.log(resp,"GetItemImageGetItemImageGetItemImage")
+    // const base64 = Buffer.from(resp, "binary").toString("base64");
+    // const base64Uri = `data:image/jpeg;base64,${base64}`
+    if(resp){
+      setImageMap((prev) => ({
+        ...prev,
+        [itemId]: { uri: resp?.base64_image, loading: false },
+      }));
+    }else{
+     setImageMap((prev) => ({
+      ...prev,
+      [itemId]: { uri: null, loading: false },
+    }));
+    }
+
+
+  } catch (err) {
+    console.error("Image fetch failed", err);
+    setImageMap((prev) => ({
+      ...prev,
+      [itemId]: { uri: null, loading: false },
+    }));
+  }
+};
 
   const readonlyScanQty = (() => {
     if (!readOnly || listType !== 'scan') return null;
@@ -333,6 +376,37 @@ const LineItemDetailsScreen = () => {
     }
   }, [buildPatches, mergePatchIntoReceiveItems, navigation, returnTo, listType]);
 
+  const renderImageBox = (item) => {
+    const imgState = imageMap[item.itemid] || { uri: item.imageUri, loading: false };
+
+    if (imgState.loading) {
+      return (
+          <ActivityIndicator size="large" color="#007bff" />
+      );
+    }
+
+    if (imgState.uri) {
+      return (
+        <TouchableOpacity
+          style={{ flex: 1, width: '100%', height: '100%' }}
+          onPress={() => {
+            setPreviewUri(imgState.uri);
+            setPreviewVisible(true);
+          }}
+          activeOpacity={0.9}
+        >
+          <Image source={{ uri: imgState.uri }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"/>
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+          <Text style={{ fontSize: 10, color: '#999' }}>No Image</Text>
+    );
+  };
+
   const renderPage = ({ item }) => {
     const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(item.id)) : undefined;
     const storeQty = Number(fromStore?.qtyToReceive);
@@ -385,27 +459,13 @@ const LineItemDetailsScreen = () => {
                 </Text>
 
                 {/* Camera icon (opens picker for this item) */}
-                <TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
+                {/* <TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
                   <CameraIcon width={25} height={25} />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 {/* Thumbnail area */}
                 <View style={styles.imageWrapper}>
-                  {shownImage ? (
-                    <TouchableOpacity
-                      style={{ flex: 1, width: '100%', height: '100%' }}
-                      onPress={() => { setPreviewUri(shownImage); setPreviewVisible(true); }}
-                      activeOpacity={0.9}
-                    >
-                      <Image
-                        source={{ uri: shownImage }}
-                        style={{ width: '100%', height: '100%' }}
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={{ fontSize: 10, color: '#999' }}>No Image</Text>
-                  )}
+                  {renderImageBox(allItems[index])}
                 </View>
               </View>
             </View>

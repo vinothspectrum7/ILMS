@@ -17,6 +17,17 @@ export const useReceivingStore = create((set, get) => ({
   getLocatorFromCache: (subInventoryId) => {
     return get().locatorCache[subInventoryId] || null;
   },
+  getImageFromCache: (itemid) => {
+    return get().imageCache[itemid] || null;
+  },
+    setImageInCache: (itemid, image) => {
+    set((state) => ({
+      imageCache: {
+        ...state.imageCache,
+        [itemid]: image,
+      },
+    }));
+  },
   setLocatorInCache: (subInventoryId, locators) => {
     set((state) => ({
       locatorCache: {
@@ -71,6 +82,14 @@ export const useReceivingStore = create((set, get) => ({
   },
 
   resetTab: () => set({ ActiveTab: null }),
+    resetLocators: () =>
+    set({
+      locatorCache: null
+    }),
+  resetImage: () =>
+    set({
+      imageCache: null
+    }),
   resetReceiving: () => set({ poHeader: null, receiveItems: [], summaryItems: [] }),
 
   asnHeader: null,

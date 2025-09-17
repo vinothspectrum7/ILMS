@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, ActivityIndicator, Image,Modal,Pressable } from 'react-native';
 import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -10,7 +10,9 @@ import PencilDropdownRow from '../components/PencilDropdownRow';
 import SuccessModal from '../components/SuccessModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useReceivingStore } from '../store/receivingStore';
-import { GetLocatorsData } from '../api/ApiServices';
+import { GetLocatorsData,GetItemImage } from '../api/ApiServices';
+import CameraIcon from '../assets/icons/CameraIcon.svg';
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CONTROL_WIDTH = 80;
@@ -79,6 +81,9 @@ const IC_LineItemDetailsScreen = () => {
   const listRef = useRef(null);
   const isProgrammaticScroll = useRef(false);
   const prefilledRef = useRef(false);
+  const [imageMap, setImageMap] = useState({});
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewUri, setPreviewUri] = useState(null);
 
   const allItems = mergedItems;
   const current = useMemo(() => allItems[index], [allItems, index]);
@@ -104,6 +109,46 @@ const IC_LineItemDetailsScreen = () => {
     }
     prefilledRef.current = true;
   }, [allItems, receiveItems, readOnly, edited]);
+
+    useEffect(() => {
+    const currentItem = allItems[index];
+    console.log(currentItem,"currentItemcurrentItemcurrentItem")
+    if (currentItem && !currentItem.imageUri && !imageMap[currentItem.id]) {
+      fetchImageForItem(currentItem.itemid);
+    }
+  }, [index, allItems]);
+  
+const fetchImageForItem = async (itemId) => {
+  setImageMap((prev) => ({
+    ...prev,
+    [itemId]: { uri: null, loading: true },
+  }));
+  try {
+    const resp = await GetItemImage(itemId);
+    console.log(resp,"GetItemImageGetItemImageGetItemImage")
+    // const base64 = Buffer.from(resp, "binary").toString("base64");
+    // const base64Uri = `data:image/jpeg;base64,${base64}`
+    if(resp){
+      setImageMap((prev) => ({
+        ...prev,
+        [itemId]: { uri: resp?.base64_image, loading: false },
+      }));
+    }else{
+     setImageMap((prev) => ({
+      ...prev,
+      [itemId]: { uri: null, loading: false },
+    }));
+    }
+
+
+  } catch (err) {
+    console.error("Image fetch failed", err);
+    setImageMap((prev) => ({
+      ...prev,
+      [itemId]: { uri: null, loading: false },
+    }));
+  }
+};
 
   useEffect(() => {
     if (readOnly) return;
@@ -265,6 +310,36 @@ const IC_LineItemDetailsScreen = () => {
     }
   }, [buildPatches, mergePatchIntoReceiveItems, navigation, returnTo, listType]);
 
+    const renderImageBox = (item) => {
+      const imgState = imageMap[item.itemid] || { uri: item.imageUri, loading: false };
+  
+      if (imgState.loading) {
+        return (
+            <ActivityIndicator size="large" color="#007bff" />
+        );
+      }
+  
+      if (imgState.uri) {
+        return (
+          <TouchableOpacity
+            style={{ flex: 1, width: '100%', height: '100%' }}
+            onPress={() => {
+              setPreviewUri(imgState.uri);
+              setPreviewVisible(true);
+            }}
+            activeOpacity={0.9}
+          >
+            <Image source={{ uri: imgState.uri }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"/>
+          </TouchableOpacity>
+        );
+      }
+  
+      return (
+            <Text style={{ fontSize: 10, color: '#999' }}>No Image</Text>
+      );
+    };
   const renderPage = ({ item }) => {
     const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(item.id)) : undefined;
     const storeQty = Number(fromStore?.qtyToReceive);
@@ -300,7 +375,24 @@ const IC_LineItemDetailsScreen = () => {
           <View style={styles.card} key={`card-${item.id}`}>
             <View style={styles.row}><Text style={styles.label}>Item Name</Text><Text style={styles.valueBold} numberOfLines={1}>{item.itemName || '—'}</Text></View>
             <View style={styles.divider} />
-            <View style={styles.block}><Text style={styles.label}>Item Description</Text><Text style={styles.descText}>{item.itemDescription || '—'}</Text></View>
+            <View style={styles.block}>
+              <Text style={styles.label}>Item Description</Text>
+                            <View style={styles.row}>
+                              <Text style={styles.descText} numberOfLines={3}>
+                                {item.itemDescription || '—'}
+                              </Text>
+              
+                              {/* Camera icon (opens picker for this item) */}
+                              {/* <TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
+                                <CameraIcon width={25} height={25} />
+                              </TouchableOpacity> */}
+              
+                              {/* Thumbnail area */}
+                              <View style={styles.imageWrapper}>
+                                {renderImageBox(allItems[index])}
+                              </View>
+                            </View>
+            </View>
             <View style={styles.divider} />
 
             <View style={styles.divider} />
@@ -488,6 +580,29 @@ const IC_LineItemDetailsScreen = () => {
         onDismiss={() => setSuccessVisible(false)}
         autoHideMs={1800}
       />
+            <Modal
+              visible={previewVisible}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => { setPreviewVisible(false); setPreviewUri(null); }}
+            >
+              <SafeAreaView style={styles.fullScreenModal}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => { setPreviewVisible(false); setPreviewUri(null); }} style={styles.backBtn}>
+                    <ChevronLeft size={24} color="#000" />
+                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}>Preview</Text>
+                  <View style={{ width: 40 }} />
+                </View>
+      
+                <View style={styles.modalBackground}> 
+                  <Pressable style={styles.modalCloseArea} onPress={() => {setPreviewVisible(false);setPreviewUri(null)}} />
+                  {previewUri ? (
+                    <Image source={{ uri: previewUri }} style={styles.fullImage} resizeMode="contain" />
+                  ) : null}
+                </View>
+              </SafeAreaView>
+            </Modal>
     </SafeAreaView>
   );
 };
@@ -543,6 +658,77 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginRight: 2,
     textAlign:'right'
+  },
+    imageWrapper: {
+    position: 'relative',
+    width: 70,
+    height: 70,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+    image: {
+    width: '100%',
+    height: '100%',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    top: -3,
+    right: -5,
+    zIndex: 5,
+    elevation: 2,
+  },
+
+  /* full screen preview styles */
+  fullScreenModal: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ccc',
+  },
+  backBtn: {
+    padding: 6,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  imageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseArea: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  previewImage: {
+    width: '90%',
+    height: '70%',
+    resizeMode: 'contain',
   },
 });
 

@@ -228,6 +228,8 @@ const  mapConfirmData = (data)=> {
         expiry_date: formatToday(),
         received_qty: qty,
         is_checked: qty > 0 ? true : false,
+        received_type: "purchase_order",
+        asn_header_uuid: null
       };
     });
   
