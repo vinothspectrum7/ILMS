@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Image, Alert, Modal, Pressable } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Image, Alert, Modal, Pressable, ActivityIndicator } from 'react-native';
+import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -10,7 +10,7 @@ import PencilDropdownRow from '../components/PencilDropdownRow';
 import SuccessModal from '../components/SuccessModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useReceivingStore } from '../store/receivingStore';
-import { GetLocatorsData } from '../api/ApiServices';
+import { GetItemImage, GetLocatorsData } from '../api/ApiServices';
 import FailureSvg from '../assets/icons/failure.svg';
 import CameraIcon from '../assets/icons/CameraIcon.svg';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
@@ -48,6 +48,7 @@ const ASNPOLineItemDetailsScreen = () => {
 
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewUri, setPreviewUri] = useState(null);
+  const [imageMap, setImageMap] = useState({});
 
   const { InventoryList, OrgData, receiveItems, mergePatchIntoReceiveItems, setLocatorInCache, getLocatorFromCache } = useReceivingStore();
 
@@ -116,6 +117,39 @@ const ASNPOLineItemDetailsScreen = () => {
     }
     prefilledRef.current = true;
   }, [allItems, receiveItems, readOnly]);
+
+  useEffect(() => {
+    const currentItem = allItems[index];
+    if (currentItem && !currentItem.imageUri && !imageMap[currentItem.id]) {
+      fetchImageForItem(currentItem.itemid);
+    }
+  }, [index, allItems]);
+
+  const fetchImageForItem = async (itemId) => {
+    setImageMap((prev) => ({
+      ...prev,
+      [itemId]: { uri: null, loading: true },
+    }));
+    try {
+      const resp = await GetItemImage(itemId);
+      if (resp) {
+        setImageMap((prev) => ({
+          ...prev,
+          [itemId]: { uri: resp?.base64_image, loading: false },
+        }));
+      } else {
+        setImageMap((prev) => ({
+          ...prev,
+          [itemId]: { uri: null, loading: false },
+        }));
+      }
+    } catch (err) {
+      setImageMap((prev) => ({
+        ...prev,
+        [itemId]: { uri: null, loading: false },
+      }));
+    }
+  };
 
   const readonlyScanQty = (() => {
     if (!readOnly || listType !== 'scan') return null;
@@ -205,37 +239,41 @@ const ASNPOLineItemDetailsScreen = () => {
   };
 
   const handleImagePick = (itemId) => {
-    Alert.alert('Select Image', 'Choose an option', [
-      {
-        text: 'Camera',
-        onPress: () => {
-          launchCamera({ mediaType: 'photo', quality: 0.7 }, response => {
-            if (!response.didCancel && !response.errorCode) {
-              const uri = response.assets?.[0]?.uri || null;
-              setEdited(prev => ({
-                ...prev,
-                [itemId]: { ...(prev[itemId] ?? {}), imageUri: uri },
-              }));
-            }
-          });
+    Alert.alert(
+      'Select Image',
+      'Choose an option',
+      [
+        {
+          text: 'Camera',
+          onPress: () => {
+            launchCamera({ mediaType: 'photo', quality: 0.7 }, response => {
+              if (!response.didCancel && !response.errorCode) {
+                const uri = response.assets?.[0]?.uri || null;
+                setEdited(prev => ({
+                  ...prev,
+                  [itemId]: { ...(prev[itemId] ?? {}), imageUri: uri },
+                }));
+              }
+            });
+          },
         },
-      },
-      {
-        text: 'Gallery',
-        onPress: () => {
-          launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, response => {
-            if (!response.didCancel && !response.errorCode) {
-              const uri = response.assets?.[0]?.uri || null;
-              setEdited(prev => ({
-                ...prev,
-                [itemId]: { ...(prev[itemId] ?? {}), imageUri: uri },
-              }));
-            }
-          });
+        {
+          text: 'Gallery',
+          onPress: () => {
+            launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, response => {
+              if (!response.didCancel && !response.errorCode) {
+                const uri = response.assets?.[0]?.uri || null;
+                setEdited(prev => ({
+                  ...prev,
+                  [itemId]: { ...(prev[itemId] ?? {}), imageUri: uri },
+                }));
+              }
+            });
+          },
         },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   const isSubmitEnabled = useMemo(() => {
@@ -251,7 +289,7 @@ const ASNPOLineItemDetailsScreen = () => {
     });
   }, [edited, allItems, readOnly]);
 
-  const titlePo = returnTo == 'ReceiveSummaryScreen' ? receiptNumber : current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
+  const titlePo = returnTo == 'ReceivedSummaryScreen' ? receiptNumber : current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
@@ -264,9 +302,8 @@ const ASNPOLineItemDetailsScreen = () => {
   const goNext = useCallback(() => { if (index < allItems.length - 1) scrollToIndex(index + 1); }, [index, allItems.length, scrollToIndex]);
 
   const handleCancelNav = useCallback(() => {
-    if (returnTo && returnTo !== 'PovViewItems' && returnTo !== 'poviewitems') navigation.navigate(returnTo);
-    else if (navigation.canGoBack()) navigation.goBack();
-    else navigation.navigate('Receive');
+    if (returnTo) navigation.navigate(returnTo);
+    else navigation.goBack();
   }, [navigation, returnTo]);
 
   const buildPatches = useCallback(() => {
@@ -290,12 +327,6 @@ const ASNPOLineItemDetailsScreen = () => {
     return patches;
   }, [allItems, edited]);
 
-  const navigateBackToList = useCallback(() => {
-    if (returnTo && returnTo !== 'PovViewItems' && returnTo !== 'poviewitems') navigation.navigate(returnTo, { listType });
-    else if (navigation.canGoBack()) navigation.goBack();
-    else navigation.navigate('Receive');
-  }, [navigation, returnTo, listType]);
-
   const handleSaveAll = useCallback(async () => {
     const patches = buildPatches();
     if (!patches.length) {
@@ -309,12 +340,35 @@ const ASNPOLineItemDetailsScreen = () => {
       setSuccessVisible(true);
       setTimeout(() => {
         setSuccessVisible(false);
-        navigateBackToList();
+        if (returnTo) navigation.dispatch(StackActions.replace(returnTo, { listType }));
+        else navigation.goBack();
       }, 1200);
     } catch {
       Toast.show({ type: 'error', text1: 'Save failed', text2: 'Please try again.', position: 'top', visibilityTime: 5000 });
     }
   }, [buildPatches, mergePatchIntoReceiveItems, navigation, returnTo, listType]);
+
+  const renderImageBox = (item) => {
+    const imgState = imageMap[item.itemid] || { uri: item.imageUri, loading: false };
+    if (imgState.loading) {
+      return <ActivityIndicator size="large" color="#007bff" />;
+    }
+    if (imgState.uri) {
+      return (
+        <TouchableOpacity
+          style={{ flex: 1, width: '100%', height: '100%' }}
+          onPress={() => {
+            setPreviewUri(imgState.uri);
+            setPreviewVisible(true);
+          }}
+          activeOpacity={0.9}
+        >
+          <Image source={{ uri: imgState.uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        </TouchableOpacity>
+      );
+    }
+    return <Text style={{ fontSize: 10, color: '#999' }}>No Image</Text>;
+  };
 
   const renderPage = ({ item }) => {
     const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(item.id)) : undefined;
@@ -322,7 +376,7 @@ const ASNPOLineItemDetailsScreen = () => {
     const mergedQty = Number(item.receivingQty ?? 0);
     const defaultEditableQty = Number.isFinite(storeQty) ? storeQty : mergedQty;
 
-    const readonlyQty = returnTo == 'ReceiveSummaryScreen' ? item.receivedQty :
+    const readonlyQty = returnTo == 'ReceivedSummaryScreen' ? item.receivedQty :
       readOnly
         ? (listType === 'scan'
           ? (Number(item.openQty ?? 0) > 0 ? Number(item.openQty ?? 0) : Number(item.orderQty ?? 0))
@@ -342,18 +396,13 @@ const ASNPOLineItemDetailsScreen = () => {
     const dynamicwidth = estimateWidth(findLabels);
     setSubWidth(dynamicwidth);
 
+    const limit = Number(item.max_open_qty ?? item.openQty ?? 0);
     const shownImage = pageState.imageUri ?? item.imageUri ?? null;
 
-    console.log('item asnpolistdet:', item);
-    const desc =
-      (item.itemDescription && String(item.itemDescription).trim()) ||
-      (item.item_description && String(item.item_description).trim()) ||
-      (fromStore?.itemDescription && String(fromStore.itemDescription).trim()) ||
-      (fromStore?.item_description && String(fromStore.item_description).trim()) ||
-      (item.description && String(item.description).trim()) ||
-      (item.desc && String(item.desc).trim()) ||
-      (item.item_desc && String(item.item_desc).trim()) ||
-      '';
+    const siteLocationValueRaw = String(
+      item.siteLocation ?? item.site_location ?? item.site_name ?? item.site ?? ''
+    ).trim();
+    const siteLocationValue = siteLocationValueRaw.length > 0 ? siteLocationValueRaw : '-';
 
     return (
       <View style={{ width: SCREEN_WIDTH }}>
@@ -369,28 +418,11 @@ const ASNPOLineItemDetailsScreen = () => {
             <View style={styles.block}>
               <Text style={styles.label}>Item Description</Text>
               <View style={styles.row}>
-                {desc ? (
-                  <Text style={styles.descText} numberOfLines={3}>{desc}</Text>
-                ) : (
-                  <Text style={styles.descText} numberOfLines={1}>—</Text>
-                )}
-
-                <TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
-                  <CameraIcon width={25} height={25} />
-                </TouchableOpacity>
-
+                <Text style={styles.descText} numberOfLines={3}>
+                  {item.itemDescription || '—'}
+                </Text>
                 <View style={styles.imageWrapper}>
-                  {shownImage ? (
-                    <TouchableOpacity
-                      style={{ flex: 1, width: '100%', height: '100%' }}
-                      onPress={() => { setPreviewUri(shownImage); setPreviewVisible(true); }}
-                      activeOpacity={0.9}
-                    >
-                      <Image source={{ uri: shownImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={{ fontSize: 10, color: '#999' }}>No Image</Text>
-                  )}
+                  {renderImageBox(allItems[index])}
                 </View>
               </View>
             </View>
@@ -434,80 +466,105 @@ const ASNPOLineItemDetailsScreen = () => {
               </View>
             </View>
             <Text style={styles.uomText}>{item.uom}</Text>
-            <View style={styles.divider} />
 
+            <View style={styles.divider} />
+            <InlineFieldRow label="Site Location">
+              <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}>
+                {siteLocationValue}
+              </Text>
+            </InlineFieldRow>
+
+            <View style={styles.divider} />
             <View style={styles.row}>
               <Text style={styles.label}>Receiving Status</Text>
-              <Text style={[styles.statusText, {
-                color: (pageState.receivingQty > 0 && item.receivingStatus == 'OPEN') ? '#F06000' :
-                  item.receivingStatus && item.receivingStatus == 'OPEN' ? "#033EFF" :
-                    item.receivingStatus == 'FULLY RECEIVED' ? "#168035" : "#F06000"
-              },]}>
-                {(pageState.receivingQty > 0 && item.receivingStatus == 'OPEN') ? 'In Progress' : item.receivingStatus}
+              <Text
+                style={[
+                  styles.statusText,
+                  {
+                    color:
+                      pageState.receivingQty > 0 && item.receivingStatus == 'OPEN'
+                        ? '#F06000'
+                        : item.receivingStatus && item.receivingStatus == 'OPEN'
+                        ? '#033EFF'
+                        : item.receivingStatus == 'FULLY RECEIVED'
+                        ? '#168035'
+                        : '#F06000',
+                  },
+                ]}
+              >
+                {pageState.receivingQty > 0 && item.receivingStatus == 'OPEN' ? 'In Progress' : item.receivingStatus}
               </Text>
             </View>
 
             <View style={styles.divider} />
-
             <InlineFieldRow label="LPN">
-              {!readOnly ? <PencilDropdownRow
-                key={`lpn-${String(item.id)}`}
-                value={pageState.lpn}
-                onChange={
-                  isEditable
-                    ? (id) => setEdited((prev) => ({
-                      ...prev,
-                      [item.id]: {
-                        ...(prev[item.id] ?? {}),
-                        lpn: id,
-                      },
-                    }))
-                    : undefined
-                }
-                options={LpnList}
-                placeholder="Select Locator"
-                disabled={!isEditable || item.openQty == 0}
-                width={CONTROL_WIDTH}
-                selectedwidth={CONTROL_WIDTH}
-                height={CONTROL_HEIGHT}
-                compact
-              /> :
-                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}> - </Text>}
+              {!readOnly ? (
+                <PencilDropdownRow
+                  key={`lpn-${String(item.id)}`}
+                  value={pageState.lpn}
+                  onChange={
+                    isEditable
+                      ? (id) =>
+                          setEdited((prev) => ({
+                            ...prev,
+                            [item.id]: {
+                              ...(prev[item.id] ?? {}),
+                              lpn: id,
+                            },
+                          }))
+                      : undefined
+                  }
+                  options={LpnList}
+                  placeholder="Select Locator"
+                  disabled={!isEditable || item.openQty == 0}
+                  width={CONTROL_WIDTH}
+                  selectedwidth={CONTROL_WIDTH}
+                  height={CONTROL_HEIGHT}
+                  compact
+                />
+              ) : (
+                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}> - </Text>
+              )}
             </InlineFieldRow>
 
             <View style={styles.divider} />
             <InlineFieldRow label="Sub Inventory*">
-              {!readOnly ? <PencilDropdownRow
-                key={`subinv-${String(item.id)}`}
-                value={pageState.subInventory}
-                onChange={isEditable ? (sub_id) => handleSubInventoryChange(item.id, sub_id) : undefined}
-                options={InventoryList}
-                placeholder="Select Sub Inventory"
-                disabled={!isEditable || item.openQty == 0}
-                width={CONTROL_WIDTH}
-                selectedwidth={SUB_WIDTH}
-                height={CONTROL_HEIGHT}
-                compact
-              /> :
-                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}>{item.sub_inv_name}</Text>}
+              {!readOnly ? (
+                <PencilDropdownRow
+                  key={`subinv-${String(item.id)}`}
+                  value={pageState.subInventory}
+                  onChange={isEditable ? (sub_id) => handleSubInventoryChange(item.id, sub_id) : undefined}
+                  options={InventoryList}
+                  placeholder="Select Sub Inventory"
+                  disabled={!isEditable || item.openQty == 0}
+                  width={CONTROL_WIDTH}
+                  selectedwidth={SUB_WIDTH}
+                  height={CONTROL_HEIGHT}
+                  compact
+                />
+              ) : (
+                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}>{item.sub_inv_name}</Text>
+              )}
             </InlineFieldRow>
 
             <View style={styles.divider} />
             <InlineFieldRow label="Locator">
-              {!readOnly ? <PencilDropdownRow
-                key={`locator-${String(item.id)}`}
-                value={pageState.locator}
-                onChange={isEditable ? (id) => setEdited((prev) =>
-                  ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
-                options={locatorDataMap[item.id] ?? []}
-                placeholder="Select Locator"
-                disabled={!isEditable || item.openQty == 0}
-                width={CONTROL_WIDTH}
-                selectedwidth={CONTROL_WIDTH}
-                height={CONTROL_HEIGHT}
-                compact
-              /> :
-                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}>{item.locator_name}</Text>}
+              {!readOnly ? (
+                <PencilDropdownRow
+                  key={`locator-${String(item.id)}`}
+                  value={pageState.locator}
+                  onChange={isEditable ? (id) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
+                  options={locatorDataMap[item.id] ?? []}
+                  placeholder="Select Locator"
+                  disabled={!isEditable || item.openQty == 0}
+                  width={CONTROL_WIDTH}
+                  selectedwidth={CONTROL_WIDTH}
+                  height={CONTROL_HEIGHT}
+                  compact
+                />
+              ) : (
+                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}>{item.locator_name}</Text>
+              )}
             </InlineFieldRow>
           </View>
 
@@ -600,7 +657,7 @@ const ASNPOLineItemDetailsScreen = () => {
           </View>
 
           <View style={styles.modalBackground}>
-            <Pressable style={styles.modalCloseArea} onPress={() => {setPreviewVisible(false);setPreviewUri(null)}} />
+            <Pressable style={styles.modalCloseArea} onPress={() => { setPreviewVisible(false); setPreviewUri(null); }} />
             {previewUri ? (
               <Image source={{ uri: previewUri }} style={styles.fullImage} resizeMode="contain" />
             ) : null}
@@ -626,7 +683,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   navEdge: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center' },
-  navTitle: { flex: 1, color: "#233E55", textAlign: 'center', fontSize: 12, fontWeight: '600' },
+  navTitle: { flex: 1, color: '#233E55', textAlign: 'center', fontSize: 12, fontWeight: '600' },
   content: { paddingBottom: 120 },
   card: {
     backgroundColor: '#fff',
@@ -677,15 +734,7 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '100%' },
   cameraIcon: { position: 'absolute', top: -3, right: -5, zIndex: 5, elevation: 2 },
   fullScreenModal: { flex: 1, backgroundColor: '#000' },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ccc',
-  },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: '#fff', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ccc' },
   backBtn: { padding: 6 },
   modalTitle: { fontSize: 16, fontWeight: '600', color: '#000' },
   imageContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },

@@ -347,6 +347,7 @@ const PovViewItems = () => {
         poNumber: asnHeader?.asn_num ?? selectedPO?.po_number ?? '—',
         lineNumber: i + 1,
         itemName: it.itemName ?? it.name,
+        itemid:it.item_id,
         itemDescription: itemDesc,
         item_description: itemDesc,
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
@@ -450,9 +451,9 @@ const PovViewItems = () => {
             </View>
           </ScrollView>
           <FooterButtonsComponent
-            leftLabel="Save"
+            leftLabel="Cancel"
             rightLabel="Receive"
-            onLeftPress={mode === 'edit' ? persistAndReturnToSummary : persistAndReturnToASN}
+            onLeftPress={navigation.goBack()}
             onRightPress={handleReceive}
             leftEnabled={hasAnyItems}
             rightEnabled={hasAnyItems}

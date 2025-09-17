@@ -385,7 +385,11 @@ const AsnReceiptScreen = () => {
       )}
       {phase !== 'loading' && (
         <>
-          <ScrollView contentContainerStyle={styles.contentContainer}>
+          <ScrollView
+            contentContainerStyle={styles.contentContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <ASNinfoCardComponent
               receiptNumber={activeASN?.receiptNumber || '-'}
               supplier={activeASN?.supplier_name || '-'}
@@ -433,7 +437,7 @@ const AsnReceiptScreen = () => {
             rightLabel="Receive"
             onLeftPress={handleSave}
             onRightPress={handleReceive}
-            leftEnabled={true}
+            leftEnabled={(asnSelectedPOIds || []).length > 0}
             rightEnabled={(asnSelectedPOIds || []).length > 0}
           />
 
@@ -492,7 +496,7 @@ const styles = StyleSheet.create({
   itemcontainer: {
     backgroundColor: '#fff',
     marginHorizontal: 12,
-    marginTop: 8,
+    marginTop: 10,
     marginBottom: 8,
     borderRadius: 12,
     paddingTop: 8,

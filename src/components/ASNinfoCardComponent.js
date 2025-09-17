@@ -67,7 +67,7 @@ const ASNinfoCardComponent = ({
         </View>
 
         <View style={styles.bottomrow}>
-          <View style={styles.bottomcardLeft}>            
+          <View style={styles.bottomcardLeft}>
             <Text style={styles.labelText}>Supplier</Text>
             <Text style={styles.valueText}>{sup}</Text>
           </View>
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   card: {
     justifyContent: 'space-between',
     backgroundColor: '#fff',
-    marginTop: scale(-12),
+    marginTop: ms(0),
     marginHorizontal: scale(12),
     marginVertical: scale(6),
     borderRadius: scale(12),
