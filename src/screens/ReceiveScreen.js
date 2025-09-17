@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Dimensions, Modal, BackHandler, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Dimensions, Modal, BackHandler, ActivityIndicator, Alert } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
@@ -127,10 +127,16 @@ const ReceiveScreen = () => {
             return hay.some((h) => h.includes(q));
           });
         }
-        if (filterStatus) {
-          base = base.filter((p) => String(p?.status || '').toUpperCase() === filterStatus);
+        if(filterStatus == 'FULLY RECEIVED'){
+          base = base.filter((p) => Number(p?.received) == 100);
+        }
+        else if(filterStatus == 'OPEN') {
+          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN'&&Number(p?.received) !== 100);
+        }
+        else if (filterStatus =='CLOSED') {
+          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'CLOSED');
         } else if (!q) {
-          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN');
+          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN'&&Number(p?.received) !== 100);
         }
         setPOData(base);
         return;
@@ -203,10 +209,11 @@ const ReceiveScreen = () => {
         const data = await GetPoItems(OrgData?.selectedOrg);
         const withPct = (data || []).map((d, idx) => {
           const pct = computePercent(d?.total_received_qty, d?.total_ord_qty);
+          console.log(pct,"PERENefuenunfunfrururbuburbrubgrubgrubgrubgruburb")
           return { ...d, id: d?.id || `${idx + 1}`, received: pct };
         });
         setPOIntialData(withPct);
-        setPOData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN'));
+        setPOData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN'&& Number(x?.received) !== 100));
       } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
       }

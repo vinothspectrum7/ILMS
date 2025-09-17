@@ -26,6 +26,17 @@ export const useReceivingStore = create((set, get) => ({
       },
     }));
   },
+    getImageFromCache: (itemid) => {
+    return get().imageCache[itemid] || null;
+  },
+    setImageInCache: (itemid, locators) => {
+    set((state) => ({
+      imageCache: {
+        ...state.imageCache,
+        [itemid]: locators,
+      },
+    }));
+  },
   setLocatorList: (data) => set({LocatorList:data}),
 
   receiveItems: [],
@@ -79,6 +90,11 @@ export const useReceivingStore = create((set, get) => ({
   resetLocators: () =>
     set({
       locatorCache: null
+    }),
+
+  resetImage: () =>
+    set({
+      imageCache: null
     }),
 
   resetReceiving: () =>

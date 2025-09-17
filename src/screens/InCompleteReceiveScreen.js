@@ -432,6 +432,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
         poNumber: poHeader?.poNumber ?? '—',
         lineNumber: i + 1,
         itemName: it.name,
+        itemid:it.item_id,
         itemDescription: it.itemDescription ?? it.description ?? '—',
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         openQty: Number(it.openQty ?? 0),

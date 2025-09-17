@@ -336,25 +336,26 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
       expiry_date: formatToday(),
       received_qty: qty,
       is_checked: qty > 0 ? true : false,
+      received_type: "purchase_order",
+      asn_header_uuid: null
     };
   });
 
   return FILTER_ZERO_QTY ? rows.filter(r => r.received_qty > 0) : rows;
 };
 
-  const isSaveSuccess = (res) => {
-  if (!res) return false;
-  if (res?.results[0].status=='success') return true;
-  if (res?.results[0].status=='error') return false;
-  if (res === true) return true;
-  if (typeof res?.results === 'boolean') return res.results === true;
-  if (typeof res?.results === 'number') return res.results > 0;
-  if (Array.isArray(res?.results)) return res.results.length > 0;
-  if (res?.status === 'success' || res?.status === 'ok') return true;
-  if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
-  return false;
-};
-
+    const isSaveSuccess = (res) => {
+    if (!res) return false;
+    if (res === true) return true;
+    if (typeof res?.results === 'boolean') return res.results === true;
+    if (typeof res?.results === 'number') return res.results > 0;
+    if (Array.isArray(res?.results)) return res.results.length > 0;
+    if (res?.results[0].status=='success') return true;
+    if (res?.results[0].status=='error') return false;
+    if (res?.status === 'success' || res?.status === 'ok') return true;
+    if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
+    return false;
+  };
 const handlesave = async () => {
   didCompleteRef.current = false;
   try {
@@ -423,6 +424,7 @@ const handlesaveFailure = () => {
         poNumber: poHeader?.poNumber ?? '—',
         lineNumber: i + 1,
         itemName: it.name,
+        itemid:it.item_id,
         itemDescription: it.itemDescription ?? it.description ?? '—',
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         openQty: Number(it.openQty ?? 0),
@@ -588,6 +590,27 @@ const handlesaveFailure = () => {
           <Modal visible={showScanner} animationType="slide">
             <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
           </Modal>
+                    <Modal
+                                  visible={saveModalVisible}
+                                  transparent
+                                  animationType="fade"
+                                  onRequestClose={() => {}}
+                                >
+                                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                                    <View style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, alignItems: 'center', width: '80%' }}>
+                                      {saveModalStatus === 'success' ? (
+                                        <ConfirmSvg width={72} height={72} />
+                                      ) : (
+                                        <FailureSvg width={72} height={72} />
+                                      )}
+                                      <Text style={{ marginTop: 16, textAlign:'center', fontSize: 16, color: '#333' }}>
+                                        {saveModalStatus === 'success'
+                                          ? 'Order Saved Successfully. Please continue Receipt.'
+                                          : 'Save failed. Please try again.'}
+                                      </Text>
+                                    </View>
+                                  </View>
+                                </Modal>
                   </>
       )}
     </SafeAreaView>

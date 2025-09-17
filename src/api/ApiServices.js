@@ -152,3 +152,13 @@ export const DeleteIncompleteRecord = async(header_id)=>{
     throw error;
   }
 }
+export const GetItemImage = async(item_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_ITEM_IMAGE(item_id));
+        console.log("Response Data:GET ITEM IMAGE", response);
+    return response.data;
+  }catch (error) {
+    console.error("GET ITEM IMAGE ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
