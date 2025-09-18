@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   GET_RECEIVED_DATA: (org_id) => `${BASE_URL}/purchase_orders/received/${org_id}/all`,
   GET_SINGLE_PO_DATA: (po_id) => `${BASE_URL}/purchase_orders/${po_id}`,
   GET_SAVED_SINGLE_PO_DATA: (po_id,interface_id) => `${BASE_URL}/receipt_interface/${po_id}/${interface_id}`,
+  GET_SAVED_SINGLE_ASN_DATA: (asn_id,interface_id) => `${BASE_URL}/receipt_interface/asn/${asn_id}/${interface_id}`,
   GET_SINGLE_PURCHASE_RECEPT: (po_id) => `${BASE_URL}/purchase_orders/receipts/${po_id}/details`,
   GET_ORGS_DATA: `${BASE_URL}/organizations`,
   GET_SUB_INVENTORY_DATA: (po_id) => `${BASE_URL}/organizations/${po_id}/subinventories`,
