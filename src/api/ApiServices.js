@@ -73,6 +73,18 @@ export const GetSavedSinglePO = async(po_id,interface_id)=>{
     throw error;
   }
 }
+export const GetSavedSingleASN = async(asn_id,interface_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_SAVED_SINGLE_ASN_DATA(asn_id,interface_id));
+    console.log(response,"GET_SAVED_SINGLE_ASN_DATA");
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get Saved Single ASN Error:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
 export const GetSingleReceipt = async(po_id)=>{
   try {
     const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(po_id));

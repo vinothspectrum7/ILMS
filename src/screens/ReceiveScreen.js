@@ -666,9 +666,10 @@ const ReceiveScreen = () => {
             <TouchableOpacity
               onPress={() => {
                 if (isASN) {
-                  navigation.navigate('AsnReceiptScreen', {
+                  navigation.navigate('IC_AsnReceiptScreen', {
                     selectedASN: {
                       asn_id: item.asn_id,
+                      interface_id: item.interface_id,
                       asn_num: item.asn_num,
                       supplier_name: item.supplier_name,
                       shipped_date: item.shipped_date,
