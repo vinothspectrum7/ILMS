@@ -162,3 +162,13 @@ export const GetItemImage = async(item_id)=>{
     throw error;
   }
 }
+export const ReleasePO = async(po_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.RELEASE_PO(po_id));
+        console.log("Response Data:Release PO", response);
+    return response.data;
+  }catch (error) {
+    console.error("Release PO ERROR:", error.response?.data);
+    throw error.response?.data?.detail;
+  }
+}

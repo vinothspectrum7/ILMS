@@ -148,10 +148,16 @@ const ReceiveScreen = () => {
             return hay.some((h) => h.includes(q));
           });
         }
-        if (filterStatus) {
-          base = base.filter((a) => String(a?.status || '').toUpperCase() === filterStatus);
+        if(filterStatus == 'FULLY RECEIVED'){
+          base = base.filter((p) => Number(p?.receivedPct) == 100);
+        }
+        else if(filterStatus == 'OPEN') {
+          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN'&&Number(p?.receivedPct) !== 100);
+        }
+        else if (filterStatus =='CLOSED') {
+          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'CLOSED');
         } else if (!q) {
-          base = base.filter((a) => String(a?.status || '').toUpperCase() === 'OPEN');
+          base = base.filter((a) => String(a?.status || '').toUpperCase() === 'OPEN'&&Number(a?.receivedPct) !== 100);
         }
         setAsnData(base);
         return;
@@ -218,7 +224,7 @@ const ReceiveScreen = () => {
           return { ...d, id: d?.asn_id || `asn-${idx + 1}`, receivedPct: pct };
         });
         setAsnIntialData(withPct);
-        setAsnData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN'));
+        setAsnData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN'&& Number(x?.receivedPct) !== 100));
       } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load ASN data. Please try again.', position: 'top', visibilityTime: 5000 });
       }
@@ -229,7 +235,6 @@ const ReceiveScreen = () => {
         const data = await GetPoItems(OrgData?.selectedOrg);
         const withPct = (data || []).map((d, idx) => {
           const pct = computePercent(d?.total_received_qty, d?.total_ord_qty);
-          console.log(pct,"PERENefuenunfunfrururbuburbrubgrubgrubgrubgruburb")
           return { ...d, id: d?.id || `${idx + 1}`, received: pct };
         });
         setPOIntialData(withPct);
