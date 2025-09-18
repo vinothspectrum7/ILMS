@@ -537,11 +537,12 @@ const IC_PODetailSummary = () => {
       <ConfirmModalComponent
         visible={confirmVisible}
         title="Confirmation"
-        message="Are you sure want to receive these ASN items?"
+        message="Are you sure want to receive this ASN Order?"
         confirmAction={confirmAction}
         onCancel={() => setConfirmVisible(false)}
         onSuccess={onConfirmSuccess}
         onFailure={onConfirmFailure}
+        successMessage="ASN receipt created successfully"
       />
 
       <Modal visible={saveModalVisible} transparent animationType="fade" onRequestClose={() => {}}>
