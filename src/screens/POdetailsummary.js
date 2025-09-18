@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, FlatList, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, FlatList, Modal, BackHandler } from 'react-native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
 import ASNinfoCardComponent from '../components/ASNinfoCardComponent';
 import { useReceivingStore } from '../store/receivingStore';
 import FooterButtonsComponent from '../components/FooterButtonsComponent';
@@ -69,7 +69,6 @@ const PODetailSummary = () => {
     setAsnSelectedPOIds,
     removeAsnEditedLinesForPO,
     clearAsnFlow,
-    setActiveTab,
   } = useReceivingStore();
 
   const [expandedId, setExpandedId] = useState(null);
@@ -80,6 +79,19 @@ const PODetailSummary = () => {
 
   const rawItemsByPORef = useRef({});
   const allPoByIdRef = useRef(new Map());
+  const deletedSinceOpenRef = useRef(false);
+
+  const resetToAsnFromReceive = useCallback(
+    (params = {}) => {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 1,
+          routes: [{ name: 'Receive' }, { name: 'AsnReceiptScreen', params }],
+        })
+      );
+    },
+    [navigation]
+  );
 
   useEffect(() => {
     setLines(asnSelectedLines || []);
@@ -273,6 +285,7 @@ const PODetailSummary = () => {
       const nextSummary = (asnSelectedLines || []).filter((r) => String(r.po_id) !== poId);
       initAsnSelectedLines(nextSummary);
       delete rawItemsByPORef.current[poId];
+      deletedSinceOpenRef.current = true;
       Toast.show({ type: 'success', text1: 'PO removed from selection', position: 'top', visibilityTime: 1200 });
     },
     [lines, asnSelectedPOIds, asnSelectedLines, setAsnSelectedPOIds, removeAsnEditedLinesForPO, initAsnSelectedLines]
@@ -350,6 +363,22 @@ const PODetailSummary = () => {
     setConfirmVisible(false);
   };
 
+  const handleBack = useCallback(() => {
+    if (deletedSinceOpenRef.current) {
+      resetToAsnFromReceive({ fromDeleted: true });
+      return true;
+    }
+    navigation.goBack();
+    return true;
+  }, [navigation, resetToAsnFromReceive]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', handleBack);
+      return () => sub.remove();
+    }, [handleBack])
+  );
+
   const renderLineCard = ({ item: row }) => {
     const isExpanded = expandedId === row.id;
     const l = row?.line ?? {};
@@ -358,19 +387,14 @@ const PODetailSummary = () => {
     const received = n(l?.rcvd_qty ?? 0);
     const shippedRaw = l?.shipped_qty == null ? null : Number(l?.shipped_qty);
     const shippedQty = shippedRaw == null || !Number.isFinite(Number(shippedRaw)) ? '—' : n(shippedRaw);
-
     const orderedQty = asnHeader?.total_order_qty != null ? n(asnHeader.total_order_qty) : ordered;
     const receivedQty = asnHeader?.total_rcvd_qty != null ? n(asnHeader.total_rcvd_qty) : received;
-
     const uiItems = applyUiRule(itemsSrcForRow(row));
-
     return (
       <View style={styles.cardElevatedContainer}>
         <Swipeable
           renderLeftActions={() => renderLeftActions(() => handleEdit(row))}
           renderRightActions={() => renderRightActions(() => handleDelete(row.id))}
-          onSwipeableWillOpen={() => {}}
-          onSwipeableWillClose={() => {}}
         >
           <View style={styles.card}>
             <View style={styles.headerRow}>
@@ -390,12 +414,10 @@ const PODetailSummary = () => {
                 </Text>
               </View>
             </View>
-
             <TouchableOpacity style={styles.viewButton} onPress={() => toggleExpand(row.id)}>
               <Text style={styles.viewButtonText}>View Items</Text>
               <Text style={styles.caret}>{isExpanded ? '▲' : '▼'}</Text>
             </TouchableOpacity>
-
             {isExpanded && (
               <View style={styles.itemsContainer}>
                 <View style={styles.itemsHeader}>
@@ -494,7 +516,7 @@ const PODetailSummary = () => {
           organizationName={OrgData?.selectedOrgCode}
           screenTitle="Receive"
           notificationCount={0}
-          onBack={() => navigation.goBack()}
+          onBack={handleBack}
           onMenu={() => {}}
           onNotificationPress={() => navigation.navigate('Home')}
           onProfilePress={() => navigation.navigate('Home')}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Modal, ActivityIndicator, BackHandler } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -18,11 +18,13 @@ const statusLabelToApi = { 'Yet to Receive': 'OPEN', 'Partly Received': 'PARTLY 
 
 const earliestDateISO = (lineItems) => {
   if (!Array.isArray(lineItems) || lineItems.length === 0) return '-';
-  const ts = lineItems.map((li) => {
-    const v = li?.shipped_date;
-    const d = v ? new Date(v) : null;
-    return d && !Number.isNaN(d.getTime()) ? d.getTime() : null;
-  }).filter((t) => t !== null);
+  const ts = lineItems
+    .map((li) => {
+      const v = li?.shipped_date;
+      const d = v ? new Date(v) : null;
+      return d && !Number.isNaN(d.getTime()) ? d.getTime() : null;
+    })
+    .filter((t) => t !== null);
   if (ts.length === 0) return '-';
   return new Date(Math.min(...ts)).toISOString();
 };
@@ -367,13 +369,41 @@ const AsnReceiptScreen = () => {
     navigation.navigate('podetailsummary', { fromScan: false, scannedAsnId, scannedAsnNumber });
   };
 
+  const unselectAllLikeCheckbox = useCallback(() => {
+    const ids = (asnSelectedPOIds || []).map(String);
+    if (ids.length === 0) {
+      initAsnSelectedLines([]);
+      return;
+    }
+    ids.forEach((id) => removeAsnEditedLinesForPO(id));
+    setAsnSelectedPOIds([]);
+    initAsnSelectedLines([]);
+  }, [asnSelectedPOIds, removeAsnEditedLinesForPO, setAsnSelectedPOIds, initAsnSelectedLines]);
+
+  const goBackToReceive = useCallback(() => {
+    if (showScanner) {
+      setShowScanner(false);
+      return true;
+    }
+    unselectAllLikeCheckbox();
+    navigation.navigate('Receive');
+    return true;
+  }, [showScanner, unselectAllLikeCheckbox, navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', goBackToReceive);
+      return () => sub.remove();
+    }, [goBackToReceive])
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Receiving"
         notificationCount={0}
-        onBack={() => navigation.goBack()}
+        onBack={goBackToReceive}
         onMenu={() => {}}
         onNotificationPress={() => navigation.navigate('Home')}
         onProfilePress={() => navigation.navigate('Home')}

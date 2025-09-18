@@ -242,6 +242,24 @@ const PovViewItems = () => {
     navigation.goBack();
   };
 
+  const CancelpersistAndReturnToASN = () => {
+    // commitDraftToStore();
+    const enrichedLines = buildEnrichedLines();
+    const finalizedLines = finalizeLinesWithAutoFill(enrichedLines);
+    if (selectedPO?.po_id) {
+      // setAsnEditedLinesForPO(selectedPO.po_id, finalizedLines);
+      // selectAsnPOId(selectedPO.po_id);
+      const ordered_qty = sum(finalizedLines, 'ordered_qty');
+      const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
+      const receiving_qty = sum(finalizedLines, 'receiving_qty');
+      const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
+      const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
+      const line = { ordered_qty, rcvd_qty, shipped_qty, receiving_qty, asn_line_items: finalizedLines };
+      // updateAsnLine({ id: String(selectedPO.po_id), line });
+    }
+    navigation.goBack();
+  };
+
   const persistAndReturnToSummary = () => {
     commitDraftToStore();
     const enrichedLines = buildEnrichedLines();
@@ -270,6 +288,38 @@ const PovViewItems = () => {
       updateAsnLine({ id: String(poEntry.id), line: poEntry.line });
     } else {
       initAsnSelectedLines([poEntry]);
+    }
+    navigation.navigate('podetailsummary', { readonly: false });
+  };
+
+  const CancelpersistAndReturnToSummary = () => {
+    // commitDraftToStore();
+    const enrichedLines = buildEnrichedLines();
+    const finalizedLines = finalizeLinesWithAutoFill(enrichedLines);
+    const ordered_qty = sum(finalizedLines, 'ordered_qty');
+    const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
+    const receiving_qty = sum(finalizedLines, 'receiving_qty');
+    const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
+    const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
+    const poEntry = {
+      id: String(selectedPO?.po_id || '0'),
+      po_id: selectedPO?.po_id ?? '',
+      po_number: selectedPO?.po_number ?? '—',
+      line: {
+        ordered_qty,
+        rcvd_qty,
+        shipped_qty,
+        receiving_qty,
+        asn_line_items: finalizedLines,
+      },
+    };
+    if (selectedPO?.po_id) {
+      // setAsnEditedLinesForPO(selectedPO.po_id, finalizedLines);
+    }
+    if (mode === 'edit') {
+      // updateAsnLine({ id: String(poEntry.id), line: poEntry.line });
+    } else {
+      // initAsnSelectedLines([poEntry]);
     }
     navigation.navigate('podetailsummary', { readonly: false });
   };
@@ -453,7 +503,7 @@ const PovViewItems = () => {
           <FooterButtonsComponent
             leftLabel="Cancel"
             rightLabel="Receive"
-            onLeftPress={navigation.goBack()}
+            onLeftPress={mode === 'edit' ? CancelpersistAndReturnToSummary : CancelpersistAndReturnToASN}
             onRightPress={handleReceive}
             leftEnabled={hasAnyItems}
             rightEnabled={hasAnyItems}
