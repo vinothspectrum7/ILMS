@@ -46,7 +46,7 @@ const CustomNumericInput = ({
   const handlePlus = () => {
     if (!canInc) { onLimit?.(); return; }
     markTouched();
-    const next = clamp(safeValue + step, min, max);
+    const next = clamp(safeValue + 10, min, max);
     setValue(next);
   };
 

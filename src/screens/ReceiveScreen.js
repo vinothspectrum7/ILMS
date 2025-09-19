@@ -600,7 +600,7 @@ const ReceiveScreen = () => {
       <View style={styles.toprow}>
         <View style={styles.topcardLeft}>
           <Text style={styles.labelText}>Receipt</Text>
-          <Text style={styles.valueText}>{dash}</Text>
+          <Text style={styles.valueText}>{item?.receipt_num?item.receipt_num:'—'}</Text>
         </View>
         <View style={styles.topcardRight}>
           <Text style={styles.labelText}>Purchase Order</Text>

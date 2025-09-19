@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   caret: { fontSize: 16 },
   itemsContainer: { paddingHorizontal: responsiveSize(10), backgroundColor: '#FAFAFA' },
   itemsHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 6 },
-  itemsHeaderText: { fontWeight: '600', fontStyle: 'italic', fontSize: 12, width: 140 },
+  itemsHeaderText: { fontWeight: '600', fontStyle: 'italic', fontSize: 12, width: 140,color:'#595A5C' },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 6, backgroundColor: '#FAFAFA', borderBottomWidth: 1, borderBottomColor: '#ddd' },
   itemText: { fontSize: 12, fontWeight: '400', color: '#242424', width: 100 },
   itemTextStrong: { fontSize: 12, fontWeight: '700', color: '#242424', width: 140 },

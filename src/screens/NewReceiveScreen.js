@@ -13,11 +13,12 @@ import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
 import BarcodeScanner from './BarCodeScanner';
 import { useReceivingStore } from '../store/receivingStore';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
-import { GetSinglePO, Submit_Receive_Qty, Save_Receive_Qty } from '../api/ApiServices';
+import { GetSinglePO, Submit_Receive_Qty, Save_Receive_Qty, ReleasePO } from '../api/ApiServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ConfirmSvg from '../assets/icons/success.svg';
 import FailureSvg from '../assets/icons/failure.svg';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
+import { clearCurrentPO, getCurrentPO, setCurrentPO } from '../api/posession';
 
 
 const clampToLimit = (qty, limit) => {
@@ -87,7 +88,7 @@ const NewReceiveScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
+      const onBackPress = async() => {
         if (showScanner) {
           setShowScanner(false);
           return true;
@@ -101,9 +102,38 @@ const NewReceiveScreen = () => {
           setSaveModalVisible(false);
           return true;
         }
+        const {currentPO, lockedByUser} = getCurrentPO();
+        if (currentPO && !lockedByUser) {
+      try {
+        const release = await ReleasePO(selectedPO.po_id);
+        if(release){
+        clearCurrentPO();
         navigation.navigate('Receive');
         return true;
-      };
+        }else{
+          Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to Release PO. Please try again.',
+          position: 'top',
+          visibilityTime: 5000,
+        });
+        }
+      } catch(error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: `${error}`,
+          position: 'top',
+          visibilityTime: 5000,
+        });
+      }
+    }else{
+        clearCurrentPO();
+        navigation.navigate('Receive');
+        return true;
+    }
+  }
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
     }, [navigation, showScanner, modalVisible, saveModalVisible])
@@ -149,6 +179,8 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
       try {
         const posingledata = await GetSinglePO(selectedPO.po_id);
         if (posingledata?.purchase_order_lines) {
+          const lockstatus = posingledata?.po_user_status=='ASSIGNED'?true:false;
+          setCurrentPO(selectedPO.po_id,lockstatus);
           setPurchaseReceipt(posingledata?.next_receipt_num);
           const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines, posingledata);
           setPoListItems(frontendArray);
@@ -156,15 +188,18 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
           setPoListItems([]);
         }
         setPhase('success');
-      } catch {
+      } catch(error) {
         Toast.show({
           type: 'error',
           text1: 'Error',
-          text2: 'Failed to load PO Items. Please try again.',
+          text2: `${error}`,
           position: 'top',
-          visibilityTime: 5000,
+          visibilityTime: 10000,
         });
         setPhase('error');
+        clearCurrentPO();
+        navigation.navigate('Receive');
+        // return true;
       }
     };
     loadPoData();
@@ -504,7 +539,40 @@ const handlesaveFailure = () => {
     () => (selectedItems.length > 0? selectedItems.length>0 : scannedItems.length > 0),
     [selectedItems&&selectedItems.length, scannedItems&&scannedItems.length]
   );
-
+  
+  const Releasefunction = async()=>{
+    const {currentPO, lockedByUser} = getCurrentPO();
+        if (currentPO && !lockedByUser) {
+      try {
+        const release = await ReleasePO(selectedPO.po_id);
+        if(release){
+        clearCurrentPO();
+        navigation.navigate('Receive');
+        return true;
+        }else{
+          Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to Release PO. Please try again.',
+          position: 'top',
+          visibilityTime: 5000,
+        });
+        }
+      } catch(error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: `${error}`,
+          position: 'top',
+          visibilityTime: 5000,
+        });
+      }
+    }else{
+        clearCurrentPO();
+        navigation.navigate('Receive');
+        return true;
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -514,7 +582,7 @@ const handlesaveFailure = () => {
             screenTitle="Receiving"
             notificationCount={0}
             // profileName={profileName}
-            onBack={() => navigation.navigate('Receive')}
+            onBack={() => Releasefunction()}
           />
                       {phase === 'loading' && (
         <View style={styles.loaderWrapper}>

@@ -59,7 +59,8 @@ export const GetSinglePO = async(po_id)=>{
     
   }catch (error) {
     console.error("Get Single PO Error:", error.message, error.response?.data);
-    throw error;
+    throw error.response?.data?.detail;
+   
   }
 }
 export const GetSavedSinglePO = async(po_id,interface_id)=>{
