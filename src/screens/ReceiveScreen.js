@@ -528,7 +528,7 @@ const ReceiveScreen = () => {
         <View style={styles.toprow}>
           <View style={styles.topcardLeft}>
             <Text style={styles.labelText}>ASN Receipt</Text>
-            <Text style={styles.valueText}>{dash}</Text>
+            <Text style={styles.valueText}>{item?.receipt_num || dash}</Text>
           </View>
           <View style={styles.topcardRight}>
             <Text style={styles.labelText}>ASN Number</Text>
@@ -600,7 +600,7 @@ const ReceiveScreen = () => {
       <View style={styles.toprow}>
         <View style={styles.topcardLeft}>
           <Text style={styles.labelText}>Receipt</Text>
-          <Text style={styles.valueText}>{dash}</Text>
+          <Text style={styles.valueText}>{item?.receipt_num || dash}</Text>
         </View>
         <View style={styles.topcardRight}>
           <Text style={styles.labelText}>Purchase Order</Text>
@@ -729,6 +729,7 @@ const ReceiveScreen = () => {
                   asn_id: item.asn_id,
                   header: {
                     receipt_num: item.receipt_num,
+                    receipt_id: item.receipt_id,
                     asn_num: item.asn_num,
                     supplier_name: item.supplier_name,
                     supplier_site: item.supplier_site,

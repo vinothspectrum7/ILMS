@@ -5,7 +5,9 @@ import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import ASNinfoCardComponent from '../components/ASNinfoCardComponent';
 import { useReceivingStore } from '../store/receivingStore';
-import { GetASNPoItems } from '../api/ApiServices';
+import { GetReceivedASNPoItems } from '../api/ApiServices';
+import UpArrowIcon from '../assets/icons/uparrow.svg';
+import DownArrowIcon from '../assets/icons/downarrow.svg';
 
 const dash = '—';
 const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -31,7 +33,7 @@ const HeaderBlock = memo(({ header }) => (
 const POCard = memo(({ item, expanded, onToggle }) => {
   const poNumber = String(item?.po_number || dash);
   const lines = Array.isArray(item?.asn_line_items) ? item.asn_line_items : [];
-  const orderedTot = sumBy(lines, 'ordered_qty');
+  const orderedTot = sumBy(lines, 'ord_qty');
   const receivedTot = sumBy(lines, 'rcvd_qty');
   const shippedTot = hasAny(lines, 'shipped_qty') ? sumBy(lines, 'shipped_qty') : null;
   const isOpen = !!expanded;
@@ -59,7 +61,7 @@ const POCard = memo(({ item, expanded, onToggle }) => {
 
         <TouchableOpacity style={styles.viewButton} onPress={() => onToggle(poNumber)} activeOpacity={0.8}>
           <Text style={styles.viewButtonText}>View Items</Text>
-          <Text style={styles.caret}>{isOpen ? '▲' : '▼'}</Text>
+          {isOpen ? <UpArrowIcon style={styles.caretIcon} /> : <DownArrowIcon style={styles.caretIcon} />}
         </TouchableOpacity>
 
         {isOpen && (
@@ -70,9 +72,14 @@ const POCard = memo(({ item, expanded, onToggle }) => {
               <Text style={[styles.itemsHeaderText, styles.colReceiving]}>Receiving Qty</Text>
             </View>
             {lines.map((li, idx) => (
-              <View key={`${poNumber}-${idx}`} style={styles.itemRow}>
-                <Text style={[styles.itemTextStrong, styles.colItem]} numberOfLines={1}>{li?.item_code || dash}</Text>
-                <Text style={[styles.itemText, styles.colOrdered]}>{n(li?.ordered_qty)}</Text>
+              <View
+                key={`${poNumber}-${idx}`}
+                style={[styles.itemRow, idx === lines.length - 1 && styles.itemRowLast]}
+              >
+                <Text style={[styles.itemTextStrong, styles.colItem]} numberOfLines={1}>
+                  {li?.item.item_code || dash}
+                </Text>
+                <Text style={[styles.itemText, styles.colOrdered]}>{n(li?.ord_qty)}</Text>
                 <Text style={[styles.itemTextStrong, styles.colReceiving]}>{n(li?.rcvd_qty)}</Text>
               </View>
             ))}
@@ -98,7 +105,7 @@ const AsnReceivedScreen = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await GetASNPoItems(asn_id);
+        const data = await GetReceivedASNPoItems(header.receipt_id);
         setPoGroups(Array.isArray(data) ? data : []);
         setPhase('success');
       } catch {
@@ -113,7 +120,7 @@ const AsnReceivedScreen = () => {
       }
     };
     if (asn_id) load();
-  }, [asn_id]);
+  }, [asn_id, header?.receipt_id]);
 
   const onToggle = useCallback((poNumber) => {
     setExpanded((prev) => ({ ...prev, [poNumber]: !prev[poNumber] }));
@@ -215,9 +222,9 @@ const styles = StyleSheet.create({
   },
   sectionLeft: { flex: 1, justifyContent: 'center' },
   sectionRight: { justifyContent: 'center', alignItems: 'flex-end', minWidth: 120 },
-  styleslabel: { fontSize: 14, fontWeight: '500', color: '#333' }, // named as styleslabel to avoid clash with "label" globals
+  styleslabel: { fontSize: 14, fontWeight: '500', color: '#333' },
   qtyLabel: { fontSize: 14, fontWeight: '500', color: '#333', marginRight: 8 },
-   label: { fontSize: 14, fontWeight: '500', color: '#333' },
+  label: { fontSize: 14, fontWeight: '500', color: '#333' },
 
   cardsWrap: { paddingHorizontal: 12, paddingTop: 10 },
 
@@ -233,20 +240,44 @@ const styles = StyleSheet.create({
   },
   card: { borderRadius: 12, overflow: 'hidden', backgroundColor: '#fff' },
 
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 15 },
   poNumber: { fontSize: 14, fontWeight: '700', color: '#242424', textAlign: 'center' },
   qtyRow: { flexDirection: 'row', gap: 20 },
   qtyHeader: { fontSize: 10, fontWeight: '600', color: '#595A5C', textAlign: 'center' },
   qtyValue: { fontSize: 10, fontWeight: '600', color: '#242424', textAlign: 'center' },
 
-  viewButton: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#ECF2F7', paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center' },
+  viewButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#ECF1F7',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
   viewButtonText: { fontSize: 12, color: '#5D768B' },
-  caret: { fontSize: 16 },
+  caretIcon: { marginLeft: 6, width: 12, height: 12 },
 
-  itemsContainer: { backgroundColor: '#FAFAFA' },
-  itemsHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 6, paddingHorizontal: 12 },
-  itemsHeaderText: { fontWeight: '600', fontStyle: 'italic', fontSize: 12 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#EAECEF' },
+  itemsContainer: { backgroundColor: '#FBFBFB' },
+  itemsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+    paddingBottom: 6,
+    paddingHorizontal: 12,
+  },
+  itemsHeaderText: { fontWeight: '600', fontStyle: 'italic', fontSize: 12, width: 140, color: '#595A5C' },
+
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#D9E4EE',
+  },
+  itemRowLast: {
+    borderBottomWidth: 0,
+  },
 
   colItem: { flex: 2, paddingRight: 8 },
   colOrdered: { flex: 1 },

@@ -13,6 +13,8 @@ import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import ConfirmSvg from '../assets/icons/success.svg';
 import FailureSvg from '../assets/icons/failure.svg';
 import { Submit_Receive_Qty, Save_Receive_Qty, GetASNPoItems } from '../api/ApiServices';
+import UpArrowIcon from '../assets/icons/uparrow.svg';
+import DownArrowIcon from '../assets/icons/downarrow.svg';
 
 const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
@@ -416,7 +418,11 @@ const PODetailSummary = () => {
             </View>
             <TouchableOpacity style={styles.viewButton} onPress={() => toggleExpand(row.id)}>
               <Text style={styles.viewButtonText}>View Items</Text>
-              <Text style={styles.caret}>{isExpanded ? '▲' : '▼'}</Text>
+              {isExpanded ? (
+                <UpArrowIcon style={styles.caretIcon} />
+              ) : (
+                <DownArrowIcon style={styles.caretIcon} />
+              )}
             </TouchableOpacity>
             {isExpanded && (
               <View style={styles.itemsContainer}>
@@ -514,7 +520,7 @@ const PODetailSummary = () => {
       <SafeAreaView style={styles.container}>
         <GlobalHeaderComponent
           organizationName={OrgData?.selectedOrgCode}
-          screenTitle="Receive"
+          screenTitle="Receiving"
           notificationCount={0}
           onBack={handleBack}
           onMenu={() => {}}
@@ -607,20 +613,33 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   card: { borderRadius: 12, overflow: 'hidden', backgroundColor: '#fff' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 10 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 15 },
   poNumber: { fontSize: 14, fontWeight: '700', color: '#242424', textAlign: 'center' },
   qtyRow: { flexDirection: 'row', gap: 20 },
   qtyheader: { fontSize: 10, fontWeight: '600', color: '#595A5C', textAlign: 'center' },
   qtyvalue: { fontSize: 10, fontWeight: '600', color: '#242424', textAlign: 'center' },
-  viewButton: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#F0F4F7', padding: 8, alignItems: 'center' },
+  viewButton: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#ECF1F7', paddingVertical: 5, paddingHorizontal: 12, alignItems: 'center' },
   viewButtonText: { fontSize: 12, color: '#5D768B' },
   caret: { fontSize: 16 },
-  itemsContainer: { paddingHorizontal: responsiveSize(10), backgroundColor: '#FAFAFA' },
+  caretIcon: {
+  marginLeft: 6,
+  width: 12,
+  height: 12,
+},
+  itemsContainer: { paddingHorizontal: responsiveSize(10), backgroundColor: '#FBFBFB' },
   itemsHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 6 },
-  itemsHeaderText: { fontWeight: '600', fontStyle: 'italic', fontSize: 12, width: 140 },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 6, backgroundColor: '#FAFAFA', borderBottomWidth: 1, borderBottomColor: '#ddd' },
+  itemsHeaderText: { fontWeight: '600', fontStyle: 'italic', fontSize: 12, width: 140, color: '#595A5C' },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#D9E4EE',
+  },
   itemText: { fontSize: 12, fontWeight: '400', color: '#242424', width: 100 },
   itemTextStrong: { fontSize: 12, fontWeight: '700', color: '#242424', width: 140 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#D9E4EE' },
   colItem: { width: 170 },
   colOrdered: { width: 100, textAlign: 'left' },
   colReceiving: { width: 100, textAlign: 'left' },
