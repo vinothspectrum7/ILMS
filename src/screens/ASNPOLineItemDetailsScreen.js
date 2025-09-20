@@ -400,7 +400,7 @@ const ASNPOLineItemDetailsScreen = () => {
     const shownImage = pageState.imageUri ?? item.imageUri ?? null;
 
     const siteLocationValueRaw = String(
-      item.siteLocation ?? item.site_location ?? item.site_name ?? item.site ?? ''
+      item.ship_to_location ?? item.shipped_location ?? item.shippedlocation ?? item.shiptolocation ?? ''
     ).trim();
     const siteLocationValue = siteLocationValueRaw.length > 0 ? siteLocationValueRaw : '-';
 
@@ -468,7 +468,7 @@ const ASNPOLineItemDetailsScreen = () => {
             <Text style={styles.uomText}>{item.uom}</Text>
 
             <View style={styles.divider} />
-            <InlineFieldRow label="Site Location">
+            <InlineFieldRow label="Ship-To Location">
               <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}>
                 {siteLocationValue}
               </Text>
