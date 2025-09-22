@@ -190,9 +190,9 @@ export default function BarcodeScanner({ onScan, onClose }) {
         notificationCount={0}
         // profileName="Vinoth Umasankar"
         onBack={onClose}
-        onMenu={() => setMenuOpen(true)}
-        onNotificationPress={() => navigation.navigate('Home')}
-        onProfilePress={() => navigation.navigate('Home')}
+        // onMenu={() => setMenuOpen(true)}
+        // onNotificationPress={() => navigation.navigate('Home')}
+        // onProfilePress={() => navigation.navigate('Home')}
       />
       {isScanning ? (
         <View style={styles.scannerContainer}>

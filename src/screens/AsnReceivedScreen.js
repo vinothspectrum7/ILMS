@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
 
-  colItem: { flex: 2, paddingRight: 8 },
+  colItem: { flex: 2, paddingLeft: 8 },
   colOrdered: { flex: 1 },
   colReceiving: { flex: 1 },
 

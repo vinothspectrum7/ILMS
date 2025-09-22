@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Dimensions, Modal, BackHandler, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useMemo, useState, useCallback, useRef, memo } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Dimensions, Modal, BackHandler, ActivityIndicator } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
@@ -64,6 +64,14 @@ const formatDate = (input) => {
   return dash;
 };
 
+const RightActions = memo(({ onDelete }) => (
+  <View style={styles.rightActionContainer}>
+    <TouchableOpacity onPress={onDelete} style={styles.actionButton} activeOpacity={0.8} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+      <DeleteSvg width={22} height={22} />
+    </TouchableOpacity>
+  </View>
+));
+
 const ReceiveScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -99,15 +107,15 @@ const ReceiveScreen = () => {
   ]);
   const activeKey = routes[index].key;
 
-  const openSwipeableRef = useRef(null);
+  const pagerRef = useRef(null);
   const scrollRef = useRef(null);
+  const openRowRef = useRef(null);
 
-  const renderRightActions = (onDelete) => (
-    <View style={styles.deleteContainer}>
-      <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-        <DeleteSvg width={30} height={30} />
-      </TouchableOpacity>
-    </View>
+  const handlersArray = useMemo(() => [pagerRef, scrollRef], []);
+
+  const renderRightActions = useCallback(
+    (onDelete) => <RightActions onDelete={onDelete} />,
+    []
   );
 
   const pretty = (v) => v;
@@ -125,16 +133,14 @@ const ReceiveScreen = () => {
             return hay.some((h) => h.includes(q));
           });
         }
-        if(filterStatus == 'FULLY RECEIVED'){
+        if (filterStatus == 'FULLY RECEIVED') {
           base = base.filter((p) => Number(p?.received) == 100);
-        }
-        else if(filterStatus == 'OPEN') {
-          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN'&&Number(p?.received) !== 100);
-        }
-        else if (filterStatus =='CLOSED') {
+        } else if (filterStatus == 'OPEN') {
+          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN' && Number(p?.received) !== 100);
+        } else if (filterStatus == 'CLOSED') {
           base = base.filter((p) => String(p?.status || '').toUpperCase() === 'CLOSED');
         } else if (!q) {
-          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN'&&Number(p?.received) !== 100);
+          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN' && Number(p?.received) !== 100);
         }
         setPOData(base);
         return;
@@ -148,16 +154,14 @@ const ReceiveScreen = () => {
             return hay.some((h) => h.includes(q));
           });
         }
-        if(filterStatus == 'FULLY RECEIVED'){
+        if (filterStatus == 'FULLY RECEIVED') {
           base = base.filter((p) => Number(p?.receivedPct) == 100);
-        }
-        else if(filterStatus == 'OPEN') {
-          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN'&&Number(p?.receivedPct) !== 100);
-        }
-        else if (filterStatus =='CLOSED') {
+        } else if (filterStatus == 'OPEN') {
+          base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN' && Number(p?.receivedPct) !== 100);
+        } else if (filterStatus == 'CLOSED') {
           base = base.filter((p) => String(p?.status || '').toUpperCase() === 'CLOSED');
         } else if (!q) {
-          base = base.filter((a) => String(a?.status || '').toUpperCase() === 'OPEN'&&Number(a?.receivedPct) !== 100);
+          base = base.filter((a) => String(a?.status || '').toUpperCase() === 'OPEN' && Number(a?.receivedPct) !== 100);
         }
         setAsnData(base);
         return;
@@ -167,12 +171,7 @@ const ReceiveScreen = () => {
         let base = [...ICListInitial];
         if (q) {
           base = base.filter((it) => {
-            const hay = [
-              it?.po_number,
-              it?.asn_num,
-              it?.supplier_name,
-              it?.status,
-            ]
+            const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status]
               .filter(Boolean)
               .map((x) => String(x).toLowerCase());
             return hay.some((h) => h.includes(q));
@@ -195,18 +194,6 @@ const ReceiveScreen = () => {
     applyVisible(activeKey, searchText, backend);
   };
 
-  const handleSwipeOpen = (ref) => {
-    if (openSwipeableRef.current && openSwipeableRef.current !== ref) {
-      openSwipeableRef.current.close();
-    }
-    openSwipeableRef.current = ref;
-  };
-  const handleSwipeClose = (ref) => {
-    if (openSwipeableRef.current === ref) {
-      openSwipeableRef.current = null;
-    }
-  };
-
   useEffect(() => {
     if (!ActiveTab && ActiveTab !== 0) return;
     setIndex(ActiveTab);
@@ -224,7 +211,7 @@ const ReceiveScreen = () => {
           return { ...d, id: d?.asn_id || `asn-${idx + 1}`, receivedPct: pct };
         });
         setAsnIntialData(withPct);
-        setAsnData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN'&& Number(x?.receivedPct) !== 100));
+        setAsnData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN' && Number(x?.receivedPct) !== 100));
       } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load ASN data. Please try again.', position: 'top', visibilityTime: 5000 });
       }
@@ -238,7 +225,7 @@ const ReceiveScreen = () => {
           return { ...d, id: d?.id || `${idx + 1}`, received: pct };
         });
         setPOIntialData(withPct);
-        setPOData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN'&& Number(x?.received) !== 100));
+        setPOData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN' && Number(x?.received) !== 100));
       } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
       }
@@ -351,166 +338,6 @@ const ReceiveScreen = () => {
     applyVisible(activeKey, text, activeFilter);
   };
 
-  const IncompleteSwipeRow = ({ item, onDelete, onSwipeOpen, onSwipeClose, children }) => {
-    const rowRef = useRef(null);
-    return (
-      <GestureHandlerRootView>
-        <Swipeable
-          ref={rowRef}
-          renderRightActions={() => renderRightActions(() => onDelete(item))}
-          onSwipeableOpen={() => onSwipeOpen(rowRef.current)}
-          onSwipeableClose={() => onSwipeClose(rowRef.current)}
-        >
-          <View style={[{ marginHorizontal: rowRef.current ? 0 : 12 }]}>
-            {children}
-          </View>
-        </Swipeable>
-      </GestureHandlerRootView>
-    );
-  };
-
-  const handleScan = (value) => {
-    const code = String(value).trim().toUpperCase();
-    const poMatch = POIntialData.find((p) => String(p.po_number).toUpperCase() === code);
-    const asnMatch = AsnIntialData.find((a) => String(a.asn_num).toUpperCase() === code);
-
-    if (poMatch) {
-      setShowScanner(false);
-      Toast.show({ type: 'success', text1: 'PO found', text2: `${poMatch.po_number} • ${poMatch.supplier_name}`, position: 'top', visibilityTime: 5000 });
-      navigation.navigate('NewReceiveScreen', { selectedPO: poMatch, fromScan: true, scannedPoNumber: code });
-    } else if (asnMatch) {
-      setShowScanner(false);
-      Toast.show({ type: 'success', text1: 'ASN found', text2: `${asnMatch.asn_num} • ${asnMatch.supplier_name}`, position: 'top', visibilityTime: 5000 });
-      navigation.navigate('AsnReceiptScreen', { selectedASN: asnMatch, fromScan: true, scannedAsnNumber: code, scannedAsnId: asnMatch.asn_id });
-    } else {
-      Toast.show({ type: 'error', text1: 'PO/IR/ASN not found', text2: `Scanned value ${code} not found`, position: 'top', visibilityTime: 5000 });
-      setShowScanner(false);
-    }
-  };
-
-  const InputRightIcon = useMemo(
-    () => (
-      <TouchableOpacity onPress={() => setShowScanner(true)}>
-        <BarcodeScannerIcon width={24} height={24} fill="#233E55" />
-      </TouchableOpacity>
-    ),
-    []
-  );
-
-  const POList = () => (
-    <FlatList
-      data={POData}
-      keyExtractor={(item) => String(item.id)}
-      ListEmptyComponent={() => (
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>No data found</Text>
-        </View>
-      )}
-      contentContainerStyle={{ paddingBottom: 80 }}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('NewReceiveScreen', { selectedPO: item, fromScan: false, scannedPoNumber: null })}
-          activeOpacity={0.9}
-        >
-          <View style={styles.card}>
-            <View style={styles.toprow}>
-              <View style={styles.topcardLeft}>
-                <Text style={styles.labelText}>Purchase Order</Text>
-                <Text style={styles.valueText}>{item.po_number}</Text>
-              </View>
-              <View style={styles.topcardRight}>
-                <Text style={styles.labelText}>Supplier</Text>
-                <Text style={styles.valueText}>
-                  {item.supplier_name?.length > 20 ? item.supplier_name.substring(0, 20) + '...' : item.supplier_name}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <Text style={styles.labelText}>PO Status</Text>
-                <Text style={[styles.valueText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
-              </View>
-              <View style={styles.bottomcardRight}>
-                <Text style={styles.labelText}>Order Date</Text>
-                <Text style={styles.valueText}>{formatDate(item.order_date)}</Text>
-              </View>
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <Text style={styles.subLabel}>Received</Text>
-              </View>
-              <View style={styles.bottomcardRight} />
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <View style={styles.progressWrapper}>
-                  <View style={[styles.progressBarleft, { width: `${item.received}%`, backgroundColor: getProgressColor(item.received) }]} />
-                </View>
-              </View>
-              <View style={styles.bottomcardRight} />
-            </View>
-          </View>
-        </TouchableOpacity>
-      )}
-    />
-  );
-
-  const ASNList = () => (
-    <FlatList
-      data={AsnData}
-      keyExtractor={(item) => String(item.asn_id || item.id)}
-      contentContainerStyle={{ paddingBottom: 80 }}
-      ListEmptyComponent={() => (
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>No data found</Text>
-        </View>
-      )}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('AsnReceiptScreen', { selectedASN: item, fromScan: false, scannedAsnId: item.asn_id, scannedAsnNumber: item.asn_num })}
-          activeOpacity={0.9}
-        >
-          <View style={styles.card}>
-            <View style={styles.toprow}>
-              <View style={styles.topcardLeft}>
-                <Text style={styles.labelText}>ASN Number</Text>
-                <Text style={styles.valueText}>{item.asn_num}</Text>
-              </View>
-              <View style={styles.topcardRight}>
-                <Text style={styles.labelText}>Supplier</Text>
-                <Text style={styles.valueText}>{item.supplier_name}</Text>
-              </View>
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <Text style={styles.labelText}>Status</Text>
-                <Text style={[styles.valueText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
-              </View>
-              <View style={styles.bottomcardRight}>
-                <Text style={styles.labelText}>Shipped Date</Text>
-                <Text style={styles.valueText}>{formatDate(item.shipped_date)}</Text>
-              </View>
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <Text style={styles.subLabel}>Received</Text>
-              </View>
-              <View style={styles.bottomcardRight} />
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <View style={styles.progressWrapper}>
-                  <View style={[styles.progressBarleft, { width: `${item.receivedPct || 0}%`, backgroundColor: getProgressColor(item.receivedPct) }]} />
-                </View>
-              </View>
-              <View style={styles.bottomcardRight} />
-            </View>
-          </View>
-        </TouchableOpacity>
-      )}
-    />
-  );
-
   const [expandedReceiptIds, setExpandedReceiptIds] = useState(new Set());
   const toggleExpand = (id) => {
     setExpandedReceiptIds((prev) => {
@@ -521,10 +348,10 @@ const ReceiveScreen = () => {
     });
   };
 
-  const ASNReceiptCard = ({ item }) => {
+  const ASNReceiptCard = ({ item, styleOverride }) => {
     const expanded = expandedReceiptIds.has(item.id);
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, styleOverride]}>
         <View style={styles.toprow}>
           <View style={styles.topcardLeft}>
             <Text style={styles.labelText}>ASN Receipt</Text>
@@ -595,8 +422,8 @@ const ReceiveScreen = () => {
     );
   };
 
-  const POReceiptCard = ({ item }) => (
-    <View style={styles.card}>
+  const POReceiptCard = ({ item, styleOverride }) => (
+    <View style={[styles.card, styleOverride]}>
       <View style={styles.toprow}>
         <View style={styles.topcardLeft}>
           <Text style={styles.labelText}>Receipt</Text>
@@ -622,90 +449,257 @@ const ReceiveScreen = () => {
     </View>
   );
 
-  const InCompleteList = () => (
+  const IncompleteRow = memo(function IncompleteRow({
+    item,
+    isASN,
+    onDelete,
+    pagerRef,
+    scrollRef,
+    openRowRef,
+  }) {
+    const rowRef = useRef(null);
+
+    const onOpen = useCallback(() => {
+      if (!rowRef.current) return;
+      if (openRowRef.current && openRowRef.current !== rowRef.current) {
+        openRowRef.current.close();
+      }
+      openRowRef.current = rowRef.current;
+    }, [openRowRef]);
+
+    const onClose = useCallback(() => {
+      if (openRowRef.current === rowRef.current) {
+        openRowRef.current = null;
+      }
+    }, [openRowRef]);
+
+    return (
+      <View style={styles.incompleteRowContainer}>
+        <Swipeable
+          ref={rowRef}
+          renderRightActions={() => renderRightActions(() => onDelete(item))}
+          overshootRight={false}
+          rightThreshold={24}
+          friction={2}
+          simultaneousHandlers={[pagerRef, scrollRef]}
+          activeOffsetX={[-24, 24]}
+          onSwipeableOpen={onOpen}
+          onSwipeableClose={onClose}
+          useNativeAnimations={false}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              if (isASN) {
+                navigation.navigate('IC_AsnReceiptScreen', {
+                  selectedASN: {
+                    asn_id: item.asn_id,
+                    interface_id: item.interface_id,
+                    asn_num: item.asn_num,
+                    supplier_name: item.supplier_name,
+                    shipped_date: item.shipped_date,
+                    expected_receipt_date: item.expected_receipt_date,
+                    supplier_site: item.supplier_site,
+                    carrier: item.carrier,
+                    pack_slip: item.pack_slip,
+                    bol: item.bol,
+                    waybill: item.waybill,
+                    airbill: item.airbill,
+                    status: item.status,
+                  },
+                  fromScan: false,
+                  scannedAsnId: item.asn_id,
+                  scannedAsnNumber: item.asn_num,
+                });
+              } else {
+                navigation.navigate('InCompleteReceiveScreen', {
+                  selectedPO: item,
+                  fromScan: false,
+                  scannedPoNumber: null,
+                });
+              }
+            }}
+            activeOpacity={0.9}
+          >
+            {isASN ? (
+              <ASNReceiptCard item={item} styleOverride={styles.cardInsideSwipe} />
+            ) : (
+              <POReceiptCard item={item} styleOverride={styles.cardInsideSwipe} />
+            )}
+          </TouchableOpacity>
+        </Swipeable>
+      </View>
+    );
+  });
+
+  const InCompleteList = () => {
+    const keyExtractor = useCallback((it) => String(it.id), []);
+    const onDelete = useCallback(
+      async (it) => {
+        try {
+          const res = await DeleteIncompleteRecord(it?.interface_id);
+          if (res !== undefined) {
+            const refreshed = await GetICPoItems(OrgData?.selectedOrg);
+            const normalized = (refreshed || []).map((d, idx) => ({
+              ...d,
+              id: d?.interface_id || `ic-${idx + 1}`,
+              isASN: String(d?.received_type || '').toLowerCase() === 'asn',
+            }));
+            setICListInitial(normalized);
+            setICList(normalized);
+          }
+        } catch {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to delete record. Please try again.', position: 'top', visibilityTime: 5000 });
+        }
+      },
+      [OrgData?.selectedOrg]
+    );
+
+    const renderItem = useCallback(
+      ({ item }) => (
+        <IncompleteRow
+          item={item}
+          isASN={item.isASN}
+          onDelete={onDelete}
+          pagerRef={pagerRef}
+          scrollRef={scrollRef}
+          openRowRef={openRowRef}
+        />
+      ),
+      [onDelete]
+    );
+
+    return (
+      <FlatList
+        data={ICList}
+        keyExtractor={keyExtractor}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        ref={scrollRef}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyText}>No data found</Text>
+          </View>
+        )}
+        renderItem={renderItem}
+        removeClippedSubviews
+        initialNumToRender={8}
+        windowSize={7}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={50}
+      />
+    );
+  };
+
+  const POList = () => (
     <FlatList
-      data={ICList}
+      data={POData}
       keyExtractor={(item) => String(item.id)}
-      contentContainerStyle={{ paddingBottom: 80 }}
-      ref={scrollRef}
       ListEmptyComponent={() => (
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyText}>No data found</Text>
         </View>
       )}
-      renderItem={({ item }) => {
-        const isASN = item.isASN;
-        return (
-          <IncompleteSwipeRow
-            item={item}
-            onDelete={async (it) => {
-              setPhase('loading');
-              try {
-                const res = await DeleteIncompleteRecord(it?.interface_id);
-                if (res !== undefined) {
-                  const refreshed = await GetICPoItems(OrgData?.selectedOrg);
-                  const normalized = (refreshed || []).map((d, idx) => ({
-                    ...d,
-                    id: d?.interface_id || `ic-${idx + 1}`,
-                    isASN: String(d?.received_type || '').toLowerCase() === 'asn',
-                  }));
-                  setICListInitial(normalized);
-                  setICList(normalized);
-                }
-                setPhase('success');
-              } catch {
-                Toast.show({ type: 'error', text1: 'Error', text2: `Failed to delete record. Please try again.`, position: 'top', visibilityTime: 5000 });
-                setPhase('error');
-              }
-            }}
-            onSwipeOpen={(ref) => {
-              if (openSwipeableRef.current && openSwipeableRef.current !== ref) {
-                openSwipeableRef.current.close();
-              }
-              openSwipeableRef.current = ref;
-            }}
-            onSwipeClose={(ref) => {
-              if (openSwipeableRef.current === ref) openSwipeableRef.current = null;
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => {
-                if (isASN) {
-                  navigation.navigate('IC_AsnReceiptScreen', {
-                    selectedASN: {
-                      asn_id: item.asn_id,
-                      interface_id: item.interface_id,
-                      asn_num: item.asn_num,
-                      supplier_name: item.supplier_name,
-                      shipped_date: item.shipped_date,
-                      expected_receipt_date: item.expected_receipt_date,
-                      supplier_site: item.supplier_site,
-                      carrier: item.carrier,
-                      pack_slip: item.pack_slip,
-                      bol: item.bol,
-                      waybill: item.waybill,
-                      airbill: item.airbill,
-                      status: item.status,
-                    },
-                    fromScan: false,
-                    scannedAsnId: item.asn_id,
-                    scannedAsnNumber: item.asn_num,
-                  });
-                } else {
-                  navigation.navigate('InCompleteReceiveScreen', {
-                    selectedPO: item,
-                    fromScan: false,
-                    scannedPoNumber: null,
-                  });
-                }
-              }}
-              activeOpacity={0.9}
-            >
-              {isASN ? <ASNReceiptCard item={item} /> : <POReceiptCard item={item} />}
-            </TouchableOpacity>
-          </IncompleteSwipeRow>
-        );
-      }}
+      contentContainerStyle={{ paddingBottom: 80 }}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('NewReceiveScreen', { selectedPO: item, fromScan: false, scannedPoNumber: null })}
+          activeOpacity={0.9}
+        >
+          <View style={styles.card}>
+            <View style={styles.toprow}>
+              <View style={styles.topcardLeft}>
+                <Text style={styles.labelText}>Purchase Order</Text>
+                <Text style={styles.valueText}>{item.po_number}</Text>
+              </View>
+              <View style={styles.topcardRight}>
+                <Text style={styles.labelText}>Supplier</Text>
+                <Text style={styles.valueText}>
+                  {item.supplier_name?.length > 20 ? item.supplier_name.substring(0, 20) + '...' : item.supplier_name}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+                <Text style={styles.labelText}>PO Status</Text>
+                <Text style={[styles.valueText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+                <Text style={styles.labelText}>Order Date</Text>
+                <Text style={styles.valueText}>{formatDate(item.order_date)}</Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+                <Text style={styles.subLabel}>Received</Text>
+              </View>
+              <View className="styles.bottomcardRight" />
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+                <View style={styles.progressWrapper}>
+                  <View style={[styles.progressBarleft, { width: `${item.received}%`, backgroundColor: getProgressColor(item.received) }]} />
+                </View>
+              </View>
+              <View style={styles.bottomcardRight} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+    />
+  );
+
+  const ASNList = () => (
+    <FlatList
+      data={AsnData}
+      keyExtractor={(item) => String(item.asn_id || item.id)}
+      contentContainerStyle={{ paddingBottom: 80 }}
+      ListEmptyComponent={() => (
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyText}>No data found</Text>
+        </View>
+      )}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AsnReceiptScreen', { selectedASN: item, fromScan: false, scannedAsnId: item.asn_id, scannedAsnNumber: item.asn_num })}
+          activeOpacity={0.9}
+        >
+          <View style={styles.card}>
+            <View style={styles.toprow}>
+              <View style={styles.topcardLeft}>
+                <Text style={styles.labelText}>ASN Number</Text>
+                <Text style={styles.valueText}>{item.asn_num}</Text>
+              </View>
+              <View style={styles.topcardRight}>
+                <Text style={styles.labelText}>Supplier</Text>
+                <Text style={styles.valueText}>{item.supplier_name}</Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+                <Text style={styles.labelText}>Status</Text>
+                <Text style={[styles.valueText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+              </View>
+              <View style={styles.bottomcardRight}>
+                <Text style={styles.labelText}>Shipped Date</Text>
+                <Text style={styles.valueText}>{formatDate(item.shipped_date)}</Text>
+              </View>
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+                <Text style={styles.subLabel}>Received</Text>
+              </View>
+              <View style={styles.bottomcardRight} />
+            </View>
+            <View style={styles.bottomrow}>
+              <View style={styles.bottomcardLeft}>
+                <View style={styles.progressWrapper}>
+                  <View style={[styles.progressBarleft, { width: `${item.receivedPct || 0}%`, backgroundColor: getProgressColor(item.receivedPct) }]} />
+                </View>
+              </View>
+              <View style={styles.bottomcardRight} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
     />
   );
 
@@ -780,82 +774,113 @@ const ReceiveScreen = () => {
     InComplete: InCompleteList,
   };
 
+  const handleScan = (value) => {
+    const code = String(value).trim().toUpperCase();
+    const poMatch = POIntialData.find((p) => String(p.po_number).toUpperCase() === code);
+    const asnMatch = AsnIntialData.find((a) => String(a.asn_num).toUpperCase() === code);
+
+    if (poMatch) {
+      setShowScanner(false);
+      Toast.show({ type: 'success', text1: 'PO found', text2: `${poMatch.po_number} • ${poMatch.supplier_name}`, position: 'top', visibilityTime: 5000 });
+      navigation.navigate('NewReceiveScreen', { selectedPO: poMatch, fromScan: true, scannedPoNumber: code });
+    } else if (asnMatch) {
+      setShowScanner(false);
+      Toast.show({ type: 'success', text1: 'ASN found', text2: `${asnMatch.asn_num} • ${asnMatch.supplier_name}`, position: 'top', visibilityTime: 5000 });
+      navigation.navigate('AsnReceiptScreen', { selectedASN: asnMatch, fromScan: true, scannedAsnNumber: code, scannedAsnId: asnMatch.asn_id });
+    } else {
+      Toast.show({ type: 'error', text1: 'PO/IR/ASN not found', text2: `Scanned value ${code} not found`, position: 'top', visibilityTime: 5000 });
+      setShowScanner(false);
+    }
+  };
+
+  const InputRightIcon = useMemo(
+    () => (
+      <TouchableOpacity onPress={() => setShowScanner(true)}>
+        <BarcodeScannerIcon width={24} height={24} fill="#233E55" />
+      </TouchableOpacity>
+    ),
+    []
+  );
+
   return (
-    <View style={styles.container}>
-      <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Home')} />
-      {phase === 'loading' && (
-        <View style={styles.loaderWrapper}>
-          <ActivityIndicator size="large" color="#233E55" />
-          <Text style={styles.statusText}>Loading...</Text>
-        </View>
-      )}
-      {phase !== 'loading' && (
-        <>
-          <View style={styles.inputContainer}>
-            <TextInput
-              placeholder="Enter PO/IR/ASN"
-              placeholderTextColor="#999"
-              style={styles.input}
-              value={searchText}
-              onChangeText={handleSearch}
-            />
-            {InputRightIcon}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Home')} />
+        {phase === 'loading' && (
+          <View style={styles.loaderWrapper}>
+            <ActivityIndicator size="large" color="#233E55" />
+            <Text style={styles.statusText}>Loading...</Text>
           </View>
+        )}
+        {phase !== 'loading' && (
+          <>
+            <View style={styles.inputContainer}>
+              <TextInput
+                placeholder="Enter PO/IR/ASN"
+                placeholderTextColor="#999"
+                style={styles.input}
+                value={searchText}
+                onChangeText={handleSearch}
+              />
+              {InputRightIcon}
+            </View>
 
-          <TabView
-            navigationState={{ index, routes }}
-            renderScene={SceneMap(renderScene)}
-            onIndexChange={(i) => {
-              setIndex(i);
-              setActiveTab(i);
-              applyVisible(routes[i].key, searchText, activeFilter);
-            }}
-            initialLayout={initialLayout}
-            swipeEnabled={index !== 3}
-            renderTabBar={(props) => (
-              <View style={{ flexDirection: 'row', zIndex: 999, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#7392AA', marginBottom: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <TabBar
-                    {...props}
-                    indicatorStyle={{ backgroundColor: '#233E55', height: 3, bottom: -1 }}
-                    style={{ backgroundColor: '#fff', elevation: 0 }}
-                    scrollEnabled
-                    tabStyle={{ width: 'auto', paddingHorizontal: 10 }}
-                    activeColor="#233E55"
-                    inactiveColor="#9D9FA3"
-                    renderLabel={({ route, focused, color }) => <Text style={{ color, fontWeight: focused ? 'bold' : 'normal', fontSize: 12 }}>{route.title}</Text>}
-                  />
+            <TabView
+              navigationState={{ index, routes }}
+              renderScene={SceneMap(renderScene)}
+              onIndexChange={(i) => {
+                setIndex(i);
+                setActiveTab(i);
+                applyVisible(routes[i].key, searchText, activeFilter);
+              }}
+              initialLayout={initialLayout}
+              swipeEnabled
+              gestureHandlerProps={{ ref: pagerRef }}
+              renderTabBar={(props) => (
+                <View style={{ flexDirection: 'row', zIndex: 999, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#7392AA', marginBottom: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <TabBar
+                      {...props}
+                      indicatorStyle={{ backgroundColor: '#233E55', height: 3, bottom: -1 }}
+                      style={{ backgroundColor: '#fff', elevation: 0 }}
+                      scrollEnabled
+                      tabStyle={{ width: 'auto', paddingHorizontal: 10 }}
+                      activeColor="#233E55"
+                      inactiveColor="#9D9FA3"
+                      renderLabel={({ route, focused, color }) => <Text style={{ color, fontWeight: focused ? 'bold' : 'normal', fontSize: 12 }}>{route.title}</Text>}
+                    />
+                  </View>
+
+                  <View style={{ flexDirection: 'row', marginRight: 12 }}>
+                    <TouchableOpacity onPress={handleSort} style={{ marginRight: 10 }}>
+                      <SortIcon width={24} height={24} fill="#233E55" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={() => setMenuOpen((v) => !v)}>
+                      <BackFilterIcon width={24} height={24} fill="#233E55" />
+                    </TouchableOpacity>
+
+                    {menuOpen && (
+                      <View style={styles.menu}>
+                        {FILTERS.map((f) => (
+                          <TouchableOpacity key={f} style={[styles.menuItem, activeFilter === toBackendStatus(f) && styles.menuItemActive]} onPress={() => handlePick(f)}>
+                            <Text style={[styles.menuText, activeFilter === toBackendStatus(f) && styles.menuTextActive]}>{pretty(f)}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
                 </View>
+              )}
+            />
+          </>
+        )}
 
-                <View style={{ flexDirection: 'row', marginRight: 12 }}>
-                  <TouchableOpacity onPress={handleSort} style={{ marginRight: 10 }}>
-                    <SortIcon width={24} height={24} fill="#233E55" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity onPress={() => setMenuOpen((v) => !v)}>
-                    <BackFilterIcon width={24} height={24} fill="#233E55" />
-                  </TouchableOpacity>
-
-                  {menuOpen && (
-                    <View style={styles.menu}>
-                      {FILTERS.map((f) => (
-                        <TouchableOpacity key={f} style={[styles.menuItem, activeFilter === toBackendStatus(f) && styles.menuItemActive]} onPress={() => handlePick(f)}>
-                          <Text style={[styles.menuText, activeFilter === toBackendStatus(f) && styles.menuTextActive]}>{pretty(f)}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
-          />
-        </>
-      )}
-
-      <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
-        <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
-      </Modal>
-    </View>
+        <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
+          <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+        </Modal>
+      </View>
+    </GestureHandlerRootView>
   );
 };
 
@@ -867,7 +892,10 @@ const styles = StyleSheet.create({
   input: { flex: 1, height: 40, fontSize: 14, color: '#333' },
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   emptyText: { fontSize: 16, color: 'gray' },
+
   card: { justifyContent: 'space-between', backgroundColor: '#FBFBFB', marginHorizontal: 12, marginVertical: 6, borderRadius: 12, padding: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
+  cardInsideSwipe: { marginHorizontal: 0, marginVertical: 0, borderRadius: 0 },
+
   toprow: { flex: 1, flexDirection: 'row', marginBottom: scale(5) },
   bottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: scale(5) },
   topcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), paddingBottom: scale(6), minWidth: 0 },
@@ -876,7 +904,7 @@ const styles = StyleSheet.create({
   bottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), minWidth: 0 },
   newbottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: scale(10) },
   newbottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
-  newbottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', minWidth: 0 },
+  newbottomcardRight: { flex: 1, justifyContent: 'flex-end', minWidth: 0 },
   newlabelText: { fontSize: ms(8), color: '#666666', flex: 1, marginRight: scale(6) },
   viewMoreBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: ms(6), marginTop: ms(6) },
   viewMoreText: { fontSize: ms(10), marginRight: ms(-4), color: '#033EFF', textDecorationLine: 'underline', textDecorationColor: '#033EFF', fontWeight: '500' },
@@ -885,8 +913,23 @@ const styles = StyleSheet.create({
   subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
   progressWrapper: { backgroundColor: '#ECF1F7', borderRadius: 20, height: 12, width: '75%', justifyContent: 'center', elevation: 4, marginTop: 4, marginBottom: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
   progressBarleft: { height: 8, borderRadius: 20, marginHorizontal: 0 },
-  deleteContainer: { justifyContent: 'center', alignItems: 'center', width: 80, backgroundColor: '#F8D2D4', borderRadius: 10, marginVertical: 10, marginRight: 20 },
-  deleteButton: { justifyContent: 'center', alignItems: 'center', flex: 1 },
+
+  incompleteRowContainer: {
+    marginHorizontal: 12,
+    marginVertical: 6,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+
+  rightActionContainer: { backgroundColor: '#F8D2D4', justifyContent: 'center', alignItems: 'flex-end', width: 40 },
+  actionButton: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 },
+
   menu: { position: 'absolute', top: 34, right: 0, backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 6, minWidth: 150, shadowColor: '#000000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, zIndex: 999, elevation: 10, overflow: 'visible' },
   menuItem: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8 },
   menuItemActive: { backgroundColor: '#E6F0FA' },
