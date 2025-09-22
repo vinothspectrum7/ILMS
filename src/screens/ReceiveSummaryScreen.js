@@ -356,6 +356,7 @@ const  mapConfirmData = (data)=> {
       poNumber: headerData.poNumber ?? '—',
       lineNumber: i + 1,
       itemName: it.name,
+      itemid:it.item_id,
       itemDescription: it.itemDescription ?? it.description ?? '—',
       orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
       openQty: Number(it.openQty ?? 0),
@@ -365,6 +366,7 @@ const  mapConfirmData = (data)=> {
       lpn: it.lpn ?? '',
       subInventory: it.subInventory ?? '',
       locator: it.locator ?? '',
+      ship_to_location:it.ship_to_location,
       max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
     };
   };

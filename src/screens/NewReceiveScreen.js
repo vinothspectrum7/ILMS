@@ -104,9 +104,11 @@ const NewReceiveScreen = () => {
         }
         const {currentPO, lockedByUser} = getCurrentPO();
         if (currentPO && !lockedByUser) {
+          setPhase('loading');
       try {
         const release = await ReleasePO(selectedPO.po_id);
         if(release){
+        setPhase('success');
         clearCurrentPO();
         navigation.navigate('Receive');
         return true;
@@ -120,6 +122,7 @@ const NewReceiveScreen = () => {
         });
         }
       } catch(error) {
+        setPhase('error');
         Toast.show({
           type: 'error',
           text1: 'Error',
@@ -129,6 +132,7 @@ const NewReceiveScreen = () => {
         });
       }
     }else{
+        setPhase('error');
         clearCurrentPO();
         navigation.navigate('Receive');
         return true;
@@ -154,6 +158,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     name: backend.item?.item_code || "",
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
+    ship_to_location:backend.ship_to_location,
     receivedQty: backend.rcvd_qty,
     openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
     max_open_qty: Math.floor(backend.max_open_qty ?? 0),
@@ -179,7 +184,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
       try {
         const posingledata = await GetSinglePO(selectedPO.po_id);
         if (posingledata?.purchase_order_lines) {
-          const lockstatus = posingledata?.po_user_status=='ASSIGNED'?true:false;
+          const lockstatus = posingledata?.po_user_action=='ASSIGNED'?true:false;
           setCurrentPO(selectedPO.po_id,lockstatus);
           setPurchaseReceipt(posingledata?.next_receipt_num);
           const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines, posingledata);
@@ -460,6 +465,7 @@ const handlesaveFailure = () => {
         lineNumber: i + 1,
         itemName: it.name,
         itemid:it.item_id,
+        ship_to_location:it.ship_to_location,
         itemDescription: it.itemDescription ?? it.description ?? '—',
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         openQty: Number(it.openQty ?? 0),
@@ -543,9 +549,11 @@ const handlesaveFailure = () => {
   const Releasefunction = async()=>{
     const {currentPO, lockedByUser} = getCurrentPO();
         if (currentPO && !lockedByUser) {
+          setPhase('loading');
       try {
         const release = await ReleasePO(selectedPO.po_id);
         if(release){
+        setPhase('success');
         clearCurrentPO();
         navigation.navigate('Receive');
         return true;
@@ -559,6 +567,7 @@ const handlesaveFailure = () => {
         });
         }
       } catch(error) {
+        setPhase('error');
         Toast.show({
           type: 'error',
           text1: 'Error',
@@ -568,6 +577,7 @@ const handlesaveFailure = () => {
         });
       }
     }else{
+        setPhase('error');
         clearCurrentPO();
         navigation.navigate('Receive');
         return true;

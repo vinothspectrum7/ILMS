@@ -127,6 +127,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     name: backend.item?.item_code || "",
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
+    ship_to_location:backend?.ship_to_location || "—",
     receivedQty: backend.rcvd_qty,
     incomplte_qty:backend.incomplte_qty,
     openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
@@ -433,6 +434,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
         lineNumber: i + 1,
         itemName: it.name,
         itemid:it.item_id,
+        ship_to_location:it.ship_to_location,
         itemDescription: it.itemDescription ?? it.description ?? '—',
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         openQty: Number(it.openQty ?? 0),
@@ -445,7 +447,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
       };
     });
-
+  console.log(withLatestFromStore,"withLatestFromStore")
     navigation.navigate({
       name: 'IC_LineItemDetails',
       params: {

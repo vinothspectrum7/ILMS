@@ -480,6 +480,13 @@ const fetchImageForItem = async (itemId) => {
             <Text style={styles.uomText}>{item.uom}</Text>
 
             <View style={styles.divider} />
+              <InlineFieldRow label="Ship-To Location">
+                <Text style={[styles.valueBold, { minWidth: '60%' }]} numberOfLines={1}>
+                      {item?.ship_to_location}
+                </Text>
+              </InlineFieldRow>
+
+            <View style={styles.divider} />
             <View style={styles.row}>
               <Text style={styles.label}>{readOnly ? 'Received' : 'Receiving'} Quantity</Text>
               <View style={styles.numericRight}>
