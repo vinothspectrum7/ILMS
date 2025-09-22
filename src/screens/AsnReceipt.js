@@ -435,7 +435,7 @@ const AsnReceiptScreen = () => {
             />
             <View style={styles.itemcontainer}>
               <TouchableOpacity style={styles.scanRow} onPress={handleScanRowPress} activeOpacity={0.8}>
-                <Text style={styles.scanText}>Scan your item</Text>
+                <Text style={styles.scanText}>Scan your PO</Text>
                 <BarcodeScannerIcon width={20} height={20} fill="#7A7A7A" />
               </TouchableOpacity>
               <View style={styles.tableHeader}>

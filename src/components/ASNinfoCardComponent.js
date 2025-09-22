@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, Platform, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import ViewMore from '../assets/icons/viewmore.svg';
 import ViewLess from '../assets/icons/viewless.svg';
 
@@ -53,7 +52,7 @@ const ASNinfoCardComponent = ({
   };
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <View style={styles.card}>
         <View style={styles.toprow}>
           <View style={styles.topcardLeft}>
@@ -127,7 +126,7 @@ const ASNinfoCardComponent = ({
           </View>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -136,9 +135,9 @@ const styles = StyleSheet.create({
   card: {
     justifyContent: 'space-between',
     backgroundColor: '#fff',
-    marginTop: ms(0),
     marginHorizontal: scale(12),
-    marginVertical: scale(6),
+    marginTop: scale(15),
+    marginBottom: scale(6),          
     borderRadius: scale(12),
     padding: scale(12),
     ...Platform.select({
@@ -151,20 +150,22 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  toprow: { flex: 1, flexDirection: 'row', marginBottom: scale(0) },
+  bottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  newbottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: scale(10) },
+
   topcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), paddingBottom: scale(6), minWidth: 0 },
   topcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), paddingBottom: scale(6), minWidth: 0 },
   bottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
   bottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), minWidth: 0 },
-  toprow: { flex: 1, flexDirection: 'row', marginBottom: scale(0) },
-  bottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  newbottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: scale(10) },
-  newbottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
-  newbottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', minWidth: 0 },
+
   labelText: { fontSize: ms(10), color: '#666666', flex: 1, marginRight: scale(6) },
   valueText: { fontSize: ms(10), fontWeight: 'bold', color: '#1C1C1C', flex: 1, textAlign: 'left' },
   newlabelText: { fontSize: ms(8), color: '#666666', flex: 1, marginRight: scale(6) },
+
   viewMoreBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: ms(6), marginTop: ms(6) },
   viewMoreText: { fontSize: ms(10), marginRight: ms(-4), color: '#033EFF', textDecorationLine: 'underline', textDecorationColor: '#033EFF', fontWeight: '500' },
+
   openText: { color: 'green' },
   subLabel: { fontSize: ms(10), color: '#666666', marginTop: scale(4), marginBottom: scale(2) },
   column: { flex: 1 },
