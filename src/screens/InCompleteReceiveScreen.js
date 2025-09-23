@@ -160,16 +160,18 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
           setPoListItems([]);
         }
         setPhase('success');
-      } catch {
-        Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: 'Failed to load PO Items. Please try again.',
-          position: 'top',
-          visibilityTime: 5000,
-        });
-        setPhase('error');
-      }
+      } catch(error) {
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: `${error}`,
+                position: 'top',
+                visibilityTime: 10000,
+              });
+              setPhase('error');
+              navigation.navigate('Receive');
+              // return true;
+            }
     };
     loadPoData();
   }, [selectedPO?.po_id]);
