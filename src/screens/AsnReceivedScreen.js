@@ -35,7 +35,7 @@ const POCard = memo(({ item, expanded, onToggle }) => {
   const lines = Array.isArray(item?.asn_line_items) ? item.asn_line_items : [];
   const orderedTot = sumBy(lines, 'ord_qty');
   const receivedTot = sumBy(lines, 'rcvd_qty');
-  const shippedTot = hasAny(lines, 'shipped_qty') ? sumBy(lines, 'shipped_qty') : null;
+  const shippedTot = String(item?.total_shipped_qty || dash);
   const isOpen = !!expanded;
 
   return (
@@ -105,7 +105,7 @@ const AsnReceivedScreen = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await GetReceivedASNPoItems(header.receipt_id);
+        const data = await GetReceivedASNPoItems(header.receipt_id,asn_id);
         setPoGroups(Array.isArray(data) ? data : []);
         setPhase('success');
       } catch {

@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
   labelText: { fontSize: ms(10), color: '#666666', flex: 1, marginRight: scale(6) },
   valueText: { fontSize: ms(10), fontWeight: 'bold', color: '#1C1C1C', flex: 1, textAlign: 'left' },
   newlabelText: { fontSize: ms(8), color: '#666666', flex: 1, marginRight: scale(6) },
+  newbottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', minWidth: 0 },
 
   viewMoreBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: ms(6), marginTop: ms(6) },
   viewMoreText: { fontSize: ms(10), marginRight: ms(-4), color: '#033EFF', textDecorationLine: 'underline', textDecorationColor: '#033EFF', fontWeight: '500' },

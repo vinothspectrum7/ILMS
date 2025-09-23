@@ -31,9 +31,9 @@ export const GetASNPoItems = async(asn_id)=>{
     throw error;
   }
 }
-export const GetReceivedASNPoItems = async(asn_id)=>{
+export const GetReceivedASNPoItems = async(asn_rcpt_id,asn_id)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_SINGLE_ASN_RECEPT(asn_id));
+    const response = await api.get(API_ENDPOINTS.GET_SINGLE_ASN_RECEPT(asn_rcpt_id,asn_id));
         console.log("Received ASN Response Data:", response);
     return response.data;
   }catch (error) {
