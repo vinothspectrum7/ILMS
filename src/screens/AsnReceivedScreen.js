@@ -30,13 +30,48 @@ const HeaderBlock = memo(({ header }) => (
   />
 ));
 
-const POCard = memo(({ item, expanded, onToggle }) => {
-  const poNumber = String(item?.po_number || dash);
+const POCard = memo(({ item, expanded, onToggle, header }) => {
+  const poNumber = String(item?.po_number ?? dash);
   const lines = Array.isArray(item?.asn_line_items) ? item.asn_line_items : [];
-  const orderedTot = sumBy(lines, 'ord_qty');
+  const orderedTot = sumBy(lines, 'ordered_qty') || sumBy(lines, 'ord_qty');
   const receivedTot = sumBy(lines, 'rcvd_qty');
-  const shippedTot = String(item?.total_shipped_qty || dash);
+  const shippedTot = item?.total_shipped_qty ?? dash;
   const isOpen = !!expanded;
+  const navigation = useNavigation();
+
+  const mapLine = (li, i) => ({
+    id: String(li?.po_line_id ?? li?.id ?? i),
+    poNumber: poNumber,
+    lineNumber: i + 1,
+    itemName: li?.item?.item_code ?? li?.item_name ?? li?.item_code ?? '—',
+    itemid: String(li?.item_id ?? li?.item?.item_id ?? ''),
+    itemDescription: li?.item_description ?? li?.item?.description ?? '—',
+    orderQty: n(li?.ordered_qty ?? li?.ord_qty),
+    openQty: Math.max(n(li?.max_open_qty ?? li?.open_qty), 0),
+    ship_to_location: li?.ship_to_location ?? '—',
+    receivingQty: n(li?.rcvd_qty),      // Received view -> read-only qty
+    receivedQty: n(li?.rcvd_qty),
+    receivingStatus: li?.line_status ?? li?.status ?? '',
+    lpn: li?.lpn ?? '',
+    uom: li?.item?.uom,
+    sub_inv_name: li?.sub_inv_name ?? li?.subInventory ?? '',
+    locator_name: li?.locator_name ?? li?.locator ?? '',
+    subInventory: li?.subInventory ?? '',
+    locator: li?.locator ?? '',
+  });
+
+  const openLineDetailsFromSummary = (startIndex) => {
+    const mapped = lines.map(mapLine);
+    console.log(mapped,"mapped data")
+    navigation.navigate('ASNPOLineItemDetails', {
+      items: mapped,
+      startIndex,
+      readonly: true,
+      returnTo: 'AsnReceivedScreen',
+      listType: 'received',
+      receiptNumber: header?.receipt_num ?? '',
+    });
+  };
 
   return (
     <View style={styles.cardElevatedContainer}>
@@ -71,15 +106,16 @@ const POCard = memo(({ item, expanded, onToggle }) => {
               <Text style={[styles.itemsHeaderText, styles.colOrdered]}>Ordered Qty</Text>
               <Text style={[styles.itemsHeaderText, styles.colReceiving]}>Receiving Qty</Text>
             </View>
+
             {lines.map((li, idx) => (
-              <View
-                key={`${poNumber}-${idx}`}
-                style={[styles.itemRow, idx === lines.length - 1 && styles.itemRowLast]}
-              >
-                <Text style={[styles.itemTextStrong, styles.colItem]} numberOfLines={1}>
-                  {li?.item.item_code || dash}
-                </Text>
-                <Text style={[styles.itemText, styles.colOrdered]}>{n(li?.ord_qty)}</Text>
+              <View key={`${poNumber}-${idx}`} style={[styles.itemRow, idx === lines.length - 1 && styles.itemRowLast]}>
+                <TouchableOpacity style={styles.colItem} onPress={() => openLineDetailsFromSummary(idx)}>
+                  <Text style={styles.viewDetails} numberOfLines={1}>
+                    {li?.item?.item_code ?? li?.item_code ?? dash}
+                  </Text>
+                </TouchableOpacity>
+
+                <Text style={[styles.itemText, styles.colOrdered]}>{n(li?.ordered_qty ?? li?.ord_qty)}</Text>
                 <Text style={[styles.itemTextStrong, styles.colReceiving]}>{n(li?.rcvd_qty)}</Text>
               </View>
             ))}
@@ -148,6 +184,7 @@ const AsnReceivedScreen = () => {
               item={po}
               expanded={!!expanded[po?.po_number]}
               onToggle={onToggle}
+              header={header}
             />
           ))}
           {poGroups.length === 0 && (
@@ -285,6 +322,8 @@ const styles = StyleSheet.create({
 
   itemText: { fontSize: 12, fontWeight: '400', color: '#242424' },
   itemTextStrong: { fontSize: 12, fontWeight: '700', color: '#242424' },
+
+  viewDetails: { fontSize: 12, fontWeight: '700', color: '#033EFF', textDecorationLine: 'underline' },
 });
 
 export default AsnReceivedScreen;
