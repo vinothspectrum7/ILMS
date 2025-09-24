@@ -34,7 +34,7 @@ const POCard = memo(({ item, expanded, onToggle, header }) => {
   const poNumber = String(item?.po_number ?? dash);
   const lines = Array.isArray(item?.asn_line_items) ? item.asn_line_items : [];
   const orderedTot = sumBy(lines, 'ordered_qty') || sumBy(lines, 'ord_qty');
-  const receivedTot = sumBy(lines, 'rcvd_qty');
+  const receivedTot = sumBy(lines, 'total_rcvd_qty');
   const shippedTot = item?.total_shipped_qty ?? dash;
   const isOpen = !!expanded;
   const navigation = useNavigation();
@@ -50,7 +50,7 @@ const POCard = memo(({ item, expanded, onToggle, header }) => {
     openQty: Math.max(n(li?.max_open_qty ?? li?.open_qty), 0),
     ship_to_location: li?.ship_to_location ?? '—',
     receivingQty: n(li?.rcvd_qty),      // Received view -> read-only qty
-    receivedQty: n(li?.rcvd_qty),
+    receivedQty: n(li?.total_rcvd_qty),
     receivingStatus: li?.line_status ?? li?.status ?? '',
     lpn: li?.lpn ?? '',
     uom: li?.item?.uom,
@@ -104,7 +104,8 @@ const POCard = memo(({ item, expanded, onToggle, header }) => {
             <View style={styles.itemsHeader}>
               <Text style={[styles.itemsHeaderText, styles.colItem]}>List of Items</Text>
               <Text style={[styles.itemsHeaderText, styles.colOrdered]}>Ordered Qty</Text>
-              <Text style={[styles.itemsHeaderText, styles.colReceiving]}>Receiving Qty</Text>
+              <Text style={[styles.itemsHeaderText, styles.colShipped]}>Shipped Qty</Text>
+              <Text style={[styles.itemsHeaderText, styles.colReceiving]}>Received Qty</Text>
             </View>
 
             {lines.map((li, idx) => (
@@ -116,6 +117,7 @@ const POCard = memo(({ item, expanded, onToggle, header }) => {
                 </TouchableOpacity>
 
                 <Text style={[styles.itemText, styles.colOrdered]}>{n(li?.ordered_qty ?? li?.ord_qty)}</Text>
+                <Text style={[styles.itemText, styles.colShipped]}>{n(li?.shipped_qty ?? li?.shpd_qty ?? '-')}</Text>
                 <Text style={[styles.itemTextStrong, styles.colReceiving]}>{n(li?.rcvd_qty)}</Text>
               </View>
             ))}
@@ -318,6 +320,7 @@ const styles = StyleSheet.create({
 
   colItem: { flex: 2, paddingLeft: 8 },
   colOrdered: { flex: 1 },
+  colShipped: { flex: 1 },
   colReceiving: { flex: 1 },
 
   itemText: { fontSize: 12, fontWeight: '400', color: '#242424' },
