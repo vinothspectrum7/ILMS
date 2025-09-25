@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
 
-  colItem: { flex: 2, paddingLeft: 8 },
+  colItem: { flex: 1 },
   colOrdered: { flex: 1 },
   colShipped: { flex: 1 },
   colReceiving: { flex: 1 },
