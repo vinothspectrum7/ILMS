@@ -10,7 +10,7 @@ const dash = '—';
 
 const STATUS_CONFIG = {
   OPEN: { label: 'Yet to receive', color: '#FB6969' },
-  'PARTLY RECEIVED': { label: 'Partly Received', color: '#007BFF' },
+  'PARTIALLY RECEIVED': { label: 'Partly Received', color: '#FF9B00' },
   'FULLY RECEIVED': { label: 'Fully Received', color: '#2ECC71' },
 };
 

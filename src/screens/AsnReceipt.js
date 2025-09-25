@@ -14,7 +14,7 @@ import FailureSvg from '../assets/icons/failure.svg';
 import { GetASNPoItems, Save_Receive_Qty } from '../api/ApiServices';
 import { useReceivingStore } from '../store/receivingStore';
 
-const statusLabelToApi = { 'Yet to Receive': 'OPEN', 'Partly Received': 'PARTLY RECEIVED', 'Fully Received': 'FULLY RECEIVED' };
+const statusLabelToApi = { 'Yet to Receive': 'OPEN', 'Partly Received': 'PARTIALLY RECEIVED', 'Fully Received': 'FULLY RECEIVED' };
 
 const earliestDateISO = (lineItems) => {
   if (!Array.isArray(lineItems) || lineItems.length === 0) return '-';
