@@ -304,7 +304,7 @@ const AsnReceiptScreen = () => {
                 console.log(finalLines,"finalLines")
       finalLines.forEach((li) => {
         const rx = Number(li?.receiving_qty ?? 0);
-        const received_qty = isChecked ? clampASN(li, rx) : 0;
+        const received_qty = rx;
         rows.push({
           po_line_id: li?.po_line_id,
           item_id: li?.item_id,
