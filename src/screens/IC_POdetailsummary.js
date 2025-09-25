@@ -422,7 +422,7 @@ const IC_PODetailSummary = () => {
         po_line_id: raw.po_line_id,
       };
     });
-    navigation.navigate('ASNPOLineItemDetails', {
+    navigation.navigate('IC_ASNPOLineItemDetails', {
       items,
       startIndex: startIdx,
       readonly: false,
