@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList, Dimensions, Image, Alert, Modal, Pressable, ActivityIndicator } from 'react-native';
-import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute, StackActions } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
@@ -54,12 +54,19 @@ const ASNPOLineItemDetailsScreen = () => {
 
   const baseItems = Array.isArray(route?.params?.items) && route.params.items.length > 0 ? route.params.items : [];
 
+  const inReadonlyFromAsn = readOnly || returnTo === 'AsnReceivedScreen' || listType === 'received';
+
   const mergedItems = useMemo(() => {
     return baseItems.map((it) => {
       const stored = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
+      const qtyFromStore = Number(stored?.qtyToReceive);
+      const qtyFromNav = Number(it?.receivingQty);
+      const receivingQty = inReadonlyFromAsn
+        ? Number.isFinite(qtyFromNav) ? qtyFromNav : 0
+        : (Number.isFinite(qtyFromStore) ? qtyFromStore : (Number.isFinite(qtyFromNav) ? qtyFromNav : 0));
       return {
         ...it,
-        receivingQty: Number(stored?.qtyToReceive ?? 0),
+        receivingQty,
         lpn: stored?.lpn ?? it.lpn ?? '',
         subInventory: stored?.subInventory ?? it.subInventory ?? '',
         locator: stored?.locator ?? it.locator ?? '',
@@ -67,7 +74,7 @@ const ASNPOLineItemDetailsScreen = () => {
         max_open_qty: Number(it.max_open_qty ?? stored?.max_open_qty ?? it.openQty ?? 0),
       };
     });
-  }, [baseItems, receiveItems]);
+  }, [baseItems, receiveItems, inReadonlyFromAsn]);
 
   const startIndex = Math.max(0, Math.min(Number(route?.params?.startIndex ?? 0), mergedItems.length - 1));
 
@@ -290,10 +297,11 @@ const ASNPOLineItemDetailsScreen = () => {
   }, [edited, allItems, readOnly]);
 
   const titlePo = returnTo == 'ReceivedSummaryScreen' ? receiptNumber : current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
+  const isProgrammaticScrollRef = useRef(false);
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
-    isProgrammaticScroll.current = true;
+    isProgrammaticScrollRef.current = true;
     listRef.current?.scrollToIndex({ index: i, animated: true });
     setIndex(i);
   }, [allItems.length]);
@@ -376,7 +384,7 @@ const ASNPOLineItemDetailsScreen = () => {
     const mergedQty = Number(item.receivingQty ?? 0);
     const defaultEditableQty = Number.isFinite(storeQty) ? storeQty : mergedQty;
 
-    const readonlyQty = returnTo == 'ReceivedSummaryScreen' ? item.receivedQty :
+    const readonlyQty = returnTo == 'AsnReceivedScreen' ? item.receivingQty :
       readOnly
         ? (listType === 'scan'
           ? (Number(item.openQty ?? 0) > 0 ? Number(item.openQty ?? 0) : Number(item.orderQty ?? 0))
@@ -392,12 +400,31 @@ const ASNPOLineItemDetailsScreen = () => {
       openQty: fromStore?.openQty ?? item.openQty ?? ''
     };
 
-    const findLabels = findLabel(pageState?.subInventory, InventoryList);
-    const dynamicwidth = estimateWidth(findLabels);
+    const findLabels = (value, options) => {
+      if (!value) return '';
+      if (Array.isArray(options)) {
+        const hit = options.find(o => String(o?.id) === String(value) || String(o?.value) === String(value));
+        if (hit?.name) return hit.name;
+        if (hit?.label) return hit.label;
+      }
+      return String(value);
+    };
+
+    const estimateWidth = (label) => {
+      const text = String(label ?? '').trim();
+      const charW = 7.2;
+      const padding = 24;
+      const minW = CONTROL_WIDTH;
+      const maxW = Math.min(SCREEN_WIDTH * 0.6, 280);
+      const w = Math.ceil(text.length * charW + padding);
+      return Math.max(minW, Math.min(maxW, w));
+    };
+
+    const findLabelsVal = findLabels(pageState?.subInventory, InventoryList);
+    const dynamicwidth = estimateWidth(findLabelsVal);
     setSubWidth(dynamicwidth);
 
     const limit = Number(item.max_open_qty ?? item.openQty ?? 0);
-    const shownImage = pageState.imageUri ?? item.imageUri ?? null;
 
     const siteLocationValueRaw = String(
       item.ship_to_location ?? item.shipped_location ?? item.shippedlocation ?? item.shiptolocation ?? ''
@@ -610,7 +637,7 @@ const ASNPOLineItemDetailsScreen = () => {
         removeClippedSubviews={false}
         windowSize={3}
         onScroll={(e) => {
-          if (isProgrammaticScroll.current) return;
+          if (isProgrammaticScrollRef.current) return;
           const x = e.nativeEvent.contentOffset.x;
           const newIndex = Math.round(x / SCREEN_WIDTH);
           if (newIndex !== index) {
@@ -618,7 +645,7 @@ const ASNPOLineItemDetailsScreen = () => {
           }
         }}
         onMomentumScrollEnd={() => {
-          isProgrammaticScroll.current = false;
+          isProgrammaticScrollRef.current = false;
         }}
         scrollEventThrottle={16}
       />
