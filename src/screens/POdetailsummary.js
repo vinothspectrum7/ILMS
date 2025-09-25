@@ -21,6 +21,8 @@ const baseWidth = 375;
 const scale = screenWidth / baseWidth;
 const responsiveSize = (size) => Math.round(size * scale);
 
+const dash = '—';
+
 const n = (v) => {
   const x = Number(v);
   return Number.isFinite(x) ? x : 0;
@@ -101,7 +103,12 @@ const PODetailSummary = () => {
     (asnSelectedLines || []).forEach((row) => {
       const poId = row?.po_id;
       const edited = getAsnEditedLinesForPO(poId);
-      const src = Array.isArray(edited) && edited.length ? edited : Array.isArray(row?.line?.asn_line_items) ? row.line.asn_line_items : [];
+      const src =
+        Array.isArray(edited) && edited.length
+          ? edited
+          : Array.isArray(row?.line?.asn_line_items)
+          ? row.line.asn_line_items
+          : [];
       map[poId] = JSON.parse(JSON.stringify(src));
     });
     rawItemsByPORef.current = map;
@@ -128,6 +135,22 @@ const PODetailSummary = () => {
     loadAll();
   }, [asnHeader?.asn_id]);
 
+  const handleBack = useCallback(() => {
+    if (deletedSinceOpenRef.current) {
+      resetToAsnFromReceive({ fromDeleted: true });
+      return true;
+    }
+    navigation.goBack();
+    return true;
+  }, [navigation, resetToAsnFromReceive]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', handleBack);
+      return () => sub.remove();
+    }, [handleBack])
+  );
+
   const toggleExpand = (id) => setExpandedId((prev) => (prev === id ? null : id));
 
   const openQty = (li) => Math.max(0, n(li?.ordered_qty) - n(li?.rcvd_qty));
@@ -141,7 +164,6 @@ const PODetailSummary = () => {
 
   const applyUiRule = (items) => {
     if (!items.length) return [];
-    console.log(items,"applyUiRuleapplyUiRule")
     if (allZeroInItems(items)) {
       return items.map((li, idx) => ({
         key: String(li?.item_code ?? li?.item_id ?? idx),
@@ -308,7 +330,6 @@ const PODetailSummary = () => {
       Toast.show({ type: 'info', text1: 'No items to save', position: 'top', visibilityTime: 2000 });
       return;
     }
-
     if (!filteredLines.length) {
       Toast.show({ type: 'info', text1: 'No items to save', position: 'top', visibilityTime: 2000 });
       return;
@@ -348,7 +369,9 @@ const PODetailSummary = () => {
     }
     try {
       const res = await Submit_Receive_Qty(payload);
-      const ok = Array.isArray(res?.results) ? res.results.some((r) => String(r?.status).toLowerCase() === 'success') : String(res?.status || '').toLowerCase() === 'success';
+      const ok = Array.isArray(res?.results)
+        ? res.results.some((r) => String(r?.status).toLowerCase() === 'success')
+        : String(res?.status || '').toLowerCase() === 'success';
       if (ok) return { success: true, message: 'Received Quantity Updated Successfully!' };
       return { success: false, message: res?.message || 'Failed to receive items' };
     } catch {
@@ -374,21 +397,39 @@ const PODetailSummary = () => {
     setConfirmVisible(false);
   };
 
-  const handleBack = useCallback(() => {
-    if (deletedSinceOpenRef.current) {
-      resetToAsnFromReceive({ fromDeleted: true });
-      return true;
-    }
-    navigation.goBack();
-    return true;
-  }, [navigation, resetToAsnFromReceive]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const sub = BackHandler.addEventListener('hardwareBackPress', handleBack);
-      return () => sub.remove();
-    }, [handleBack])
-  );
+  const goToLineItemDetails = (startIdx = 0, sourceList = []) => {
+    const items = sourceList.map((it, i) => {
+      const raw = it._raw || {};
+      const qty = n(it.receiving);
+      return {
+        id: String(raw.id ?? i),
+        poNumber: asnHeader?.asn_num ?? raw.po_number ?? '—',
+        lineNumber: i + 1,
+        itemName: raw.item_code ?? it.name ?? '',
+        itemid: raw.item_id,
+        ship_to_location: raw.ship_to_location,
+        itemDescription: raw.item_description ?? '',
+        item_description: raw.item_description ?? '',
+        orderQty: n(raw.ordered_qty ?? it.ordered ?? 0),
+        openQty: remainingFor(raw),
+        uom: raw.uom,
+        receivingQty: qty,
+        receivingStatus: raw.line_status ?? '',
+        lpn: raw.lpn ?? '',
+        subInventory: raw.sub_inv_id ?? '',
+        locator: raw.locator_id ?? '',
+        max_open_qty: n(raw.max_open_qty ?? 0),
+        po_line_id: raw.po_line_id,
+      };
+    });
+    navigation.navigate('ASNPOLineItemDetails', {
+      items,
+      startIndex: startIdx,
+      readonly: false,
+      listType: 'line',
+      returnTo: 'podetailsummary',
+    });
+  };
 
   const renderLineCard = ({ item: row }) => {
     const isExpanded = expandedId === row.id;
@@ -401,7 +442,7 @@ const PODetailSummary = () => {
     const orderedQty = asnHeader?.total_order_qty != null ? n(asnHeader.total_order_qty) : ordered;
     const receivedQty = asnHeader?.total_rcvd_qty != null ? n(asnHeader.total_rcvd_qty) : received;
     const uiItems = applyUiRule(itemsSrcForRow(row));
-    console.log(uiItems,"RENDERUIUIJ")
+
     return (
       <View style={styles.cardElevatedContainer}>
         <Swipeable
@@ -441,12 +482,22 @@ const PODetailSummary = () => {
                 <FlatList
                   data={uiItems}
                   keyExtractor={(it) => it.key}
-                  renderItem={({ item }) => (
+                  renderItem={({ item, index }) => (
                     <View style={styles.itemRow}>
-                      <Text style={[styles.itemText, styles.colItem]} numberOfLines={1}>{item.name}</Text>
-                      <Text style={[styles.itemText, styles.colOrdered]}>{Number.isFinite(item.ordered) ? item.ordered : 0}</Text>
-                      <Text style={[styles.itemText, styles.colOrdered]}>{Number.isFinite(item.shipped_qty) ? item.shipped_qty : 0}</Text>
-                      <Text style={[styles.itemTextStrong, styles.colReceiving]}>{Number.isFinite(item.receiving) ? item.receiving : 0}</Text>
+                      <TouchableOpacity style={styles.colItem} onPress={() => goToLineItemDetails(index, uiItems)}>
+                        <Text style={styles.viewDetails} numberOfLines={1}>
+                          {item._raw?.item_code ?? item.name ?? dash}
+                        </Text>
+                      </TouchableOpacity>
+                      <Text style={[styles.itemText, styles.colOrdered]}>
+                        {Number.isFinite(item.ordered) ? item.ordered : 0}
+                      </Text>
+                      <Text style={[styles.itemText, styles.colOrdered]}>
+                        {Number.isFinite(item.shipped_qty) ? item.shipped_qty : 0}
+                      </Text>
+                      <Text style={[styles.itemTextStrong, styles.colReceiving]}>
+                        {Number.isFinite(item.receiving) ? item.receiving : 0}
+                      </Text>
                     </View>
                   )}
                   nestedScrollEnabled
@@ -543,7 +594,14 @@ const PODetailSummary = () => {
           initialNumToRender={2}
           windowSize={3}
         />
-        <FooterButtonsComponent leftLabel="Save" rightLabel="Confirm" onLeftPress={onSave} onRightPress={onConfirmOpen} leftEnabled rightEnabled />
+        <FooterButtonsComponent
+          leftLabel="Save"
+          rightLabel="Confirm"
+          onLeftPress={onSave}
+          onRightPress={onConfirmOpen}
+          leftEnabled
+          rightEnabled
+        />
       </SafeAreaView>
 
       <ConfirmModalComponent
@@ -636,7 +694,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   itemsHeaderText: { fontWeight: '600', fontStyle: 'italic', fontSize: 12, width: 140, color: '#595A5C' },
-
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -645,18 +702,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#D9E4EE',
   },
-  itemRowLast: {
-    borderBottomWidth: 0,
-  },
-
-  colItem: { flex: 1},
+  itemRowLast: { borderBottomWidth: 0 },
+  colItem: { flex: 1 },
   colOrdered: { flex: 1 },
   colReceiving: { flex: 1 },
-
   itemText: { fontSize: 12, fontWeight: '400', color: '#242424' },
   itemTextStrong: { fontSize: 12, fontWeight: '700', color: '#242424' },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#D9E4EE' },
-  
+  viewDetails: { fontSize: 12, fontWeight: '700', color: '#033EFF', textDecorationLine: 'underline' },
   leftActionContainer: { backgroundColor: '#ECF1F7', justifyContent: 'center', alignItems: 'flex-start', width: 40 },
   rightActionContainer: { backgroundColor: '#F8D2D4', justifyContent: 'center', alignItems: 'flex-end', width: 40 },
   actionButton: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 },

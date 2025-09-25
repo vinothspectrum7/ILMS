@@ -110,8 +110,10 @@ const ASNPOLineItemDetailsScreen = () => {
           imageUri: fromStore.imageUri ?? it.imageUri ?? null,
         };
       } else {
+        const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
+        const initialQty = clampToLimit(Number(it.receivingQty ?? it.openQty ?? 0), limit);
         next[it.id] = {
-          receivingQty: 0,
+          receivingQty: initialQty,
           lpn: it.lpn ?? '',
           subInventory: it.subInventory ?? '',
           locator: it.locator ?? '',
@@ -343,7 +345,7 @@ const ASNPOLineItemDetailsScreen = () => {
     }
     try {
       for (const p of patches) mergePatchIntoReceiveItems(p);
-      const label = returnTo === 'ReceiveSummaryScreen' ? 'Updated Successfully' : 'Saved Successfully';
+      const label = returnTo === 'podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
       setSuccessMessage(label);
       setSuccessVisible(true);
       setTimeout(() => {
@@ -602,7 +604,7 @@ const ASNPOLineItemDetailsScreen = () => {
   };
 
   const leftBtnLabel = 'Cancel';
-  const rightBtnLabel = returnTo === 'ReceiveSummaryScreen' ? 'Update' : 'Save';
+  const rightBtnLabel = returnTo === 'podetailsummary' ? 'Update' : 'Save';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -739,25 +741,8 @@ const styles = StyleSheet.create({
   successCard: { width: '75%', backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16, alignItems: 'center', elevation: 6 },
   successTitle: { fontSize: 14, fontWeight: '700', color: '#233E55', marginBottom: 6 },
   successMsg: { fontSize: 13, fontWeight: '600', color: '#111827' },
-  uomText: {
-    fontSize: 10,
-    color: '#595A5C',
-    marginTop: -6,
-    marginBottom: 10,
-    marginRight: 2,
-    textAlign: 'right'
-  },
-  imageWrapper: {
-    position: 'relative',
-    width: 70,
-    height: 70,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  uomText: { fontSize: 10, color: '#595A5C', marginTop: -6, marginBottom: 10, marginRight: 2, textAlign: 'right' },
+  imageWrapper: { position: 'relative', width: 70, height: 70, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
   image: { width: '100%', height: '100%' },
   cameraIcon: { position: 'absolute', top: -3, right: -5, zIndex: 5, elevation: 2 },
   fullScreenModal: { flex: 1, backgroundColor: '#000' },
