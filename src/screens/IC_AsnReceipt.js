@@ -53,7 +53,8 @@ const remainingForASN = (li) => {
   const ord = Number(li?.ordered_qty ?? 0);
   const rcvd = Number(li?.rcvd_qty ?? 0);
   const rem = ord - rcvd;
-  return Number.isFinite(rem) && rem > 0 ? rem : 0;
+  const open = rem>li?.shipped_qty?Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty):rem;
+  return Number.isFinite(open) && open > 0 ? open : 0;
 };
 const clampASN = (li, requested) => {
   const req = Number(requested ?? 0);
@@ -165,7 +166,15 @@ const IC_AsnReceiptScreen = () => {
           setPhase('loading');
           const resp = await GetSavedSingleASN(activeASN.asn_id, iface);
           if (cancelled) return;
-          const grouped = groupByPO(resp || []);
+          const asns = Array.isArray(resp) ? resp : resp ? [resp] : [];
+          const updatedAsns = asns.map((asn) => ({
+             ...asn,
+             asn_line_items: (asn.asn_line_items || []).map((li) => ({
+             ...li,
+             max_open_qty: Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty),
+            })),
+          }));
+          const grouped = groupByPO(updatedAsns || []);
           setItems(grouped);
           setAsnHeader(activeASN);
           setPhase('success');

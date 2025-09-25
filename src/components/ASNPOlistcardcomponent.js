@@ -142,6 +142,8 @@ const formatDate = (dateStr) => {
             <Text style={styles.metaText}>Ordered Qty: {item.orderedQty}</Text>
             <View style={styles.vertDivider} />
             <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
+            <View style={styles.vertDivider} />
+            <Text style={styles.metaText}>Shipped Qty: {item.shipped_qty}</Text>
           </View>
           <TouchableOpacity onPress={() => onViewDetails?.(item, index)}>
             <Text style={styles.viewDetails}>View Details</Text>
@@ -245,12 +247,12 @@ const styles = StyleSheet.create({
     marginBottom: s(10),
     alignItems: 'center',
   },
-  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center' },
+  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center', },
   vertDivider: {
     width: Math.max(StyleSheet.hairlineWidth, s(1)),
     height: s(18),
     backgroundColor: '#DADADA',
-    marginHorizontal: s(12),
+    marginHorizontal: s(8),
     borderRadius: s(0.5),
     opacity: 0.9,
   },

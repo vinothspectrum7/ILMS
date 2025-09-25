@@ -33,7 +33,9 @@ const fmtISO = (d) => {
 };
 
 const mapLinesToFrontend = (arr, org) => {
-  return (Array.isArray(arr) ? arr : []).map((li, index) => {
+  return (Array.isArray(arr) ? arr : [])
+  .filter(li => Number(li?.rcvd_qty ?? 0) < Number(li?.shipped_qty ?? 0))
+  .map((li, index) => {
     const ordered = Number(li?.ordered_qty ?? 0);
     const rcvd = Number(li?.rcvd_qty ?? 0);
     const open = Math.max(0, ordered - rcvd);
@@ -41,6 +43,8 @@ const mapLinesToFrontend = (arr, org) => {
     const promised = li?.promised_dlry_dt ? fmtISO(new Date(li.promised_dlry_dt)) : null;
     const needBy = li?.need_by_dt ? fmtISO(new Date(li.need_by_dt)) : null;
     const startQty = Number(li?.receiving_qty ?? 0);
+    const max_shipped = Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty);
+    const max_open = open>li?.shipped_qty?max_shipped:open;
     return {
       id: index + 1,
       po_line_id: li?.po_line_id,
@@ -55,7 +59,8 @@ const mapLinesToFrontend = (arr, org) => {
       orderQty: ordered,
       receivedQty: rcvd,
       openQty: open,
-      max_open_qty: Math.floor(Number(li?.max_open_qty ?? open)),
+      max_open_qty: max_open,
+      shipped_qty:li?.shipped_qty,
       lpn: '',
       subInventory: org?.selectedinventory,
       org_id: org?.selectedOrg,
@@ -455,7 +460,7 @@ const PovViewItems = () => {
               airbill={asnHeader?.airbill}
             />
             <View style={styles.itemcontainer}>
-              <Text style={styles.sectionPOTitle}>{selectedPO?.po_number || '-'}</Text>
+              <Text style={styles.sectionPOTitle}>Purchase Order - {selectedPO?.po_number || '-'}</Text>
               <TouchableOpacity style={styles.scanRow} onPress={() => setShowScanner(true)} activeOpacity={0.8}>
                 <Text style={styles.scanText}>Scan your item</Text>
                 <BarcodeScannerIcon width={20} height={20} fill="#7A7A7A" />
@@ -554,7 +559,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1f2937',
     paddingVertical: 8,
-    marginHorizontal: responsiveSize(10),
+    marginHorizontal: responsiveSize(15),
   },
 });
 

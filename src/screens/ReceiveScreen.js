@@ -245,6 +245,7 @@ const ReceiveScreen = () => {
     const loadIC = async () => {
       try {
         const data = await GetICPoItems(OrgData?.selectedOrg);
+        console.log(data,"GetICPoItemsGetICPoItemsGetICPoItemsGetICPoItems")
         const normalized = (data || []).map((d, idx) => {
           const isASN = String(d?.received_type || '').toLowerCase() === 'asn';
           return {
@@ -317,8 +318,23 @@ const ReceiveScreen = () => {
       setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
       return;
     }
+    if(activeKey === 'received'){
+      console.log(ReceivedData,"SetReceivedDataSetReceivedData");
+    SetReceivedData((prev) => {
+        const sorted = [...prev].sort((a, b) => {
+          const da = a.received_type=='asn' ? new Date(a.shipped_date) : new Date(a.received_date);
+          const db = b.received_type=='asn' ? new Date(b.shipped_date) : new Date(b.received_date);
+          if (da.getTime() !== db.getTime()) return sortOrder === 'asc' ? da - db : db - da;
+          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+        });
+        return sorted;
+      });
+      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
+      return; 
+    }
 
     if (activeKey === 'InComplete') {
+      console.log(ICList,"setICListsetICList")
       setICList((prev) => {
         const sorted = [...prev].sort((a, b) => {
           const da = a.isASN ? new Date(a.shipped_date || a.expected_receipt_date) : new Date(a.received_date);
@@ -856,9 +872,13 @@ const ReceiveScreen = () => {
                       <SortIcon width={24} height={24} fill="#233E55" />
                     </TouchableOpacity>
 
+                      {(index === 0 || index === 1) && (
+                        <>
                     <TouchableOpacity onPress={() => setMenuOpen((v) => !v)}>
                       <BackFilterIcon width={24} height={24} fill="#233E55" />
                     </TouchableOpacity>
+                    </>
+                      )}
 
                     {menuOpen && (
                       <View style={styles.menu}>

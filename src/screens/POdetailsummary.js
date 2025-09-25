@@ -141,11 +141,13 @@ const PODetailSummary = () => {
 
   const applyUiRule = (items) => {
     if (!items.length) return [];
+    console.log(items,"applyUiRuleapplyUiRule")
     if (allZeroInItems(items)) {
       return items.map((li, idx) => ({
         key: String(li?.item_code ?? li?.item_id ?? idx),
         name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
         ordered: n(li?.ordered_qty ?? 0),
+        shipped_qty: n(li?.shipped_qty ?? 0),
         receiving: openQty(li),
         _raw: li,
       }));
@@ -156,6 +158,7 @@ const PODetailSummary = () => {
         key: String(li?.item_code ?? li?.item_id ?? idx),
         name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
         ordered: n(li?.ordered_qty ?? 0),
+        shipped_qty: n(li?.shipped_qty ?? 0),
         receiving: n(pickQty(li)),
         _raw: li,
       }));
@@ -398,6 +401,7 @@ const PODetailSummary = () => {
     const orderedQty = asnHeader?.total_order_qty != null ? n(asnHeader.total_order_qty) : ordered;
     const receivedQty = asnHeader?.total_rcvd_qty != null ? n(asnHeader.total_rcvd_qty) : received;
     const uiItems = applyUiRule(itemsSrcForRow(row));
+    console.log(uiItems,"RENDERUIUIJ")
     return (
       <View style={styles.cardElevatedContainer}>
         <Swipeable
@@ -431,6 +435,7 @@ const PODetailSummary = () => {
                 <View style={styles.itemsHeader}>
                   <Text style={[styles.itemsHeaderText, styles.colItem]}>List of Items</Text>
                   <Text style={[styles.itemsHeaderText, styles.colOrdered]}>Ordered Qty</Text>
+                  <Text style={[styles.itemsHeaderText, styles.colOrdered]}>Shipped Qty</Text>
                   <Text style={[styles.itemsHeaderText, styles.colReceiving]}>Receiving Qty</Text>
                 </View>
                 <FlatList
@@ -440,6 +445,7 @@ const PODetailSummary = () => {
                     <View style={styles.itemRow}>
                       <Text style={[styles.itemText, styles.colItem]} numberOfLines={1}>{item.name}</Text>
                       <Text style={[styles.itemText, styles.colOrdered]}>{Number.isFinite(item.ordered) ? item.ordered : 0}</Text>
+                      <Text style={[styles.itemText, styles.colOrdered]}>{Number.isFinite(item.shipped_qty) ? item.shipped_qty : 0}</Text>
                       <Text style={[styles.itemTextStrong, styles.colReceiving]}>{Number.isFinite(item.receiving) ? item.receiving : 0}</Text>
                     </View>
                   )}
@@ -643,7 +649,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
 
-  colItem: { flex: 2, paddingLeft: 8 },
+  colItem: { flex: 1},
   colOrdered: { flex: 1 },
   colReceiving: { flex: 1 },
 

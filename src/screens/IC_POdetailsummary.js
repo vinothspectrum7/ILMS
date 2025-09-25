@@ -146,6 +146,7 @@ const IC_PODetailSummary = () => {
         key: String(li?.item_code ?? li?.item_id ?? idx),
         name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
         ordered: n(li?.ordered_qty ?? 0),
+        shipped_qty: n(li?.shipped_qty ?? 0),
         receiving: openQty(li),
         _raw: li,
       }));
@@ -156,6 +157,7 @@ const IC_PODetailSummary = () => {
         key: String(li?.item_code ?? li?.item_id ?? idx),
         name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
         ordered: n(li?.ordered_qty ?? 0),
+        shipped_qty: n(li?.shipped_qty ?? 0),
         receiving: n(pickQty(li)),
         _raw: li,
       }));
@@ -431,6 +433,7 @@ const IC_PODetailSummary = () => {
                 <View style={styles.itemsHeader}>
                   <Text style={[styles.itemsHeaderText, styles.colItem]}>List of Items</Text>
                   <Text style={[styles.itemsHeaderText, styles.colOrdered]}>Ordered Qty</Text>
+                  <Text style={[styles.itemsHeaderText, styles.colOrdered]}>Shipped Qty</Text>
                   <Text style={[styles.itemsHeaderText, styles.colReceiving]}>Receiving Qty</Text>
                 </View>
                 <FlatList
@@ -440,6 +443,7 @@ const IC_PODetailSummary = () => {
                     <View style={styles.itemRow}>
                       <Text style={[styles.itemText, styles.colItem]} numberOfLines={1}>{item.name}</Text>
                       <Text style={[styles.itemText, styles.colOrdered]}>{Number.isFinite(item.ordered) ? item.ordered : 0}</Text>
+                      <Text style={[styles.itemText, styles.colOrdered]}>{Number.isFinite(item.shipped_qty) ? item.shipped_qty : 0}</Text>
                       <Text style={[styles.itemTextStrong, styles.colReceiving]}>{Number.isFinite(item.receiving) ? item.receiving : 0}</Text>
                     </View>
                   )}
@@ -643,7 +647,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
 
-  colItem: { flex: 2, paddingLeft: 8 },
+  colItem: { flex: 1},
   colOrdered: { flex: 1 },
   colReceiving: { flex: 1 },
 
