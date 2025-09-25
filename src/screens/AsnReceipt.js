@@ -171,7 +171,7 @@ const AsnReceiptScreen = () => {
     const merged = Array.isArray(lines) ? lines.map((x) => deepClone(x)) : [];
     const allZero = merged.every((li) => Number(li?.receiving_qty ?? 0) <= 0);
     if (!allZero) {
-      return merged.map((li) => ({ ...li, receiving_qty: clampASN(li, Number(li?.receiving_qty ?? 0)) }));
+      return merged.map((li) => ({ ...li, receiving_qty: li?.receiving_qty ?? 0 }));
     }
     return merged.map((li) => ({ ...li, receiving_qty: remainingForASN(li) }));
   };
@@ -298,8 +298,10 @@ const AsnReceiptScreen = () => {
     items.forEach((po) => {
       const isChecked = selectedIdsSet.has(String(po.po_id));
       const merged = byId.get(String(po.po_id)) || [];
+          console.log(merged,"buildAllRowsForSave")
       let finalLines = merged.map((li) => ({ ...li }));
       if (isChecked) finalLines = ensureAutoFillIfAllZero(finalLines);
+                console.log(finalLines,"finalLines")
       finalLines.forEach((li) => {
         const rx = Number(li?.receiving_qty ?? 0);
         const received_qty = isChecked ? clampASN(li, rx) : 0;

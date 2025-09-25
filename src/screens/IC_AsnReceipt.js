@@ -223,7 +223,7 @@ const IC_AsnReceiptScreen = () => {
   const ensureAutoFillIfAllZero = (lines) => {
     const merged = Array.isArray(lines) ? lines.map((x) => deepClone(x)) : [];
     const allZero = merged.every((li) => Number(li?.receiving_qty ?? 0) <= 0);
-    if (!allZero) return merged.map((li) => ({ ...li, receiving_qty: clampASN(li, Number(li?.receiving_qty ?? 0)) }));
+    if (!allZero) return merged.map((li) => ({ ...li, receiving_qty: li?.receiving_qty ?? 0 }));
     return merged.map((li) => ({ ...li, receiving_qty: remainingForASN(li) }));
   };
 

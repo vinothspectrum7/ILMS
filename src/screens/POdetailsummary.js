@@ -416,8 +416,8 @@ const PODetailSummary = () => {
         receivingQty: qty,
         receivingStatus: raw.line_status ?? '',
         lpn: raw.lpn ?? '',
-        subInventory: raw.sub_inv_id ?? '',
-        locator: raw.locator_id ?? '',
+        subInventory: raw.sub_inv_id ?? null,
+        locator: raw.locator_id ?? null,
         max_open_qty: n(raw.max_open_qty ?? 0),
         po_line_id: raw.po_line_id,
       };

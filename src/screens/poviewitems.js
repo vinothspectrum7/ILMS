@@ -214,8 +214,8 @@ const PovViewItems = () => {
       const isSelected = selectedSet.has(String(front?.id));
       return {
         ...li,
-        subInventory:front?.subInventory,
-        locator:front?.locator,
+        subInventory:front?.subInventory?front?.subInventory:null,
+        locator:front?.locator?front?.locator:null,
         receiving_qty: isSelected ? clamped : 0,
       };
     });
@@ -235,7 +235,10 @@ const PovViewItems = () => {
   const persistAndReturnToASN = () => {
     commitDraftToStore();
     const enrichedLines = buildEnrichedLines();
+        console.log(enrichedLines,"enrichedLines");
+
     const finalizedLines = finalizeLinesWithAutoFill(enrichedLines);
+            console.log(finalizedLines,"finalizedLines");
     if (selectedPO?.po_id) {
       setAsnEditedLinesForPO(selectedPO.po_id, finalizedLines);
       selectAsnPOId(selectedPO.po_id);
