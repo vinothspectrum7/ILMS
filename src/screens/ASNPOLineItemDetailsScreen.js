@@ -489,7 +489,7 @@ const ASNPOLineItemDetailsScreen = () => {
                     width={NUMCONTROL_WIDTH}
                     height={NUMCONTROL_HEIGHT}
                     isSelected={isEditable}
-                    disabledinput={item.openQty == 0 ? true : false}
+                    disabledinput={item.shipped_qty<=item.receivedQty}
                   />
                 )}
               </View>
@@ -544,8 +544,8 @@ const ASNPOLineItemDetailsScreen = () => {
                       : undefined
                   }
                   options={LpnList}
-                  placeholder="Select Locator"
-                  disabled={!isEditable || item.openQty == 0}
+                  placeholder="Select LPN"
+                  disabled={!isEditable || item.shipped_qty<=item.receivedQty}
                   width={CONTROL_WIDTH}
                   selectedwidth={CONTROL_WIDTH}
                   height={CONTROL_HEIGHT}
@@ -565,7 +565,7 @@ const ASNPOLineItemDetailsScreen = () => {
                   onChange={isEditable ? (sub_id) => handleSubInventoryChange(item.id, sub_id) : undefined}
                   options={InventoryList}
                   placeholder="Select Sub Inventory"
-                  disabled={!isEditable || item.openQty == 0}
+                  disabled={!isEditable || item.shipped_qty<=item.receivedQty}
                   width={CONTROL_WIDTH}
                   selectedwidth={SUB_WIDTH}
                   height={CONTROL_HEIGHT}
@@ -585,7 +585,7 @@ const ASNPOLineItemDetailsScreen = () => {
                   onChange={isEditable ? (id) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
                   options={locatorDataMap[item.id] ?? []}
                   placeholder="Select Locator"
-                  disabled={!isEditable || item.openQty == 0}
+                  disabled={!isEditable || item.shipped_qty<=item.receivedQty}
                   width={CONTROL_WIDTH}
                   selectedwidth={CONTROL_WIDTH}
                   height={CONTROL_HEIGHT}

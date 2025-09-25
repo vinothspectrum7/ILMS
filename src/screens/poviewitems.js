@@ -34,7 +34,7 @@ const fmtISO = (d) => {
 
 const mapLinesToFrontend = (arr, org) => {
   return (Array.isArray(arr) ? arr : [])
-  .filter(li => Number(li?.rcvd_qty ?? 0) < Number(li?.shipped_qty ?? 0))
+  // .filter(li => Number(li?.rcvd_qty ?? 0) < Number(li?.shipped_qty ?? 0))
   .map((li, index) => {
     const ordered = Number(li?.ordered_qty ?? 0);
     const rcvd = Number(li?.rcvd_qty ?? 0);
@@ -208,14 +208,16 @@ const PovViewItems = () => {
     const selectedSet = new Set(selectedItems.map(String));
     return base.map((li, idx) => {
       const front = draftItems[idx];
+      console.log(front,"buildEnrichedLinesdraftItemsdraftItemsdraftItems")
       const rawQty = Number(front?.qtyToReceive ?? 0);
       const limit = Number(front?.max_open_qty ?? li?.max_open_qty ?? front?.openQty ?? 0);
       const clamped = Math.max(0, Math.min(rawQty, Number.isFinite(limit) ? limit : 0));
+      console.log(clamped,"clampedclampedclampedclamped")
       const isSelected = selectedSet.has(String(front?.id));
       return {
         ...li,
-        subInventory:front?.subInventory?front?.subInventory:null,
-        locator:front?.locator?front?.locator:null,
+        subInventory: front?.subInventory ?? null,
+        locator: front?.locator ?? null,
         receiving_qty: isSelected ? clamped : 0,
       };
     });
@@ -409,6 +411,8 @@ const PovViewItems = () => {
         lineNumber: i + 1,
         itemName: it.itemName ?? it.name,
         itemid:it.item_id,
+        shipped_qty:it.shipped_qty,
+        receivedQty:it.receivedQty,
         ship_to_location:it.ship_to_location,
         itemDescription: itemDesc,
         item_description: itemDesc,

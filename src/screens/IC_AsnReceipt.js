@@ -34,6 +34,7 @@ const groupByPO = (arr) => {
     const key = String(po?.po_id ?? po?.po_number ?? '');
     if (!key) continue;
     const lines = Array.isArray(po?.asn_line_items) ? po.asn_line_items : [];
+    const disabled = po?.disabled;
     if (map.has(key)) {
       const ex = map.get(key);
       ex.line_items = ex.line_items.concat(lines);
@@ -42,7 +43,7 @@ const groupByPO = (arr) => {
       if (nextRank > curRank) ex.po_status = po.po_status || ex.po_status;
       ex.orderedByDate = earliestDateISO(ex.line_items);
     } else {
-      map.set(key, { id: String(po.po_id), po_id: po.po_id, po_number: po.po_number ?? '-', po_status: String(po.po_status || 'OPEN').toUpperCase(), orderedByDate: earliestDateISO(lines), line_items: lines.slice() });
+      map.set(key, { id: String(po.po_id), po_id: po.po_id, po_number: po.po_number ?? '-', po_status: String(po.po_status || 'OPEN').toUpperCase(), orderedByDate: earliestDateISO(lines), line_items: lines.slice(),disabled:disabled });
     }
   }
   return Array.from(map.values());
@@ -167,13 +168,22 @@ const IC_AsnReceiptScreen = () => {
           const resp = await GetSavedSingleASN(activeASN.asn_id, iface);
           if (cancelled) return;
           const asns = Array.isArray(resp) ? resp : resp ? [resp] : [];
-          const updatedAsns = asns.map((asn) => ({
-             ...asn,
-             asn_line_items: (asn.asn_line_items || []).map((li) => ({
-             ...li,
-             max_open_qty: Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty),
-            })),
-          }));
+          const filteredAsns = asns.filter(asn => asn.po_status !== "FULLY RECEIVED");
+          const updatedAsns = filteredAsns.map((asn) => {
+  const asn_line_items = (asn.asn_line_items || []).map((li) => ({
+    ...li,
+    max_open_qty: Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty ?? 0),
+  }));
+  const disabled = asn_line_items.every(
+    (li) => (Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty ?? 0)) <= 0
+  );
+  console.log(disabled,"asn_line_itemsdisabled")
+  return {
+    ...asn,
+    asn_line_items,
+    disabled,
+  };
+});
           const grouped = groupByPO(updatedAsns || []);
           setItems(grouped);
           setAsnHeader(activeASN);
@@ -223,7 +233,18 @@ const IC_AsnReceiptScreen = () => {
   const ensureAutoFillIfAllZero = (lines) => {
     const merged = Array.isArray(lines) ? lines.map((x) => deepClone(x)) : [];
     const allZero = merged.every((li) => Number(li?.receiving_qty ?? 0) <= 0);
-    if (!allZero) return merged.map((li) => ({ ...li, receiving_qty: li?.receiving_qty ?? 0 }));
+    if (!allZero) {
+      return merged.map((li) => ({ ...li, receiving_qty: clampASN(li, Number(li?.receiving_qty ?? 0)) }));
+    }
+    return merged.map((li) => ({ ...li, receiving_qty: remainingForASN(li) }));
+  };
+
+  const ensureAutoFillforSave = (lines) => {
+    const merged = Array.isArray(lines) ? lines.map((x) => deepClone(x)) : [];
+    const allZero = merged.every((li) => Number(li?.receiving_qty ?? 0) <= 0);
+    if (!allZero) {
+      return merged.map((li) => ({ ...li, receiving_qty: li?.receiving_qty ?? 0 }));
+    }
     return merged.map((li) => ({ ...li, receiving_qty: remainingForASN(li) }));
   };
 
@@ -331,7 +352,7 @@ const IC_AsnReceiptScreen = () => {
       const isChecked = selectedIdsSet.has(String(po.po_id));
       const merged = byId.get(String(po.po_id)) || [];
       let finalLines = merged.map((li) => ({ ...li }));
-      if (isChecked) finalLines = ensureAutoFillIfAllZero(finalLines);
+      if (isChecked) finalLines = ensureAutoFillforSave(finalLines);
       finalLines.forEach((li) => {
         const rx = Number(li?.receiving_qty ?? 0);
         const received_qty = isChecked ? clampASN(li, rx) : 0;
@@ -489,7 +510,7 @@ const IC_AsnReceiptScreen = () => {
                   return (
                     <View style={styles.lineItemWrapper}>
                       <ASNListCardComponent
-                        item={{ po_id: item.po_id, po_number: item.po_number, Poid: item.po_number, orderedByDate: item.orderedByDate, po_status: item.po_status, line_items: mergedLines }}
+                        item={{ po_id: item.po_id, po_number: item.po_number, Poid: item.po_number, orderedByDate: item.orderedByDate, po_status: item.po_status,disabled:item.disabled, line_items: mergedLines }}
                         isSelected={selectedIdsSet.has(String(item.po_id))}
                         onCheckToggle={() => handleCheckToggle(item)}
                       />
