@@ -115,7 +115,9 @@ const AsnReceiptScreen = () => {
       setPhase('loading');
       const resp = await GetASNPoItems(activeASN.asn_id);
         const asns = Array.isArray(resp) ? resp : resp ? [resp] : [];
-  const updatedAsns = asns.map((asn) => ({
+        console.log(asns,"GetASNPoItems GetASNPoItems");
+        const filteredAsns = asns.filter(asn => asn.po_status !== "FULLY RECEIVED");
+  const updatedAsns = filteredAsns.map((asn) => ({
     ...asn,
     asn_line_items: (asn.asn_line_items || []).map((li) => ({
       ...li,

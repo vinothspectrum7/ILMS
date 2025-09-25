@@ -214,8 +214,8 @@ const IC_PovViewItems = () => {
       const isSelected = selectedSet.has(String(front?.id));
       return {
         ...li,
-        subInventory:front.subInventory,
-        locator:front.locator,
+        subInventory:front?.subInventory,
+        locator:front?.locator,
         receiving_qty: isSelected ? clamped : 0,
       };
     });

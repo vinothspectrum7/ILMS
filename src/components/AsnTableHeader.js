@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import CheckBox from '@react-native-community/checkbox';
 import FilterIcon from '../assets/icons/filter.svg';
 
-const FILTERS = ['Yet to Receive', 'Receive In progress', 'Partly Received', 'Fully Received'];
+const FILTERS = ['Yet to Receive', 'Receive In progress', 'Partly Received'];
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
