@@ -342,6 +342,7 @@ locator_id: li?.locator && li.locator !== ""
     }
     try {
       const payload = mapAsnSaveData(all);
+      console.log('Save payload:', payload);
       const res = await Save_Receive_Qty(payload);
       if (isSaveSuccess(res)) {
         setSaveModalStatus('success');

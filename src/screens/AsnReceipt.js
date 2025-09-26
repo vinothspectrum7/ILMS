@@ -361,6 +361,7 @@ const updatedAsns = filteredAsns.map((asn) => {
 
   const handleSave = async () => {
     const payload = buildAllRowsForSave();
+    console.log('Save payload:', payload);
     try {
       const response = await Save_Receive_Qty(payload);
       if (isSaveSuccess(response)) {
