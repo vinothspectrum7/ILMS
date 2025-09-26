@@ -8,10 +8,8 @@ import FooterButtonsComponent from '../components/FooterButtonsComponent';
 import CustomNumericInput from '../components/CustomNumericInput';
 import PencilDropdownRow from '../components/PencilDropdownRow';
 import SuccessModal from '../components/SuccessModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useReceivingStore } from '../store/receivingStore';
 import { GetItemImage, GetLocatorsData } from '../api/ApiServices';
-import FailureSvg from '../assets/icons/failure.svg';
 import CameraIcon from '../assets/icons/CameraIcon.svg';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
@@ -36,6 +34,12 @@ const clampToLimit = (qty, limit) => {
   return Math.min(q, lim);
 };
 
+const sum = (arr, key) =>
+  (Array.isArray(arr) ? arr : []).reduce((acc, x) => {
+    const v = Number(x?.[key]);
+    return acc + (Number.isFinite(v) ? v : 0);
+  }, 0);
+
 const IC_ASNPOLineItemDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -50,10 +54,23 @@ const IC_ASNPOLineItemDetailsScreen = () => {
   const [previewUri, setPreviewUri] = useState(null);
   const [imageMap, setImageMap] = useState({});
 
-  const { InventoryList, OrgData, receiveItems, mergePatchIntoReceiveItems, setLocatorInCache, getLocatorFromCache } = useReceivingStore();
+  const {
+    InventoryList,
+    OrgData,
+    receiveItems,
+    initReceiveItems,
+    mergePatchIntoReceiveItems,
+    setLocatorInCache,
+    getLocatorFromCache,
+    asnSelectedLines,
+    initAsnSelectedLines,
+    updateAsnLine,
+    setAsnEditedLinesForPO,
+    selectAsnPOId,
+    asnSelectedPOIds,
+  } = useReceivingStore();
 
   const baseItems = Array.isArray(route?.params?.items) && route.params.items.length > 0 ? route.params.items : [];
-
   const inReadonlyFromAsn = readOnly || returnTo === 'AsnReceivedScreen' || listType === 'received';
 
   const mergedItems = useMemo(() => {
@@ -77,10 +94,8 @@ const IC_ASNPOLineItemDetailsScreen = () => {
   }, [baseItems, receiveItems, inReadonlyFromAsn]);
 
   const startIndex = Math.max(0, Math.min(Number(route?.params?.startIndex ?? 0), mergedItems.length - 1));
-
   const [menuOpen, setMenuOpen] = useState(false);
   const [index, setIndex] = useState(startIndex);
-
   const [edited, setEdited] = useState({});
   const [locatorDataMap, setLocatorDataMap] = useState({});
   const [SUB_WIDTH, setSubWidth] = useState(80);
@@ -88,11 +103,32 @@ const IC_ASNPOLineItemDetailsScreen = () => {
   const [successVisible, setSuccessVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const listRef = useRef(null);
-  const isProgrammaticScroll = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
   const prefilledRef = useRef(false);
 
   const allItems = mergedItems;
   const current = useMemo(() => allItems[index], [allItems, index]);
+
+  useEffect(() => {
+    if (!Array.isArray(receiveItems) || receiveItems.length === 0) {
+      if (Array.isArray(allItems) && allItems.length > 0) {
+        const seed = allItems.map((it) => ({
+          id: String(it.id),
+          qtyToReceive: Number(it.receivingQty ?? 0),
+          receivingQty: Number(it.receivingQty ?? 0),
+          lpn: it.lpn ?? '',
+          subInventory: it.subInventory ?? '',
+          locator: it.locator ?? '',
+          max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+          orderedQty: Number(it.orderQty ?? 0),
+          receivedQty: Number(it.receivedQty ?? 0),
+          openQty: Number(it.openQty ?? 0),
+          uom: it.uom,
+        }));
+        // initReceiveItems(seed);
+      }
+    }
+  }, [allItems, receiveItems]);
 
   useEffect(() => {
     if (readOnly) return;
@@ -299,7 +335,6 @@ const IC_ASNPOLineItemDetailsScreen = () => {
   }, [edited, allItems, readOnly]);
 
   const titlePo = returnTo == 'ReceivedSummaryScreen' ? receiptNumber : current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
-  const isProgrammaticScrollRef = useRef(false);
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
@@ -312,7 +347,8 @@ const IC_ASNPOLineItemDetailsScreen = () => {
   const goNext = useCallback(() => { if (index < allItems.length - 1) scrollToIndex(index + 1); }, [index, allItems.length, scrollToIndex]);
 
   const handleCancelNav = useCallback(() => {
-    if (returnTo) navigation.navigate(returnTo);
+    if (returnTo === 'IC_podetailsummary') navigation.navigate('IC_podetailsummary', { readonly: false });
+    else if (returnTo) navigation.navigate(returnTo);
     else navigation.goBack();
   }, [navigation, returnTo]);
 
@@ -337,6 +373,71 @@ const IC_ASNPOLineItemDetailsScreen = () => {
     return patches;
   }, [allItems, edited]);
 
+  const resolvePoContext = useCallback(() => {
+    const poFromParams = route?.params?.selectedPO?.po_id || route?.params?.poId;
+    const poNumberFromParams = route?.params?.selectedPO?.po_number || route?.params?.poNumber;
+    if (poFromParams) return { po_id: String(poFromParams), po_number: poNumberFromParams || String(titlePo || '-') };
+    if (Array.isArray(asnSelectedPOIds) && asnSelectedPOIds.length > 0) {
+      const nid = String(asnSelectedPOIds[0]);
+      let pn = '-';
+      if (Array.isArray(asnSelectedLines) && asnSelectedLines.length > 0) {
+        const hit = asnSelectedLines.find(x => String(x.id) === nid);
+        pn = hit?.po_number || pn;
+      }
+      return { po_id: nid, po_number: pn || String(titlePo || '-') };
+    }
+    if (Array.isArray(asnSelectedLines) && asnSelectedLines.length > 0) {
+      const first = asnSelectedLines[0];
+      const nid = String(first?.po_id || first?.id || '');
+      const pn = first?.po_number || String(titlePo || '-');
+      if (nid) return { po_id: nid, po_number: pn };
+    }
+    return { po_id: null, po_number: String(titlePo || '-') };
+  }, [route?.params, asnSelectedPOIds, asnSelectedLines, titlePo]);
+
+  const buildEnrichedLinesFromDetails = useCallback(() => {
+    const patchedMap = new Map();
+    (receiveItems || []).forEach((ri) => {
+      patchedMap.set(String(ri.id), ri);
+    });
+    const lines = (allItems || []).map((it) => {
+      console.log(it,"it");
+      const r = patchedMap.get(String(it.id)) || {};
+      const rawQty = Number(r?.qtyToReceive ?? r?.receivingQty ?? edited[it.id]?.receivingQty ?? it.receivingQty ?? 0);
+      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
+      const clamped = Math.max(0, Math.min(rawQty, Number.isFinite(limit) ? limit : 0));
+      return {
+        po_line_id: it.po_line_id,
+        item_id: it.item_id || it.itemid,
+        item_code: it.itemName || it.item_nane,
+        item_description: it.item_description || it.itemdescription,
+        ordered_qty: Number(it.orderQty ?? it.orderedQty ?? 0),
+        rcvd_qty: Number(it.receivedQty ?? 0),
+        max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+        shipped_qty: Number(it.shipped_qty ?? 0),
+        uom: it.uom,
+        ship_to_location: it.ship_to_location,
+        line_status: it.receivingStatus,
+        receiving_qty: clamped,
+        subInventory: r?.subInventory ?? edited[it.id]?.subInventory ?? it.subInventory ?? null,
+        locator: r?.locator ?? edited[it.id]?.locator ?? it.locator ?? null,
+      };
+    });
+    return lines;
+  }, [allItems, receiveItems, edited]);
+
+  const finalizeLinesWithAutoFill = useCallback((lines) => {
+    const arr = Array.isArray(lines) ? lines : [];
+    const allZero = arr.every(li => Number(li?.receiving_qty ?? 0) <= 0);
+    if (!allZero) return arr;
+    return arr.map(li => {
+      const ord = Number(li?.ordered_qty ?? 0);
+      const cap = Number(li?.max_open_qty ?? ord);
+      const maxCap = Number.isFinite(cap) ? cap : 0;
+      return { ...li, receiving_qty: Math.min(ord, maxCap) };
+    });
+  }, []);
+
   const handleSaveAll = useCallback(async () => {
     const patches = buildPatches();
     if (!patches.length) {
@@ -345,23 +446,74 @@ const IC_ASNPOLineItemDetailsScreen = () => {
     }
     try {
       for (const p of patches) mergePatchIntoReceiveItems(p);
-      const label = returnTo === 'IC_podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
+      const { po_id, po_number } = resolvePoContext();
+      const enriched = buildEnrichedLinesFromDetails();
+      // console.log(enrichedLines,"enrichedLines");
+      const finalizedLines = finalizeLinesWithAutoFill(enriched);
+      console.log(finalizedLines,"finalizedLines");
+      const ordered_qty = sum(finalizedLines, 'ordered_qty');
+      const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
+      const receiving_qty = sum(finalizedLines, 'receiving_qty');
+      const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
+      const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
+      if (po_id) {
+        setAsnEditedLinesForPO(po_id, finalizedLines);
+        // selectAsnPOId(po_id);
+        // const existing = Array.isArray(asnSelectedLines) ? asnSelectedLines.find(x => String(x.id) === String(po_id)) : null;
+        const poEntry = {
+          id: String(po_id || '0'),
+          po_id: po_id || '',
+          po_number: po_number || '-',
+          line: {
+            ordered_qty,
+            rcvd_qty,
+            shipped_qty,
+            receiving_qty,
+            asn_line_items: finalizedLines,
+          },
+        };
+        // if (existing) {
+        //   updateAsnLine({ id: String(poEntry.id), line: poEntry.line });
+        // } else {
+        //   initAsnSelectedLines([poEntry]);
+        // }
+      }
+      const label = returnTo === 'podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
       setSuccessMessage(label);
       setSuccessVisible(true);
       setTimeout(() => {
         setSuccessVisible(false);
-        if (returnTo) navigation.dispatch(StackActions.replace(returnTo, { listType }));
-        else navigation.goBack();
+        if (returnTo === 'IC_podetailsummary') {
+          navigation.navigate('IC_podetailsummary', { readonly: false });
+        } else if (returnTo) {
+          navigation.dispatch(StackActions.replace(returnTo, { listType }));
+        } else {
+          navigation.goBack();
+        }
       }, 1200);
     } catch {
       Toast.show({ type: 'error', text1: 'Save failed', text2: 'Please try again.', position: 'top', visibilityTime: 5000 });
     }
-  }, [buildPatches, mergePatchIntoReceiveItems, navigation, returnTo, listType]);
+  }, [
+    buildPatches,
+    mergePatchIntoReceiveItems,
+    resolvePoContext,
+    buildEnrichedLinesFromDetails,
+    finalizeLinesWithAutoFill,
+    asnSelectedLines,
+    initAsnSelectedLines,
+    updateAsnLine,
+    setAsnEditedLinesForPO,
+    selectAsnPOId,
+    navigation,
+    returnTo,
+    listType,
+  ]);
 
   const renderImageBox = (item) => {
     const imgState = imageMap[item.itemid] || { uri: item.imageUri, loading: false };
     if (imgState.loading) {
-      return <ActivityIndicator size="large" color="#007bff" />;
+      return <ActivityIndicator size="large" />;
     }
     if (imgState.uri) {
       return (
@@ -426,8 +578,6 @@ const IC_ASNPOLineItemDetailsScreen = () => {
     const dynamicwidth = estimateWidth(findLabelsVal);
     setSubWidth(dynamicwidth);
 
-    const limit = Number(item.max_open_qty ?? item.openQty ?? 0);
-
     const siteLocationValueRaw = String(
       item.ship_to_location ?? item.shipped_location ?? item.shippedlocation ?? item.shiptolocation ?? ''
     ).trim();
@@ -452,6 +602,11 @@ const IC_ASNPOLineItemDetailsScreen = () => {
                 </Text>
                 <View style={styles.imageWrapper}>
                   {renderImageBox(allItems[index])}
+                  {!readOnly && (
+                    <TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
+                      <CameraIcon width={22} height={22} />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </View>
@@ -470,7 +625,7 @@ const IC_ASNPOLineItemDetailsScreen = () => {
               <Text style={styles.label}>{readOnly ? 'Received' : 'Receiving'} Quantity</Text>
               <View style={styles.numericRight}>
                 {readOnly ? (
-                  <Text style={styles.qtyRight}>{String(readonlyQty)}</Text>
+                  <Text style={styles.qtyRight}>{String(readOnly ? (returnTo == 'AsnReceivedScreen' ? item.receivingQty : (listType === 'scan' ? (Number(item.openQty ?? 0) > 0 ? Number(item.openQty ?? 0) : Number(item.orderQty ?? 0)) : Number(item.orderQty ?? mergedQty ?? 0))) : 0)}</Text>
                 ) : (
                   <CustomNumericInput
                     key={`qty-${String(item.id)}`}
@@ -604,7 +759,7 @@ const IC_ASNPOLineItemDetailsScreen = () => {
   };
 
   const leftBtnLabel = 'Cancel';
-  const rightBtnLabel = returnTo === 'IC_podetailsummary' ? 'Update' : 'Save';
+  const rightBtnLabel = returnTo === 'podetailsummary' ? 'Update' : 'Save';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -709,7 +864,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    elevation: 3,
   },
   navEdge: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center' },
   navTitle: { flex: 1, color: '#233E55', textAlign: 'center', fontSize: 12, fontWeight: '600' },
@@ -723,7 +877,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 6,
-    elevation: 3,
   },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, justifyContent: 'space-between' },
   block: { paddingVertical: 12 },
@@ -738,13 +891,13 @@ const styles = StyleSheet.create({
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
   statusText: { color: '#F5B429', fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
-  successCard: { width: '75%', backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16, alignItems: 'center', elevation: 6 },
+  successCard: { width: '75%', backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 18, paddingHorizontal: 16, alignItems: 'center' },
   successTitle: { fontSize: 14, fontWeight: '700', color: '#233E55', marginBottom: 6 },
   successMsg: { fontSize: 13, fontWeight: '600', color: '#111827' },
   uomText: { fontSize: 10, color: '#595A5C', marginTop: -6, marginBottom: 10, marginRight: 2, textAlign: 'right' },
   imageWrapper: { position: 'relative', width: 70, height: 70, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
   image: { width: '100%', height: '100%' },
-  cameraIcon: { position: 'absolute', top: -3, right: -5, zIndex: 5, elevation: 2 },
+  cameraIcon: { position: 'absolute', top: -3, right: -5, zIndex: 5 },
   fullScreenModal: { flex: 1, backgroundColor: '#000' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: '#fff', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ccc' },
   backBtn: { padding: 6 },

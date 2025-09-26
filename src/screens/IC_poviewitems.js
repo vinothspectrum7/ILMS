@@ -248,7 +248,7 @@ const IC_PovViewItems = () => {
       const line = { ordered_qty, rcvd_qty, shipped_qty, receiving_qty, asn_line_items: finalizedLines };
       updateAsnLine({ id: String(selectedPO.po_id), line });
     }
-    navigation.goBack();
+    navigation.navigate('IC_AsnReceiptScreen');
   };
 
   const CancelpersistAndReturnToASN = () => {
@@ -298,7 +298,7 @@ const IC_PovViewItems = () => {
     } else {
       initAsnSelectedLines([poEntry]);
     }
-    navigation.navigate('podetailsummary', { readonly: false });
+    navigation.navigate('IC_podetailsummary', { readonly: false });
   };
 
   const CancelpersistAndReturnToSummary = () => {
@@ -330,7 +330,7 @@ const IC_PovViewItems = () => {
     } else {
       // initAsnSelectedLines([poEntry]);
     }
-    navigation.navigate('podetailsummary', { readonly: false });
+    navigation.navigate('IC_podetailsummary', { readonly: false });
   };
 
   const handleReceive = () => {
@@ -423,12 +423,12 @@ const IC_PovViewItems = () => {
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
       };
     });
-    navigation.navigate('ASNPOLineItemDetails', {
+    navigation.navigate('IC_ASNPOLineItemDetails', {
       items,
       startIndex: startIdx,
       readonly: false,
       listType: 'line',
-      returnTo: 'poviewitems',
+      returnTo: 'IC_poviewitems',
     });
   };
   const hasAnyItems = useMemo(
@@ -441,7 +441,7 @@ const IC_PovViewItems = () => {
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Receiving"
         notificationCount={0}
-        onBack={() => navigation.goBack()}
+        onBack={() => navigation.navigate('IC_AsnReceiptScreen')}
       />
       {phase === 'loading' && (
         <View style={styles.loaderWrapper}>
