@@ -56,7 +56,7 @@ const remainingForASN = (li) => {
   const ord = Number(li?.ordered_qty ?? 0);
   const rcvd = Number(li?.rcvd_qty ?? 0);
   const rem = ord - rcvd;
-  const open = rem>li?.shipped_qty?Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty):rem;
+  const open = rem>0?li?.shipped_qty:0;
   return Number.isFinite(open) && open > 0 ? open : 0;
 };
 const clampASN = (li, requested) => {
