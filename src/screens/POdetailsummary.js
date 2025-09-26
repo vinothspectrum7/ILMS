@@ -413,6 +413,7 @@ const PODetailSummary = () => {
         orderQty: n(raw.ordered_qty ?? it.ordered ?? 0),
         openQty: remainingFor(raw),
         uom: raw.uom,
+        shipped_qty: raw.shipped_qty ?? '0', 
         receivingQty: qty,
         receivingStatus: raw.line_status ?? '',
         lpn: raw.lpn ?? '',

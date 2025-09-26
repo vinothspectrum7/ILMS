@@ -489,7 +489,7 @@ const IC_ASNPOLineItemDetailsScreen = () => {
                     width={NUMCONTROL_WIDTH}
                     height={NUMCONTROL_HEIGHT}
                     isSelected={isEditable}
-                    disabledinput={item.shipped_qty<=item.receivedQty}
+                    disabledinput={item.openQty==0}
                   />
                 )}
               </View>
@@ -545,7 +545,7 @@ const IC_ASNPOLineItemDetailsScreen = () => {
                   }
                   options={LpnList}
                   placeholder="Select LPN"
-                  disabled={!isEditable || item.shipped_qty<=item.receivedQty}
+                  disabled={!isEditable || item.openQty==0}
                   width={CONTROL_WIDTH}
                   selectedwidth={CONTROL_WIDTH}
                   height={CONTROL_HEIGHT}
@@ -565,7 +565,7 @@ const IC_ASNPOLineItemDetailsScreen = () => {
                   onChange={isEditable ? (sub_id) => handleSubInventoryChange(item.id, sub_id) : undefined}
                   options={InventoryList}
                   placeholder="Select Sub Inventory"
-                  disabled={!isEditable || item.shipped_qty<=item.receivedQty}
+                  disabled={!isEditable || item.openQty==0}
                   width={CONTROL_WIDTH}
                   selectedwidth={SUB_WIDTH}
                   height={CONTROL_HEIGHT}
@@ -585,7 +585,7 @@ const IC_ASNPOLineItemDetailsScreen = () => {
                   onChange={isEditable ? (id) => setEdited((prev) => ({ ...prev, [item.id]: { ...(prev[item.id] ?? {}), locator: id } })) : undefined}
                   options={locatorDataMap[item.id] ?? []}
                   placeholder="Select Locator"
-                  disabled={!isEditable || item.shipped_qty<=item.receivedQty}
+                  disabled={!isEditable || item.openQty==0}
                   width={CONTROL_WIDTH}
                   selectedwidth={CONTROL_WIDTH}
                   height={CONTROL_HEIGHT}
