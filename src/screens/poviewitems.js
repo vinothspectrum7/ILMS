@@ -270,7 +270,7 @@ const PovViewItems = () => {
       const line = { ordered_qty, rcvd_qty, shipped_qty, receiving_qty, asn_line_items: finalizedLines };
       // updateAsnLine({ id: String(selectedPO.po_id), line });
     }
-    navigation.goBack();
+    navigation.navigate('AsnReceiptScreen');
   };
 
   const persistAndReturnToSummary = () => {
