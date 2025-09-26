@@ -140,7 +140,7 @@ const PODetailSummary = () => {
       resetToAsnFromReceive({ fromDeleted: true });
       return true;
     }
-    navigation.goBack();
+    navigation.navigate('AsnReceiptScreen');
     return true;
   }, [navigation, resetToAsnFromReceive]);
 

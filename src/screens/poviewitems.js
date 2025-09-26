@@ -252,7 +252,7 @@ const PovViewItems = () => {
       const line = { ordered_qty, rcvd_qty, shipped_qty, receiving_qty, asn_line_items: finalizedLines };
       updateAsnLine({ id: String(selectedPO.po_id), line });
     }
-    navigation.goBack();
+    navigation.navigate('AsnReceiptScreen');
   };
 
   const CancelpersistAndReturnToASN = () => {
@@ -445,7 +445,7 @@ const PovViewItems = () => {
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Receiving"
         notificationCount={0}
-        onBack={() => navigation.goBack()}
+        onBack={() => navigation.navigate('AsnReceiptScreen')}
       />
       {phase === 'loading' && (
         <View style={styles.loaderWrapper}>

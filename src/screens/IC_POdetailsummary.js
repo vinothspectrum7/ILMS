@@ -140,7 +140,7 @@ const IC_PODetailSummary = () => {
       resetToAsnFromReceive({ fromDeleted: true });
       return true;
     }
-    navigation.goBack();
+    navigation.navigate('IC_AsnReceiptScreen');
     return true;
   }, [navigation, resetToAsnFromReceive]);
 
