@@ -16,7 +16,7 @@ import { useReceivingStore } from '../store/receivingStore';
 import EnnVeeLogoSmall from '../assets/icons/EnnVeeLogoSmall.svg';
 import BellIcon from '../assets/icons/bellnotification.svg';
 import HamburgerMenu from '../assets/icons/hamburgermenu.svg';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -60,6 +60,7 @@ export default function HeaderComponent({
   const [openOrgDropdown, setOpenOrgDropdown] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState(null);
   const [organizations,setOrganizations] = useState([]);
+  const navigation = useNavigation();
       const {
         OrgData
       } = useReceivingStore();
@@ -131,6 +132,11 @@ const maporgdata = (data) => {
       }, [loadUserName])
     );
 
+    const handlelogout = async()=>{
+      await AsyncStorage.removeItem("access_token");
+      navigation.navigate("Login");
+    }
+
   return (
     <View style={styles.headerContainer}>
       <StatusBar translucent={false} barStyle="light-content" backgroundColor={BRAND_BG} />
@@ -147,7 +153,7 @@ const maporgdata = (data) => {
             {showDot && <View style={styles.dot} />}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={onProfilePress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
+          <TouchableOpacity onPress={handlelogout} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
             <Text style={styles.avatarText}>{profileNames}</Text>
           </TouchableOpacity>
         </View>

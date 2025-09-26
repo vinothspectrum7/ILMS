@@ -358,9 +358,9 @@ const IC_ASNPOLineItemDetailsScreen = () => {
       const st = edited[it.id];
       if (!st) continue;
       const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
-      const clampedQty = clampToLimit(Number(st.receivingQty ?? 0), limit);
-      const valid = clampedQty > 0 && clampedQty <= limit && !!st.subInventory;
-      if (!valid) continue;
+      const clampedQty = st.receivingQty ?? 0;
+      // const valid = clampedQty > 0 && clampedQty <= limit && !!st.subInventory;
+      // if (!valid) continue;
       patches.push({
         id: String(it.id),
         receivingQty: clampedQty,

@@ -350,7 +350,7 @@ locator_id: li?.locator && li.locator !== ""
         setTimeout(() => {
           setSaveModalVisible(false);
           clearAsnFlow();
-          navigation.navigate('Receive');
+          // navigation.navigate('Receive');
         }, 1500);
       } else {
         setSaveModalStatus('failure');

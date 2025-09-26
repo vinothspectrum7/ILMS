@@ -358,9 +358,9 @@ const ASNPOLineItemDetailsScreen = () => {
       const st = edited[it.id];
       if (!st) continue;
       const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
-      const clampedQty = clampToLimit(Number(st.receivingQty ?? 0), limit);
-      const valid = clampedQty > 0 && clampedQty <= limit && !!st.subInventory;
-      if (!valid) continue;
+      const clampedQty = st.receivingQty ?? 0;
+      // const valid = clampedQty > 0 && clampedQty <= limit && !!st.subInventory;
+      // if (!valid) continue;
       patches.push({
         id: String(it.id),
         receivingQty: clampedQty,
@@ -403,7 +403,7 @@ const ASNPOLineItemDetailsScreen = () => {
     const lines = (allItems || []).map((it) => {
       console.log(it,"it");
       const r = patchedMap.get(String(it.id)) || {};
-      const rawQty = Number(r?.qtyToReceive ?? r?.receivingQty ?? edited[it.id]?.receivingQty ?? it.receivingQty ?? 0);
+      const rawQty = Number(edited[it.id]?.receivingQty ?? it.receivingQty ?? 0);
       const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
       const clamped = Math.max(0, Math.min(rawQty, Number.isFinite(limit) ? limit : 0));
       return {
@@ -537,6 +537,7 @@ const ASNPOLineItemDetailsScreen = () => {
     const storeQty = Number(fromStore?.qtyToReceive);
     const mergedQty = Number(item.receivingQty ?? 0);
     const defaultEditableQty = Number.isFinite(storeQty) ? storeQty : mergedQty;
+    console.log(mergedQty,storeQty,defaultEditableQty,"QTTTTTTTTTTT")
 
     const readonlyQty = returnTo == 'AsnReceivedScreen' ? item.receivingQty :
       readOnly
@@ -602,11 +603,11 @@ const ASNPOLineItemDetailsScreen = () => {
                 </Text>
                 <View style={styles.imageWrapper}>
                   {renderImageBox(allItems[index])}
-                  {!readOnly && (
+                  {/* {!readOnly && (
                     <TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
                       <CameraIcon width={22} height={22} />
                     </TouchableOpacity>
-                  )}
+                  )} */}
                 </View>
               </View>
             </View>
