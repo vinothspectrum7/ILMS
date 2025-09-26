@@ -6,7 +6,7 @@ import EnnVeeLogoSmall from '../assets/icons/EnnVeeLogoSmall.svg';
 import BellIcon from '../assets/icons/bellnotification.svg';
 import BackLeftArrow from '../assets/icons/backleftarrow.svg';
 import HamburgerMenu from '../assets/icons/hamburgermenu.svg';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect,useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BRAND_BG = '#233E55';
@@ -47,6 +47,7 @@ export default function GlobalHeaderComponent({
   const showDot = Number(notificationCount) > 0;
 
     const [profileNames,setprofileName] = useState(null);
+    const navigation = useNavigation();
 
     const loadUserName = useCallback(async () => {
         const raw = await AsyncStorage.getItem('user_name');
@@ -65,6 +66,10 @@ export default function GlobalHeaderComponent({
         loadUserName();
       }, [loadUserName])
     );
+    const handlelogout = async()=>{
+      await AsyncStorage.removeItem("access_token");
+      navigation.navigate("Login");
+    }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -82,7 +87,7 @@ export default function GlobalHeaderComponent({
             {showDot && <View style={styles.dot} />}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={onProfilePress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
+          <TouchableOpacity onPress={handlelogout} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
             <Text style={styles.avatarText}>{profileNames}</Text>
           </TouchableOpacity>
         </View>
