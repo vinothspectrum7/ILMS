@@ -132,7 +132,7 @@ const formatDate = (dateStr) => {
             onTintColor={Platform.OS === 'ios' ? '#666666' : undefined}
             boxType={Platform.OS === 'ios' ? 'square' : undefined}
             lineWidth={Platform.OS === 'ios' ? 1.5 : undefined}
-            disabled={item.shipped_qty<=item.receivedQty}
+            disabled={item.openQty==0?true:false}
           />
         </View>
 
@@ -166,7 +166,7 @@ const formatDate = (dateStr) => {
               width={s(80)}
               height={s(28)}
               isSelected={isSelected}
-              disabledinput={item.shipped_qty<=item.receivedQty?true:false}
+              disabledinput={item.openQty==0?true:false}
               onLimit={() => {}}
             />
           </View>
