@@ -111,6 +111,7 @@ const PODetailSummary = () => {
           : [];
       map[poId] = JSON.parse(JSON.stringify(src));
     });
+    console.log(map,"getAsnEditedLinesForPOgetAsnEditedLinesForPOgetAsnEditedLinesForPO")
     rawItemsByPORef.current = map;
   }, [asnSelectedLines, getAsnEditedLinesForPO]);
 
@@ -170,7 +171,7 @@ const PODetailSummary = () => {
         name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
         ordered: n(li?.ordered_qty ?? 0),
         shipped_qty: n(li?.shipped_qty ?? 0),
-        receiving: openQty(li),
+        receiving: n(li?.receiving_qty ?? 0),
         _raw: li,
       }));
     }
@@ -181,7 +182,7 @@ const PODetailSummary = () => {
         name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
         ordered: n(li?.ordered_qty ?? 0),
         shipped_qty: n(li?.shipped_qty ?? 0),
-        receiving: n(pickQty(li)),
+        receiving: n(li?.receiving_qty ?? 0),
         _raw: li,
       }));
   };
@@ -207,7 +208,12 @@ const PODetailSummary = () => {
         item_id: li?.item_id ?? null,
         org_id: li?.org_id ?? OrgData?.selectedOrg ?? null,
         sub_inv_id: li?.subInventory ?? li?.sub_inv_id ?? OrgData?.selectedinventory ?? null,
-        locator_id: li?.locator ?? li?.locator_id ?? null,
+locator_id: li?.locator && li.locator !== "" 
+  ? li.locator 
+  : li?.locator_id && li.locator_id !== "" 
+    ? li.locator_id 
+    : null,
+
         lot_number: '',
         expiry_date: today,
         received_qty: qty,
@@ -398,6 +404,7 @@ const PODetailSummary = () => {
   };
 
   const goToLineItemDetails = (startIdx = 0, sourceList = []) => {
+    console.log(sourceList,"sourceListsourceListsourceListsourceList")
     const items = sourceList.map((it, i) => {
       const raw = it._raw || {};
       const qty = n(it.receiving);

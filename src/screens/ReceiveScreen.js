@@ -133,7 +133,7 @@ const ReceiveScreen = () => {
             return hay.some((h) => h.includes(q));
           });
         }
-        if (filterStatus == 'FULLY RECEIVED') {
+        else if (filterStatus == 'FULLY RECEIVED') {
           base = base.filter((p) => Number(p?.received) == 100);
         } else if (filterStatus == 'OPEN') {
           base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN' && Number(p?.received) !== 100);
@@ -153,7 +153,7 @@ const ReceiveScreen = () => {
             const hay = [a?.asn_num, a?.supplier_name, a?.status].filter(Boolean).map((x) => String(x).toLowerCase());
             return hay.some((h) => h.includes(q));
           });
-        }
+        }else
         if (filterStatus == 'FULLY RECEIVED') {
           base = base.filter((p) => Number(p?.receivedPct) == 100);
         } else if (filterStatus == 'OPEN') {
@@ -176,11 +176,23 @@ const ReceiveScreen = () => {
               .map((x) => String(x).toLowerCase());
             return hay.some((h) => h.includes(q));
           });
-        }
+        }else
         if (filterStatus) {
           base = base.filter((it) => String(it?.status || '').toUpperCase() === filterStatus);
         }
         setICList(base);
+        return;
+      }else if(tabKey=='received'){
+        let base = [...IntialReceivedData];
+        if (q) {
+          base = base.filter((it) => {
+            const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status, it?.receipt_num]
+              .filter(Boolean)
+              .map((x) => String(x).toLowerCase());
+            return hay.some((h) => h.includes(q));
+          });
+        }
+        SetReceivedData(base);
         return;
       }
     },
@@ -351,7 +363,7 @@ const ReceiveScreen = () => {
 
   const handleSearch = (text) => {
     setSearchText(text);
-    applyVisible(activeKey, text, activeFilter);
+    applyVisible(activeKey, text, "Search");
   };
 
   const [expandedReceiptIds, setExpandedReceiptIds] = useState(new Set());

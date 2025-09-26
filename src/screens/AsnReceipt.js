@@ -121,7 +121,7 @@ const AsnReceiptScreen = () => {
 const updatedAsns = filteredAsns.map((asn) => {
   const asn_line_items = (asn.asn_line_items || []).map((li) => ({
     ...li,
-    max_open_qty: Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty ?? 0),
+    max_open_qty: Number(li?.shipped_qty ?? 0) ,
   }));
   const disabled = asn_line_items.every(
     (li) => (Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty ?? 0)) <= 0

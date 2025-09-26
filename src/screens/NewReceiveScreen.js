@@ -106,7 +106,7 @@ const NewReceiveScreen = () => {
         if (currentPO && !lockedByUser) {
           setPhase('loading');
       try {
-        const release = await ReleasePO(selectedPO.po_id);
+        const release = await ReleasePO(currentPO);
         if(release){
         setPhase('success');
         clearCurrentPO();
@@ -551,7 +551,7 @@ const handlesaveFailure = () => {
         if (currentPO && !lockedByUser) {
           setPhase('loading');
       try {
-        const release = await ReleasePO(selectedPO.po_id);
+        const release = await ReleasePO(currentPO);
         if(release){
         setPhase('success');
         clearCurrentPO();
