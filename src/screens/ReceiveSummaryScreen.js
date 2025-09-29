@@ -252,7 +252,7 @@ const  mapConfirmData = (data)=> {
   const handlesave = async () => {
     didCompleteRef.current = false;
     try {
-      const payload = mapConfirmSaveData(renderItems);
+      const payload = mapConfirmSaveData(receiveItems);
       console.log('Save payload:', payload);
       const response = await Save_Receive_Qty(payload);
       console.log('Save response:', response);
