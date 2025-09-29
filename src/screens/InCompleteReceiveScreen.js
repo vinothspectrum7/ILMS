@@ -321,7 +321,7 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
       purchaseReceipt: PurchaseReceipt,
       header: mapHeader(selectedPO),
       listType: 'line',
-      interface_id: selectedPO.interface_id
+      interface_id: selectedPO?.interface_id
     });
   };
 
