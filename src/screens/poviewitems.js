@@ -206,9 +206,13 @@ const PovViewItems = () => {
   const buildEnrichedLines = () => {
     const base = Array.isArray(incomingLines) ? incomingLines : [];
     const selectedSet = new Set(selectedItems.map(String));
+    console.log(selectedSet,"selectedSetselectedSet");
+    console.log(base,"incomingbaseincomingbase");
+    console.log(draftItems,"draftItemsdraftItemsdraftItems");
+
     return base.map((li, idx) => {
       const front = draftItems[idx];
-      console.log(front,"buildEnrichedLinesdraftItemsdraftItemsdraftItems")
+      console.log(front,"buildEnrichedLinesfrontbuildEnrichedLinesfront")
       const rawQty = Number(front?.qtyToReceive ?? 0);
       const limit = Number(front?.max_open_qty ?? li?.max_open_qty ?? front?.openQty ?? 0);
       const clamped = Math.max(0, Math.min(rawQty, Number.isFinite(limit) ? limit : 0));
@@ -407,6 +411,7 @@ const PovViewItems = () => {
 
       return {
         id: String(it.id),
+        po_line_id: it.po_line_id,
         poNumber: asnHeader?.asn_num ?? selectedPO?.po_number ?? '—',
         lineNumber: i + 1,
         itemName: it.itemName ?? it.name,
