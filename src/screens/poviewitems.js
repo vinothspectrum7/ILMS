@@ -61,10 +61,10 @@ const mapLinesToFrontend = (arr, org) => {
       openQty: open,
       max_open_qty: max_open,
       shipped_qty:li?.shipped_qty,
-      lpn: '',
-      subInventory: org?.selectedinventory,
+      lpn: null,
+      subInventory: li?.subInventory ?? org?.selectedinventory,
       org_id: org?.selectedOrg,
-      locator: '',
+      locator: li?.locator ?? null,
       status: li?.line_status,
       receivingStatus: li?.line_status,
       uom: u,
@@ -107,7 +107,9 @@ const PovViewItems = () => {
   useEffect(() => {
     if (source !== 'asn') return;
     setPhase('loading');
+    console.log(selectedPO?.po_id,"selectedPO?.po_idselectedPO?.po_id")
     const edited = getAsnEditedLinesForPO(selectedPO?.po_id);
+    console.log(edited,"getAsnEditedLinesForPO");
     const seed = edited?.length ? edited : incomingLines;
     const frontend = mapLinesToFrontend(seed, OrgData);
     initReceiveItems(frontend);
@@ -245,6 +247,7 @@ const PovViewItems = () => {
 
     const finalizedLines = finalizeLinesWithAutoFill(enrichedLines);
             console.log(finalizedLines,"finalizedLines");
+            console.log(selectedPO.po_id,"selectedPO.po_id")
     if (selectedPO?.po_id) {
       setAsnEditedLinesForPO(selectedPO.po_id, finalizedLines);
       selectAsnPOId(selectedPO.po_id);
@@ -310,34 +313,6 @@ const PovViewItems = () => {
   };
 
   const CancelpersistAndReturnToSummary = () => {
-    // commitDraftToStore();
-    const enrichedLines = buildEnrichedLines();
-    const finalizedLines = finalizeLinesWithAutoFill(enrichedLines);
-    const ordered_qty = sum(finalizedLines, 'ordered_qty');
-    const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
-    const receiving_qty = sum(finalizedLines, 'receiving_qty');
-    const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
-    const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
-    const poEntry = {
-      id: String(selectedPO?.po_id || '0'),
-      po_id: selectedPO?.po_id ?? '',
-      po_number: selectedPO?.po_number ?? '—',
-      line: {
-        ordered_qty,
-        rcvd_qty,
-        shipped_qty,
-        receiving_qty,
-        asn_line_items: finalizedLines,
-      },
-    };
-    if (selectedPO?.po_id) {
-      // setAsnEditedLinesForPO(selectedPO.po_id, finalizedLines);
-    }
-    if (mode === 'edit') {
-      // updateAsnLine({ id: String(poEntry.id), line: poEntry.line });
-    } else {
-      // initAsnSelectedLines([poEntry]);
-    }
     navigation.navigate('podetailsummary', { readonly: false });
   };
 
@@ -438,6 +413,7 @@ const PovViewItems = () => {
       readonly: false,
       listType: 'line',
       returnTo: 'poviewitems',
+      selectedPO:selectedPO
     });
   };
   const hasAnyItems = useMemo(

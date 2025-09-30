@@ -45,6 +45,7 @@ const ASNPOLineItemDetailsScreen = () => {
   const route = useRoute();
 
   const readOnly = !!route?.params?.readonly;
+    const selectedPO = route?.params?.selectedPO || null;
   const returnTo = route?.params?.returnTo || null;
   const receiptNumber = route?.params?.receiptNumber || null;
   const listType = route?.params?.listType || 'line';
@@ -374,27 +375,6 @@ const ASNPOLineItemDetailsScreen = () => {
     return patches;
   }, [allItems, edited]);
 
-  const resolvePoContext = useCallback(() => {
-    const poFromParams = route?.params?.selectedPO?.po_id || route?.params?.poId;
-    const poNumberFromParams = route?.params?.selectedPO?.po_number || route?.params?.poNumber;
-    if (poFromParams) return { po_id: String(poFromParams), po_number: poNumberFromParams || String(titlePo || '-') };
-    if (Array.isArray(asnSelectedPOIds) && asnSelectedPOIds.length > 0) {
-      const nid = String(asnSelectedPOIds[0]);
-      let pn = '-';
-      if (Array.isArray(asnSelectedLines) && asnSelectedLines.length > 0) {
-        const hit = asnSelectedLines.find(x => String(x.id) === nid);
-        pn = hit?.po_number || pn;
-      }
-      return { po_id: nid, po_number: pn || String(titlePo || '-') };
-    }
-    if (Array.isArray(asnSelectedLines) && asnSelectedLines.length > 0) {
-      const first = asnSelectedLines[0];
-      const nid = String(first?.po_id || first?.id || '');
-      const pn = first?.po_number || String(titlePo || '-');
-      if (nid) return { po_id: nid, po_number: pn };
-    }
-    return { po_id: null, po_number: String(titlePo || '-') };
-  }, [route?.params, asnSelectedPOIds, asnSelectedLines, titlePo]);
 
   const buildEnrichedLinesFromDetails = useCallback(() => {
     const patchedMap = new Map();
@@ -454,7 +434,7 @@ const ASNPOLineItemDetailsScreen = () => {
     try {
       console.log(patches,"buildPatchesbuildPatchesbuildPatches");
       for (const p of patches) mergePatchIntoReceiveItems(p);
-      const { po_id, po_number } = resolvePoContext();
+      // const { po_id, po_number } = resolvePoContext();
       const enriched = buildEnrichedLinesFromDetails();
       // console.log(enrichedLines,"enrichedLines");
       const finalizedLines = finalizeLinesWithAutoFill(enriched);
@@ -464,28 +444,7 @@ const ASNPOLineItemDetailsScreen = () => {
       const receiving_qty = sum(finalizedLines, 'receiving_qty');
       const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
       const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
-      if (po_id) {
-        setAsnEditedLinesForPO(po_id, finalizedLines);
-        // selectAsnPOId(po_id);
-        // const existing = Array.isArray(asnSelectedLines) ? asnSelectedLines.find(x => String(x.id) === String(po_id)) : null;
-        const poEntry = {
-          id: String(po_id || '0'),
-          po_id: po_id || '',
-          po_number: po_number || '-',
-          line: {
-            ordered_qty,
-            rcvd_qty,
-            shipped_qty,
-            receiving_qty,
-            asn_line_items: finalizedLines,
-          },
-        };
-        // if (existing) {
-        //   updateAsnLine({ id: String(poEntry.id), line: poEntry.line });
-        // } else {
-        //   initAsnSelectedLines([poEntry]);
-        // }
-      }
+      setAsnEditedLinesForPO(selectedPO?.po_id, finalizedLines);
       const label = returnTo === 'podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
       setSuccessMessage(label);
       setSuccessVisible(true);
