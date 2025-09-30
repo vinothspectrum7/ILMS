@@ -149,34 +149,55 @@ const NewReceiveScreen = () => {
     setPoHeader(mapHeader(selectedPO));
   }, [selectedPO, setPoHeader]);
 
-const  mapBackendArrayToFrontend = (data,posingledata)=> {
-  return data.map((backend,index) => ({
-    id: index+1,
-    po_line_id:backend?.po_line_id,
-    item_id:backend?.item_id,
-    purchaseReceipt:posingledata?.next_receipt_num || "", // placeholder (if needed)
+const mapBackendArrayToFrontend = (data, posingledata) => {
+  const mapped = data.map((backend, index) => ({
+    id: index + 1,
+    po_line_id: backend?.po_line_id,
+    item_id: backend?.item_id,
+    purchaseReceipt: posingledata?.next_receipt_num || "", // placeholder (if needed)
     name: backend.item?.item_code || "",
     description: backend.item?.description || "",
     orderedQty: backend.ord_qty,
-    ship_to_location:backend.ship_to_location,
+    ship_to_location: backend.ship_to_location,
     receivedQty: backend.rcvd_qty,
-    openQty: backend.rcvd_qty>backend.ord_qty?0:Number(backend.ord_qty) - Number(backend.rcvd_qty),
+    openQty:
+      backend.rcvd_qty > backend.ord_qty
+        ? 0
+        : Number(backend.ord_qty) - Number(backend.rcvd_qty),
     max_open_qty: Math.floor(backend.max_open_qty ?? 0),
-    lpn: '',
+    lpn: "",
     subInventory: OrgData?.selectedinventory,
-    imageUri:backend?.image_uri || null,
-    org_id:OrgData?.selectedOrg,
-    locator: '',
-    status:backend.line_status,
-    uom: backend.item?.uom === "EA" ? "Each" : backend.item?.uom, // convert if needed
-    promisedDate: backend.promised_dlry_dt 
-      ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+    imageUri: backend?.image_uri || null,
+    org_id: OrgData?.selectedOrg,
+    locator: "",
+    status: backend.line_status,
+    uom: backend.item?.uom === "EA" ? "Each" : backend.item?.uom,
+    promisedDate: backend.promised_dlry_dt
+      ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
       : null,
-    needByDate: backend.need_by_dt 
-      ? new Date(backend.need_by_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-      : null
+    needByDate: backend.need_by_dt
+      ? new Date(backend.need_by_dt).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : null,
   }));
-}
+
+  // ✅ Push openQty = 0 to bottom
+  return mapped.sort((a, b) => {
+    if (a.openQty === 0 && b.openQty !== 0) return 1;
+    if (a.openQty !== 0 && b.openQty === 0) return -1;
+    return 0;
+  });
+};
+
+
+
   useEffect(() => {
     if (!selectedPO?.po_id) return;
     setPhase('loading');
@@ -229,34 +250,34 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     }, [receiveItems])
   );
 
-  const rebuildScannedFromStore = useCallback(() => {
-    const scannedIds = new Set(scannedItems.map(i => String(i.id)));
-    const next = receiveItems
-      .filter(r => scannedIds.has(String(r.id)) || Number(r?.qtyToReceive ?? r?.receivingQty ?? 0) > 0)
-      .map(r => {
-        const base = PoListItems.find(p => String(p.id) === String(r.id)) || r;
-        const qty = Number(r?.qtyToReceive ?? r?.receivingQty ?? 0);
-        return {
-          ...base,
-          qtyToReceive: qty,
-          lpn: r.lpn ?? base.lpn ?? '',
-          subInventory: r.subInventory ?? base.subInventory ?? '',
-          locator: r.locator ?? base.locator ?? '',
-        };
-      });
-    if (!sameScanList(next, scannedItems)) setScannedItems(next);
-  }, [receiveItems, PoListItems, scannedItems]);
+  // const rebuildScannedFromStore = useCallback(() => {
+  //   const scannedIds = new Set(scannedItems.map(i => String(i.id)));
+  //   const next = receiveItems
+  //     .filter(r => scannedIds.has(String(r.id)) || Number(r?.qtyToReceive ?? r?.receivingQty ?? 0) > 0)
+  //     .map(r => {
+  //       const base = PoListItems.find(p => String(p.id) === String(r.id)) || r;
+  //       const qty = Number(r?.qtyToReceive ?? r?.receivingQty ?? 0);
+  //       return {
+  //         ...base,
+  //         qtyToReceive: qty,
+  //         lpn: r.lpn ?? base.lpn ?? '',
+  //         subInventory: r.subInventory ?? base.subInventory ?? '',
+  //         locator: r.locator ?? base.locator ?? '',
+  //       };
+  //     });
+  //   if (!sameScanList(next, scannedItems)) setScannedItems(next);
+  // }, [receiveItems, PoListItems, scannedItems]);
 
-  useEffect(() => {
-    rebuildScannedFromStore();
-  }, [rebuildScannedFromStore]);
+  // useEffect(() => {
+  //   rebuildScannedFromStore();
+  // }, [rebuildScannedFromStore]);
 
-  useFocusEffect(
-    useCallback(() => {
-      rebuildScannedFromStore();
-      return () => {};
-    }, [rebuildScannedFromStore])
-  );
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     rebuildScannedFromStore();
+  //     return () => {};
+  //   }, [rebuildScannedFromStore])
+  // );
 
   const persistQty = (id, qty, fields = {}) => {
     const n = Number(qty ?? 0);
@@ -515,7 +536,7 @@ const handlesaveFailure = () => {
 
   const handleScan = (value) => {
     const id = String(value).trim();
-    const source = draftItems.find(x => String(x.name) === id)
+    const source = draftItems.find(x => String(x.name) === id);
     if (!source) {
       Toast.show({ type: 'error', text1: 'Unknown barcode', text2: `No item with id ${id}`, position: 'top', visibilityTime: 5000 });
       setShowScanner(false);
@@ -526,25 +547,26 @@ const handlesaveFailure = () => {
       setShowScanner(false);
       return;
     }
-    if (scannedItems.some(x => String(x.name) === id)) {
+    if (  selectedItems.length > 0 && 
+  source?.id != null && selectedItems.some(x => x == source?.id)) {
       Alert.alert("Failure","Scanned item already added to the list");
       // Toast.show({ type: 'orange', text1: 'Scanned item already added to the list', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
       setShowScanner(false);
       return;
     }
     const fullReceiving = Math.max(0, source.openQty ?? 0);
-    const scanned = { ...source, qtyToReceive: fullReceiving };
-    setScannedItems(prev => [...prev, scanned]);
+    // const scanned = { ...source, qtyToReceive: fullReceiving };
+    setSelectedItems(prev => [...prev, source?.id]);
     persistQty(source.id, fullReceiving, source);
     // setSelectedTab('scanItems');
     setShowScanner(false);
     Toast.show({ type: 'success', text1: 'Item added from scan', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
   };
 
-  const hasAnyItems = useMemo(
-    () => (selectedItems.length > 0? selectedItems.length>0 : scannedItems.length > 0),
-    [selectedItems&&selectedItems.length, scannedItems&&scannedItems.length]
-  );
+const hasAnyItems = useMemo(
+  () => selectedItems.length > 0,
+  [selectedItems]
+);
   
   const Releasefunction = async()=>{
     const {currentPO, lockedByUser} = getCurrentPO();

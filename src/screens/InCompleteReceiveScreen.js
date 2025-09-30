@@ -202,34 +202,34 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
     }, [receiveItems])
   );
 
-  const rebuildScannedFromStore = useCallback(() => {
-    const scannedIds = new Set(scannedItems.map(i => String(i.id)));
-    const next = receiveItems
-      .filter(r => scannedIds.has(String(r.id)) || Number(r?.qtyToReceive ?? r?.receivingQty ?? 0) > 0)
-      .map(r => {
-        const base = PoListItems.find(p => String(p.id) === String(r.id)) || r;
-        const qty = Number(r?.qtyToReceive ?? r?.receivingQty ?? 0);
-        return {
-          ...base,
-          qtyToReceive: qty,
-          lpn: r.lpn ?? base.lpn ?? '',
-          subInventory: r.subInventory ?? base.subInventory ?? '',
-          locator: r.locator ?? base.locator ?? '',
-        };
-      });
-    if (!sameScanList(next, scannedItems)) setScannedItems(next);
-  }, [receiveItems, PoListItems, scannedItems]);
+  // const rebuildScannedFromStore = useCallback(() => {
+  //   const scannedIds = new Set(scannedItems.map(i => String(i.id)));
+  //   const next = receiveItems
+  //     .filter(r => scannedIds.has(String(r.id)) || Number(r?.qtyToReceive ?? r?.receivingQty ?? 0) > 0)
+  //     .map(r => {
+  //       const base = PoListItems.find(p => String(p.id) === String(r.id)) || r;
+  //       const qty = Number(r?.qtyToReceive ?? r?.receivingQty ?? 0);
+  //       return {
+  //         ...base,
+  //         qtyToReceive: qty,
+  //         lpn: r.lpn ?? base.lpn ?? '',
+  //         subInventory: r.subInventory ?? base.subInventory ?? '',
+  //         locator: r.locator ?? base.locator ?? '',
+  //       };
+  //     });
+  //   if (!sameScanList(next, scannedItems)) setScannedItems(next);
+  // }, [receiveItems, PoListItems, scannedItems]);
 
-  useEffect(() => {
-    rebuildScannedFromStore();
-  }, [rebuildScannedFromStore]);
+  // useEffect(() => {
+  //   rebuildScannedFromStore();
+  // }, [rebuildScannedFromStore]);
 
-  useFocusEffect(
-    useCallback(() => {
-      rebuildScannedFromStore();
-      return () => {};
-    }, [rebuildScannedFromStore])
-  );
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     rebuildScannedFromStore();
+  //     return () => {};
+  //   }, [rebuildScannedFromStore])
+  // );
 
   const persistQty = (id, qty, fields = {}) => {
     const n = Number(qty ?? 0);
@@ -496,24 +496,26 @@ const  mapBackendArrayToFrontend = (data,posingledata)=> {
       setShowScanner(false);
       return;
     }
-    if (scannedItems.some(x => String(x.name) === id)) {
+    if (selectedItems.length > 0 && 
+  source?.id != null && selectedItems.some(x => x == source?.id)) {
       Toast.show({ type: 'orange', text1: 'Scanned item already added to the list', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
       setShowScanner(false);
       return;
     }
     const fullReceiving = Math.max(0, source.openQty ?? 0);
-    const scanned = { ...source, qtyToReceive: fullReceiving };
-    setScannedItems(prev => [...prev, scanned]);
+    // const scanned = { ...source, qtyToReceive: fullReceiving };
+    // setScannedItems(prev => [...prev, scanned]);
+    setSelectedItems(prev => [...prev, source?.id]);
     persistQty(source.id, fullReceiving, source);
     // setSelectedTab('scanItems');
     setShowScanner(false);
     Toast.show({ type: 'success', text1: 'Item added from scan', text2: `${source.name} (ID: ${id})`, position: 'top', visibilityTime: 5000 });
   };
 
-  const hasAnyItems = useMemo(
-    () => (selectedItems.length > 0? selectedItems.length>0 : scannedItems.length > 0),
-    [selectedItems&&selectedItems.length, scannedItems&&scannedItems.length]
-  );
+const hasAnyItems = useMemo(
+  () => selectedItems.length > 0,
+  [selectedItems]
+);
 
 
   return (
