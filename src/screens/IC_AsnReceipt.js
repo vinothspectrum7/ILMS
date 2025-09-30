@@ -185,6 +185,8 @@ const IC_AsnReceiptScreen = () => {
   };
 });
           const grouped = groupByPO(updatedAsns || []);
+          console.log(filteredAsns,"filteredAsns")
+          console.log(grouped,"groupedgrouped")
           setItems(grouped);
           setAsnHeader(activeASN);
           setPhase('success');
@@ -361,7 +363,7 @@ const IC_AsnReceiptScreen = () => {
           item_id: li?.item_id,
           org_id: OrgData?.selectedOrg,
           sub_inv_id: li?.sub_inv_id ?? OrgData?.selectedinventory ?? null,
-          locator_id: li?.locator_id ?? null,
+          locator_id: li?.locator?.trim() || li?.locator_id?.trim() || null,
           is_checked: !!isChecked,
           lot_number: '',
           expiry_date: formatToday(),

@@ -33,9 +33,7 @@ const fmtISO = (d) => {
 };
 
 const mapLinesToFrontend = (arr, org) => {
-  return (Array.isArray(arr) ? arr : [])
-  // .filter(li => Number(li?.rcvd_qty ?? 0) < Number(li?.shipped_qty ?? 0))
-  .map((li, index) => {
+  return (Array.isArray(arr) ? arr : []).map((li, index) => {
     const ordered = Number(li?.ordered_qty ?? 0);
     const rcvd = Number(li?.rcvd_qty ?? 0);
     const open = Math.max(0, ordered - rcvd);
@@ -43,7 +41,6 @@ const mapLinesToFrontend = (arr, org) => {
     const promised = li?.promised_dlry_dt ? fmtISO(new Date(li.promised_dlry_dt)) : null;
     const needBy = li?.need_by_dt ? fmtISO(new Date(li.need_by_dt)) : null;
     const startQty = Number(li?.receiving_qty ?? 0);
-    // const max_shipped = Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty);
     const max_open = li?.shipped_qty;
     return {
       id: index + 1,
@@ -51,8 +48,8 @@ const mapLinesToFrontend = (arr, org) => {
       item_id: li?.item_id,
       purchaseReceipt: '',
       name: li?.item_code || '',
-      ship_to_location:li?.ship_to_location,
       itemName: li?.item_code || '',
+      ship_to_location: li?.ship_to_location,
       item_description: li?.item_description || '',
       itemDescription: li?.item_description || '',
       orderedQty: ordered,
@@ -61,10 +58,10 @@ const mapLinesToFrontend = (arr, org) => {
       openQty: open,
       max_open_qty: max_open,
       shipped_qty:li?.shipped_qty,
-      lpn: '',
-      subInventory: org?.selectedinventory,
+      lpn: null,
+      subInventory: li?.subInventory ?? li?.sub_inv_id ?? org?.selectedinventory,
       org_id: org?.selectedOrg,
-      locator: '',
+      locator: li?.locator ?? li?.locator_id ?? null,
       status: li?.line_status,
       receivingStatus: li?.line_status,
       uom: u,
@@ -108,6 +105,7 @@ const IC_PovViewItems = () => {
     if (source !== 'asn') return;
     setPhase('loading');
     const edited = getAsnEditedLinesForPO(selectedPO?.po_id);
+    console.log(edited,"getAsnEditedLinesForPO")
     const seed = edited?.length ? edited : incomingLines;
     const frontend = mapLinesToFrontend(seed, OrgData);
     initReceiveItems(frontend);
@@ -133,17 +131,35 @@ const IC_PovViewItems = () => {
           setShowScanner(false);
           return true;
         }
-        if (mode === 'edit') {
-          persistAndReturnToSummary();
-        } else {
-          persistAndReturnToASN();
-        }
+      if (mode === 'edit') {
+        CancelpersistAndReturnToSummary();
+      } else {
+        CancelpersistAndReturnToASN();
+      }
         return true;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
     }, [mode, showScanner, draftItems])
   );
+
+    const handleBack = (item) => {
+    console.log('showScanner', showScanner);
+    if (showScanner) {
+      setShowScanner(false);
+      return true;
+    }
+    try {
+      if (mode === 'edit') {
+        CancelpersistAndReturnToSummary();
+      } else {
+        CancelpersistAndReturnToASN();
+      }
+    } finally {
+      console.log('finally', mode);
+    }
+    return true;
+  };
 
   const persistQty = (id, qty, fields = {}) => {
     const n = Number(qty ?? 0);
@@ -252,20 +268,6 @@ const IC_PovViewItems = () => {
   };
 
   const CancelpersistAndReturnToASN = () => {
-    // commitDraftToStore();
-    const enrichedLines = buildEnrichedLines();
-    const finalizedLines = finalizeLinesWithAutoFill(enrichedLines);
-    if (selectedPO?.po_id) {
-      // setAsnEditedLinesForPO(selectedPO.po_id, finalizedLines);
-      // selectAsnPOId(selectedPO.po_id);
-      const ordered_qty = sum(finalizedLines, 'ordered_qty');
-      const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
-      const receiving_qty = sum(finalizedLines, 'receiving_qty');
-      const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
-      const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
-      const line = { ordered_qty, rcvd_qty, shipped_qty, receiving_qty, asn_line_items: finalizedLines };
-      // updateAsnLine({ id: String(selectedPO.po_id), line });
-    }
     navigation.navigate('IC_AsnReceiptScreen');
   };
 
@@ -302,34 +304,6 @@ const IC_PovViewItems = () => {
   };
 
   const CancelpersistAndReturnToSummary = () => {
-    // commitDraftToStore();
-    const enrichedLines = buildEnrichedLines();
-    const finalizedLines = finalizeLinesWithAutoFill(enrichedLines);
-    const ordered_qty = sum(finalizedLines, 'ordered_qty');
-    const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
-    const receiving_qty = sum(finalizedLines, 'receiving_qty');
-    const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
-    const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
-    const poEntry = {
-      id: String(selectedPO?.po_id || '0'),
-      po_id: selectedPO?.po_id ?? '',
-      po_number: selectedPO?.po_number ?? '—',
-      line: {
-        ordered_qty,
-        rcvd_qty,
-        shipped_qty,
-        receiving_qty,
-        asn_line_items: finalizedLines,
-      },
-    };
-    if (selectedPO?.po_id) {
-      // setAsnEditedLinesForPO(selectedPO.po_id, finalizedLines);
-    }
-    if (mode === 'edit') {
-      // updateAsnLine({ id: String(poEntry.id), line: poEntry.line });
-    } else {
-      // initAsnSelectedLines([poEntry]);
-    }
     navigation.navigate('IC_podetailsummary', { readonly: false });
   };
 
@@ -403,6 +377,7 @@ const IC_PovViewItems = () => {
 
       return {
         id: String(it.id),
+        po_line_id: it.po_line_id,
         poNumber: asnHeader?.asn_num ?? selectedPO?.po_number ?? '—',
         lineNumber: i + 1,
         itemName: it.itemName ?? it.name,
@@ -429,6 +404,7 @@ const IC_PovViewItems = () => {
       readonly: false,
       listType: 'line',
       returnTo: 'IC_poviewitems',
+      selectedPO:selectedPO
     });
   };
   const hasAnyItems = useMemo(
@@ -441,7 +417,7 @@ const IC_PovViewItems = () => {
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Receiving"
         notificationCount={0}
-        onBack={() => navigation.navigate('IC_AsnReceiptScreen')}
+        onBack={handleBack}
       />
       {phase === 'loading' && (
         <View style={styles.loaderWrapper}>

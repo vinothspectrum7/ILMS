@@ -48,6 +48,7 @@ const IC_ASNPOLineItemDetailsScreen = () => {
   const returnTo = route?.params?.returnTo || null;
   const receiptNumber = route?.params?.receiptNumber || null;
   const listType = route?.params?.listType || 'line';
+  const selectedPO = route?.params?.selectedPO || null;
   const isEditable = !readOnly;
 
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -347,9 +348,9 @@ const IC_ASNPOLineItemDetailsScreen = () => {
   const goNext = useCallback(() => { if (index < allItems.length - 1) scrollToIndex(index + 1); }, [index, allItems.length, scrollToIndex]);
 
   const handleCancelNav = useCallback(() => {
-    if (returnTo === 'IC_podetailsummary') navigation.navigate('IC_podetailsummary', { readonly: false });
-    else if (returnTo) navigation.navigate(returnTo);
-    else navigation.goBack();
+    if (returnTo && returnTo !== 'IC_poviewitems' && returnTo !== 'IC_poviewitems') navigation.navigate(returnTo, { listType });
+    else if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate('Receive');
   }, [navigation, returnTo]);
 
   const buildPatches = useCallback(() => {
@@ -357,43 +358,19 @@ const IC_ASNPOLineItemDetailsScreen = () => {
     for (const it of allItems) {
       const st = edited[it.id];
       if (!st) continue;
-      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
       const clampedQty = st.receivingQty ?? 0;
-      // const valid = clampedQty > 0 && clampedQty <= limit && !!st.subInventory;
-      // if (!valid) continue;
       patches.push({
         id: String(it.id),
         receivingQty: clampedQty,
+        qtyToReceive: clampedQty,
         lpn: st.lpn ?? '',
-        subInventory: st.subInventory ?? '',
+        subInventory: st.subInventory ?? null,
         locator: st.locator ?? null,
         imageUri: st.imageUri ?? it.imageUri ?? null,
       });
     }
     return patches;
   }, [allItems, edited]);
-
-  const resolvePoContext = useCallback(() => {
-    const poFromParams = route?.params?.selectedPO?.po_id || route?.params?.poId;
-    const poNumberFromParams = route?.params?.selectedPO?.po_number || route?.params?.poNumber;
-    if (poFromParams) return { po_id: String(poFromParams), po_number: poNumberFromParams || String(titlePo || '-') };
-    if (Array.isArray(asnSelectedPOIds) && asnSelectedPOIds.length > 0) {
-      const nid = String(asnSelectedPOIds[0]);
-      let pn = '-';
-      if (Array.isArray(asnSelectedLines) && asnSelectedLines.length > 0) {
-        const hit = asnSelectedLines.find(x => String(x.id) === nid);
-        pn = hit?.po_number || pn;
-      }
-      return { po_id: nid, po_number: pn || String(titlePo || '-') };
-    }
-    if (Array.isArray(asnSelectedLines) && asnSelectedLines.length > 0) {
-      const first = asnSelectedLines[0];
-      const nid = String(first?.po_id || first?.id || '');
-      const pn = first?.po_number || String(titlePo || '-');
-      if (nid) return { po_id: nid, po_number: pn };
-    }
-    return { po_id: null, po_number: String(titlePo || '-') };
-  }, [route?.params, asnSelectedPOIds, asnSelectedLines, titlePo]);
 
   const buildEnrichedLinesFromDetails = useCallback(() => {
     const patchedMap = new Map();
@@ -403,7 +380,7 @@ const IC_ASNPOLineItemDetailsScreen = () => {
     const lines = (allItems || []).map((it) => {
       console.log(it,"it");
       const r = patchedMap.get(String(it.id)) || {};
-      const rawQty = Number(r?.qtyToReceive ?? r?.receivingQty ?? edited[it.id]?.receivingQty ?? it.receivingQty ?? 0);
+      const rawQty = Number(edited[it.id]?.receivingQty ?? it.receivingQty ?? 0);
       const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
       const clamped = Math.max(0, Math.min(rawQty, Number.isFinite(limit) ? limit : 0));
       return {
@@ -438,6 +415,12 @@ const IC_ASNPOLineItemDetailsScreen = () => {
     });
   }, []);
 
+const navigateBackToList = useCallback(() => {
+      if (returnTo && returnTo !== 'IC_PovViewItems' && returnTo !== 'IC_poviewitems') navigation.navigate(returnTo, { listType });
+      else if (navigation.canGoBack()) navigation.goBack();
+      else navigation.navigate('Receive');
+}, [navigation, returnTo, listType]);
+
   const handleSaveAll = useCallback(async () => {
     const patches = buildPatches();
     if (!patches.length) {
@@ -445,70 +428,24 @@ const IC_ASNPOLineItemDetailsScreen = () => {
       return;
     }
     try {
+      console.log(patches,"buildPatchesbuildPatchesbuildPatches");
       for (const p of patches) mergePatchIntoReceiveItems(p);
-      const { po_id, po_number } = resolvePoContext();
       const enriched = buildEnrichedLinesFromDetails();
-      // console.log(enrichedLines,"enrichedLines");
       const finalizedLines = finalizeLinesWithAutoFill(enriched);
       console.log(finalizedLines,"finalizedLines");
-      const ordered_qty = sum(finalizedLines, 'ordered_qty');
-      const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
-      const receiving_qty = sum(finalizedLines, 'receiving_qty');
-      const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
-      const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
-      if (po_id) {
-        setAsnEditedLinesForPO(po_id, finalizedLines);
-        // selectAsnPOId(po_id);
-        // const existing = Array.isArray(asnSelectedLines) ? asnSelectedLines.find(x => String(x.id) === String(po_id)) : null;
-        const poEntry = {
-          id: String(po_id || '0'),
-          po_id: po_id || '',
-          po_number: po_number || '-',
-          line: {
-            ordered_qty,
-            rcvd_qty,
-            shipped_qty,
-            receiving_qty,
-            asn_line_items: finalizedLines,
-          },
-        };
-        // if (existing) {
-        //   updateAsnLine({ id: String(poEntry.id), line: poEntry.line });
-        // } else {
-        //   initAsnSelectedLines([poEntry]);
-        // }
-      }
-      const label = returnTo === 'podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
+      setAsnEditedLinesForPO(selectedPO?.po_id, finalizedLines);
+      selectAsnPOId(selectedPO.po_id);
+      const label = returnTo === 'IC_podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
       setSuccessMessage(label);
       setSuccessVisible(true);
       setTimeout(() => {
         setSuccessVisible(false);
-        if (returnTo === 'IC_podetailsummary') {
-          navigation.navigate('IC_podetailsummary', { readonly: false });
-        } else if (returnTo) {
-          navigation.dispatch(StackActions.replace(returnTo, { listType }));
-        } else {
-          navigation.goBack();
-        }
+        navigateBackToList();
       }, 1200);
     } catch {
       Toast.show({ type: 'error', text1: 'Save failed', text2: 'Please try again.', position: 'top', visibilityTime: 5000 });
     }
-  }, [
-    buildPatches,
-    mergePatchIntoReceiveItems,
-    resolvePoContext,
-    buildEnrichedLinesFromDetails,
-    finalizeLinesWithAutoFill,
-    asnSelectedLines,
-    initAsnSelectedLines,
-    updateAsnLine,
-    setAsnEditedLinesForPO,
-    selectAsnPOId,
-    navigation,
-    returnTo,
-    listType,
-  ]);
+  }, [buildPatches, mergePatchIntoReceiveItems, navigateBackToList, returnTo]);
 
   const renderImageBox = (item) => {
     const imgState = imageMap[item.itemid] || { uri: item.imageUri, loading: false };
@@ -602,11 +539,11 @@ const IC_ASNPOLineItemDetailsScreen = () => {
                 </Text>
                 <View style={styles.imageWrapper}>
                   {renderImageBox(allItems[index])}
-                  {!readOnly && (
+                  {/* {!readOnly && (
                     <TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
                       <CameraIcon width={22} height={22} />
                     </TouchableOpacity>
-                  )}
+                  )} */}
                 </View>
               </View>
             </View>

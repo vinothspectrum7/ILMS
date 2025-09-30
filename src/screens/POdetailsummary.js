@@ -121,13 +121,16 @@ const PODetailSummary = () => {
       try {
         const resp = await GetASNPoItems(asnHeader.asn_id);
         const m = new Map();
-        for (const po of Array.isArray(resp) ? resp : []) {
+        const asns = Array.isArray(resp) ? resp : resp ? [resp] : [];
+        const filteredAsns = asns.filter(asn => asn.po_status !== "FULLY RECEIVED");
+        for (const po of filteredAsns) {
           const poid = String(po?.po_id ?? '');
           if (!poid) continue;
           const arr = Array.isArray(po?.asn_line_items) ? po.asn_line_items : [];
           const prev = m.get(poid) || [];
           m.set(poid, prev.concat(arr));
         }
+        console.log(m,"filteredAsnsfilteredAsns")
         allPoByIdRef.current = m;
       } catch {
         allPoByIdRef.current = new Map();
@@ -208,12 +211,7 @@ const PODetailSummary = () => {
         item_id: li?.item_id ?? null,
         org_id: li?.org_id ?? OrgData?.selectedOrg ?? null,
         sub_inv_id: li?.subInventory ?? li?.sub_inv_id ?? OrgData?.selectedinventory ?? null,
-locator_id: li?.locator && li.locator !== "" 
-  ? li.locator 
-  : li?.locator_id && li.locator_id !== "" 
-    ? li.locator_id 
-    : null,
-
+        locator_id: li?.locator?.trim() || li?.locator_id?.trim() || null,
         lot_number: '',
         expiry_date: today,
         received_qty: qty,
@@ -246,7 +244,10 @@ locator_id: li?.locator && li.locator !== ""
 
   const collectAllItemsForSave = useCallback(() => {
     const selectedRows = filteredLines.flatMap((row) => mapRowItemsForPayloadSelected(row));
+    console.log(unselectedPoIds,"unselectedPoIds")
     const unselectedRows = unselectedPoIds.flatMap((id) => mapRowItemsForPayloadUnselected(id));
+    console.log(selectedRows,"selectedRows")
+    console.log(unselectedRows,"unselectedRows")
     return [...selectedRows, ...unselectedRows].filter((x) => x.item_id || x.po_line_id);
   }, [filteredLines, unselectedPoIds, OrgData, asnHeader]);
 
@@ -343,22 +344,22 @@ locator_id: li?.locator && li.locator !== ""
     try {
       const payload = mapAsnSaveData(all);
       console.log('Save payload:', payload);
-      const res = await Save_Receive_Qty(payload);
-      if (isSaveSuccess(res)) {
-        setSaveModalStatus('success');
-        setSaveModalVisible(true);
-        setTimeout(() => {
-          setSaveModalVisible(false);
-          clearAsnFlow();
-          // navigation.navigate('Receive');
-        }, 1500);
-      } else {
-        setSaveModalStatus('failure');
-        setSaveModalVisible(true);
-        setTimeout(() => {
-          setSaveModalVisible(false);
-        }, 1500);
-      }
+      // const res = await Save_Receive_Qty(payload);
+      // if (isSaveSuccess(res)) {
+      //   setSaveModalStatus('success');
+      //   setSaveModalVisible(true);
+      //   setTimeout(() => {
+      //     setSaveModalVisible(false);
+      //     clearAsnFlow();
+      //     // navigation.navigate('Receive');
+      //   }, 1500);
+      // } else {
+      //   setSaveModalStatus('failure');
+      //   setSaveModalVisible(true);
+      //   setTimeout(() => {
+      //     setSaveModalVisible(false);
+      //   }, 1500);
+      // }
     } catch {
       setSaveModalStatus('failure');
       setSaveModalVisible(true);

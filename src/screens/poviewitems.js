@@ -132,11 +132,11 @@ const PovViewItems = () => {
           setShowScanner(false);
           return true;
         }
-        if (mode === 'edit') {
-          persistAndReturnToSummary();
-        } else {
-          persistAndReturnToASN();
-        }
+      if (mode === 'edit') {
+        CancelpersistAndReturnToSummary();
+      } else {
+        CancelpersistAndReturnToASN();
+      }
         return true;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
@@ -152,11 +152,9 @@ const PovViewItems = () => {
     }
     try {
       if (mode === 'edit') {
-        console.log('mode', mode);
-        persistAndReturnToSummary();
+        CancelpersistAndReturnToSummary();
       } else {
-        console.log('mode', mode);
-        persistAndReturnToASN();
+        CancelpersistAndReturnToASN();
       }
     } finally {
       console.log('finally', mode);
@@ -278,16 +276,6 @@ const PovViewItems = () => {
   };
 
   const CancelpersistAndReturnToASN = () => {
-    const enrichedLines = buildEnrichedLines();
-    const finalizedLines = finalizeLinesWithAutoFill(enrichedLines);
-    if (selectedPO?.po_id) {
-      const ordered_qty = sum(finalizedLines, 'ordered_qty');
-      const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
-      const receiving_qty = sum(finalizedLines, 'receiving_qty');
-      const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
-      const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
-      const line = { ordered_qty, rcvd_qty, shipped_qty, receiving_qty, asn_line_items: finalizedLines };
-    }
     navigation.navigate('AsnReceiptScreen');
   };
 

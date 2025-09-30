@@ -358,10 +358,7 @@ const ASNPOLineItemDetailsScreen = () => {
     for (const it of allItems) {
       const st = edited[it.id];
       if (!st) continue;
-      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
       const clampedQty = st.receivingQty ?? 0;
-      // const valid = clampedQty > 0 && clampedQty <= limit && !!st.subInventory;
-      // if (!valid) continue;
       patches.push({
         id: String(it.id),
         receivingQty: clampedQty,
@@ -434,17 +431,11 @@ const ASNPOLineItemDetailsScreen = () => {
     try {
       console.log(patches,"buildPatchesbuildPatchesbuildPatches");
       for (const p of patches) mergePatchIntoReceiveItems(p);
-      // const { po_id, po_number } = resolvePoContext();
       const enriched = buildEnrichedLinesFromDetails();
-      // console.log(enrichedLines,"enrichedLines");
       const finalizedLines = finalizeLinesWithAutoFill(enriched);
       console.log(finalizedLines,"finalizedLines");
-      const ordered_qty = sum(finalizedLines, 'ordered_qty');
-      const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
-      const receiving_qty = sum(finalizedLines, 'receiving_qty');
-      const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
-      const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
       setAsnEditedLinesForPO(selectedPO?.po_id, finalizedLines);
+      selectAsnPOId(selectedPO.po_id);
       const label = returnTo === 'podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
       setSuccessMessage(label);
       setSuccessVisible(true);

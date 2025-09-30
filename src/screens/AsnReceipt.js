@@ -328,7 +328,7 @@ const updatedAsns = filteredAsns.map((asn) => {
           item_id: li?.item_id,
           org_id: OrgData?.selectedOrg,
           sub_inv_id: li?.sub_inv_id ?? OrgData?.selectedinventory ?? null,
-          locator_id: li?.locator_id ?? null,
+          locator_id: li?.locator?.trim() || li?.locator_id?.trim() || null,
           is_checked: !!isChecked,
           lot_number: '',
           expiry_date: formatToday(),
@@ -364,6 +364,7 @@ const updatedAsns = filteredAsns.map((asn) => {
     console.log('Save payload:', payload);
     try {
       const response = await Save_Receive_Qty(payload);
+      console.log(response,"responseresponseresponse")
       if (isSaveSuccess(response)) {
         setSaveModalStatus('success');
         setSaveModalVisible(true);
