@@ -431,10 +431,10 @@ locator_id: li?.locator && li.locator !== ""
         po_line_id: raw.po_line_id,
       };
     });
-    navigation.navigate('ASNPOLineItemDetails', {
+    navigation.navigate('ASNSummaryViewItemDetails', {
       items,
       startIndex: startIdx,
-      readonly: false,
+      readonly: true,
       listType: 'line',
       returnTo: 'podetailsummary',
     });
