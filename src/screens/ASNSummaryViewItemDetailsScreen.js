@@ -110,8 +110,9 @@ const ASNSummaryViewItemDetailsScreen = () => {
   const current = useMemo(() => allItems[index], [allItems, index]);
 
   useEffect(() => {
-    if (!Array.isArray(receiveItems) || receiveItems.length === 0) {
-      if (Array.isArray(allItems) && allItems.length > 0) {
+    if (!Array.isArray(receiveItems) || receiveItems.length === 0) {        
+      if (Array.isArray(allItems) && allItems.length > 0) {        
+        console.log("allItems",allItems);
         const seed = allItems.map((it) => ({
           id: String(it.id),
           qtyToReceive: Number(it.receivingQty ?? 0),
@@ -148,6 +149,7 @@ const ASNSummaryViewItemDetailsScreen = () => {
       } else {
         const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
         const initialQty = clampToLimit(Number(it.receivingQty ?? it.openQty ?? 0), limit);
+        console.log("initialQty",initialQty);
         next[it.id] = {
           receivingQty: initialQty,
           lpn: it.lpn ?? '',
@@ -347,9 +349,9 @@ const ASNSummaryViewItemDetailsScreen = () => {
   const goNext = useCallback(() => { if (index < allItems.length - 1) scrollToIndex(index + 1); }, [index, allItems.length, scrollToIndex]);
 
   const handleCancelNav = useCallback(() => {
-    if (returnTo === 'podetailsummary') navigation.navigate('podetailsummary', { readonly: false });
-    else if (returnTo) navigation.navigate(returnTo);
-    else navigation.goBack();
+    if (returnTo && returnTo !== 'PovViewItems' && returnTo !== 'poviewitems') navigation.navigate(returnTo, { listType });
+    else if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate('Receive');
   }, [navigation, returnTo]);
 
   const buildPatches = useCallback(() => {
@@ -364,8 +366,9 @@ const ASNSummaryViewItemDetailsScreen = () => {
       patches.push({
         id: String(it.id),
         receivingQty: clampedQty,
+        qtyToReceive: clampedQty,
         lpn: st.lpn ?? '',
-        subInventory: st.subInventory ?? '',
+        subInventory: st.subInventory ?? null,
         locator: st.locator ?? null,
         imageUri: st.imageUri ?? it.imageUri ?? null,
       });
@@ -438,6 +441,12 @@ const ASNSummaryViewItemDetailsScreen = () => {
     });
   }, []);
 
+  const navigateBackToList = useCallback(() => {
+    if (returnTo && returnTo !== 'PovViewItems' && returnTo !== 'poviewitems') navigation.navigate(returnTo, { listType });
+    else if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate('Receive');
+  }, [navigation, returnTo, listType]);
+
   const handleSaveAll = useCallback(async () => {
     const patches = buildPatches();
     if (!patches.length) {
@@ -445,6 +454,7 @@ const ASNSummaryViewItemDetailsScreen = () => {
       return;
     }
     try {
+      console.log(patches,"buildPatchesbuildPatchesbuildPatches");
       for (const p of patches) mergePatchIntoReceiveItems(p);
       const { po_id, po_number } = resolvePoContext();
       const enriched = buildEnrichedLinesFromDetails();
@@ -483,32 +493,12 @@ const ASNSummaryViewItemDetailsScreen = () => {
       setSuccessVisible(true);
       setTimeout(() => {
         setSuccessVisible(false);
-        if (returnTo === 'podetailsummary') {
-          navigation.navigate('podetailsummary', { readonly: false });
-        } else if (returnTo) {
-          navigation.dispatch(StackActions.replace(returnTo, { listType }));
-        } else {
-          navigation.goBack();
-        }
+        navigateBackToList();
       }, 1200);
     } catch {
       Toast.show({ type: 'error', text1: 'Save failed', text2: 'Please try again.', position: 'top', visibilityTime: 5000 });
     }
-  }, [
-    buildPatches,
-    mergePatchIntoReceiveItems,
-    resolvePoContext,
-    buildEnrichedLinesFromDetails,
-    finalizeLinesWithAutoFill,
-    asnSelectedLines,
-    initAsnSelectedLines,
-    updateAsnLine,
-    setAsnEditedLinesForPO,
-    selectAsnPOId,
-    navigation,
-    returnTo,
-    listType,
-  ]);
+  }, [buildPatches, mergePatchIntoReceiveItems, navigateBackToList, returnTo]);
 
   const renderImageBox = (item) => {
     const imgState = imageMap[item.itemid] || { uri: item.imageUri, loading: false };

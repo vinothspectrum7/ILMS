@@ -434,7 +434,7 @@ locator_id: li?.locator && li.locator !== ""
     navigation.navigate('ASNSummaryViewItemDetails', {
       items,
       startIndex: startIdx,
-      readonly: true,
+      readonly: false,
       listType: 'line',
       returnTo: 'podetailsummary',
     });
