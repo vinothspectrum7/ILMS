@@ -342,6 +342,7 @@ locator_id: li?.locator && li.locator !== ""
     }
     try {
       const payload = mapAsnSaveData(all);
+      console.log('Save payload:', payload);
       const res = await Save_Receive_Qty(payload);
       if (isSaveSuccess(res)) {
         setSaveModalStatus('success');
@@ -430,7 +431,7 @@ locator_id: li?.locator && li.locator !== ""
         po_line_id: raw.po_line_id,
       };
     });
-    navigation.navigate('ASNPOLineItemDetails', {
+    navigation.navigate('ASNSummaryViewItemDetails', {
       items,
       startIndex: startIdx,
       readonly: false,

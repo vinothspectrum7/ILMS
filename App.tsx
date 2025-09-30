@@ -15,6 +15,7 @@ import ReceivedSummaryScreen from './src/screens/ReceivedSummary';
 import AsnReceivedScreen from './src/screens/AsnReceivedScreen'; 
 import LineItemDetailsScreen from './src/screens/LineItemDetailsScreen';
 import ASNPOLineItemDetailsScreen from './src/screens/ASNPOLineItemDetailsScreen';
+import ASNSummaryViewItemDetailsScreen from './src/screens/ASNSummaryViewItemDetailsScreen';
 import IC_ASNPOLineItemDetailsScreen from './src/screens/IC_ASNPOLineItemDetailsScreen';
 import IC_LineItemDetailsScreen from './src/screens/IC_LineItemDetailsScreen';
 import ScanItemDetailsScreen from './src/screens/ScanItemDetailsScreen';
@@ -107,6 +108,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="IC_ASNPOLineItemDetails"
 component={IC_ASNPOLineItemDetailsScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="ASNSummaryViewItemDetails"
+component={ASNSummaryViewItemDetailsScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen

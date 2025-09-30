@@ -423,10 +423,10 @@ const IC_PODetailSummary = () => {
         po_line_id: raw.po_line_id,
       };
     });
-    navigation.navigate('IC_ASNPOLineItemDetails', {
+    navigation.navigate('ASNSummaryViewItemDetails', {
       items,
       startIndex: startIdx,
-      readonly: false,
+      readonly: true,
       listType: 'line',
       returnTo: 'IC_podetailsummary',
     });
