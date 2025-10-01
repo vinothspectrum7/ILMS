@@ -40,7 +40,7 @@ const sum = (arr, key) =>
     return acc + (Number.isFinite(v) ? v : 0);
   }, 0);
 
-const ASNSummaryViewItemDetailsScreen = () => {
+const IC_ASNSummaryViewItemDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
@@ -322,7 +322,7 @@ const ASNSummaryViewItemDetailsScreen = () => {
     });
   }, [edited, allItems, readOnly]);
 
-  const titlePo = returnTo == 'podetailsummary' ? receiptNumber : current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
+  const titlePo = returnTo == 'IC_podetailsummary' ? receiptNumber : current?.poNumber ? `${String(current.poNumber)}` : 'Receiving';
 
   const scrollToIndex = useCallback((i) => {
     if (i < 0 || i >= allItems.length) return;
@@ -335,7 +335,7 @@ const ASNSummaryViewItemDetailsScreen = () => {
   const goNext = useCallback(() => { if (index < allItems.length - 1) scrollToIndex(index + 1); }, [index, allItems.length, scrollToIndex]);
 
   const handleCancelNav = useCallback(() => {
-    if (returnTo && returnTo !== 'PovViewItems' && returnTo !== 'poviewitems') navigation.navigate(returnTo, { listType });
+    if (returnTo && returnTo !== 'IC_PovViewItems' && returnTo !== 'IC_poviewitems') navigation.navigate(returnTo, { listType });
     else if (navigation.canGoBack()) navigation.goBack();
     else navigation.navigate('Receive');
   }, [navigation, returnTo]);
@@ -407,7 +407,7 @@ const ASNSummaryViewItemDetailsScreen = () => {
   }, []);
 
   const navigateBackToList = useCallback(() => {
-    if (returnTo && returnTo !== 'PovViewItems' && returnTo !== 'poviewitems') navigation.navigate(returnTo, { listType });
+    if (returnTo && returnTo !== 'IC_PovViewItems' && returnTo !== 'IC_poviewitems') navigation.navigate(returnTo, { listType });
     else if (navigation.canGoBack()) navigation.goBack();
     else navigation.navigate('Receive');
   }, [navigation, returnTo, listType]);
@@ -426,7 +426,7 @@ const ASNSummaryViewItemDetailsScreen = () => {
       console.log(finalizedLines,"finalizedLines");
       setAsnEditedLinesForPO(selectedPO?.po_id, finalizedLines);
       selectAsnPOId(selectedPO?.po_id);
-      const label = returnTo === 'podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
+      const label = returnTo === 'IC_podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
       setSuccessMessage(label);
       setSuccessVisible(true);
       setTimeout(() => {
@@ -689,7 +689,7 @@ const ASNSummaryViewItemDetailsScreen = () => {
   };
 
   const leftBtnLabel = 'Cancel';
-  const rightBtnLabel = returnTo === 'podetailsummary' ? 'Update' : 'Save';
+  const rightBtnLabel = returnTo === 'IC_podetailsummary' ? 'Update' : 'Save';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -839,4 +839,4 @@ const styles = StyleSheet.create({
   previewImage: { width: '90%', height: '70%', resizeMode: 'contain' },
 });
 
-export default ASNSummaryViewItemDetailsScreen;
+export default IC_ASNSummaryViewItemDetailsScreen;

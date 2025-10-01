@@ -111,6 +111,7 @@ const IC_PODetailSummary = () => {
           : [];
       map[poId] = JSON.parse(JSON.stringify(src));
     });
+    console.log(map,"getAsnEditedLinesForPOgetAsnEditedLinesForPOgetAsnEditedLinesForPO")
     rawItemsByPORef.current = map;
   }, [asnSelectedLines, getAsnEditedLinesForPO]);
 
@@ -120,13 +121,16 @@ const IC_PODetailSummary = () => {
       try {
         const resp = await GetASNPoItems(asnHeader.asn_id);
         const m = new Map();
-        for (const po of Array.isArray(resp) ? resp : []) {
+        const asns = Array.isArray(resp) ? resp : resp ? [resp] : [];
+        const filteredAsns = asns.filter(asn => asn.po_status !== "FULLY RECEIVED");
+        for (const po of filteredAsns) {
           const poid = String(po?.po_id ?? '');
           if (!poid) continue;
           const arr = Array.isArray(po?.asn_line_items) ? po.asn_line_items : [];
           const prev = m.get(poid) || [];
           m.set(poid, prev.concat(arr));
         }
+        console.log(m,"filteredAsnsfilteredAsns")
         allPoByIdRef.current = m;
       } catch {
         allPoByIdRef.current = new Map();
@@ -170,7 +174,7 @@ const IC_PODetailSummary = () => {
         name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
         ordered: n(li?.ordered_qty ?? 0),
         shipped_qty: n(li?.shipped_qty ?? 0),
-        receiving: openQty(li),
+        receiving: n(li?.receiving_qty ?? 0),
         _raw: li,
       }));
     }
@@ -181,7 +185,7 @@ const IC_PODetailSummary = () => {
         name: String(li?.item_code ?? li?.item_description ?? `Item ${idx + 1}`),
         ordered: n(li?.ordered_qty ?? 0),
         shipped_qty: n(li?.shipped_qty ?? 0),
-        receiving: n(pickQty(li)),
+        receiving: n(li?.receiving_qty ?? 0),
         _raw: li,
       }));
   };
@@ -207,7 +211,7 @@ const IC_PODetailSummary = () => {
         item_id: li?.item_id ?? null,
         org_id: li?.org_id ?? OrgData?.selectedOrg ?? null,
         sub_inv_id: li?.subInventory ?? li?.sub_inv_id ?? OrgData?.selectedinventory ?? null,
-        locator_id: li?.locator ?? li?.locator_id ?? null,
+        locator_id: li?.locator?.trim() || li?.locator_id?.trim() || null,
         lot_number: '',
         expiry_date: today,
         received_qty: qty,
@@ -240,7 +244,10 @@ const IC_PODetailSummary = () => {
 
   const collectAllItemsForSave = useCallback(() => {
     const selectedRows = filteredLines.flatMap((row) => mapRowItemsForPayloadSelected(row));
+    console.log(unselectedPoIds,"unselectedPoIds")
     const unselectedRows = unselectedPoIds.flatMap((id) => mapRowItemsForPayloadUnselected(id));
+    console.log(selectedRows,"selectedRows")
+    console.log(unselectedRows,"unselectedRows")
     return [...selectedRows, ...unselectedRows].filter((x) => x.item_id || x.po_line_id);
   }, [filteredLines, unselectedPoIds, OrgData, asnHeader]);
 
@@ -336,22 +343,23 @@ const IC_PODetailSummary = () => {
     }
     try {
       const payload = mapAsnSaveData(all);
-      const res = await Save_Receive_Qty(payload);
-      if (isSaveSuccess(res)) {
-        setSaveModalStatus('success');
-        setSaveModalVisible(true);
-        setTimeout(() => {
-          setSaveModalVisible(false);
-          clearAsnFlow();
-          // navigation.navigate('Receive');
-        }, 1500);
-      } else {
-        setSaveModalStatus('failure');
-        setSaveModalVisible(true);
-        setTimeout(() => {
-          setSaveModalVisible(false);
-        }, 1500);
-      }
+      console.log('Save payload:', payload);
+      // const res = await Save_Receive_Qty(payload);
+      // if (isSaveSuccess(res)) {
+      //   setSaveModalStatus('success');
+      //   setSaveModalVisible(true);
+      //   setTimeout(() => {
+      //     setSaveModalVisible(false);
+      //     clearAsnFlow();
+      //     // navigation.navigate('Receive');
+      //   }, 1500);
+      // } else {
+      //   setSaveModalStatus('failure');
+      //   setSaveModalVisible(true);
+      //   setTimeout(() => {
+      //     setSaveModalVisible(false);
+      //   }, 1500);
+      // }
     } catch {
       setSaveModalStatus('failure');
       setSaveModalVisible(true);
@@ -397,7 +405,8 @@ const IC_PODetailSummary = () => {
     setConfirmVisible(false);
   };
 
-  const goToLineItemDetails = (startIdx = 0, sourceList = []) => {
+  const goToLineItemDetails = (startIdx = 0, sourceList = [],row) => {
+    console.log(sourceList,"sourceListsourceListsourceListsourceList")
     const items = sourceList.map((it, i) => {
       const raw = it._raw || {};
       const qty = n(it.receiving);
@@ -417,18 +426,19 @@ const IC_PODetailSummary = () => {
         receivingQty: qty,
         receivingStatus: raw.line_status ?? '',
         lpn: raw.lpn ?? '',
-        subInventory: raw.sub_inv_id ?? null,
-        locator: raw.locator_id ?? null,
+        subInventory: raw.subInventory ?? raw.sub_inv_id ?? null,
+        locator: raw.locator ?? raw.locator_id ?? null,
         max_open_qty: n(raw.max_open_qty ?? 0),
         po_line_id: raw.po_line_id,
       };
     });
-    navigation.navigate('ASNSummaryViewItemDetails', {
+    navigation.navigate('IC_ASNSummaryViewItemDetails', {
       items,
       startIndex: startIdx,
-      readonly: true,
+      readonly: false,
       listType: 'line',
       returnTo: 'IC_podetailsummary',
+      selectedPO: { po_id: row.po_id, po_number: row.po_number },
     });
   };
 
@@ -485,7 +495,7 @@ const IC_PODetailSummary = () => {
                   keyExtractor={(it) => it.key}
                   renderItem={({ item, index }) => (
                     <View style={styles.itemRow}>
-                      <TouchableOpacity style={styles.colItem} onPress={() => goToLineItemDetails(index, uiItems)}>
+                      <TouchableOpacity style={styles.colItem} onPress={() => goToLineItemDetails(index, uiItems,row)}>
                         <Text style={styles.viewDetails} numberOfLines={1}>
                           {item._raw?.item_code ?? item.name ?? dash}
                         </Text>
