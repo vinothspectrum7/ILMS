@@ -41,7 +41,8 @@ const mapLinesToFrontend = (arr, org) => {
     const promised = li?.promised_dlry_dt ? fmtISO(new Date(li.promised_dlry_dt)) : null;
     const needBy = li?.need_by_dt ? fmtISO(new Date(li.need_by_dt)) : null;
     const startQty = Number(li?.receiving_qty ?? 0);
-    const max_open = li?.shipped_qty;
+    const max_qty = li?.shipped_qty>open?open:li?.shipped_qty;
+    const max_open = max_qty;
     return {
       id: index + 1,
       po_line_id: li?.po_line_id,

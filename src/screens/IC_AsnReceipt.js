@@ -170,10 +170,16 @@ const IC_AsnReceiptScreen = () => {
           const asns = Array.isArray(resp) ? resp : resp ? [resp] : [];
           const filteredAsns = asns.filter(asn => asn.po_status !== "FULLY RECEIVED");
           const updatedAsns = filteredAsns.map((asn) => {
-  const asn_line_items = (asn.asn_line_items || []).map((li) => ({
-    ...li,
-    max_open_qty: Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty ?? 0),
-  }));
+          const asn_line_items = (asn.asn_line_items || []).map((li) => {
+          const ordered = Number(li?.ordered_qty ?? 0);
+          const rcvd = Number(li?.rcvd_qty ?? 0);
+          const open = Math.max(0, ordered - rcvd);
+          const max_qty = li?.shipped_qty > open ? open : li?.shipped_qty;
+            return {
+              ...li,
+              max_open_qty: max_qty,
+            };
+        });
   const disabled = asn_line_items.every(
     (li) => (Number(li?.shipped_qty ?? 0) - Number(li?.rcvd_qty ?? 0)) <= 0
   );
