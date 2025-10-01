@@ -326,22 +326,27 @@ const PovViewItems = () => {
 
   const visibleItems = useMemo(() => {
     if (!Array.isArray(draftItems) || !draftItems.length) return [];
-    if (filter === 'all') return draftItems;
-    if (filter === 'received') {
-      return draftItems.filter((it) => {
+    let filtered = [];
+    if (filter === 'all') filtered = draftItems;
+    else if (filter === 'received') {
+      filtered = draftItems.filter((it) => {
         const r = Number(it?.receivedQty ?? 0);
         const o = Number(it?.orderedQty ?? 0);
         return r >= o && o > 0;
       });
-    }
-    if (filter === 'pending') {
-      return draftItems.filter((it) => {
+    } else if (filter === 'pending') {
+      filtered = draftItems.filter((it) => {
         const r = Number(it?.receivedQty ?? 0);
         const o = Number(it?.orderedQty ?? 0);
         return r > 0 && r < o;
       });
+    } else {
+      filtered = draftItems;
     }
-    return draftItems;
+    
+    const enabled = filtered.filter((it) => Number(it.openQty) > 0);
+    const disabled = filtered.filter((it) => Number(it.openQty) === 0);
+    return [...enabled, ...disabled];
   }, [draftItems, filter]);
 
   const handleScan = (value) => {
