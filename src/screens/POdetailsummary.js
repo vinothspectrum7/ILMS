@@ -405,7 +405,7 @@ const PODetailSummary = () => {
     setConfirmVisible(false);
   };
 
-  const goToLineItemDetails = (startIdx = 0, sourceList = []) => {
+  const goToLineItemDetails = (startIdx = 0, sourceList = [],row) => {
     console.log(sourceList,"sourceListsourceListsourceListsourceList")
     const items = sourceList.map((it, i) => {
       const raw = it._raw || {};
@@ -426,8 +426,8 @@ const PODetailSummary = () => {
         receivingQty: qty,
         receivingStatus: raw.line_status ?? '',
         lpn: raw.lpn ?? '',
-        subInventory: raw.sub_inv_id ?? null,
-        locator: raw.locator_id ?? null,
+        subInventory: raw.subInventory ?? raw.sub_inv_id ?? null,
+        locator: raw.locator ?? raw.locator_id ?? null,
         max_open_qty: n(raw.max_open_qty ?? 0),
         po_line_id: raw.po_line_id,
       };
@@ -438,6 +438,7 @@ const PODetailSummary = () => {
       readonly: false,
       listType: 'line',
       returnTo: 'podetailsummary',
+      selectedPO: { po_id: row.po_id, po_number: row.po_number },
     });
   };
 
@@ -494,7 +495,7 @@ const PODetailSummary = () => {
                   keyExtractor={(it) => it.key}
                   renderItem={({ item, index }) => (
                     <View style={styles.itemRow}>
-                      <TouchableOpacity style={styles.colItem} onPress={() => goToLineItemDetails(index, uiItems)}>
+                      <TouchableOpacity style={styles.colItem} onPress={() => goToLineItemDetails(index, uiItems,row)}>
                         <Text style={styles.viewDetails} numberOfLines={1}>
                           {item._raw?.item_code ?? item.name ?? dash}
                         </Text>

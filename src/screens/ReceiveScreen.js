@@ -167,34 +167,38 @@ const ReceiveScreen = () => {
         return;
       }
 
-      if (tabKey === 'InComplete') {
-        let base = [...ICListInitial];
-        if (q) {
-          base = base.filter((it) => {
-            const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status]
-              .filter(Boolean)
-              .map((x) => String(x).toLowerCase());
-            return hay.some((h) => h.includes(q));
-          });
-        }else
-        if (filterStatus) {
-          base = base.filter((it) => String(it?.status || '').toUpperCase() === filterStatus);
-        }
-        setICList(base);
-        return;
-      }else if(tabKey=='received'){
-        let base = [...IntialReceivedData];
-        if (q) {
-          base = base.filter((it) => {
-            const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status, it?.receipt_num]
-              .filter(Boolean)
-              .map((x) => String(x).toLowerCase());
-            return hay.some((h) => h.includes(q));
-          });
-        }
-        SetReceivedData(base);
-        return;
-      }
+      // if (tabKey === 'InComplete') {
+      //   let base = [...ICListInitial];
+      //   if (q) {
+      //     base = base.filter((it) => {
+      //       const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status]
+      //         .filter(Boolean)
+      //         .map((x) => String(x).toLowerCase());
+      //       return hay.some((h) => h.includes(q));
+      //     });
+      //   }else
+      //   if (filterStatus) {
+      //     base = base.filter((it) => String(it?.status || '').toUpperCase() === filterStatus);
+      //   }
+      //   setICList(base);
+      //   return;
+      // }
+      // if(tabKey=='received'){
+      //   let base = [...IntialReceivedData];
+      //   if (q) {
+      //     base = base.filter((it) => {
+      //       const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status, it?.receipt_num]
+      //         .filter(Boolean)
+      //         .map((x) => String(x).toLowerCase());
+      //       return hay.some((h) => h.includes(q));
+      //     });
+      //   }
+      //   console.log(IntialReceivedData,"IntialReceivedData")
+      //   console.log(q,"IntialReceivedDataqqqqqqqqq")
+      //   console.log(base,"onindexchange")
+      //   SetReceivedData(base);
+      //   return;
+      // }
     },
     [POIntialData, AsnIntialData, ICListInitial]
   );
@@ -249,7 +253,9 @@ const ReceiveScreen = () => {
         const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
         SetIntialReceivedData(withIds);
         SetReceivedData(withIds);
-      } catch {
+        console.log(withIds,"loadReceived");
+      } catch(error) {
+        console.log(error,"loadReceivedError");
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     };

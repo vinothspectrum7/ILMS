@@ -48,6 +48,7 @@ const ASNSummaryViewItemDetailsScreen = () => {
   const returnTo = route?.params?.returnTo || null;
   const receiptNumber = route?.params?.receiptNumber || null;
   const listType = route?.params?.listType || 'line';
+  const selectedPO = route?.params?.selectedPO || null;
   const isEditable = !readOnly;
 
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -74,20 +75,17 @@ const ASNSummaryViewItemDetailsScreen = () => {
   const inReadonlyFromAsn = readOnly || returnTo === 'AsnReceivedScreen' || listType === 'received';
 
   const mergedItems = useMemo(() => {
+    console.log(baseItems,"baseItemsbaseItemsbaseItemsbaseItemsbaseItems")
     return baseItems.map((it) => {
       const stored = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
-      const qtyFromStore = Number(stored?.qtyToReceive);
-      const qtyFromNav = Number(it?.receivingQty);
-      const receivingQty = inReadonlyFromAsn
-        ? Number.isFinite(qtyFromNav) ? qtyFromNav : 0
-        : (Number.isFinite(qtyFromStore) ? qtyFromStore : (Number.isFinite(qtyFromNav) ? qtyFromNav : 0));
+      const receivingQty = it.receivingQty ?? stored.qtyToReceive ?? 0 ;
       return {
         ...it,
         receivingQty,
         lpn: stored?.lpn ?? it.lpn ?? '',
-        subInventory: stored?.subInventory ?? it.subInventory ?? '',
-        locator: stored?.locator ?? it.locator ?? '',
-        imageUri: stored?.imageUri ?? it.imageUri ?? null,
+        subInventory: it.subInventory ?? stored?.subInventory ?? '',
+        locator: it.locator ?? stored?.locator ?? null,
+        imageUri: it.imageUri ?? stored?.imageUri ?? null,
         max_open_qty: Number(it.max_open_qty ?? stored?.max_open_qty ?? it.openQty ?? 0),
       };
     });
@@ -137,27 +135,15 @@ const ASNSummaryViewItemDetailsScreen = () => {
     const next = { ...edited };
     for (const it of allItems) {
       if (next[it.id]) continue;
-      const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
-      if (fromStore) {
-        next[it.id] = {
-          receivingQty: Number(fromStore.qtyToReceive ?? 0),
-          lpn: fromStore.lpn ?? it.lpn ?? '',
-          subInventory: fromStore.subInventory ?? it.subInventory ?? '',
-          locator: fromStore.locator ?? it.locator ?? '',
-          imageUri: fromStore.imageUri ?? it.imageUri ?? null,
-        };
-      } else {
-        const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
-        const initialQty = clampToLimit(Number(it.receivingQty ?? it.openQty ?? 0), limit);
-        console.log("initialQty",initialQty);
-        next[it.id] = {
-          receivingQty: initialQty,
-          lpn: it.lpn ?? '',
-          subInventory: it.subInventory ?? '',
-          locator: it.locator ?? '',
-          imageUri: it.imageUri ?? null,
-        };
-      }
+         const stored = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : undefined;
+      const receivingQty = it.receivingQty ?? stored.qtyToReceive ?? 0 ;
+      next[it.id] =  {
+        receivingQty:receivingQty,
+        lpn: it.lpn ?? stored?.lpn ?? '',
+        subInventory: it.subInventory ?? stored?.subInventory ?? '',
+        locator: it.locator ?? stored?.locator ?? null,
+        imageUri: it.imageUri ?? stored?.imageUri ?? null,
+      };
     }
     if (Object.keys(next).length !== Object.keys(edited).length) {
       setEdited(next);
@@ -376,27 +362,6 @@ const ASNSummaryViewItemDetailsScreen = () => {
     return patches;
   }, [allItems, edited]);
 
-  const resolvePoContext = useCallback(() => {
-    const poFromParams = route?.params?.selectedPO?.po_id || route?.params?.poId;
-    const poNumberFromParams = route?.params?.selectedPO?.po_number || route?.params?.poNumber;
-    if (poFromParams) return { po_id: String(poFromParams), po_number: poNumberFromParams || String(titlePo || '-') };
-    if (Array.isArray(asnSelectedPOIds) && asnSelectedPOIds.length > 0) {
-      const nid = String(asnSelectedPOIds[0]);
-      let pn = '-';
-      if (Array.isArray(asnSelectedLines) && asnSelectedLines.length > 0) {
-        const hit = asnSelectedLines.find(x => String(x.id) === nid);
-        pn = hit?.po_number || pn;
-      }
-      return { po_id: nid, po_number: pn || String(titlePo || '-') };
-    }
-    if (Array.isArray(asnSelectedLines) && asnSelectedLines.length > 0) {
-      const first = asnSelectedLines[0];
-      const nid = String(first?.po_id || first?.id || '');
-      const pn = first?.po_number || String(titlePo || '-');
-      if (nid) return { po_id: nid, po_number: pn };
-    }
-    return { po_id: null, po_number: String(titlePo || '-') };
-  }, [route?.params, asnSelectedPOIds, asnSelectedLines, titlePo]);
 
   const buildEnrichedLinesFromDetails = useCallback(() => {
     const patchedMap = new Map();
@@ -456,38 +421,11 @@ const ASNSummaryViewItemDetailsScreen = () => {
     try {
       console.log(patches,"buildPatchesbuildPatchesbuildPatches");
       for (const p of patches) mergePatchIntoReceiveItems(p);
-      const { po_id, po_number } = resolvePoContext();
       const enriched = buildEnrichedLinesFromDetails();
-      // console.log(enrichedLines,"enrichedLines");
       const finalizedLines = finalizeLinesWithAutoFill(enriched);
       console.log(finalizedLines,"finalizedLines");
-      const ordered_qty = sum(finalizedLines, 'ordered_qty');
-      const rcvd_qty = sum(finalizedLines, 'rcvd_qty');
-      const receiving_qty = sum(finalizedLines, 'receiving_qty');
-      const shippedVals = finalizedLines.map((x) => Number(x?.shipped_qty)).filter((v) => Number.isFinite(v));
-      const shipped_qty = shippedVals.length ? shippedVals.reduce((a, b) => a + b, 0) : null;
-      if (po_id) {
-        setAsnEditedLinesForPO(po_id, finalizedLines);
-        // selectAsnPOId(po_id);
-        // const existing = Array.isArray(asnSelectedLines) ? asnSelectedLines.find(x => String(x.id) === String(po_id)) : null;
-        const poEntry = {
-          id: String(po_id || '0'),
-          po_id: po_id || '',
-          po_number: po_number || '-',
-          line: {
-            ordered_qty,
-            rcvd_qty,
-            shipped_qty,
-            receiving_qty,
-            asn_line_items: finalizedLines,
-          },
-        };
-        // if (existing) {
-        //   updateAsnLine({ id: String(poEntry.id), line: poEntry.line });
-        // } else {
-        //   initAsnSelectedLines([poEntry]);
-        // }
-      }
+      setAsnEditedLinesForPO(selectedPO?.po_id, finalizedLines);
+      selectAsnPOId(selectedPO?.po_id);
       const label = returnTo === 'podetailsummary' ? 'Updated Successfully' : 'Saved Successfully';
       setSuccessMessage(label);
       setSuccessVisible(true);
@@ -523,11 +461,12 @@ const ASNSummaryViewItemDetailsScreen = () => {
   };
 
   const renderPage = ({ item }) => {
+    console.log(item,"renderITEMSSSSSS")
     const fromStore = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(item.id)) : undefined;
     const storeQty = Number(fromStore?.qtyToReceive);
     const mergedQty = Number(item.receivingQty ?? 0);
-    const defaultEditableQty = Number.isFinite(storeQty) ? storeQty : mergedQty;
-    console.log(mergedQty,storeQty,defaultEditableQty,"QTTTTTTTTTTT")
+    const defaultEditableQty = mergedQty;
+    console.log(mergedQty,"QTTTTTTTTTTT")
 
     const readonlyQty = returnTo == 'AsnReceivedScreen' ? item.receivingQty :
       readOnly
