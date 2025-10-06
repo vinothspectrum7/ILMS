@@ -303,6 +303,7 @@ const PovViewItems = () => {
     };
     if (selectedPO?.po_id) {
       setAsnEditedLinesForPO(selectedPO.po_id, finalizedLines);
+      selectAsnPOId(selectedPO.po_id);
     }
     if (mode === 'edit') {
       updateAsnLine({ id: String(poEntry.id), line: poEntry.line });

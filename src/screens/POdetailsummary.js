@@ -102,7 +102,9 @@ const PODetailSummary = () => {
     const map = {};
     (asnSelectedLines || []).forEach((row) => {
       const poId = row?.po_id;
+      console.log(row,"asnSelectedLines");
       const edited = getAsnEditedLinesForPO(poId);
+      console.log(edited,"getAsnEditedLinesForPOedited");
       const src =
         Array.isArray(edited) && edited.length
           ? edited
@@ -293,9 +295,9 @@ const PODetailSummary = () => {
       const raw = rawItemsByPORef.current[poId] || [];
       const deepCopy = JSON.parse(JSON.stringify(raw));
       const edited = getAsnEditedLinesForPO(poId);
-      if (Array.isArray(edited) && edited.length) {
-        setAsnEditedLinesForPO(poId, []);
-      }
+      // if (Array.isArray(edited) && edited.length) {
+      //   setAsnEditedLinesForPO(poId, []);
+      // }
       navigation.navigate('poviewitems', {
         source: 'asn',
         mode: 'edit',
