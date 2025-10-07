@@ -9,6 +9,7 @@ import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import DeleteSvg from '../assets/icons/delete.svg';
 import SortIcon from '../assets/icons/sorticon.svg';
+import SortDropdownIcon from '../assets/icons/sortdropdown.svg';
 import BackFilterIcon from '../assets/icons/filterbackicon.svg';
 import ViewMoreIcon from '../assets/icons/viewmore.svg';
 import ViewLessIcon from '../assets/icons/viewless.svg';
@@ -21,7 +22,8 @@ const BASE_WIDTH = 375;
 const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
-const FILTERS = ['Open', 'Closed', 'Fully Received'];
+const FILTERS_PO_ASN = ['Open', 'Closed', 'Fully Received'];
+const FILTERS_RX_IC = ['All', 'PO Receipts', 'ASN Receipts'];
 const dash = '—';
 
 const clampPct = (n) => Math.max(0, Math.min(100, Number(n) || 0));
@@ -79,6 +81,8 @@ const ReceiveScreen = () => {
 
   const [index, setIndex] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [sortField, setSortField] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
 
   const [AsnIntialData, setAsnIntialData] = useState([]);
@@ -111,7 +115,7 @@ const ReceiveScreen = () => {
   const scrollRef = useRef(null);
   const openRowRef = useRef(null);
 
-  const handlersArray = useMemo(() => [pagerRef, scrollRef], []);
+  const baselineRef = useRef({ poir: null, asn: null, received: null, InComplete: null });
 
   const renderRightActions = useCallback(
     (onDelete) => <RightActions onDelete={onDelete} />,
@@ -120,24 +124,151 @@ const ReceiveScreen = () => {
 
   const pretty = (v) => v;
 
+  const isDateField = (field) =>
+    field === 'order_date' ||
+    field === 'last_updated_date' ||
+    field === 'shipped_date' ||
+    field === 'received_date';
+
+  const parseMaybeDate = (v) => {
+    const n = Date.parse(v);
+    return Number.isFinite(n) ? n : Number.NEGATIVE_INFINITY;
+  };
+
+  const compareByField = (a, b, field, order) => {
+    const dir = order === 'desc' ? -1 : 1;
+    const av = a?.[field];
+    const bv = b?.[field];
+    if (isDateField(field)) {
+      const da = parseMaybeDate(av);
+      const db = parseMaybeDate(bv);
+      if (da === db) return 0;
+      return da < db ? -1 * dir : 1 * dir;
+    }
+    const sa = String(av ?? '').toLowerCase();
+    const sb = String(bv ?? '').toLowerCase();
+    if (sa === sb) return 0;
+    return sa < sb ? -1 * dir : 1 * dir;
+  };
+
+  const sortCurrentTabByField = (field, order) => {
+    if (activeKey === 'poir') {
+      setPOData((prev) => [...prev].sort((a, b) => compareByField(a, b, field, order)));
+      return;
+    }
+    if (activeKey === 'asn') {
+      setAsnData((prev) => [...prev].sort((a, b) => compareByField(a, b, field, order)));
+      return;
+    }
+    if (activeKey === 'received') {
+      SetReceivedData((prev) => [...prev].sort((a, b) => compareByField(a, b, field, order)));
+      return;
+    }
+    if (activeKey === 'InComplete') {
+      setICList((prev) => [...prev].sort((a, b) => compareByField(a, b, field, order)));
+      return;
+    }
+  };
+
+  const captureBaselineIfNeeded = () => {
+    if (baselineRef.current[activeKey]) return;
+    if (activeKey === 'poir') baselineRef.current.poir = [...POData];
+    else if (activeKey === 'asn') baselineRef.current.asn = [...AsnData];
+    else if (activeKey === 'received') baselineRef.current.received = [...ReceivedData];
+    else if (activeKey === 'InComplete') baselineRef.current.InComplete = [...ICList];
+  };
+
+  const restoreBaseline = () => {
+    const snap = baselineRef.current[activeKey];
+    if (!snap) return;
+    if (activeKey === 'poir') setPOData(snap);
+    else if (activeKey === 'asn') setAsnData(snap);
+    else if (activeKey === 'received') SetReceivedData(snap);
+    else if (activeKey === 'InComplete') setICList(snap);
+    baselineRef.current[activeKey] = null;
+  };
+
+  const handleSort = () => {
+    if (sortField) {
+      sortCurrentTabByField(sortField, sortOrder);
+      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    if (activeKey === 'poir') {
+      setPOData((prev) => {
+        const sorted = [...prev].sort((a, b) => {
+          const dateA = new Date(a.order_date);
+          const dateB = new Date(b.order_date);
+          if (dateA.getTime() !== dateB.getTime()) return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+        });
+        return sorted;
+      });
+      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    if (activeKey === 'asn') {
+      setAsnData((prev) => {
+        const sorted = [...prev].sort((a, b) => {
+          const dateA = new Date(a.shipped_date || a.expected_receipt_date);
+          const dateB = new Date(b.shipped_date || b.expected_receipt_date);
+          if (dateA.getTime() !== dateB.getTime()) return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+        });
+        return sorted;
+      });
+      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    if (activeKey === 'received') {
+      SetReceivedData((prev) => {
+        const sorted = [...prev].sort((a, b) => {
+          const da = new Date(a.received_date);
+          const db = new Date(b.received_date);
+          if (da.getTime() !== db.getTime()) return sortOrder === 'asc' ? da - db : db - da;
+          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+        });
+        return sorted;
+      });
+      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    if (activeKey === 'InComplete') {
+      setICList((prev) => {
+        const sorted = [...prev].sort((a, b) => {
+          const da = new Date(a.last_updated_date || a.received_date || a.shipped_date || a.expected_receipt_date);
+          const db = new Date(b.last_updated_date || b.received_date || b.shipped_date || b.expected_receipt_date);
+          if (da.getTime() !== db.getTime()) return sortOrder === 'asc' ? da - db : db - da;
+          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+        });
+        return sorted;
+      });
+      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+  };
+
   const applyVisible = useCallback(
     (tabKey, qText, filterVal) => {
       const q = String(qText ?? '').trim().toLowerCase();
-      const filterStatus = filterVal ? String(filterVal).toUpperCase() : null;
 
       if (tabKey === 'poir') {
+        const filterStatus = filterVal ? String(filterVal).toUpperCase() : null;
         let base = [...POIntialData];
         if (q) {
           base = base.filter((p) => {
             const hay = [p?.po_number, p?.supplier_name, p?.status].filter(Boolean).map((x) => String(x).toLowerCase());
             return hay.some((h) => h.includes(q));
           });
-        }
-        else if (filterStatus == 'FULLY RECEIVED') {
-          base = base.filter((p) => Number(p?.received) == 100);
-        } else if (filterStatus == 'OPEN') {
+        } else if (filterStatus === 'FULLY RECEIVED') {
+          base = base.filter((p) => Number(p?.received) === 100);
+        } else if (filterStatus === 'OPEN') {
           base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN' && Number(p?.received) !== 100);
-        } else if (filterStatus == 'CLOSED') {
+        } else if (filterStatus === 'CLOSED') {
           base = base.filter((p) => String(p?.status || '').toUpperCase() === 'CLOSED');
         } else if (!q) {
           base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN' && Number(p?.received) !== 100);
@@ -147,18 +278,18 @@ const ReceiveScreen = () => {
       }
 
       if (tabKey === 'asn') {
+        const filterStatus = filterVal ? String(filterVal).toUpperCase() : null;
         let base = [...AsnIntialData];
         if (q) {
           base = base.filter((a) => {
             const hay = [a?.asn_num, a?.supplier_name, a?.status].filter(Boolean).map((x) => String(x).toLowerCase());
             return hay.some((h) => h.includes(q));
           });
-        }else
-        if (filterStatus == 'FULLY RECEIVED') {
-          base = base.filter((p) => Number(p?.receivedPct) == 100);
-        } else if (filterStatus == 'OPEN') {
+        } else if (filterStatus === 'FULLY RECEIVED') {
+          base = base.filter((p) => Number(p?.receivedPct) === 100);
+        } else if (filterStatus === 'OPEN') {
           base = base.filter((p) => String(p?.status || '').toUpperCase() === 'OPEN' && Number(p?.receivedPct) !== 100);
-        } else if (filterStatus == 'CLOSED') {
+        } else if (filterStatus === 'CLOSED') {
           base = base.filter((p) => String(p?.status || '').toUpperCase() === 'CLOSED');
         } else if (!q) {
           base = base.filter((a) => String(a?.status || '').toUpperCase() === 'OPEN' && Number(a?.receivedPct) !== 100);
@@ -167,44 +298,63 @@ const ReceiveScreen = () => {
         return;
       }
 
-      // if (tabKey === 'InComplete') {
-      //   let base = [...ICListInitial];
-      //   if (q) {
-      //     base = base.filter((it) => {
-      //       const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status]
-      //         .filter(Boolean)
-      //         .map((x) => String(x).toLowerCase());
-      //       return hay.some((h) => h.includes(q));
-      //     });
-      //   }else
-      //   if (filterStatus) {
-      //     base = base.filter((it) => String(it?.status || '').toUpperCase() === filterStatus);
-      //   }
-      //   setICList(base);
-      //   return;
-      // }
-      // if(tabKey=='received'){
-      //   let base = [...IntialReceivedData];
-      //   if (q) {
-      //     base = base.filter((it) => {
-      //       const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status, it?.receipt_num]
-      //         .filter(Boolean)
-      //         .map((x) => String(x).toLowerCase());
-      //       return hay.some((h) => h.includes(q));
-      //     });
-      //   }
-      //   console.log(IntialReceivedData,"IntialReceivedData")
-      //   console.log(q,"IntialReceivedDataqqqqqqqqq")
-      //   console.log(base,"onindexchange")
-      //   SetReceivedData(base);
-      //   return;
-      // }
+      if (tabKey === 'received') {
+        let base = [...IntialReceivedData];
+        if (q) {
+          base = base.filter((it) => {
+            const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status, it?.receipt_num]
+              .filter(Boolean)
+              .map((x) => String(x).toLowerCase());
+            return hay.some((h) => h.includes(q));
+          });
+        }
+        if (filterVal === 'purchase_order') {
+          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'purchase_order');
+        } else if (filterVal === 'asn') {
+          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'asn');
+        }
+        SetReceivedData(base);
+        return;
+      }
+
+      if (tabKey === 'InComplete') {
+        let base = [...ICListInitial];
+        if (q) {
+          base = base.filter((it) => {
+            const hay = [it?.po_number, it?.asn_num, it?.supplier_name, it?.status]
+              .filter(Boolean)
+              .map((x) => String(x).toLowerCase());
+            return hay.some((h) => h.includes(q));
+          });
+        }
+        if (filterVal === 'purchase_order') {
+          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'purchase_order');
+        } else if (filterVal === 'asn') {
+          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'asn');
+        }
+        setICList(base);
+        return;
+      }
     },
-    [POIntialData, AsnIntialData, ICListInitial]
+    [POIntialData, AsnIntialData, ICListInitial, IntialReceivedData]
   );
 
   const handlePick = (picked) => {
     setMenuOpen(false);
+    if (activeKey === 'received' || activeKey === 'InComplete') {
+      const v = String(picked).toLowerCase();
+      if (v === 'all') {
+        setActiveFilter(null);
+        applyVisible(activeKey, searchText, null);
+      } else if (v.includes('po')) {
+        setActiveFilter('purchase_order');
+        applyVisible(activeKey, searchText, 'purchase_order');
+      } else if (v.includes('asn')) {
+        setActiveFilter('asn');
+        applyVisible(activeKey, searchText, 'asn');
+      }
+      return;
+    }
     const backend = toBackendStatus(picked);
     setActiveFilter(backend);
     applyVisible(activeKey, searchText, backend);
@@ -253,9 +403,7 @@ const ReceiveScreen = () => {
         const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
         SetIntialReceivedData(withIds);
         SetReceivedData(withIds);
-        console.log(withIds,"loadReceived");
-      } catch(error) {
-        console.log(error,"loadReceivedError");
+      } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     };
@@ -263,7 +411,6 @@ const ReceiveScreen = () => {
     const loadIC = async () => {
       try {
         const data = await GetICPoItems(OrgData?.selectedOrg);
-        console.log(data,"GetICPoItemsGetICPoItemsGetICPoItemsGetICPoItems")
         const normalized = (data || []).map((d, idx) => {
           const isASN = String(d?.received_type || '').toLowerCase() === 'asn';
           return {
@@ -278,6 +425,8 @@ const ReceiveScreen = () => {
             shipped_date: d?.shipped_date,
             expected_receipt_date: d?.expected_receipt_date,
             status: d?.status,
+            last_updated_date: d?.last_updated_date,
+            received_type: d?.received_type,
           };
         });
         setICListInitial(normalized);
@@ -308,68 +457,39 @@ const ReceiveScreen = () => {
     }, [navigation])
   );
 
-  const handleSort = () => {
-    if (activeKey === 'poir') {
-      setPOData((prev) => {
-        const sorted = [...prev].sort((a, b) => {
-          const dateA = new Date(a.order_date);
-          const dateB = new Date(b.order_date);
-          if (dateA.getTime() !== dateB.getTime()) return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
-        });
-        return sorted;
-      });
-      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
-      return;
+  const getSortOptionsForTab = (tabKey) => {
+    if (tabKey === 'poir') {
+      return [
+        { key: 'supplier_name', label: 'Supplier' },
+        { key: 'order_date', label: 'Purchase Order Date' },
+        { key: 'last_updated_date', label: 'Last Updated Date' },
+      ];
     }
-
-    if (activeKey === 'asn') {
-      setAsnData((prev) => {
-        const sorted = [...prev].sort((a, b) => {
-          const dateA = new Date(a.shipped_date || a.expected_receipt_date);
-          const dateB = new Date(b.shipped_date || b.expected_receipt_date);
-          if (dateA.getTime() !== dateB.getTime()) return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
-        });
-        return sorted;
-      });
-      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
-      return;
+    if (tabKey === 'asn') {
+      return [
+        { key: 'supplier_name', label: 'Supplier' },
+        { key: 'shipped_date', label: 'Shipped Date' },
+        { key: 'last_updated_date', label: 'Last Updated Date' },
+      ];
     }
-    if(activeKey === 'received'){
-      console.log(ReceivedData,"SetReceivedDataSetReceivedData");
-    SetReceivedData((prev) => {
-        const sorted = [...prev].sort((a, b) => {
-          const da = a.received_type=='asn' ? new Date(a.shipped_date) : new Date(a.received_date);
-          const db = b.received_type=='asn' ? new Date(b.shipped_date) : new Date(b.received_date);
-          if (da.getTime() !== db.getTime()) return sortOrder === 'asc' ? da - db : db - da;
-          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
-        });
-        return sorted;
-      });
-      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
-      return; 
+    if (tabKey === 'received') {
+      return [
+        { key: 'supplier_name', label: 'Supplier' },
+        { key: 'received_date', label: 'Received Date' },
+      ];
     }
-
-    if (activeKey === 'InComplete') {
-      console.log(ICList,"setICListsetICList")
-      setICList((prev) => {
-        const sorted = [...prev].sort((a, b) => {
-          const da = a.isASN ? new Date(a.shipped_date || a.expected_receipt_date) : new Date(a.received_date);
-          const db = b.isASN ? new Date(b.shipped_date || b.expected_receipt_date) : new Date(b.received_date);
-          if (da.getTime() !== db.getTime()) return sortOrder === 'asc' ? da - db : db - da;
-          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
-        });
-        return sorted;
-      });
-      setSortOrder((p) => (p === 'asc' ? 'desc' : 'asc'));
-      return;
+    if (tabKey === 'InComplete') {
+      return [
+        { key: 'supplier_name', label: 'Supplier' },
+        { key: 'last_updated_date', label: 'Last Updated Date' },
+      ];
     }
+    return [];
   };
 
   const handleSearch = (text) => {
     setSearchText(text);
-    applyVisible(activeKey, text, "Search");
+    applyVisible(activeKey, text, activeFilter);
   };
 
   const [expandedReceiptIds, setExpandedReceiptIds] = useState(new Set());
@@ -448,7 +568,7 @@ const ReceiveScreen = () => {
           <View style={styles.newbottomcardRight}>
             <TouchableOpacity style={styles.viewMoreBtn} activeOpacity={0.7} onPress={() => toggleExpand(item.id)}>
               <Text style={styles.viewMoreText}>{expanded ? 'View Less' : 'View More'}</Text>
-              {expanded ? <ViewLessIcon width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" /> : <ViewMoreIcon width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" />}
+              <ViewLessIcon width={ms(14)} height={ms(14)} stroke="#033EFF" fill="none" />
             </TouchableOpacity>
           </View>
         </View>
@@ -483,14 +603,7 @@ const ReceiveScreen = () => {
     </View>
   );
 
-  const IncompleteRow = memo(function IncompleteRow({
-    item,
-    isASN,
-    onDelete,
-    pagerRef,
-    scrollRef,
-    openRowRef,
-  }) {
+  const IncompleteRow = memo(function IncompleteRow({ item, isASN, onDelete, pagerRef, scrollRef, openRowRef }) {
     const rowRef = useRef(null);
 
     const onOpen = useCallback(() => {
@@ -554,11 +667,7 @@ const ReceiveScreen = () => {
             }}
             activeOpacity={0.9}
           >
-            {isASN ? (
-              <ASNReceiptCard item={item} styleOverride={styles.cardInsideSwipe} />
-            ) : (
-              <POReceiptCard item={item} styleOverride={styles.cardInsideSwipe} />
-            )}
+            {isASN ? <ASNReceiptCard item={item} styleOverride={styles.cardInsideSwipe} /> : <POReceiptCard item={item} styleOverride={styles.cardInsideSwipe} />}
           </TouchableOpacity>
         </Swipeable>
       </View>
@@ -775,19 +884,12 @@ const ReceiveScreen = () => {
                   readonly: true,
                   id: item.receipt_id,
                   listType: 'Received',
-                  header: isASN
-                    ? {
-                        receiptNumber: item.receipt_num,
-                        supplier: item.supplier_name,
-                        poNumber: dash,
-                        receiptDate: item.received_date || item.expected_receipt_date || item.shipped_date,
-                      }
-                    : {
-                        receiptNumber: item.receipt_num,
-                        supplier: item.supplier_name,
-                        poNumber: item.po_number,
-                        receiptDate: item.received_date,
-                      },
+                  header: {
+                    receiptNumber: item.receipt_num,
+                    supplier: item.supplier_name,
+                    poNumber: item.po_number ?? dash,
+                    receiptDate: item.received_date,
+                  },
                   selectedItems: [],
                 });
               }
@@ -836,6 +938,25 @@ const ReceiveScreen = () => {
     []
   );
 
+  const toggleSortMenu = () => {
+    setSortMenuOpen((v) => !v);
+    setMenuOpen(false);
+  };
+
+  const selectSortOption = (key) => {
+    if (sortField === key) {
+      setSortField(null);
+      setSortMenuOpen(false);
+      restoreBaseline();
+      return;
+    }
+    captureBaselineIfNeeded();
+    setSortField(key);
+  };
+
+  const isSortDropdownActive = sortMenuOpen || !!sortField;
+  const isFilterActive = menuOpen || activeFilter != null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
@@ -865,13 +986,17 @@ const ReceiveScreen = () => {
               onIndexChange={(i) => {
                 setIndex(i);
                 setActiveTab(i);
-                applyVisible(routes[i].key, searchText, activeFilter);
+                setActiveFilter(null);
+                setSortField(null);
+                setSortMenuOpen(false);
+                setMenuOpen(false);
+                applyVisible(routes[i].key, searchText, null);
               }}
               initialLayout={initialLayout}
               swipeEnabled
               gestureHandlerProps={{ ref: pagerRef }}
               renderTabBar={(props) => (
-                <View style={{ flexDirection: 'row', zIndex: 999, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#7392AA', marginBottom: 10 }}>
+                <View style={styles.tabBarRow}>
                   <View style={{ flex: 1 }}>
                     <TabBar
                       {...props}
@@ -885,28 +1010,93 @@ const ReceiveScreen = () => {
                     />
                   </View>
 
-                  <View style={{ flexDirection: 'row', marginRight: 12 }}>
-                    <TouchableOpacity onPress={handleSort} style={{ marginRight: 10 }}>
-                      <SortIcon width={24} height={24} fill="#233E55" />
-                    </TouchableOpacity>
+                  <View style={styles.iconCluster}>
+                    <View style={styles.sharedSortTile}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const opts = getSortOptionsForTab(activeKey);
+                          if (sortField && !opts.some((o) => o.key === sortField)) {
+                            setSortField(null);
+                            restoreBaseline();
+                          }
+                          handleSort();
+                        }}
+                        style={styles.sortHalf}
+                        activeOpacity={0.8}
+                      >
+                        <SortIcon width={24} height={24} fill="#233E55" />
+                      </TouchableOpacity>
 
-                      {(index === 0 || index === 1) && (
-                        <>
-                    <TouchableOpacity onPress={() => setMenuOpen((v) => !v)}>
-                      <BackFilterIcon width={24} height={24} fill="#233E55" />
-                    </TouchableOpacity>
-                    </>
-                      )}
+                      <View style={styles.sortDivider} />
 
-                    {menuOpen && (
-                      <View style={styles.menu}>
-                        {FILTERS.map((f) => (
-                          <TouchableOpacity key={f} style={[styles.menuItem, activeFilter === toBackendStatus(f) && styles.menuItemActive]} onPress={() => handlePick(f)}>
-                            <Text style={[styles.menuText, activeFilter === toBackendStatus(f) && styles.menuTextActive]}>{pretty(f)}</Text>
-                          </TouchableOpacity>
-                        ))}
+                      <View style={{ position: 'relative' }}>
+                        <TouchableOpacity onPress={toggleSortMenu} style={styles.dropdownHalf} activeOpacity={0.8}>
+                          <View style={styles.dropdownInnerWhite} />
+                          <SortDropdownIcon width={24} height={24} fill="#233E55" />
+                        </TouchableOpacity>
+
+                        {sortMenuOpen && (
+                          <View style={styles.menuAnchored}>
+                            {getSortOptionsForTab(activeKey).map((opt) => (
+                              <TouchableOpacity
+                                key={opt.key}
+                                style={[styles.menuItem, sortField === opt.key && styles.menuItemActive]}
+                                onPress={() => selectSortOption(opt.key)}
+                                activeOpacity={0.9}
+                              >
+                                <Text style={[styles.menuText, sortField === opt.key && styles.menuTextActive]}>{opt.label}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
                       </View>
-                    )}
+                    </View>
+
+                    <View style={{ position: 'relative' }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setMenuOpen((v) => !v);
+                          setSortMenuOpen(false);
+                        }}
+                        style={[styles.chip, isFilterActive && styles.chipActive]}
+                        activeOpacity={0.8}
+                      >
+                        {isFilterActive && <View style={styles.chipInner} />}
+                        <BackFilterIcon width={24} height={24} fill="#233E55" />
+                      </TouchableOpacity>
+
+                      {menuOpen && (
+                        <View style={styles.menuAnchored}>
+                          {(activeKey === 'poir' || activeKey === 'asn' ? FILTERS_PO_ASN : FILTERS_RX_IC).map((f) => (
+                            <TouchableOpacity
+                              key={f}
+                              style={[
+                                styles.menuItem,
+                                (activeKey === 'poir' || activeKey === 'asn')
+                                  ? activeFilter === toBackendStatus(f) && styles.menuItemActive
+                                  : (String(f).toLowerCase() === 'all'
+                                      ? activeFilter == null
+                                      : (String(f).toLowerCase().includes('po') ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
+                              ]}
+                              onPress={() => handlePick(f)}
+                            >
+                              <Text
+                                style={[
+                                  styles.menuText,
+                                  (activeKey === 'poir' || activeKey === 'asn')
+                                    ? activeFilter === toBackendStatus(f) && styles.menuTextActive
+                                    : (String(f).toLowerCase() === 'all'
+                                        ? activeFilter == null
+                                        : (String(f).toLowerCase().includes('po') ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                                ]}
+                              >
+                                {pretty(f)}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </View>
               )}
@@ -944,34 +1134,36 @@ const styles = StyleSheet.create({
   newbottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
   newbottomcardRight: { flex: 1, justifyContent: 'flex-end', minWidth: 0 },
   newlabelText: { fontSize: ms(8), color: '#666666', flex: 1, marginRight: scale(6) },
-  viewMoreBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: ms(6), marginTop: ms(6) },
-  viewMoreText: { fontSize: ms(10), marginRight: ms(-4), color: '#033EFF', textDecorationLine: 'underline', textDecorationColor: '#033EFF', fontWeight: '500' },
+  viewMoreBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end' },
+  viewMoreText: { fontSize: ms(10), marginRight: ms(6), color: '#033EFF', textDecorationLine: 'underline', textDecorationColor: '#033EFF', fontWeight: '500' },
   labelText: { fontSize: 12, color: '#595A5C', flex: 1, fontFamily: 'Mulish' },
   valueText: { fontFamily: 'Mulish', fontSize: 12, fontWeight: '700', color: '#242424', flex: 1, textAlign: 'left' },
   subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
   progressWrapper: { backgroundColor: '#ECF1F7', borderRadius: 20, height: 12, width: '75%', justifyContent: 'center', elevation: 4, marginTop: 4, marginBottom: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
   progressBarleft: { height: 8, borderRadius: 20, marginHorizontal: 0 },
 
-  incompleteRowContainer: {
-    marginHorizontal: 12,
-    marginVertical: 6,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
+  incompleteRowContainer: { marginHorizontal: 12, marginVertical: 6, borderRadius: 12, backgroundColor: '#FFFFFF', overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
 
   rightActionContainer: { backgroundColor: '#F8D2D4', justifyContent: 'center', alignItems: 'flex-end', width: 40 },
   actionButton: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 },
 
-  menu: { position: 'absolute', top: 34, right: 0, backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 6, minWidth: 150, shadowColor: '#000000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, zIndex: 999, elevation: 10, overflow: 'visible' },
-  menuItem: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8 },
+  tabBarRow: { flexDirection: 'row', zIndex: 999, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#7392AA', marginBottom: 10 },
+  iconCluster: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 12 },
+
+  sharedSortTile: { flexDirection: 'row', alignItems: 'center', height: 32, borderRadius: 8, backgroundColor: '#ECF1F7', borderWidth: 1, borderColor: '#D6E3ED' },
+  sortHalf: { width: 24, height: 32, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  sortDivider: { width: 1 },
+  dropdownHalf: { width: 26, height: 32, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  dropdownInnerWhite: { position: 'absolute', width: 24, height: 24, borderRadius: 6, backgroundColor: '#FFFFFF' },
+
+  chip: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#EAF1F6', borderWidth: 1, borderColor: '#D6E3ED', alignItems: 'center', justifyContent: 'center' },
+  chipActive: { backgroundColor: '#E6F0FA' },
+  chipInner: { position: 'absolute', width: 15, height: 19, borderRadius: 4, backgroundColor: '#FFFFFF' },
+
+  menuAnchored: { position: 'absolute', top: 36, right: 0, backgroundColor: '#FFFFFF', borderRadius: 16, paddingVertical: 6, minWidth: 240, shadowColor: '#000000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, zIndex: 999, elevation: 10, overflow: 'visible' },
+  menuItem: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10 },
   menuItemActive: { backgroundColor: '#E6F0FA' },
-  menuText: { fontSize: 14, color: '#111' },
+  menuText: { fontSize: 16, color: '#111' },
   menuTextActive: { fontWeight: '600' },
 });
 
