@@ -16,6 +16,7 @@ import ConfirmSvg from '../assets/icons/success.svg';
 import FailureSvg from '../assets/icons/failure.svg';
 import DeleteSvg from '../assets/icons/delete.svg';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
+import { getCurrentPO } from '../api/posession';
 
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', receivedDate: '21 Jul 2025', status: 'Fully Received' },
@@ -42,6 +43,7 @@ const [openItems, setOpenItems] = useState(new Set());
   const listTypeFromRoute = route?.params?.listType || 'line';
   const headerFromRoute = route?.params?.header || null;
   const purchaseReceipt = route?.params?.purchaseReceipt;
+  const {currentPO} = getCurrentPO();
   const sourceId = route?.params?.id ? String(route.params.id) : null;
   const Interface_Id = route?.params?.interface_id ? route.params.interface_id : null;
   const passedItems = Array.isArray(route?.params?.selectedItems) ? route.params.selectedItems : [];
@@ -185,6 +187,7 @@ const handleSwipeClose = useCallback((id) => {
 
 const  mapConfirmData = (data)=> {
   return data.map((backend) => ({
+    po_id:currentPO,
     po_line_id:backend?.po_line_id,
     item_id:backend?.item_id,
     org_id:backend?.org_id, // placeholder (if needed)

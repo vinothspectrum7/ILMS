@@ -2,6 +2,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BASE_URL } from "../config/config";
+import { Alert } from "react-native";
 import { createNavigationContainerRef } from '@react-navigation/native';
 import { getCurrentPO, releasecurrentPO } from "./posession";
 // import { useNavigation } from '@react-navigation/native';
@@ -44,18 +45,28 @@ api.interceptors.response.use(
 
       if (status === 401) {
         console.warn("Unauthorized → Token expired or invalid");
-        const {currentPO, lockedByUser} = getCurrentPO();
-        // console.log(currentPO, lockedByUser,"currentPO, lockedByUser")
-        if (currentPO && !lockedByUser) {
-        await releasecurrentPO(currentPO);
-        await AsyncStorage.removeItem("access_token");
-        navigate("Login");
-        }else{
-        await AsyncStorage.removeItem("access_token");
-        navigate("Login");
-        }
-        // navigation.navigate('Login');
-        // Optionally trigger navigation to Login
+        Alert.alert(
+          "Session Expired",
+          "Your session has expired. You’ll be logged out now.",
+          [
+            {
+              text: "OK",
+              onPress: async () => {
+                try {
+                  const { currentPO, lockedByUser } = getCurrentPO();
+                  if (currentPO && !lockedByUser) {
+                    await releasecurrentPO(currentPO);
+                  }
+                  await AsyncStorage.removeItem("access_token");
+                  navigate("Login");
+                } catch (e) {
+                  console.error("Error during logout:", e);
+                }
+              },
+            },
+          ],
+          { cancelable: false }
+        );
       } else if (status === 403) {
         console.error("Forbidden → You don’t have access");
       } else if (status >= 500) {
