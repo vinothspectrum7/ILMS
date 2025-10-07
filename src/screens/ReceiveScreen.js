@@ -944,15 +944,16 @@ const ReceiveScreen = () => {
   };
 
   const selectSortOption = (key) => {
-    if (sortField === key) {
-      setSortField(null);
-      setSortMenuOpen(false);
-      restoreBaseline();
-      return;
-    }
-    captureBaselineIfNeeded();
-    setSortField(key);
-  };
+  if (sortField === key) {
+    setSortField(null);
+    restoreBaseline();
+    setSortMenuOpen(false);   
+    return;
+  }
+  captureBaselineIfNeeded();
+  setSortField(key);
+  setSortMenuOpen(false);     
+};
 
   const isSortDropdownActive = sortMenuOpen || !!sortField;
   const isFilterActive = menuOpen || activeFilter != null;
