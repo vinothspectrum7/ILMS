@@ -23,7 +23,7 @@ const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 const FILTERS_PO_ASN = ['Open', 'Closed', 'Fully Received'];
-const FILTERS_RX_IC = ['All', 'PO Receipts', 'ASN Receipts'];
+const FILTERS_RX_IC = ['All', 'Purchase Order', 'ASN Order'];
 const dash = '—';
 
 const clampPct = (n) => Math.max(0, Math.min(100, Number(n) || 0));
@@ -128,7 +128,8 @@ const ReceiveScreen = () => {
     field === 'order_date' ||
     field === 'last_updated_date' ||
     field === 'shipped_date' ||
-    field === 'received_date';
+    field === 'received_date' ||
+    field === 'purchase_date';
 
   const parseMaybeDate = (v) => {
     const n = Date.parse(v);
@@ -346,10 +347,10 @@ const ReceiveScreen = () => {
       if (v === 'all') {
         setActiveFilter(null);
         applyVisible(activeKey, searchText, null);
-      } else if (v.includes('po')) {
+      } else if (v === 'purchase order') {
         setActiveFilter('purchase_order');
         applyVisible(activeKey, searchText, 'purchase_order');
-      } else if (v.includes('asn')) {
+      } else if (v === 'asn order') {
         setActiveFilter('asn');
         applyVisible(activeKey, searchText, 'asn');
       }
@@ -475,7 +476,8 @@ const ReceiveScreen = () => {
     if (tabKey === 'received') {
       return [
         { key: 'supplier_name', label: 'Supplier' },
-        { key: 'received_date', label: 'Received Date' },
+        { key: 'purchase_date', label: 'Purchase Date' },
+        { key: 'received_date', label: 'Receipt Date' },
       ];
     }
     if (tabKey === 'InComplete') {
@@ -946,12 +948,13 @@ const ReceiveScreen = () => {
   const selectSortOption = (key) => {
     if (sortField === key) {
       setSortField(null);
-      setSortMenuOpen(false);
       restoreBaseline();
+      setSortMenuOpen(false);
       return;
     }
     captureBaselineIfNeeded();
     setSortField(key);
+    setSortMenuOpen(false);
   };
 
   const isSortDropdownActive = sortMenuOpen || !!sortField;
@@ -1076,7 +1079,7 @@ const ReceiveScreen = () => {
                                   ? activeFilter === toBackendStatus(f) && styles.menuItemActive
                                   : (String(f).toLowerCase() === 'all'
                                       ? activeFilter == null
-                                      : (String(f).toLowerCase().includes('po') ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
+                                      : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
                               ]}
                               onPress={() => handlePick(f)}
                             >
@@ -1087,7 +1090,7 @@ const ReceiveScreen = () => {
                                     ? activeFilter === toBackendStatus(f) && styles.menuTextActive
                                     : (String(f).toLowerCase() === 'all'
                                         ? activeFilter == null
-                                        : (String(f).toLowerCase().includes('po') ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
                                 ]}
                               >
                                 {pretty(f)}
