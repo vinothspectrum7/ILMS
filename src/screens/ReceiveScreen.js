@@ -476,7 +476,7 @@ const ReceiveScreen = () => {
     if (tabKey === 'received') {
       return [
         { key: 'supplier_name', label: 'Supplier' },
-        { key: 'purchase_date', label: 'Purchase Date' },
+        // { key: 'purchase_date', label: 'Purchase Date' },
         { key: 'received_date', label: 'Receipt Date' },
       ];
     }
