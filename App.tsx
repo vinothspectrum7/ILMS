@@ -26,6 +26,7 @@ import IC_PODetailSummary from './src/screens/IC_POdetailsummary';
 import PovViewItems from './src/screens/poviewitems';
 import IC_PovViewItems from './src/screens/IC_poviewitems';
 import { navigationRef } from './src/api/api';
+import InventoryHome from './src/screens/Inventory/Inventory_homescreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -154,6 +155,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="IC_poviewitems"
 component={IC_PovViewItems}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Inventory"
+component={InventoryHome}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>
