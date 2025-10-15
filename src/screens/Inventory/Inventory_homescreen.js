@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet,View,Text, Image } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import GlobalHeaderComponent from "../../components/GlobalHeaderComponent";
+import Inv_HeaderComponent from "../../components/inventory/Inv_HeaderComponent";
 import { useReceivingStore } from "../../store/receivingStore";
 import { useNavigation } from "@react-navigation/native";
 import SwappedICon from '../../assets/images/Swapped.png';
@@ -14,7 +14,7 @@ const InventoryHome = ()=>{
 
 return (
         <GestureHandlerRootView style={{ flex: 1, paddingBottom:80,backgroundColor:'#FFFFFF' }}>
-          <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Home')} />
+          <Inv_HeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Home')} showCartIcon = {true} cartCount = {10} onCartPress = {() => navigation.navigate('Home')} />
           <View style={styles.incompleteRowContainer}>
             <View style={[styles.card, styles.cardInsideSwipe]}>
                <Image
