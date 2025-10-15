@@ -6,7 +6,7 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 const Inv_CustomNumericInput = ({
   value,
   setValue,
-  max = 999,
+  max = 10000,
   min = 0,
   step = 1,
   width = 100,
@@ -64,7 +64,7 @@ const Inv_CustomNumericInput = ({
   return (
     <View style={[styles.container, dynamicStyles.border, { width }, { height }]}>
       <TouchableOpacity disabled={!canDec ||disabledinput} onPress={handleMinus}  style={[styles.button, dynamicStyles.bg]}>
-        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canDec ? 1 : 0.5 }]}>−</Text>
+        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canDec ? 1 : 0.5 }]}>—</Text>
       </TouchableOpacity>
 
       <TextInput
@@ -97,9 +97,9 @@ const Inv_CustomNumericInput = ({
 
 const styles = StyleSheet.create({
   container: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, overflow: 'hidden' },
-  button: { width: 20, height: '100%', justifyContent: 'center', alignItems: 'center' },
-  buttonText: { fontSize: 14, fontWeight: 'bold' },
-  input: { flex: 1, height: '100%', textAlign: 'center', fontSize: 12, paddingVertical: 0,marginRight:-1,marginLeft:-1 },
+  button: { width: 30, height: '100%', justifyContent: 'center', alignItems: 'center' },
+  buttonText: { fontSize: 18, fontWeight: 'bold' },
+  input: { flex: 1, height: '100%', textAlign: 'center', fontSize: 16, paddingVertical: 0,marginRight:-1,marginLeft:-1 },
   untouched: {
     bg: { backgroundColor: '#fff' },
     border: { borderWidth: 1, borderColor: '#00000040' },

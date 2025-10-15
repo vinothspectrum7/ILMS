@@ -34,7 +34,7 @@ export default function SummaryScreen() {
     };
 
     const AddMore = () => {
-
+        navigation.navigate('Sub_Inv_Addmore',{cartcount:summaryData.length});
     }
 
     const confirmAction = async () => {
@@ -98,7 +98,7 @@ export default function SummaryScreen() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-            <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Home')} />
+            <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Inventory')} />
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
@@ -181,7 +181,7 @@ export default function SummaryScreen() {
             </View>
             {/* Bottom Buttons */}
             <FooterButtonsComponent
-                leftLabel="Save"
+                leftLabel="Add More"
                 rightLabel="Confirm"
                 onLeftPress={AddMore}
                 onRightPress={onConfirmOpen}

@@ -3,7 +3,7 @@ import { View, StyleSheet, Dimensions, TouchableOpacity, Modal, KeyboardAvoiding
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
-import Inv_SingleFooterBtnComponent from '../../components/inventory/Inv_SingleFooterBtnComponent';
+import Inv_FooterBtnComponent from '../../components/inventory/Inv_FooterBtnComponent';
 import Inv_CustomNumericInput from '../../components/inventory/Inv_CustomNumericInput';
 import Inv_CustomDropdown from '../../components/inventory/Inv_CustomDropdown';
 import BarcodeScanner from '../../components/inventory/Inv_BarCodeScanner';
@@ -23,7 +23,7 @@ const INVENTORY_MENU_WIDTH = Math.min(ms(320), SCREEN_WIDTH - ms(32));
 const H_PADDING = ms(16);
 const GAP = ms(12);
 const SCAN_W = ms(44);
-const QTY_W = scale(110);
+const QTY_W = scale(108);
 
 const ITEM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - SCAN_W;
 const UOM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - QTY_W;
@@ -43,7 +43,7 @@ const OPTIONS_TO_SUB = [{ label: 'FGI', value: 'FGI' }, ...stubOptions('TS', 4)]
 const OPTIONS_LOCATORS = [{ label: 'FGI', value: 'FGI' }, ...stubOptions('LOC', 4)];
 const OPTIONS_UOM = [{ label: 'Each', value: 'EA' }, { label: 'Piece', value: 'PC' }];
 
-export default function Sub_Inv_TransferScreen() {
+export default function Sub_Inv_Addmore_TransferScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const cartcount = Number(route?.params?.cartcount || 0);
@@ -88,8 +88,7 @@ export default function Sub_Inv_TransferScreen() {
       qty: Number(qty)
     };
     console.log('SUB_INV_TRANSFER_ADD', payload);
-    navigation.navigate("SubInvTransfer_summary");
-    // Toast.show({ type: 'success', text1: 'Added', text2: 'Line added to cart', position: 'top' });
+    Toast.show({ type: 'success', text1: 'Added', text2: 'Line added to cart', position: 'top' });
   }, [selectedItemId, fromSubId, fromLocId, toSubId, toLocId, uomId, qty]);
 
   return (
@@ -131,7 +130,7 @@ export default function Sub_Inv_TransferScreen() {
               autoSelectWhenEmpty={false}
             />
             <TouchableOpacity style={styles.scanBtn} onPress={() => setShowScanner(true)} accessibilityLabel="Scan barcode">
-              <BarcodeScannerIcon width={ms(30)} height={ms(30)} />
+              <BarcodeScannerIcon width={ms(24)} height={ms(24)} />
             </TouchableOpacity>
           </View>
 
@@ -239,7 +238,7 @@ export default function Sub_Inv_TransferScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Inv_SingleFooterBtnComponent rightLabel="Add" rightEnabled={isAddEnabled} onRightPress={onAdd} />
+      <Inv_FooterBtnComponent leftLabel="View Summary" rightLabel="Add" rightEnabled={isAddEnabled} onRightPress={onAdd} />
 
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
@@ -259,10 +258,10 @@ const styles = StyleSheet.create({
   scanBtn: {
     height: ms(40),
     width: ms(40),
-    backgroundColor: '#EFEFF0',
-    borderRadius: ms(4),
+    backgroundColor: CARD,
+    borderRadius: ms(8),
     borderWidth: 1,
-    borderColor: '#EFEFF0',
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: ms(2),

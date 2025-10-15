@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#00000040",
-    borderRadius: ms(12),
+    borderRadius: ms(8),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between"
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   placeholder: { color: "#A9B4BF" },
   menuContainer: { position: "absolute", top: "100%", zIndex: 10, marginTop: ms(8) },
   menu: {
-    borderRadius: ms(12),
+    borderRadius: ms(5),
     borderWidth: 1,
     borderColor: "#E5E7EB",
     backgroundColor: "#fff",

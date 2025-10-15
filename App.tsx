@@ -28,6 +28,8 @@ import IC_PovViewItems from './src/screens/IC_poviewitems';
 import { navigationRef } from './src/api/api';
 import InventoryHome from './src/screens/Inventory/Inv_Menu';
 import Sub_Inv_TransferScreen from './src/screens/Inventory/Sub_Inv_TransferScreen';
+import SummaryScreen from './src/screens/Inventory/Transfer_summary';
+import Sub_Inv_Addmore_TransferScreen from './src/screens/Inventory/Sub_Inv_Addmore_TransferScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -166,6 +168,16 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="SubInvTransfer"
 component={Sub_Inv_TransferScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="SubInvTransfer_summary"
+component={SummaryScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Sub_Inv_Addmore"
+component={Sub_Inv_Addmore_TransferScreen}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>
