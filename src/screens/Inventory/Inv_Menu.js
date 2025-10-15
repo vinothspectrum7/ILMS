@@ -22,7 +22,7 @@ const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 const Inv_Menu = ()=>{
   const navigation = useNavigation();
   const goHome = useCallback(() => navigation.navigate('SubInvTransfer'), [navigation]);
-  const onBack = useCallback(() => navigation.goBack(), [navigation]);
+  const onBack = useCallback(() => navigation.navigate('Home'), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
 
   return (

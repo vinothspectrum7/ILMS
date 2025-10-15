@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   valueText: { fontSize: ms(14), color: "#233E55", flex: 1, paddingRight: ms(6) },
   valueDisabled: { color: "#233E55" },
   placeholder: { color: "#A9B4BF" },
-  menuContainer: { position: "absolute", top: "100%", zIndex: 10, marginTop: ms(8) },
+  menuContainer: { position: "absolute", top: "100%", zIndex: 10 },
   menu: {
     borderRadius: ms(5),
     borderWidth: 1,

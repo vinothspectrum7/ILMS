@@ -8,6 +8,7 @@ import Inv_CustomNumericInput from '../../components/inventory/Inv_CustomNumeric
 import Inv_CustomDropdown from '../../components/inventory/Inv_CustomDropdown';
 import BarcodeScanner from '../../components/inventory/Inv_BarCodeScanner';
 import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
+import { useReceivingStore } from '../../store/receivingStore';
 
 const BG = '#F6F8FA';
 const CARD = '#FFFFFF';
@@ -18,7 +19,7 @@ const BASE_WIDTH = 375;
 const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
-const INVENTORY_MENU_WIDTH = Math.min(ms(320), SCREEN_WIDTH - ms(32));
+const INVENTORY_MENU_WIDTH = SCREEN_WIDTH;
 
 const H_PADDING = ms(16);
 const GAP = ms(12);
@@ -57,6 +58,7 @@ export default function Sub_Inv_TransferScreen() {
   const [toLocId, setToLocId] = useState(null);
   const [uomId, setUomId] = useState(null);
   const [qty, setQty] = useState(0);
+  const {addSubInvTransferItem} = useReceivingStore();
 
   const isAddEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
 
@@ -88,6 +90,7 @@ export default function Sub_Inv_TransferScreen() {
       qty: Number(qty)
     };
     console.log('SUB_INV_TRANSFER_ADD', payload);
+    addSubInvTransferItem(payload);
     navigation.navigate("SubInvTransfer_summary");
     // Toast.show({ type: 'success', text1: 'Added', text2: 'Line added to cart', position: 'top' });
   }, [selectedItemId, fromSubId, fromLocId, toSubId, toLocId, uomId, qty]);

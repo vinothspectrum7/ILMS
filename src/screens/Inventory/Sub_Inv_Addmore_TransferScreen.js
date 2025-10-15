@@ -8,6 +8,7 @@ import Inv_CustomNumericInput from '../../components/inventory/Inv_CustomNumeric
 import Inv_CustomDropdown from '../../components/inventory/Inv_CustomDropdown';
 import BarcodeScanner from '../../components/inventory/Inv_BarCodeScanner';
 import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
+import { useReceivingStore } from '../../store/receivingStore';
 
 const BG = '#F6F8FA';
 const CARD = '#FFFFFF';
@@ -57,6 +58,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
   const [toLocId, setToLocId] = useState(null);
   const [uomId, setUomId] = useState(null);
   const [qty, setQty] = useState(0);
+  const {addSubInvTransferItem} = useReceivingStore();
 
   const isAddEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
 
@@ -88,8 +90,14 @@ export default function Sub_Inv_Addmore_TransferScreen() {
       qty: Number(qty)
     };
     console.log('SUB_INV_TRANSFER_ADD', payload);
-    Toast.show({ type: 'success', text1: 'Added', text2: 'Line added to cart', position: 'top' });
+    addSubInvTransferItem(payload);
+    navigation.navigate("SubInvTransfer_summary");
+    // Toast.show({ type: 'success', text1: 'Added', text2: 'Line added to cart', position: 'top' });
   }, [selectedItemId, fromSubId, fromLocId, toSubId, toLocId, uomId, qty]);
+
+  const OnSummary = () => {
+    navigation.navigate("SubInvTransfer_summary");
+  };
 
   return (
     <View style={styles.safe}>
@@ -130,7 +138,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
               autoSelectWhenEmpty={false}
             />
             <TouchableOpacity style={styles.scanBtn} onPress={() => setShowScanner(true)} accessibilityLabel="Scan barcode">
-              <BarcodeScannerIcon width={ms(24)} height={ms(24)} />
+              <BarcodeScannerIcon width={ms(30)} height={ms(30)} />
             </TouchableOpacity>
           </View>
 
@@ -238,7 +246,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Inv_FooterBtnComponent leftLabel="View Summary" rightLabel="Add" rightEnabled={isAddEnabled} onRightPress={onAdd} />
+      <Inv_FooterBtnComponent leftLabel="View Summary" rightLabel="Add" rightEnabled={isAddEnabled} onLeftPress={OnSummary} onRightPress={onAdd} />
 
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
@@ -258,10 +266,10 @@ const styles = StyleSheet.create({
   scanBtn: {
     height: ms(40),
     width: ms(40),
-    backgroundColor: CARD,
-    borderRadius: ms(8),
+    backgroundColor: '#EFEFF0',
+    borderRadius: ms(4),
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#EFEFF0',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: ms(2),

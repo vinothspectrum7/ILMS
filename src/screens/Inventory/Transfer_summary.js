@@ -99,7 +99,7 @@ export default function SummaryScreen() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-            <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Inventory')} />
+            <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Inventory" notificationCount={0} onBack={() => navigation.navigate('Inventory')} />
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
