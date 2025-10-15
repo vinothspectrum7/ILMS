@@ -2,14 +2,17 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import EnnVeeLogoSmall from '../assets/icons/EnnVeeLogoSmall.svg';
-import BellIcon from '../assets/icons/bellnotification.svg';
-import BackLeftArrow from '../assets/icons/backleftarrow.svg';
-import HamburgerMenu from '../assets/icons/hamburgermenu.svg';
-import { useFocusEffect,useNavigation } from '@react-navigation/native';
+import EnnVeeLogoSmall from '../../assets/icons/EnnVeeLogoSmall.svg';
+import BellIcon from '../../assets/icons/bellnotification.svg';
+import BackLeftArrow from '../../assets/icons/backleftarrow.svg';
+import HamburgerMenu from '../../assets/icons/hamburgermenu.svg';
+import InvCart from '../../assets/icons/inv_cart.svg';
+
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BRAND_BG = '#233E55';
+the_NAV_BG = '#5D768B';
 const NAV_BG = '#5D768B';
 const RED = '#FF0000';
 const WHITE = '#FFFFFF';
@@ -31,9 +34,9 @@ function org3(name = '') {
   return String(name).trim().slice(0, 3).toUpperCase();
 }
 
-export default function GlobalHeaderComponent({
+export default function Inv_HeaderComponent({
   organizationName = 'EnnVee',
-  screenTitle = 'Receive',
+  screenTitle = 'Inventory',
   contextInfo = '',
   notificationCount = 0,
   profileName = 'User',
@@ -41,35 +44,41 @@ export default function GlobalHeaderComponent({
   onMenu = () => {},
   onNotificationPress = () => {},
   onProfilePress = () => {},
+  showCartIcon = false,
+  cartCount = 0,
+  onCartPress = () => {},
 }) {
   const title = `${org3(organizationName)} – ${screenTitle}${contextInfo ? `(${contextInfo})` : ''}`;
-  // const initials = getInitials(profileName);
   const showDot = Number(notificationCount) > 0;
 
-    const [profileNames,setprofileName] = useState(null);
-    const navigation = useNavigation();
+  const [profileNames, setprofileName] = useState(null);
+  const navigation = useNavigation();
 
-    const loadUserName = useCallback(async () => {
-        const raw = await AsyncStorage.getItem('user_name');
-        if(raw){
-          const initials = getInitials(raw);
-          setprofileName(initials);
-        }
-    }, []);
-  
-    useEffect(() => {
-      loadUserName();
-    }, [loadUserName]);
-  
-    useFocusEffect(
-      React.useCallback(() => {
-        loadUserName();
-      }, [loadUserName])
-    );
-    const handlelogout = async()=>{
-      await AsyncStorage.removeItem("access_token");
-      navigation.navigate("Login");
+  const loadUserName = useCallback(async () => {
+    const raw = await AsyncStorage.getItem('user_name');
+    if (raw) {
+      const initials = getInitials(raw);
+      setprofileName(initials);
     }
+  }, []);
+
+  useEffect(() => {
+    loadUserName();
+  }, [loadUserName]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserName();
+    }, [loadUserName])
+  );
+
+  const handlelogout = async () => {
+    await AsyncStorage.removeItem('access_token');
+    navigation.navigate('Login');
+  };
+
+  const showCartBadge = showCartIcon && Number(cartCount) > 0;
+  const displayCount = Number(cartCount) > 99 ? '99+' : String(cartCount);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -81,7 +90,8 @@ export default function GlobalHeaderComponent({
         </View>
 
         <View style={styles.brandRight}>
-        <Text style={styles.version}>V: 25100718</Text>
+          <Text style={styles.version}>V: 25100717</Text>
+
           <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={scale(22)} height={scale(22)} />
             {showDot && <View style={styles.dot} />}
@@ -98,12 +108,35 @@ export default function GlobalHeaderComponent({
           <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.backBtn}>
             <BackLeftArrow width={scale(20)} height={scale(20)} />
           </TouchableOpacity>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
         </View>
 
-        <TouchableOpacity onPress={onMenu} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <HamburgerMenu width={scale(24)} height={scale(24)} />
-        </TouchableOpacity>
+        <View style={styles.navRight}>
+          {showCartIcon && (
+            <TouchableOpacity
+              onPress={onCartPress}
+              accessibilityLabel="Open cart"
+              accessibilityRole="button"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.cartWrap}
+            >
+              <InvCart width={scale(24)} height={scale(24)} />
+              {showCartBadge && (
+                <View style={styles.cartBadgeFill} pointerEvents="none">
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>{displayCount}</Text>
+                  </View>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity onPress={onMenu} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <HamburgerMenu width={scale(24)} height={scale(24)} />
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -123,13 +156,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  version:{
+  version: {
     fontFamily: 'Mulish',
-    fontWeight:500,
-fontWeight: 500,
-fontSize: 10,
-verticalAlign: 'middle',
-color:'#FFFFFF'
+    fontWeight: 500,
+    fontSize: 10,
+    verticalAlign: 'middle',
+    color: WHITE,
   },
   brandLeft: { flexShrink: 1, paddingRight: ms(12) },
   brandRight: { flexDirection: 'row', alignItems: 'center', gap: ms(12) },
@@ -163,5 +195,35 @@ color:'#FFFFFF'
   },
   navLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: ms(12) },
   backBtn: { paddingRight: ms(12) },
-  title: { fontFamily:'Mulish', fontWeight: '700', color: WHITE, fontSize: ms(14), fontWeight: '800', letterSpacing: 0.3, flexShrink: 1 },
+  title: {
+    fontFamily: 'Mulish',
+    fontWeight: '800',
+    color: WHITE,
+    fontSize: ms(14),
+    letterSpacing: 0.3,
+    flexShrink: 1,
+  },
+  navRight: { flexDirection: 'row', alignItems: 'center', gap: ms(14) },
+
+  cartWrap: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  cartBadgeFill: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartBadge: {
+    width: scale(14),
+    height: scale(14),
+    borderRadius: scale(9),
+    backgroundColor: RED,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartBadgeText: {
+    color: WHITE,
+    fontSize: ms(9),
+    fontWeight: '800',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
 });
