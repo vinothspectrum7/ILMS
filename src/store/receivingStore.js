@@ -143,4 +143,26 @@ export const useReceivingStore = create((set, get) => ({
       asnSelectedPOIds: [],
       asnPoEdits: {},
     }),
+    // Store for Sub Inventory Transfer Payloads
+  subInvTransferItems: [],
+  addSubInvTransferItem: (item) =>
+    set((state) => ({
+      subInvTransferItems: [...state.subInvTransferItems, item],
+    })),
+   // Edit an existing item by index or item_id
+editSubInvTransferItem: (updatedItem) =>
+  set((state) => ({
+    subInvTransferItems: state.subInvTransferItems.map((it) =>
+      String(it.item_id) === String(updatedItem.item_id)
+        ? { ...it, ...updatedItem }
+        : it
+    ),
+  })),
+
+  removeSubInvTransferItem: (index) =>
+    set((state) => ({
+      subInvTransferItems: state.subInvTransferItems.filter((_, i) => i !== index),
+    })),
+
+  resetSubInvTransfer: () => set({ subInvTransferItems: [] }),
 }));

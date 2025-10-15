@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import Item_icon from "../../assets/images/Item_icon.svg";
+import Inv_summary_divider_icon from "../../assets/icons/inv_summary_divider_icon.svg";
 import { useNavigation } from "@react-navigation/native";
 import { useReceivingStore } from "../../store/receivingStore";
 import GlobalHeaderComponent from "../../components/GlobalHeaderComponent";
@@ -98,7 +99,7 @@ export default function SummaryScreen() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-            <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Inventory')} />
+            <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Inventory" notificationCount={0} onBack={() => navigation.navigate('Inventory')} />
             <View style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
@@ -119,7 +120,7 @@ export default function SummaryScreen() {
                                 {/* Card Header */}
                                 <View style={styles.cardHeader}>
                                     <View style={styles.itemCol}>
-                                        <Item_icon width={24} height={24} />
+                                        <Item_icon width={20} height={20} />
                                         <View style={{ alignItems: "flex-start" }}>
                                             <Text style={styles.label}>Item</Text>
                                             <Text style={styles.itemText}>{item.item}</Text>
@@ -153,7 +154,7 @@ export default function SummaryScreen() {
 
                                         {/* Center Icon */}
                                         <View style={styles.centerIcon}>
-                                            <Item_icon width={20} height={20} />
+                                            <Inv_summary_divider_icon width={20} height={20} />
                                         </View>
 
                                         {/* To Section */}
