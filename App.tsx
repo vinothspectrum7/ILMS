@@ -30,6 +30,7 @@ import InventoryHome from './src/screens/Inventory/Inv_Menu';
 import Sub_Inv_TransferScreen from './src/screens/Inventory/Sub_Inv_TransferScreen';
 import SummaryScreen from './src/screens/Inventory/Transfer_summary';
 import Sub_Inv_Addmore_TransferScreen from './src/screens/Inventory/Sub_Inv_Addmore_TransferScreen';
+import Sub_Inv_Edit_TransferScreen from './src/screens/Inventory/Sub_Inv_Edit_TransferScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -178,6 +179,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="Sub_Inv_Addmore"
 component={Sub_Inv_Addmore_TransferScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Sub_Inv_Edit_TransferScreen"
+component={Sub_Inv_Edit_TransferScreen}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>
