@@ -31,19 +31,20 @@ const mkOpts = (arr, labelKey, idKey) => arr.map((o) => ({ label: o[labelKey], v
 const findOption = (options, value) => options.find((o) => String(o.value) === String(value));
 const labelOf = (options, value) => findOption(options, value)?.label ?? null;
 
-export default function Sub_Inv_Addmore_TransferScreen() {
+export default function Sub_Inv_Edit_TransferScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const cartcount = Number(route?.params?.cartcount || 0);
+  const itemToEdit = route?.params?.itemToEdit || null;
 
   const [showScanner, setShowScanner] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState(null);
-  const [fromSubId, setFromSubId] = useState(null);
-  const [fromLocId, setFromLocId] = useState(null);
-  const [toSubId, setToSubId] = useState(null);
-  const [toLocId, setToLocId] = useState(null);
-  const [uomId, setUomId] = useState(null);
-  const [qty, setQty] = useState(0);
+  const [selectedItemId, setSelectedItemId] = useState(itemToEdit?.item_id ?? null);
+  const [fromSubId, setFromSubId] = useState(itemToEdit?.from_sub ?? null);
+  const [fromLocId, setFromLocId] = useState(itemToEdit?.from_locator ?? null);
+  const [toSubId, setToSubId] = useState(itemToEdit?.to_sub ?? null);
+  const [toLocId, setToLocId] = useState(itemToEdit?.to_locator ?? null);
+  const [uomId, setUomId] = useState(itemToEdit?.uom ?? null);
+  const [qty, setQty] = useState(Number(itemToEdit?.qty ?? 0));
 
   const [itemOptions, SetitemOptions] = useState([]);
   const [fromSubOptions, setFromSubOptions] = useState([]);
@@ -51,9 +52,9 @@ export default function Sub_Inv_Addmore_TransferScreen() {
   const [ToLocatorOption, setToLocatorOption] = useState([]);
   const [maxQty, setMaxQty] = useState(0);
 
-  const { addSubInvTransferItem, OrgData } = useReceivingStore();
+  const { editSubInvTransferItem, OrgData } = useReceivingStore();
 
-  const isAddEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
+  const isUpdateEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
 
   useEffect(() => {
     if (!OrgData?.selectedOrg) return;
@@ -75,13 +76,6 @@ export default function Sub_Inv_Addmore_TransferScreen() {
       try {
         const data = await SubInventoryList(OrgData.selectedOrg, selectedItemId);
         const formatteddata = mkOpts(data, 'subinventory_name', 'subinventory_id');
-        setFromSubId(null);
-        setFromLocId(null);
-        setToSubId(null);
-        setToLocId(null);
-        setUomId(null);
-        setQty(0);
-        setMaxQty(0);
         setFromSubOptions(formatteddata);
       } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Sub Inventories. Please try again.', position: 'top', visibilityTime: 5000 });
@@ -100,12 +94,6 @@ export default function Sub_Inv_Addmore_TransferScreen() {
           value: d.locator_id,
           on_hand_qty: Number(d.on_hand_qty ?? 0),
         }));
-        setFromLocId(null);
-        setToSubId(null);
-        setToLocId(null);
-        setUomId(null);
-        setQty(0);
-        setMaxQty(0);
         setfromLocatorOption(formatted);
       } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Locators. Please try again.', position: 'top', visibilityTime: 5000 });
@@ -123,9 +111,6 @@ export default function Sub_Inv_Addmore_TransferScreen() {
           label: d.locator_name,
           value: d.locator_id,
         }));
-        setToLocId(null);
-        setUomId(null);
-        setQty(0);
         setToLocatorOption(formatted);
       } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load To Locators. Please try again.', position: 'top', visibilityTime: 5000 });
@@ -133,6 +118,17 @@ export default function Sub_Inv_Addmore_TransferScreen() {
     };
     fetchLocator();
   }, [selectedItemId, OrgData?.selectedOrg, toSubId]);
+
+  // ✅ Autofill qty after locator data and maxQty are available
+  useEffect(() => {
+    if (itemToEdit && fromLocId && FromLocatorOption.length > 0) {
+      const opt = findOption(FromLocatorOption, fromLocId);
+      const nextMax = Number(opt?.on_hand_qty ?? 0);
+      setMaxQty(nextMax);
+      const presetQty = Math.min(Number(itemToEdit.qty ?? 0), nextMax);
+      setQty(presetQty);
+    }
+  }, [itemToEdit, fromLocId, FromLocatorOption]);
 
   const handleScan = useCallback((value) => {
     const code = String(value).trim().toUpperCase();
@@ -159,7 +155,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
     if (Number(qty) > nextMax) setQty(nextMax);
   }, [FromLocatorOption, qty]);
 
-  const payloadForAdd = useMemo(() => {
+  const payloadForUpdate = useMemo(() => {
     const itemLabel = labelOf(itemOptions, selectedItemId);
     const fromSubLabel = labelOf(fromSubOptions, fromSubId);
     const fromLocLabel = labelOf(FromLocatorOption, fromLocId);
@@ -196,14 +192,14 @@ export default function Sub_Inv_Addmore_TransferScreen() {
     ToLocatorOption,
   ]);
 
-  const onAdd = useCallback(() => {
-    addSubInvTransferItem(payloadForAdd);
+  const onUpdate = useCallback(() => {
+    editSubInvTransferItem(payloadForUpdate);
     navigation.navigate("SubInvTransfer_summary");
-  }, [addSubInvTransferItem, payloadForAdd, navigation]);
+  }, [editSubInvTransferItem, payloadForUpdate, navigation]);
 
-  const OnSummary = () => {
+  const onCancel = useCallback(() => {
     navigation.navigate("SubInvTransfer_summary");
-  };
+  }, [navigation]);
 
   return (
     <View style={styles.safe}>
@@ -354,7 +350,13 @@ export default function Sub_Inv_Addmore_TransferScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Inv_FooterBtnComponent leftLabel="View Summary" rightLabel="Add" rightEnabled={isAddEnabled} onLeftPress={OnSummary} onRightPress={onAdd} />
+      <Inv_FooterBtnComponent
+        leftLabel="Cancel"
+        rightLabel="Update"
+        rightEnabled={isUpdateEnabled}
+        onLeftPress={onCancel}
+        onRightPress={onUpdate}
+      />
 
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
@@ -371,17 +373,6 @@ const styles = StyleSheet.create({
   dropdown: { marginTop: ms(10) },
   itemrowSplit: { flexDirection: 'row', alignItems: 'center', gap: ms(0), paddingHorizontal: 0, marginTop: ms(10) },
   uomrowSplit: { flexDirection: 'row', alignItems: 'center', gap: ms(0), paddingHorizontal: 0, marginTop: ms(20) },
-  scanBtn: {
-    height: ms(40),
-    width: ms(40),
-    backgroundColor: '#EFEFF0',
-    borderRadius: ms(4),
-    borderWidth: 1,
-    borderColor: '#EFEFF0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: ms(2),
-    marginTop: ms(12)
-  },
+  scanBtn: { height: ms(40), width: ms(40), backgroundColor: '#EFEFF0', borderRadius: ms(4), borderWidth: 1, borderColor: '#EFEFF0', alignItems: 'center', justifyContent: 'center', marginRight: ms(2), marginTop: ms(12) },
   qtyCol: { alignItems: 'flex-end', justifyContent: 'flex-end', marginRight: ms(8), marginTop: ms(10) }
 });

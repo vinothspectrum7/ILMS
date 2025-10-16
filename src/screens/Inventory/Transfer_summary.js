@@ -20,7 +20,6 @@ export default function Inv_TransferSummaryScreen() {
   const {
     OrgData,
     subInvTransferItems,
-    editSubInvTransferItem,
     removeSubInvTransferItem,
     resetSubInvTransfer,
   } = useReceivingStore();
@@ -80,9 +79,8 @@ export default function Inv_TransferSummaryScreen() {
   };
 
   const handleEdit = useCallback((item) => {
-    editSubInvTransferItem({ item_id: item.item_id });
-    Toast.show({ type: "success", text1: "Edit ready", position: "top", visibilityTime: 1200 });
-  }, [editSubInvTransferItem]);
+    navigation.navigate("Sub_Inv_Edit_TransferScreen", { itemToEdit: item });
+  }, [navigation]);
 
   const handleDelete = useCallback((index) => {
     removeSubInvTransferItem(index);
@@ -115,11 +113,11 @@ export default function Inv_TransferSummaryScreen() {
 
   const renderItemCard = (item, index) => {
     const id = String(item.item_id ?? item.id ?? index);
-    const qtyText = [item.qty, item.uom].filter(Boolean).join(" ");
-    const fromSub = item.from_sub ?? item.fromSub ?? "-";
-    const fromLoc = item.from_locator ?? item.fromLocator ?? "-";
-    const toSub = item.to_sub ?? item.toSub ?? "-";
-    const toLoc = item.to_locator ?? item.toLocator ?? "-";
+    const qtyText = [item.qty, item.uom_label].filter(Boolean).join(" ");
+    const fromSub = item.from_sub_name ?? item.fromSub ?? "-";
+    const fromLoc = item.from_locator_name ?? item.fromLocator ?? "-";
+    const toSub = item.to_sub_name ?? item.toSub ?? "-";
+    const toLoc = item.to_locator_name ?? item.toLocator ?? "-";
     const itemCode = item.item_code ?? item.item ?? "-";
 
     return (
@@ -143,12 +141,7 @@ export default function Inv_TransferSummaryScreen() {
           </View>
 
           <View style={[styles.gradientBox, { height: PILL_HEIGHT }]}>
-            <Inv_Summary_Gradiant_bg
-              width="100%"
-              height="100%"
-              preserveAspectRatio="none"
-              style={StyleSheet.absoluteFill}
-            />
+            <Inv_Summary_Gradiant_bg width="100%" height="100%" preserveAspectRatio="none" style={StyleSheet.absoluteFill} />
             <View style={styles.detailsRow}>
               <View style={styles.detailsHalf}>
                 <View style={styles.col}>
@@ -253,51 +246,20 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   title: { fontSize: 18, fontWeight: "600", color: "#3A3A3C" },
   clearAll: { fontSize: 14, color: "#5D768B", fontWeight: "600", textDecorationLine: "underline" },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   itemCol: { flexDirection: "row", alignItems: "center", columnGap: 8 },
   itemText: { fontSize: 12, fontWeight: "700", color: "#233E55" },
   qtyText: { fontSize: 12, fontWeight: "700", color: "#233E55" },
   gradientBox: { borderRadius: 12, overflow: "hidden" },
-  detailsRow: {
-    height: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-  },
+  detailsRow: { height: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16 },
   detailsHalf: { flex: 1, flexDirection: "row", alignItems: "center" },
   col: { flex: 1, alignItems: "flex-start", marginRight: 8 },
   label: { fontSize: 10, color: "rgba(35, 62, 85, 1)", marginBottom: 2, fontWeight: "400" },
   value: { fontSize: 12, color: "rgba(35, 62, 85, 1)", fontWeight: "700" },
   centerIcon: { justifyContent: "center", alignItems: "center", paddingHorizontal: 8 },
-  leftActionContainer: {
-    backgroundColor: "#ECF1F7",
-    justifyContent: "center",
-    alignItems: "flex-start",
-    width: 46,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-  },
-  rightActionContainer: {
-    backgroundColor: "#F8D2D4",
-    justifyContent: "center",
-    alignItems: "flex-end",
-    width: 46,
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-  },
+  leftActionContainer: { backgroundColor: "#ECF1F7", justifyContent: "center", alignItems: "flex-start", width: 46, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+  rightActionContainer: { backgroundColor: "#F8D2D4", justifyContent: "center", alignItems: "flex-end", width: 46, borderTopRightRadius: 12, borderBottomRightRadius: 12 },
   actionButton: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 10 },
   emptyWrap: { paddingVertical: 48, justifyContent: "center", alignItems: "center" },
   emptyText: { fontSize: 16, color: "#6B7280" },
