@@ -196,3 +196,34 @@ export const ReleasePO = async(po_id)=>{
     throw error.response?.data?.detail;
   }
 }
+// Inventory flow API's
+export const ItemsList = async(org_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.INVENTORY_ITEMS(org_id));
+        console.log("RINVENTORY_ITEMS:", response);
+    return response.data;
+  }catch (error) {
+    console.error("INVENTORY_ITEMS ERROR:", error.response?.data);
+    throw error.response?.data?.detail;
+  }
+}
+export const SubInventoryList = async(org_id,item_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.ITEMS_SUBINVENTORY(org_id,item_id));
+        console.log("ITEMS_SUBINVENTORY:", response);
+    return response.data;
+  }catch (error) {
+    console.error("ITEMS_SUBINVENTORY ERROR:", error.response?.data);
+    throw error.response?.data?.detail;
+  }
+}
+export const LocatorList = async(org_id,item_id,sub_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.ITEMS_SUB_LOCATOR(org_id,item_id,sub_id));
+        console.log("ITEMS_SUB_LOCATOR:", response);
+    return response.data;
+  }catch (error) {
+    console.error("ITEMS_SUB_LOCATOR ERROR:", error.response?.data);
+    throw error.response?.data?.detail;
+  }
+}

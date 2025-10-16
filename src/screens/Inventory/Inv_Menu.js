@@ -8,6 +8,7 @@ import SubInvIcon from '../../assets/icons/sub_inv_transfer.svg';
 import OrgTransferIcon from '../../assets/icons/org_transfer_icon.svg';
 import InvAdjustIcon from '../../assets/icons/inv_adjustments_icon.svg';
 import CardDecor from '../../assets/icons/Inv_Menu_bg.svg';
+import { useReceivingStore } from '../../store/receivingStore';
 
 const BG = '#FFFFFF';
 const CARD_BG = '#F5F5F6';
@@ -19,7 +20,9 @@ const BASE_WIDTH = 375;
 const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
+
 const Inv_Menu = ()=>{
+  const { OrgData } = useReceivingStore();
   const navigation = useNavigation();
   const goHome = useCallback(() => navigation.navigate('SubInvTransfer'), [navigation]);
   const onBack = useCallback(() => navigation.navigate('Home'), [navigation]);
@@ -28,7 +31,7 @@ const Inv_Menu = ()=>{
   return (
     <View style={styles.safe}>
       <Inv_HeaderComponent
-        organizationName="EnnVee"
+        organizationName={OrgData?.selectedOrgCode}
         screenTitle="Inventory"
         notificationCount={0}
         onBack={onBack}

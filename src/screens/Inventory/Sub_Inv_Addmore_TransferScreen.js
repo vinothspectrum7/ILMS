@@ -58,7 +58,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
   const [toLocId, setToLocId] = useState(null);
   const [uomId, setUomId] = useState(null);
   const [qty, setQty] = useState(0);
-  const {addSubInvTransferItem} = useReceivingStore();
+  const { addSubInvTransferItem,OrgData } = useReceivingStore();
 
   const isAddEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
 
@@ -102,7 +102,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
   return (
     <View style={styles.safe}>
       <Inv_HeaderComponent
-        organizationName="EnnVee"
+        organizationName={OrgData?.selectedOrgCode}
         screenTitle="Sub Inventory Transfer"
         notificationCount={0}
         onBack={onBack}

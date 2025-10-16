@@ -21,7 +21,11 @@ export const API_ENDPOINTS = {
   GET_IC_PO_DATA: (orgId) => `${BASE_URL}/receipt_interface/list/${orgId}/all`,
   DELETE_INCOMPLETE_RECORD: (header_id) => `${BASE_URL}/receipt_interface/delete/${header_id}`,
   GET_ITEM_IMAGE: (item_id) => `${BASE_URL}/purchase_orders/get_image/as_base64?item_uuid=${item_id}`,
-  RELEASE_PO: (po_id) => `${BASE_URL}/purchase_orders/${po_id}/release`
+  RELEASE_PO: (po_id) => `${BASE_URL}/purchase_orders/${po_id}/release`,
+  INVENTORY_ITEMS: (org_id) => `${BASE_URL}/inventory/items?org_id=${org_id}`,
+  ITEMS_SUBINVENTORY: (org_id,item_id) => `${BASE_URL}/inventory/items?org_id=${org_id}&item_id=${item_id}`,
+  ITEMS_SUB_LOCATOR: (org_id,item_id,sub_id) => `${BASE_URL}/inventory/items?org_id=${org_id}&item_id=${item_id}&sub_inv_id=${sub_id}`
+
 
 
  
