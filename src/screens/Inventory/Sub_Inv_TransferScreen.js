@@ -60,7 +60,8 @@ export default function Sub_Inv_TransferScreen() {
   const [qty, setQty] = useState(0);
   const [itemOptions,SetitemOptions] = useState([]);
   const [fromSubOptions, setFromSubOptions] = useState([]);
-  const [LocatorOption, setLocatorOption] = useState([]);
+  const [FromLocatorOption, setfromLocatorOption] = useState([]);
+  const [ToLocatorOption, setToLocatorOption] = useState([]);
   const {addSubInvTransferItem,OrgData} = useReceivingStore();
 
   const isAddEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
@@ -118,7 +119,7 @@ export default function Sub_Inv_TransferScreen() {
       setToLocId(null);
       setUomId(null);
       setQty(0);
-      setLocatorOption(formatteddata);
+      setfromLocatorOption(formatteddata);
     } catch (err) {
       console.error('Error loading From Sub Inventories:', err);
       Toast.show({
@@ -132,6 +133,30 @@ export default function Sub_Inv_TransferScreen() {
   };
   fetchLocator();
 }, [selectedItemId, OrgData?.selectedOrg, fromSubId]);
+
+  useEffect(() => {
+  if (!selectedItemId || !OrgData?.selectedOrg || !toSubId) return;
+  const fetchLocator = async () => {
+    try {
+      const data = await LocatorList(OrgData.selectedOrg, selectedItemId, toSubId);
+       const formatteddata = mkOpts(data, 'locator_name', 'locator_id')
+      setToLocId(null);
+      setUomId(null);
+      setQty(0);
+      setToLocatorOption(formatteddata);
+    } catch (err) {
+      console.error('Error loading From Sub Inventories:', err);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load From Sub Inventories. Please try again.',
+        position: 'top',
+        visibilityTime: 5000,
+      });
+    }
+  };
+  fetchLocator();
+}, [selectedItemId, OrgData?.selectedOrg, toSubId]);
 
   const handleScan = useCallback((value) => {
     const code = String(value).trim().toUpperCase();
@@ -233,7 +258,7 @@ export default function Sub_Inv_TransferScreen() {
                 placeholder="From Locator*"
                 value={fromLocId}
                 onChange={setFromLocId}
-                options={LocatorOption}
+                options={FromLocatorOption}
                 idKey="value"
                 nameKey="label"
                 disabled={!fromSubId}
@@ -269,7 +294,7 @@ export default function Sub_Inv_TransferScreen() {
                 placeholder="To Locator*"
                 value={toLocId}
                 onChange={setToLocId}
-                options={LocatorOption}
+                options={ToLocatorOption}
                 idKey="value"
                 nameKey="label"
                 disabled={!toSubId}

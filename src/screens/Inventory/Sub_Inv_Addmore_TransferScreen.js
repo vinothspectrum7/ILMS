@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
@@ -9,6 +9,8 @@ import Inv_CustomDropdown from '../../components/inventory/Inv_CustomDropdown';
 import BarcodeScanner from '../../components/inventory/Inv_BarCodeScanner';
 import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
 import { useReceivingStore } from '../../store/receivingStore';
+import { ItemsList, LocatorList, SubInventoryList } from '../../api/ApiServices';
+
 
 const BG = '#F6F8FA';
 const CARD = '#FFFFFF';
@@ -19,12 +21,12 @@ const BASE_WIDTH = 375;
 const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
-const INVENTORY_MENU_WIDTH = Math.min(ms(320), SCREEN_WIDTH - ms(32));
+const INVENTORY_MENU_WIDTH = SCREEN_WIDTH;
 
 const H_PADDING = ms(16);
 const GAP = ms(12);
 const SCAN_W = ms(44);
-const QTY_W = scale(108);
+const QTY_W = scale(110);
 
 const ITEM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - SCAN_W;
 const UOM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - QTY_W;
@@ -39,9 +41,9 @@ const mkOpts = (arr, labelKey, idKey) => arr.map((o) => ({ label: o[labelKey], v
 const itemOptions = mkOpts(itemsAPI, 'item_code', 'item_id');
 
 const stubOptions = (prefix, count = 5) => Array.from({ length: count }).map((_, i) => ({ label: `${prefix} ${i + 1}`, value: `${prefix}_${i + 1}` }));
-const OPTIONS_FROM_SUB = [{ label: 'FGI', value: 'FGI' }, ...stubOptions('FGI', 4)];
-const OPTIONS_TO_SUB = [{ label: 'FGI', value: 'FGI' }, ...stubOptions('TS', 4)];
-const OPTIONS_LOCATORS = [{ label: 'FGI', value: 'FGI' }, ...stubOptions('LOC', 4)];
+// const OPTIONS_FROM_SUB = [{ label: 'FGI', value: 'FGI' }, ...stubOptions('FGI', 4)];
+// const OPTIONS_TO_SUB = [{ label: 'FGI', value: 'FGI' }, ...stubOptions('TS', 4)];
+// const OPTIONS_LOCATORS = [{ label: 'FGI', value: 'FGI' }, ...stubOptions('LOC', 4)];
 const OPTIONS_UOM = [{ label: 'Each', value: 'EA' }, { label: 'Piece', value: 'PC' }];
 
 export default function Sub_Inv_Addmore_TransferScreen() {
@@ -58,9 +60,106 @@ export default function Sub_Inv_Addmore_TransferScreen() {
   const [toLocId, setToLocId] = useState(null);
   const [uomId, setUomId] = useState(null);
   const [qty, setQty] = useState(0);
+  const [itemOptions,SetitemOptions] = useState([]);
+  const [fromSubOptions, setFromSubOptions] = useState([]);
+  const [FromLocatorOption, setfromLocatorOption] = useState([]);
+  const [ToLocatorOption, setToLocatorOption] = useState([]);
   const { addSubInvTransferItem,OrgData } = useReceivingStore();
 
   const isAddEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
+
+    useEffect(() => {
+      if (!OrgData?.selectedOrg) return;
+        const LoadItems = async () => {
+          try {
+            const data = await ItemsList(OrgData?.selectedOrg);
+            const formatteddata = mkOpts(data, 'item_code', 'item_id')
+            SetitemOptions(formatteddata);
+          } catch {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+        LoadItems();
+      },[OrgData?.selectedOrg])
+  
+    useEffect(() => {
+    if (!selectedItemId || !OrgData?.selectedOrg) return;
+  
+    const fetchFromSubInventory = async () => {
+      try {
+        const data = await SubInventoryList(OrgData.selectedOrg, selectedItemId);
+        console.log(data,"SubInventoryListSubInventoryListSubInventoryListSubInventoryList")
+         const formatteddata = mkOpts(data, 'subinventory_name', 'subinventory_id')
+        setFromSubId(null);
+        setFromLocId(null);
+        setToSubId(null);
+        setToLocId(null);
+        setUomId(null);
+        setQty(0);
+        setFromSubOptions(formatteddata);
+      } catch (err) {
+        console.error('Error loading From Sub Inventories:', err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load From Sub Inventories. Please try again.',
+          position: 'top',
+          visibilityTime: 5000,
+        });
+      }
+    };
+    fetchFromSubInventory();
+  }, [selectedItemId, OrgData?.selectedOrg]);
+  
+    useEffect(() => {
+    if (!selectedItemId || !OrgData?.selectedOrg || !fromSubId) return;
+    const fetchLocator = async () => {
+      try {
+        const data = await LocatorList(OrgData.selectedOrg, selectedItemId, fromSubId);
+         const formatteddata = mkOpts(data, 'locator_name', 'locator_id')
+        setFromLocId(null);
+        setToSubId(null);
+        setToLocId(null);
+        setUomId(null);
+        setQty(0);
+        setfromLocatorOption(formatteddata);
+      } catch (err) {
+        console.error('Error loading From Sub Inventories:', err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load From Sub Inventories. Please try again.',
+          position: 'top',
+          visibilityTime: 5000,
+        });
+      }
+    };
+    fetchLocator();
+  }, [selectedItemId, OrgData?.selectedOrg, fromSubId]);
+  
+    useEffect(() => {
+    if (!selectedItemId || !OrgData?.selectedOrg || !toSubId) return;
+    const fetchLocator = async () => {
+      try {
+        const data = await LocatorList(OrgData.selectedOrg, selectedItemId, toSubId);
+         const formatteddata = mkOpts(data, 'locator_name', 'locator_id')
+        setToLocId(null);
+        setUomId(null);
+        setQty(0);
+        setToLocatorOption(formatteddata);
+      } catch (err) {
+        console.error('Error loading From Sub Inventories:', err);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load From Sub Inventories. Please try again.',
+          position: 'top',
+          visibilityTime: 5000,
+        });
+      }
+    };
+    fetchLocator();
+  }, [selectedItemId, OrgData?.selectedOrg, toSubId]);
 
   const handleScan = useCallback((value) => {
     const code = String(value).trim().toUpperCase();
@@ -148,7 +247,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
               placeholder="From Sub*"
               value={fromSubId}
               onChange={(id) => { setFromSubId(id); setFromLocId(null); }}
-              options={OPTIONS_FROM_SUB}
+              options={fromSubOptions}
               idKey="value"
               nameKey="label"
               disabled={!selectedItemId}
@@ -166,7 +265,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
                 placeholder="From Locator*"
                 value={fromLocId}
                 onChange={setFromLocId}
-                options={OPTIONS_LOCATORS}
+                options={FromLocatorOption}
                 idKey="value"
                 nameKey="label"
                 disabled={!fromSubId}
@@ -184,7 +283,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
               placeholder="To Sub*"
               value={toSubId}
               onChange={(id) => { setToSubId(id); setToLocId(null); }}
-              options={OPTIONS_TO_SUB}
+              options={fromSubOptions}
               idKey="value"
               nameKey="label"
               disabled={!fromLocId}
@@ -202,7 +301,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
                 placeholder="To Locator*"
                 value={toLocId}
                 onChange={setToLocId}
-                options={OPTIONS_LOCATORS}
+                options={ToLocatorOption}
                 idKey="value"
                 nameKey="label"
                 disabled={!toSubId}
