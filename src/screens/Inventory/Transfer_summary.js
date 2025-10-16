@@ -162,7 +162,7 @@ export default function Inv_TransferSummaryScreen() {
               </View>
 
               <View style={styles.centerIcon}>
-                <CenterDivider width={24} height={24} />
+                <CenterDivider width={20} height={20} />
               </View>
 
               <View style={styles.detailsHalf}>
@@ -267,8 +267,8 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   itemCol: { flexDirection: "row", alignItems: "center", columnGap: 8 },
-  itemText: { fontSize: 16, fontWeight: "700", color: "#233E55" },
-  qtyText: { fontSize: 15, fontWeight: "700", color: "#233E55" },
+  itemText: { fontSize: 12, fontWeight: "700", color: "#233E55" },
+  qtyText: { fontSize: 12, fontWeight: "700", color: "#233E55" },
   gradientBox: { borderRadius: 12, overflow: "hidden" },
   detailsRow: {
     height: "100%",
@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
   },
   detailsHalf: { flex: 1, flexDirection: "row", alignItems: "center" },
   col: { flex: 1, alignItems: "flex-start", marginRight: 8 },
-  label: { fontSize: 12, color: "rgba(35, 62, 85, 1)", marginBottom: 2, fontWeight: "400" },
-  value: { fontSize: 14, color: "rgba(35, 62, 85, 1)", fontWeight: "700" },
+  label: { fontSize: 10, color: "rgba(35, 62, 85, 1)", marginBottom: 2, fontWeight: "400" },
+  value: { fontSize: 12, color: "rgba(35, 62, 85, 1)", fontWeight: "700" },
   centerIcon: { justifyContent: "center", alignItems: "center", paddingHorizontal: 8 },
   leftActionContainer: {
     backgroundColor: "#ECF1F7",
