@@ -159,6 +159,8 @@ editSubInvTransferItem: (updatedItem) =>
     ),
   })),
 
+  setSubInvTransferItems: (items) => set({ subInvTransferItems: Array.isArray(items) ? items : [] }),
+
   removeSubInvTransferItem: (index) =>
     set((state) => ({
       subInvTransferItems: state.subInvTransferItems.filter((_, i) => i !== index),

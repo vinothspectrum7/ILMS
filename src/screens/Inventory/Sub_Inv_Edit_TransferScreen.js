@@ -52,7 +52,7 @@ export default function Sub_Inv_Edit_TransferScreen() {
   const [ToLocatorOption, setToLocatorOption] = useState([]);
   const [maxQty, setMaxQty] = useState(0);
 
-  const { editSubInvTransferItem, OrgData } = useReceivingStore();
+  const { subInvTransferItems, editSubInvTransferItem, setSubInvTransferItems, OrgData } = useReceivingStore();
 
   const isUpdateEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
 
@@ -64,7 +64,7 @@ export default function Sub_Inv_Edit_TransferScreen() {
         const formatteddata = mkOpts(data, 'item_code', 'item_id');
         SetitemOptions(formatteddata);
       } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load items. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     };
     LoadItems();
@@ -78,7 +78,7 @@ export default function Sub_Inv_Edit_TransferScreen() {
         const formatteddata = mkOpts(data, 'subinventory_name', 'subinventory_id');
         setFromSubOptions(formatteddata);
       } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Sub Inventories. Please try again.', position: 'top', visibilityTime: 5000 });
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Sub Inventories.', position: 'top', visibilityTime: 5000 });
       }
     };
     fetchFromSubInventory();
@@ -96,7 +96,7 @@ export default function Sub_Inv_Edit_TransferScreen() {
         }));
         setfromLocatorOption(formatted);
       } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Locators. Please try again.', position: 'top', visibilityTime: 5000 });
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Locators.', position: 'top', visibilityTime: 5000 });
       }
     };
     fetchLocator();
@@ -113,13 +113,12 @@ export default function Sub_Inv_Edit_TransferScreen() {
         }));
         setToLocatorOption(formatted);
       } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load To Locators. Please try again.', position: 'top', visibilityTime: 5000 });
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load To Locators.', position: 'top', visibilityTime: 5000 });
       }
     };
     fetchLocator();
   }, [selectedItemId, OrgData?.selectedOrg, toSubId]);
 
-  // ✅ Autofill qty after locator data and maxQty are available
   useEffect(() => {
     if (itemToEdit && fromLocId && FromLocatorOption.length > 0) {
       const opt = findOption(FromLocatorOption, fromLocId);
@@ -193,12 +192,25 @@ export default function Sub_Inv_Edit_TransferScreen() {
   ]);
 
   const onUpdate = useCallback(() => {
-    editSubInvTransferItem(payloadForUpdate);
-    navigation.navigate("SubInvTransfer_summary");
-  }, [editSubInvTransferItem, payloadForUpdate, navigation]);
+    if (itemToEdit?.item_id === payloadForUpdate.item_id) {
+      editSubInvTransferItem(payloadForUpdate);
+    } else {
+      const list = Array.isArray(subInvTransferItems) ? subInvTransferItems : [];
+      const idx = list.findIndex((it) => String(it.item_id) === String(itemToEdit.item_id));
+      let next;
+      if (idx >= 0) {
+        next = [...list];
+        next[idx] = payloadForUpdate;
+      } else {
+        next = [...list, payloadForUpdate];
+      }
+      setSubInvTransferItems(next);
+    }
+    navigation.navigate('SubInvTransfer_summary');
+  }, [itemToEdit, payloadForUpdate, subInvTransferItems, editSubInvTransferItem, setSubInvTransferItems, navigation]);
 
   const onCancel = useCallback(() => {
-    navigation.navigate("SubInvTransfer_summary");
+    navigation.navigate('SubInvTransfer_summary');
   }, [navigation]);
 
   return (
