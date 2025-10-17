@@ -7,6 +7,7 @@ import GlobalHeaderComponent from "../../components/GlobalHeaderComponent";
 import FooterButtonsComponent from "../../components/FooterButtonsComponent";
 import ConfirmModalComponent from "../../components/ConfirmModalComponent";
 import ConfirmSvg from "../../assets/icons/success.svg";
+import TransferConfirm from "../../assets/icons/Transfer_success.svg"
 import FailureSvg from "../../assets/icons/failure.svg";
 import EditIcon from "../../assets/icons/edit.svg";
 import DeleteIcon from "../../assets/icons/delete.svg";
@@ -14,6 +15,7 @@ import Inv_Summary_Item_icon from "../../assets/icons/Inv_Summary_Item_icon.svg"
 import Inv_Summary_Gradiant_bg from "../../assets/icons/Inv_Summary_Gradiant_bg.svg";
 import CenterDivider from "../../assets/icons/inv_summary_divider_icon.svg";
 import { useReceivingStore } from "../../store/receivingStore";
+import { SubInventoryTransferSubmit } from "../../api/ApiServices";
 
 export default function Inv_TransferSummaryScreen() {
   const navigation = useNavigation();
@@ -87,15 +89,50 @@ export default function Inv_TransferSummaryScreen() {
     Toast.show({ type: "success", text1: "Removed from summary", position: "top", visibilityTime: 1200 });
   }, [removeSubInvTransferItem]);
 
+  const Mapconfirmdata = (data) =>{
+  return data.map((backend) => ({
+    item_id:backend.item_id??null,
+    from_sub_inv_id: backend.from_sub??null,
+    to_sub_inv_id: backend.to_sub??null,
+    from_org_id: OrgData?.selectedOrg ?? null,
+    to_org_id: OrgData?.selectedOrg ?? null,
+    from_loc_id: backend.from_locator??null,
+    to_loc_id: backend.to_locator??null,
+    lot_number: "",
+    type: "",
+    qty:backend.qty??0
+  }));
+}
   const confirmAction = async () => {
+    console.log(items,"confirmActionconfirmActionconfirmAction")
     if (!items.length) return { success: false, message: "No items to confirm" };
-    return { success: true, message: "Sub Inventory Transfer created successfully" };
+        const payload = {
+      "transactions": Mapconfirmdata(items)
+    }
+           try {
+             const response = await SubInventoryTransferSubmit(payload);
+             console.log(response,"SubInventoryTransferSubmit");
+         if (response == "Inventory transfer successful."){
+             onConfirmSuccess();
+         } else{
+          onConfirmFailure();
+         }
+      } catch (err) {
+      onConfirmFailure();
+      setTimeout(() => {
+        setSaveModalVisible(false);
+      }, 1500);
+    };
   };
 
   const onConfirmSuccess = () => {
     setConfirmVisible(false);
     setSaveModalStatus("success");
     setSaveModalVisible(true);
+      setTimeout(() => {
+        setSaveModalVisible(false);
+        navigation.navigate("Inventory");
+      }, 5000);
     resetSubInvTransfer();
   };
 
@@ -217,23 +254,23 @@ export default function Inv_TransferSummaryScreen() {
         message="Are you sure want to transfer this Inventory"
         confirmAction={confirmAction}
         onCancel={() => setConfirmVisible(false)}
-        onSuccess={onConfirmSuccess}
-        onFailure={onConfirmFailure}
+        // onSuccess={onConfirmSuccess}
+        // onFailure={onConfirmFailure}
         successMessage="Sub Inventory Transfer created successfully"
       />
 
       <Modal visible={saveModalVisible} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            {saveModalStatus === "success" ? <ConfirmSvg width={72} height={72} /> : <FailureSvg width={72} height={72} />}
+            {saveModalStatus === "success" ? <TransferConfirm width={72} height={72} /> : <FailureSvg width={72} height={72} />}
             <Text style={styles.modalText}>
               {saveModalStatus === "success"
                 ? "Sub Inventory Transfer created successfully"
                 : "Save failed. Please try again."}
             </Text>
-            <TouchableOpacity style={styles.modalBtn} onPress={() => setSaveModalVisible(false)}>
+            {/* <TouchableOpacity style={styles.modalBtn} onPress={() => setSaveModalVisible(false)}>
               <Text style={styles.modalBtnText}>OK</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
       </Modal>

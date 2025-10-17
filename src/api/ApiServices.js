@@ -227,3 +227,13 @@ export const LocatorList = async(org_id,item_id,sub_id)=>{
     throw error.response?.data?.detail;
   }
 }
+export const SubInventoryTransferSubmit = async(data)=>{
+    try {
+    const response = await api.post(API_ENDPOINTS.SUB_INVENTORY_TRANSFER,data);
+    console.log("SUB_INVENTORY_TRANSFER Data:", response);
+    return response.data;
+  } catch (error) {
+    console.error("SUB_INVENTORY_TRANSFER Error:", error.message, error.response?.data);
+    throw error.response?.data;
+  }  
+}

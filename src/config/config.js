@@ -24,7 +24,9 @@ export const API_ENDPOINTS = {
   RELEASE_PO: (po_id) => `${BASE_URL}/purchase_orders/${po_id}/release`,
   INVENTORY_ITEMS: (org_id) => `${BASE_URL}/inventory/items?org_id=${org_id}`,
   ITEMS_SUBINVENTORY: (org_id,item_id) => `${BASE_URL}/inventory/items?org_id=${org_id}&item_id=${item_id}`,
-  ITEMS_SUB_LOCATOR: (org_id,item_id,sub_id) => `${BASE_URL}/inventory/items?org_id=${org_id}&item_id=${item_id}&sub_inv_id=${sub_id}`
+  ITEMS_SUB_LOCATOR: (org_id,item_id,sub_id) => `${BASE_URL}/inventory/items?org_id=${org_id}&item_id=${item_id}&sub_inv_id=${sub_id}`,
+  SUB_INVENTORY_TRANSFER: `${BASE_URL}/inventory/transfer`
+
 
 
 
