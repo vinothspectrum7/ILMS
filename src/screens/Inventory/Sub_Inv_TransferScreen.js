@@ -25,7 +25,7 @@ const QTY_W = scale(110);
 const ITEM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - SCAN_W;
 const UOM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - QTY_W;
 
-const OPTIONS_UOM = [{ label: 'Each', value: 'EA' }, { label: 'Piece', value: 'PC' }];
+// const OPTIONS_UOM = [{ label: 'Each', value: 'EA' }, { label: 'Piece', value: 'PC' }];
 
 const mkOpts = (arr, labelKey, idKey) => arr.map((o) => ({ label: o[labelKey], value: o[idKey] }));
 const findOption = (options, value) => options.find((o) => String(o.value) === String(value));
@@ -49,6 +49,8 @@ export default function Sub_Inv_TransferScreen() {
   const [fromSubOptions, setFromSubOptions] = useState([]);
   const [FromLocatorOption, setfromLocatorOption] = useState([]);
   const [ToLocatorOption, setToLocatorOption] = useState([]);
+  const [OPTIONS_UOM,SETOPTIONS_UOM] = useState([]);
+  const [allItemsData, setAllItemsData] = useState([]); // store all items with UOM
 
   const [maxQty, setMaxQty] = useState(0);
 
@@ -61,14 +63,32 @@ export default function Sub_Inv_TransferScreen() {
     const LoadItems = async () => {
       try {
         const data = await ItemsList(OrgData?.selectedOrg);
+        setAllItemsData(data);
         const formatteddata = mkOpts(data, 'item_code', 'item_id');
+        // const formatuomdata = (data?.UOM || []).map(u => ({ label: u, value: u }));
+        console.log(data,"data?.UOMdata?.UOMdata?.UOMdata?.UOM")
+        // console.log(formatuomdata,"formatuomdataformatuomdata");
         SetitemOptions(formatteddata);
+        // SETOPTIONS_UOM(formatuomdata);
       } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     };
     LoadItems();
   }, [OrgData?.selectedOrg]);
+
+  useEffect(() => {
+  if (!selectedItemId) {
+    SETOPTIONS_UOM([]);
+    setUomId(null);
+    return;
+  }
+
+  const selectedItem = allItemsData.find(it => String(it.item_id) === String(selectedItemId));
+  const formattedUOM = (selectedItem?.UOM || []).map(u => ({ label: u, value: u }));
+  SETOPTIONS_UOM(formattedUOM);
+  setUomId(null); // reset UOM selection
+}, [selectedItemId, allItemsData]);
 
   useEffect(() => {
     if (!selectedItemId || !OrgData?.selectedOrg) return;

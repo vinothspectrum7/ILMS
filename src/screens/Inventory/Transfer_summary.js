@@ -80,8 +80,9 @@ export default function Inv_TransferSummaryScreen() {
     );
   };
 
-  const handleEdit = useCallback((item) => {
-    navigation.navigate("Sub_Inv_Edit_TransferScreen", { itemToEdit: item });
+  const handleEdit = useCallback((item,index) => {
+    console.log(index,"EDITINININEINIDNIINEINEI")
+    navigation.navigate("Sub_Inv_Edit_TransferScreen", { itemToEdit: item, EditIndex:index });
   }, [navigation]);
 
   const handleDelete = useCallback((index) => {
@@ -100,7 +101,8 @@ export default function Inv_TransferSummaryScreen() {
     to_loc_id: backend.to_locator??null,
     lot_number: "",
     type: "",
-    qty:backend.qty??0
+    qty:backend.qty??0,
+    uom:backend.uom??""
   }));
 }
   const confirmAction = async () => {
@@ -161,7 +163,7 @@ export default function Inv_TransferSummaryScreen() {
       <Swipeable
         ref={(r) => (swipeRefs.current[id] = r)}
         key={id}
-        renderLeftActions={() => renderLeftActions(() => handleEdit(item), id)}
+        renderLeftActions={() => renderLeftActions(() => handleEdit(item,index), id)}
         renderRightActions={() => renderRightActions(() => handleDelete(index), id)}
         onSwipeableOpen={() => closeOthers(id)}
       >

@@ -36,6 +36,7 @@ export default function Sub_Inv_Edit_TransferScreen() {
   const route = useRoute();
   const cartcount = Number(route?.params?.cartcount || 0);
   const itemToEdit = route?.params?.itemToEdit || null;
+  const EditIndex = route?.params?.EditIndex ?? null;
 
   const [showScanner, setShowScanner] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(itemToEdit?.item_id ?? null);
@@ -192,22 +193,17 @@ export default function Sub_Inv_Edit_TransferScreen() {
   ]);
 
   const onUpdate = useCallback(() => {
-    if (itemToEdit?.item_id === payloadForUpdate.item_id) {
-      editSubInvTransferItem(payloadForUpdate);
-    } else {
-      const list = Array.isArray(subInvTransferItems) ? subInvTransferItems : [];
-      const idx = list.findIndex((it) => String(it.item_id) === String(itemToEdit.item_id));
-      let next;
-      if (idx >= 0) {
-        next = [...list];
-        next[idx] = payloadForUpdate;
-      } else {
-        next = [...list, payloadForUpdate];
-      }
-      setSubInvTransferItems(next);
-    }
+            console.log(EditIndex,"EDITINDEXEIDT");
+        console.log(payloadForUpdate,"payloadForUpdate");
+      if (EditIndex !== null && EditIndex >= 0) {
+        console.log(EditIndex,"EDITINDEXEIDT");
+        console.log(payloadForUpdate,"payloadForUpdate");
+    editSubInvTransferItem(payloadForUpdate, EditIndex);
+  }else{
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Item not found to update', position: 'top', visibilityTime: 5000 });
+  }
     navigation.navigate('SubInvTransfer_summary');
-  }, [itemToEdit, payloadForUpdate, subInvTransferItems, editSubInvTransferItem, setSubInvTransferItems, navigation]);
+  }, [itemToEdit,EditIndex, payloadForUpdate, subInvTransferItems, editSubInvTransferItem, navigation]);
 
   const onCancel = useCallback(() => {
     navigation.navigate('SubInvTransfer_summary');

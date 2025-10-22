@@ -149,7 +149,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
 
   const onBack = useCallback(() => navigation.goBack(), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
-  const onCartPress = useCallback(() => navigation.navigate('InventoryCart'), [navigation]);
+  const onCartPress = useCallback(() => navigation.navigate('SubInvTransfer_summary'), [navigation]);
 
   const onSelectFromLocator = useCallback((id) => {
     setFromLocId(id);

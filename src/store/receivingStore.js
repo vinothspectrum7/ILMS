@@ -150,14 +150,23 @@ export const useReceivingStore = create((set, get) => ({
       subInvTransferItems: [...state.subInvTransferItems, item],
     })),
    // Edit an existing item by index or item_id
-editSubInvTransferItem: (updatedItem) =>
-  set((state) => ({
-    subInvTransferItems: state.subInvTransferItems.map((it) =>
-      String(it.item_id) === String(updatedItem.item_id)
-        ? { ...it, ...updatedItem }
-        : it
-    ),
-  })),
+// editSubInvTransferItem: (updatedItem) =>
+//   set((state) => ({
+//     subInvTransferItems: state.subInvTransferItems.map((it) =>
+//       String(it.item_id) === String(updatedItem.item_id)
+//         ? { ...it, ...updatedItem }
+//         : it
+//     ),
+//   })),
+
+editSubInvTransferItem: (updatedItem, editIndex) =>
+  set((state) => {
+    const list = [...state.subInvTransferItems];
+    if (editIndex !== null && editIndex >= 0 && editIndex < list.length) {
+      list[editIndex] = { ...list[editIndex], ...updatedItem };
+    }
+    return { subInvTransferItems: list };
+  }),
 
   setSubInvTransferItems: (items) => set({ subInvTransferItems: Array.isArray(items) ? items : [] }),
 
