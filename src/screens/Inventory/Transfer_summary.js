@@ -31,9 +31,13 @@ export default function Inv_TransferSummaryScreen() {
   const [saveModalStatus, setSaveModalStatus] = useState("success");
   const swipeRefs = useRef({});
   const [rowHeights, setRowHeights] = useState({});
+  const [expandedFromLoc, setExpandedFromLoc] = useState({});
+  const [expandedToLoc, setExpandedToLoc] = useState({});
   const items = useMemo(() => Array.isArray(subInvTransferItems) ? subInvTransferItems : [], [subInvTransferItems]);
   const cartCount = items.length;
+
   const PILL_HEIGHT = 56;
+  const EXPANDED_PILL_HEIGHT = 80;
 
   const onConfirmOpen = () => {
     if (!items.length) {
@@ -106,20 +110,18 @@ export default function Inv_TransferSummaryScreen() {
   }));
 }
   const confirmAction = async () => {
-    console.log(items,"confirmActionconfirmActionconfirmAction")
     if (!items.length) return { success: false, message: "No items to confirm" };
-        const payload = {
+    const payload = {
       "transactions": Mapconfirmdata(items)
     }
-           try {
-             const response = await SubInventoryTransferSubmit(payload);
-             console.log(response,"SubInventoryTransferSubmit");
-         if (response == "Inventory transfer successful."){
-             onConfirmSuccess();
-         } else{
-          onConfirmFailure();
-         }
-      } catch (err) {
+    try {
+      const response = await SubInventoryTransferSubmit(payload);
+      if (response == "Inventory transfer successful.") {
+        onConfirmSuccess();
+      } else {
+        onConfirmFailure();
+      }
+    } catch (err) {
       onConfirmFailure();
       setTimeout(() => {
         setSaveModalVisible(false);
@@ -131,10 +133,10 @@ export default function Inv_TransferSummaryScreen() {
     setConfirmVisible(false);
     setSaveModalStatus("success");
     setSaveModalVisible(true);
-      setTimeout(() => {
-        setSaveModalVisible(false);
-        navigation.navigate("Inventory");
-      }, 5000);
+    setTimeout(() => {
+      setSaveModalVisible(false);
+      navigation.navigate("Inventory");
+    }, 5000);
     resetSubInvTransfer();
   };
 
@@ -151,68 +153,90 @@ export default function Inv_TransferSummaryScreen() {
   };
 
   const renderItemCard = (item, index) => {
-    const id = String(item.item_id ?? item.id ?? index);
-    const qtyText = [item.qty, item.uom_label].filter(Boolean).join(" ");
-    const fromSub = item.from_sub_name ?? item.fromSub ?? "-";
-    const fromLoc = item.from_locator_name ?? item.fromLocator ?? "-";
-    const toSub = item.to_sub_name ?? item.toSub ?? "-";
-    const toLoc = item.to_locator_name ?? item.toLocator ?? "-";
-    const itemCode = item.item_code ?? item.item ?? "-";
+  const id = String(item.item_id ?? item.id ?? index);
+  const qtyText = [item.qty, item.uom_label].filter(Boolean).join(" ");
+  const fromSub = item.from_sub_name ?? item.fromSub ?? "-";
+  const fromLoc = item.from_locator_name ?? item.fromLocator ?? "-";
+  const toSub = item.to_sub_name ?? item.toSub ?? "-";
+  const toLoc = item.to_locator_name ?? item.toLocator ?? "-";
+  const itemCode = item.item_code ?? item.item ?? "-";
+  const isFromLocExpanded = expandedFromLoc[id] || false;
+  const isToLocExpanded = expandedToLoc[id] || false;
+  const gradBoxHeight = (isFromLocExpanded || isToLocExpanded) ? EXPANDED_PILL_HEIGHT : PILL_HEIGHT;
 
-    return (
-      <Swipeable
-        ref={(r) => (swipeRefs.current[id] = r)}
-        key={id}
-        renderLeftActions={() => renderLeftActions(() => handleEdit(item,index), id)}
-        renderRightActions={() => renderRightActions(() => handleDelete(index), id)}
-        onSwipeableOpen={() => closeOthers(id)}
-      >
-        <View style={styles.card} onLayout={(e) => onRowLayout(id, e)}>
-          <View style={styles.cardHeader}>
-            <View style={styles.itemCol}>
-              <Inv_Summary_Item_icon width={20} height={20} />
-              <View style={{ alignItems: "flex-start" }}>
-                <Text style={styles.label}>Item</Text>
-                <Text style={styles.itemText}>{itemCode}</Text>
+  return (
+    <Swipeable
+      ref={(r) => (swipeRefs.current[id] = r)}
+      key={id}
+      renderLeftActions={() => renderLeftActions(() => handleEdit(item), id)}
+      renderRightActions={() => renderRightActions(() => handleDelete(index), id)}
+      onSwipeableOpen={() => closeOthers(id)}
+    >
+      <View style={styles.card} onLayout={(e) => onRowLayout(id, e)}>
+        <View style={styles.cardHeader}>
+          <View style={styles.itemCol}>
+            <Inv_Summary_Item_icon width={20} height={20} />
+            <View style={{ alignItems: "flex-start" }}>
+              <Text style={styles.label}>Item</Text>
+              <Text style={styles.itemText}>{itemCode}</Text>
+            </View>
+          </View>
+          <Text style={styles.qtyText}>{qtyText}</Text>
+        </View>
+        <View style={[styles.gradientBox, { height: gradBoxHeight }]}>
+          <Inv_Summary_Gradiant_bg width="100%" height="100%" preserveAspectRatio="none" style={StyleSheet.absoluteFill} />
+          <View style={styles.detailsRow}>
+            <View style={styles.detailsHalf}>
+              <View style={styles.col}>
+                <Text style={styles.label}>From Sub</Text>
+                <Text style={styles.value} numberOfLines={1}>{fromSub}</Text>
+              </View>
+              <View style={styles.col}>
+                <View style={{ flexDirection: 'column', width: '100%' }}>
+                  <View style={styles.topcol}>
+                    <Text style={styles.label}>From Locator</Text>
+                  </View>
+                  <View style={styles.bottomcol}>
+                    <TouchableOpacity style={{ width: '100%' }} onPress={() => setExpandedFromLoc((pre) => ({ ...pre, [id]: !isFromLocExpanded }))}>
+                      <Text style={[styles.value, { width: '100%' }]} numberOfLines={isFromLocExpanded ? 2 : 1} ellipsizeMode="tail">
+                        {fromLoc}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
             </View>
-            <Text style={styles.qtyText}>{qtyText}</Text>
-          </View>
-
-          <View style={[styles.gradientBox, { height: PILL_HEIGHT }]}>
-            <Inv_Summary_Gradiant_bg width="100%" height="100%" preserveAspectRatio="none" style={StyleSheet.absoluteFill} />
-            <View style={styles.detailsRow}>
-              <View style={styles.detailsHalf}>
-                <View style={styles.col}>
-                  <Text style={styles.label}>From Sub</Text>
-                  <Text style={styles.value} numberOfLines={1}>{fromSub}</Text>
-                </View>
-                <View style={styles.col}>
-                  <Text style={styles.label}>From Locator</Text>
-                  <Text style={styles.value} numberOfLines={1}>{fromLoc}</Text>
-                </View>
+            <View style={styles.centerIcon}>
+              <CenterDivider width={20} height={20} />
+            </View>
+            <View style={styles.detailsHalf}>
+              <View style={styles.col}>
+                <Text style={styles.label}>To Sub</Text>
+                <Text style={styles.value} numberOfLines={1}>{toSub}</Text>
               </View>
-
-              <View style={styles.centerIcon}>
-                <CenterDivider width={20} height={20} />
-              </View>
-
-              <View style={styles.detailsHalf}>
-                <View style={styles.col}>
-                  <Text style={styles.label}>To Sub</Text>
-                  <Text style={styles.value} numberOfLines={1}>{toSub}</Text>
-                </View>
-                <View style={styles.col}>
-                  <Text style={styles.label}>To Locator</Text>
-                  <Text style={styles.value} numberOfLines={1}>{toLoc}</Text>
+              <View style={styles.col}>
+                <View style={{ flexDirection: 'column', width: '100%' }}>
+                  <View style={styles.topcol}>
+                    <Text style={styles.label}>To Locator</Text>
+                  </View>
+                  <View style={styles.bottomcol}>
+                    <TouchableOpacity style={{ width: '100%' }} onPress={() => setExpandedToLoc((pre) => ({ ...pre, [id]: !isToLocExpanded }))}>
+                      <Text style={[styles.value, { width: '100%' }]} numberOfLines={isToLocExpanded ? 2 : 1} ellipsizeMode="tail">
+                        {toLoc}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </View>
           </View>
         </View>
-      </Swipeable>
-    );
-  };
+      </View>
+    </Swipeable>
+  );
+};
+
+
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
@@ -229,7 +253,6 @@ export default function Inv_TransferSummaryScreen() {
             <Text style={styles.clearAll}>Clear All</Text>
           </TouchableOpacity>
         </View>
-
         <ScrollView showsVerticalScrollIndicator={false}>
           {items.length === 0 ? (
             <View style={styles.emptyWrap}>
@@ -240,7 +263,6 @@ export default function Inv_TransferSummaryScreen() {
           )}
         </ScrollView>
       </View>
-
       <FooterButtonsComponent
         leftLabel="Add More"
         rightLabel="Confirm"
@@ -249,18 +271,14 @@ export default function Inv_TransferSummaryScreen() {
         leftEnabled
         rightEnabled
       />
-
       <ConfirmModalComponent
         visible={confirmVisible}
         title="Confirmation"
         message="Are you sure want to transfer this Inventory"
         confirmAction={confirmAction}
         onCancel={() => setConfirmVisible(false)}
-        // onSuccess={onConfirmSuccess}
-        // onFailure={onConfirmFailure}
         successMessage="Sub Inventory Transfer created successfully"
       />
-
       <Modal visible={saveModalVisible} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -270,9 +288,6 @@ export default function Inv_TransferSummaryScreen() {
                 ? "Sub Inventory Transfer created successfully"
                 : "Save failed. Please try again."}
             </Text>
-            {/* <TouchableOpacity style={styles.modalBtn} onPress={() => setSaveModalVisible(false)}>
-              <Text style={styles.modalBtnText}>OK</Text>
-            </TouchableOpacity> */}
           </View>
         </View>
       </Modal>
@@ -305,6 +320,6 @@ const styles = StyleSheet.create({
   modalBackdrop: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.4)" },
   modalCard: { backgroundColor: "white", borderRadius: 12, padding: 24, alignItems: "center", width: "80%" },
   modalText: { marginTop: 16, textAlign: "center", fontSize: 16, color: "#333" },
-  modalBtn: { marginTop: 16, paddingVertical: 10, paddingHorizontal: 24, backgroundColor: "#233E55", borderRadius: 10 },
-  modalBtnText: { color: "#fff", fontWeight: "700" },
+  topcol: { justifyContent: 'flex-start', alignItems: 'flex-start', width: '100%' },
+  bottomcol: { justifyContent: 'flex-end', alignItems: 'flex-start', width: '100%' },
 });

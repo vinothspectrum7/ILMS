@@ -31,6 +31,15 @@ const mkOpts = (arr, labelKey, idKey) => arr.map((o) => ({ label: o[labelKey], v
 const findOption = (options, value) => options.find((o) => String(o.value) === String(value));
 const labelOf = (options, value) => findOption(options, value)?.label ?? null;
 
+const DROPDOWN_ID = {
+  ITEM: 'item',
+  FROM_SUB: 'from_sub',
+  FROM_LOC: 'from_loc',
+  TO_SUB: 'to_sub',
+  TO_LOC: 'to_loc',
+  UOM: 'uom',
+};
+
 export default function Sub_Inv_Edit_TransferScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -39,6 +48,8 @@ export default function Sub_Inv_Edit_TransferScreen() {
   const EditIndex = route?.params?.EditIndex ?? null;
 
   const [showScanner, setShowScanner] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+
   const [selectedItemId, setSelectedItemId] = useState(itemToEdit?.item_id ?? null);
   const [fromSubId, setFromSubId] = useState(itemToEdit?.from_sub ?? null);
   const [fromLocId, setFromLocId] = useState(itemToEdit?.from_locator ?? null);
@@ -56,6 +67,10 @@ export default function Sub_Inv_Edit_TransferScreen() {
   const { subInvTransferItems, editSubInvTransferItem, setSubInvTransferItems, OrgData } = useReceivingStore();
 
   const isUpdateEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
+
+  const handleDropdownToggle = useCallback((id, isOpen) => {
+    setOpenDropdownId(isOpen ? id : null);
+  }, []);
 
   useEffect(() => {
     if (!OrgData?.selectedOrg) return;
@@ -226,6 +241,9 @@ export default function Sub_Inv_Edit_TransferScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.itemrowSplit}>
             <Inv_CustomDropdown
+              dropdownId={DROPDOWN_ID.ITEM}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
               label={null}
               placeholder="Select Item*"
               value={selectedItemId}
@@ -255,6 +273,9 @@ export default function Sub_Inv_Edit_TransferScreen() {
 
           <View style={styles.dropdown}>
             <Inv_CustomDropdown
+              dropdownId={DROPDOWN_ID.FROM_SUB}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
               label={null}
               placeholder="From Sub*"
               value={fromSubId}
@@ -273,6 +294,9 @@ export default function Sub_Inv_Edit_TransferScreen() {
           <View style={styles.dropdown}>
             {!!fromSubId && (
               <Inv_CustomDropdown
+                dropdownId={DROPDOWN_ID.FROM_LOC}
+                openDropdownId={openDropdownId}
+                onToggleOpen={handleDropdownToggle}
                 label={null}
                 placeholder="From Locator*"
                 value={fromLocId}
@@ -291,6 +315,9 @@ export default function Sub_Inv_Edit_TransferScreen() {
 
           <View style={styles.dropdown}>
             <Inv_CustomDropdown
+              dropdownId={DROPDOWN_ID.TO_SUB}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
               label={null}
               placeholder="To Sub*"
               value={toSubId}
@@ -309,6 +336,9 @@ export default function Sub_Inv_Edit_TransferScreen() {
           <View style={styles.dropdown}>
             {!!toSubId && (
               <Inv_CustomDropdown
+                dropdownId={DROPDOWN_ID.TO_LOC}
+                openDropdownId={openDropdownId}
+                onToggleOpen={handleDropdownToggle}
                 label={null}
                 placeholder="To Locator*"
                 value={toLocId}
@@ -327,6 +357,9 @@ export default function Sub_Inv_Edit_TransferScreen() {
 
           <View style={styles.uomrowSplit}>
             <Inv_CustomDropdown
+              dropdownId={DROPDOWN_ID.UOM}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
               label={null}
               placeholder="Select UOM*"
               value={uomId}
@@ -353,7 +386,6 @@ export default function Sub_Inv_Edit_TransferScreen() {
               />
             </View>
           </View>
-
           <View style={{ height: ms(24) }} />
         </ScrollView>
       </KeyboardAvoidingView>
