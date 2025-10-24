@@ -31,6 +31,10 @@ import Sub_Inv_TransferScreen from './src/screens/Inventory/Sub_Inv_TransferScre
 import SummaryScreen from './src/screens/Inventory/Transfer_summary';
 import Sub_Inv_Addmore_TransferScreen from './src/screens/Inventory/Sub_Inv_Addmore_TransferScreen';
 import Sub_Inv_Edit_TransferScreen from './src/screens/Inventory/Sub_Inv_Edit_TransferScreen';
+import Org_Transfer_Screen from './src/screens/Inventory/Org_Transfer/homescreen';
+import Org_TransferSummaryScreen from './src/screens/Inventory/Org_Transfer/summaryscreen';
+import Org_EditTransfer_Screen from './src/screens/Inventory/Org_Transfer/EditScreen';
+import Org_AddMoreTransfer_Screen from './src/screens/Inventory/Org_Transfer/addmorescreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -169,6 +173,26 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="SubInvTransfer"
 component={Sub_Inv_TransferScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="orgTransfer"
+component={Org_Transfer_Screen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="orgSummary"
+component={Org_TransferSummaryScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Org_Edit_TransferScreen"
+component={Org_EditTransfer_Screen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Org_Transfer_Addmore"
+component={Org_AddMoreTransfer_Screen}
 options={{ headerShown: false }}
 />
 <Stack.Screen

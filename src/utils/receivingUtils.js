@@ -127,4 +127,32 @@ editSubInvTransferItem: (updatedItem) =>
     })),
 
   resetSubInvTransfer: () => set({ subInvTransferItems: [] }),
+
+// Orgnaization Transfer Store
+    OrgnaizationTransferItems: [],
+  addOrgnaizationTransferItems: (item) =>
+    set((state) => ({
+      OrgnaizationTransferItems: [...state.OrgnaizationTransferItems, item],
+    })),
+
+editOrgnaizationTransferItems: (updatedItem, editIndex) =>
+  set((state) => {
+    const list = [...state.OrgnaizationTransferItems];
+    if (editIndex !== null && editIndex >= 0 && editIndex < list.length) {
+      list[editIndex] = { ...list[editIndex], ...updatedItem };
+    }
+    return { OrgnaizationTransferItems: list };
+  }),
+
+  removeOrgnaizationTransferItems: (index) =>
+    set((state) => ({
+      OrgnaizationTransferItems: state.OrgnaizationTransferItems.filter((_, i) => i !== index),
+    })),
+
+  resetOrgnaizationTransferItems: () => set({ OrgnaizationTransferItems: [] }),
+
+  // Orgnaization details
+  Orgtransferdetails: null,
+  addOrgTransferDetails: (org_details) => set({ Orgtransferdetails: org_details }),
+  removeOrgTransferDetails: () => set({ Orgtransferdetails: null })
 }));

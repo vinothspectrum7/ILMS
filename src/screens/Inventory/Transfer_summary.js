@@ -104,7 +104,7 @@ export default function Inv_TransferSummaryScreen() {
     from_loc_id: backend.from_locator??null,
     to_loc_id: backend.to_locator??null,
     lot_number: "",
-    type: "",
+    type: "sub_inv_transfer",
     qty:backend.qty??0,
     uom:backend.uom??""
   }));

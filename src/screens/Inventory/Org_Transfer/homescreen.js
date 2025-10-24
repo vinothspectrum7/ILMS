@@ -1,15 +1,17 @@
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Dimensions, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, Dimensions, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView, TextInput, Text, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
-import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
-import Inv_FooterBtnComponent from '../../components/inventory/Inv_FooterBtnComponent';
-import Inv_CustomNumericInput from '../../components/inventory/Inv_CustomNumericInput';
-import Inv_CustomDropdown from '../../components/inventory/Inv_CustomDropdown';
-import BarcodeScanner from '../../components/inventory/Inv_BarCodeScanner';
-import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
-import { useReceivingStore } from '../../store/receivingStore';
-import { ItemsList, LocatorList, SubInventoryList } from '../../api/ApiServices';
+import Inv_HeaderComponent from '../../../components/inventory/Inv_HeaderComponent';
+import Inv_SingleFooterBtnComponent from '../../../components/inventory/Inv_SingleFooterBtnComponent';
+import Inv_CustomNumericInput from '../../../components/inventory/Inv_CustomNumericInput';
+import Inv_CustomDropdown from '../../../components/inventory/Inv_CustomDropdown';
+import BarcodeScanner from '../../../components/inventory/Inv_BarCodeScanner';
+import BarcodeScannerIcon from '../../../assets/icons/barcodescanner.svg';
+import CalendarIcon from '../../../assets/icons/bx_calendar.svg';
+import { useReceivingStore } from '../../../store/receivingStore';
+import { GetOrgsData, ItemsList, LocatorList, SubInventoryList } from '../../../api/ApiServices';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 
 const BG = '#F6F8FA';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -30,45 +32,147 @@ const UOM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - QTY_W;
 const mkOpts = (arr, labelKey, idKey) => arr.map((o) => ({ label: o[labelKey], value: o[idKey] }));
 const findOption = (options, value) => options.find((o) => String(o.value) === String(value));
 const labelOf = (options, value) => findOption(options, value)?.label ?? null;
-
 const DROPDOWN_ID = {
-  ITEM: 'item',
-  FROM_SUB: 'from_sub',
-  FROM_LOC: 'from_loc',
-  TO_SUB: 'to_sub',
-  TO_LOC: 'to_loc',
-  UOM: 'uom',
+    TO_ORG:'org',
+    ITEM: 'item',
+    FROM_SUB: 'from_sub',
+    FROM_LOC: 'from_loc',
+    TO_SUB: 'to_sub',
+    TO_LOC: 'to_loc',
+    UOM: 'uom',
 };
-
-export default function Sub_Inv_Addmore_TransferScreen() {
+export default function Org_Transfer_Screen() {
   const navigation = useNavigation();
   const route = useRoute();
   const cartcount = Number(route?.params?.cartcount || 0);
 
   const [showScanner, setShowScanner] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [scannertype, setscannertype] = useState('org');
+  const [selectedOrgId, setselectedOrgId] = useState(null);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [fromSubId, setFromSubId] = useState(null);
   const [fromLocId, setFromLocId] = useState(null);
   const [toSubId, setToSubId] = useState(null);
   const [toLocId, setToLocId] = useState(null);
   const [uomId, setUomId] = useState(null);
+  const [shipmentNumber, setShipmentNumber] = useState('');
+  const [waybill, setWaybill] = useState('');
+  const [receiptDate, setReceiptDate] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [qty, setQty] = useState(0);
 
   const [itemOptions, SetitemOptions] = useState([]);
+  const [OrgOptions, SetOrgOptions] = useState([]);
   const [fromSubOptions, setFromSubOptions] = useState([]);
   const [FromLocatorOption, setfromLocatorOption] = useState([]);
   const [ToLocatorOption, setToLocatorOption] = useState([]);
-  const [allItemsData, setAllItemsData] = useState([]); // store all items with UOM
   const [OPTIONS_UOM,SETOPTIONS_UOM] = useState([]);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [allItemsData, setAllItemsData] = useState([]); // store all items with UOM
+
   const [maxQty, setMaxQty] = useState(0);
 
-  const { addSubInvTransferItem, OrgData } = useReceivingStore();
+  const { addOrgnaizationTransferItems, OrgData, addOrgTransferDetails } = useReceivingStore();
 
-  const isAddEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
+const maporgdata = (data) => {
+  return data.map((element) => ({
+    label: element.org_code,
+    value: element.org_uuid,
+    org_code:element.org_code,
+    is_default: element.is_default,
+  }));
+};
+  // Function to open Android Date Picker
+const openDatePicker = () => {
+  let initialDate = new Date();
+  if (receiptDate) {
+    const parsedDate = new Date(receiptDate);
+    if (!isNaN(parsedDate.getTime())) {
+      initialDate = parsedDate;
+    }
+  }
 
-  const handleDropdownToggle = useCallback((id, isOpen) => {
-    setOpenDropdownId(isOpen ? id : null);
+  DateTimePickerAndroid.open({
+    value: initialDate,
+    onChange: (event, selectedDate) => {
+      if (event.type === 'set' && selectedDate) {
+        const formattedDate = selectedDate.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        });
+        setReceiptDate(formattedDate);
+      }
+    },
+    mode: 'date',
+    is24Hour: true,
+  });
+};
+
+
+const isAddEnabled = useMemo(() => {
+  const fromLocatorRequired = FromLocatorOption.length > 0;
+  const toLocatorRequired = ToLocatorOption.length > 0;
+
+  const hasFromLoc = fromLocatorRequired ? !!fromLocId : true;
+  const hasToLoc = toLocatorRequired ? !!toLocId : true;
+
+  return (
+    !!selectedItemId &&
+    !!fromSubId &&
+    hasFromLoc &&
+    !!toSubId &&
+    hasToLoc &&
+    !!uomId &&
+    Number(qty) > 0
+  );
+}, [
+  selectedItemId,
+  fromSubId,
+  fromLocId,
+  toSubId,
+  toLocId,
+  uomId,
+  qty,
+  FromLocatorOption,
+  ToLocatorOption,
+]);
+
+  
+    useEffect(() => {
+    if (!OrgData?.selectedOrg) return;
+    const LoadOrg = async () => {
+            try {
+              const orgsdata = await GetOrgsData();
+              if (orgsdata) {
+                console.log(orgsdata,'orgsdataorgsdataorgsdataorgsdataorgsdatas')
+                const orgformatdata = maporgdata(orgsdata);
+                SetOrgOptions(orgformatdata);
+                const today = new Date();
+                // const formattedToday = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+                const formattedToday = today.toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                 });
+                setReceiptDate(formattedToday);
+                setselectedOrgId(null);      
+              } else {
+                SetOrgOptions([]);
+                setselectedOrgId(null);
+              }
+            } catch (err) {
+              console.error("Error loading ORG data:", err);
+                      Toast.show({
+                        type: 'error',
+                        text1: 'Error',
+                        text2: 'Failed to load organizations. Please try again.',
+                        position: 'top',
+                        visibilityTime: 5000
+                      });
+            }
+    };
+    LoadOrg();
   }, []);
 
   useEffect(() => {
@@ -76,9 +180,13 @@ export default function Sub_Inv_Addmore_TransferScreen() {
     const LoadItems = async () => {
       try {
         const data = await ItemsList(OrgData?.selectedOrg);
-        const formatteddata = mkOpts(data, 'item_code', 'item_id');
         setAllItemsData(data);
+        const formatteddata = mkOpts(data, 'item_code', 'item_id');
+        // const formatuomdata = (data?.UOM || []).map(u => ({ label: u, value: u }));
+        console.log(data,"data?.UOMdata?.UOMdata?.UOMdata?.UOM")
+        // console.log(formatuomdata,"formatuomdataformatuomdata");
         SetitemOptions(formatteddata);
+        // SETOPTIONS_UOM(formatuomdata);
       } catch {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
       }
@@ -86,18 +194,18 @@ export default function Sub_Inv_Addmore_TransferScreen() {
     LoadItems();
   }, [OrgData?.selectedOrg]);
 
-      useEffect(() => {
-      if (!selectedItemId) {
-        SETOPTIONS_UOM([]);
-        setUomId(null);
-        return;
-      }
-    
-      const selectedItem = allItemsData.find(it => String(it.item_id) === String(selectedItemId));
-      const formattedUOM = (selectedItem?.UOM || []).map(u => ({ label: u, value: u }));
-      SETOPTIONS_UOM(formattedUOM);
-      // setUomId(null); // reset UOM selection
-    }, [selectedItemId, allItemsData]);
+  useEffect(() => {
+  if (!selectedItemId) {
+    SETOPTIONS_UOM([]);
+    setUomId(null);
+    return;
+  }
+
+  const selectedItem = allItemsData.find(it => String(it.item_id) === String(selectedItemId));
+  const formattedUOM = (selectedItem?.UOM || []).map(u => ({ label: u, value: u }));
+  SETOPTIONS_UOM(formattedUOM);
+  setUomId(null); // reset UOM selection
+}, [selectedItemId, allItemsData]);
 
   useEffect(() => {
     if (!selectedItemId || !OrgData?.selectedOrg) return;
@@ -164,8 +272,13 @@ export default function Sub_Inv_Addmore_TransferScreen() {
     fetchLocator();
   }, [selectedItemId, OrgData?.selectedOrg, toSubId]);
 
+    const handleDropdownToggle = useCallback((id, isOpen) => {
+      setOpenDropdownId(isOpen ? id : null);
+    }, []);
+
   const handleScan = useCallback((value) => {
     const code = String(value).trim().toUpperCase();
+    if(scannertype=='item'){
     const match = itemOptions.find((p) => String(p.label).toUpperCase() === code);
     if (match) {
       setSelectedItemId(match.value);
@@ -175,11 +288,22 @@ export default function Sub_Inv_Addmore_TransferScreen() {
       Toast.show({ type: 'error', text1: 'Item not found', text2: `Scanned value ${code} not found`, position: 'top' });
       setShowScanner(false);
     }
+}else{
+       const match = OrgOptions.find((p) => String(p.org_code).toUpperCase() === code);
+    if (match) {
+      setselectedOrgId(match.value);
+      setShowScanner(false);
+      Toast.show({ type: 'success', text1: 'Organization found', text2: match.label, position: 'top', visibilityTime: 2200 });
+    } else {
+      Toast.show({ type: 'error', text1: 'Organization not found', text2: `Scanned value ${code} not found`, position: 'top' });
+      setShowScanner(false);
+    } 
+}
   }, [itemOptions]);
 
   const onBack = useCallback(() => navigation.goBack(), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
-  const onCartPress = useCallback(() => navigation.navigate('SubInvTransfer_summary'), [navigation]);
+  const onCartPress = useCallback(() => navigation.navigate('InventoryCart'), [navigation]);
 
   const onSelectFromLocator = useCallback((id) => {
     setFromLocId(id);
@@ -190,6 +314,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
   }, [FromLocatorOption, qty]);
 
   const payloadForAdd = useMemo(() => {
+    const orglabel = labelOf(OrgOptions, selectedOrgId);
     const itemLabel = labelOf(itemOptions, selectedItemId);
     const fromSubLabel = labelOf(fromSubOptions, fromSubId);
     const fromLocLabel = labelOf(FromLocatorOption, fromLocId);
@@ -198,6 +323,8 @@ export default function Sub_Inv_Addmore_TransferScreen() {
     const uomLabel = labelOf(OPTIONS_UOM, uomId);
 
     return {
+      org_id: selectedOrgId,
+      org_label: orglabel ?? null,
       item_id: selectedItemId,
       item_code: itemLabel ?? null,
       from_sub: fromSubId,
@@ -211,6 +338,9 @@ export default function Sub_Inv_Addmore_TransferScreen() {
       uom: uomId,
       uom_label: uomLabel ?? null,
       qty: Number(qty),
+      shipmentNumber: shipmentNumber ?? null,
+      waybill: waybill ?? null,
+      receiptDate: receiptDate ?? null
     };
   }, [
     selectedItemId,
@@ -227,19 +357,26 @@ export default function Sub_Inv_Addmore_TransferScreen() {
   ]);
 
   const onAdd = useCallback(() => {
-    addSubInvTransferItem(payloadForAdd);
-    navigation.navigate("SubInvTransfer_summary");
-  }, [addSubInvTransferItem, payloadForAdd, navigation]);
-
-  const OnSummary = () => {
-    navigation.navigate("SubInvTransfer_summary");
-  };
+    console.log('SUB_INV_TRANSFER_ADD', payloadForAdd);
+    addOrgnaizationTransferItems(payloadForAdd);
+    const orglabel = labelOf(OrgOptions, selectedOrgId);
+    let orgpayload = {
+      To_org:selectedOrgId ?? null,
+      orglabel: orglabel ?? null,
+      shipmentNumber: shipmentNumber ?? null,
+      waybill: waybill ?? null,
+      receiptDate: receiptDate ?? null
+    }
+    console.log(orgpayload,"orgpayload");
+    addOrgTransferDetails(orgpayload);
+    navigation.navigate('orgSummary');
+  }, [addOrgnaizationTransferItems, payloadForAdd, navigation]);
 
   return (
     <View style={styles.safe}>
       <Inv_HeaderComponent
         organizationName={OrgData?.selectedOrgCode}
-        screenTitle="Sub Inventory Transfer"
+        screenTitle="Organization Transfer"
         notificationCount={0}
         onBack={onBack}
         onMenu={onMenu}
@@ -250,6 +387,85 @@ export default function Sub_Inv_Addmore_TransferScreen() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                  <View style={styles.itemrowSplit}>
+            <Inv_CustomDropdown
+              dropdownId={DROPDOWN_ID.TO_ORG}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
+              label={null}
+              placeholder="To Organization*"
+              value={selectedOrgId}
+              onChange={(org_code) => {
+                setselectedOrgId(org_code);
+                setSelectedItemId(null);
+                setFromSubId(null);
+                setFromLocId(null);
+                setToSubId(null);
+                setToLocId(null);
+                setUomId(null);
+                setQty(0);
+                setMaxQty(0);
+              }}
+              options={OrgOptions}
+              idKey="value"
+              nameKey="label"
+              disabled={false}
+              selectedwidth={ITEM_FIELD_W}
+              menuWidth={INVENTORY_MENU_WIDTH}
+              menuAlign="left"
+              autoSelectWhenEmpty={false}
+            />
+            <TouchableOpacity style={styles.scanBtn}
+             onPress={() =>{
+                setShowScanner(true);
+                setscannertype('org');
+             }}
+              accessibilityLabel="Scan barcode">
+              <BarcodeScannerIcon width={ms(30)} height={ms(30)} />
+            </TouchableOpacity>
+          </View>
+    <View style={styles.card}>
+      {/* Shipment Number */}
+      <View style={styles.row}>
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>Shipment Number</Text>
+          <TextInput
+            style={styles.input}
+            value={shipmentNumber}
+            onChangeText={setShipmentNumber}
+            // placeholder="Enter Shipment Number"
+          />
+        </View>
+
+        {/* Waybill */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>Waybill</Text>
+          <TextInput
+            style={styles.input}
+            value={waybill}
+            onChangeText={setWaybill}
+            // placeholder="Enter Waybill"
+          />
+        </View>
+
+        {/* Expected Receipt Date */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>Expected Receipt Date</Text>
+            <TouchableOpacity onPress={openDatePicker}>
+              <View pointerEvents="none">
+                <TextInput
+                  style={styles.input}
+                  value={receiptDate}
+                //   placeholder="YYYY/MM/DD"
+                //   editable={false}
+                />
+                <CalendarIcon width={ms(20)} height={ms(20)} style={styles.inputIcon} onPress={openDatePicker} />
+              </View>
+            </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+
           <View style={styles.itemrowSplit}>
             <Inv_CustomDropdown
               dropdownId={DROPDOWN_ID.ITEM}
@@ -271,13 +487,18 @@ export default function Sub_Inv_Addmore_TransferScreen() {
               options={itemOptions}
               idKey="value"
               nameKey="label"
-              disabled={false}
+              disabled={!selectedOrgId}
               selectedwidth={ITEM_FIELD_W}
               menuWidth={INVENTORY_MENU_WIDTH}
               menuAlign="left"
               autoSelectWhenEmpty={false}
             />
-            <TouchableOpacity style={styles.scanBtn} onPress={() => setShowScanner(true)} accessibilityLabel="Scan barcode">
+            <TouchableOpacity style={styles.scanBtn} 
+            onPress={() => {
+                setShowScanner(true);
+                setscannertype('item');
+            }} 
+            accessibilityLabel="Scan barcode">
               <BarcodeScannerIcon width={ms(30)} height={ms(30)} />
             </TouchableOpacity>
           </View>
@@ -303,11 +524,11 @@ export default function Sub_Inv_Addmore_TransferScreen() {
           </View>
 
           <View style={styles.dropdown}>
-            {!!fromSubId && (
+            {(!!fromSubId) && (
               <Inv_CustomDropdown
-                dropdownId={DROPDOWN_ID.FROM_LOC}
-                openDropdownId={openDropdownId}
-                onToggleOpen={handleDropdownToggle}
+              dropdownId={DROPDOWN_ID.FROM_LOC}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
                 label={null}
                 placeholder="From Locator*"
                 value={fromLocId}
@@ -336,7 +557,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
               options={fromSubOptions}
               idKey="value"
               nameKey="label"
-              disabled={!fromLocId}
+              disabled={!selectedItemId}
               selectedwidth={SCREEN_WIDTH - (2 * H_PADDING)}
               menuWidth={INVENTORY_MENU_WIDTH}
               menuAlign="left"
@@ -345,7 +566,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
           </View>
 
           <View style={styles.dropdown}>
-            {!!toSubId && (
+            {(ToLocatorOption.length > 0 && !!toSubId) && (
               <Inv_CustomDropdown
                 dropdownId={DROPDOWN_ID.TO_LOC}
                 openDropdownId={openDropdownId}
@@ -378,7 +599,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
               options={OPTIONS_UOM}
               idKey="value"
               nameKey="label"
-              disabled={!toLocId}
+              disabled={!toSubId}
               selectedwidth={UOM_FIELD_W}
               menuWidth={INVENTORY_MENU_WIDTH}
               menuAlign="left"
@@ -402,7 +623,7 @@ export default function Sub_Inv_Addmore_TransferScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Inv_FooterBtnComponent leftLabel="View Summary" rightLabel="Add" rightEnabled={isAddEnabled} onLeftPress={OnSummary} onRightPress={onAdd} />
+      <Inv_SingleFooterBtnComponent rightLabel="Add" rightEnabled={isAddEnabled} onRightPress={onAdd} />
 
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
@@ -431,5 +652,53 @@ const styles = StyleSheet.create({
     marginRight: ms(2),
     marginTop: ms(12)
   },
-  qtyCol: { alignItems: 'flex-end', justifyContent: 'flex-end', marginRight: ms(8), marginTop: ms(10) }
+  qtyCol: { alignItems: 'flex-end', justifyContent: 'flex-end', marginRight: ms(8), marginTop: ms(10) },
+   card: {
+    borderWidth: 1,
+    borderColor: '#ECF1F7',
+    borderRadius: 8,
+    padding: 12,
+    margin: 16,
+    backgroundColor: '#ECF1F7',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  fieldContainer: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  label: {
+    fontFamily:'Mulish',
+    fontWeight:500,
+    fontSize: 11,
+    color: '#595A5C',
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    // fontSize: 14,
+    paddingRight:25,
+    backgroundColor: '#f9f9f9',
+  },
+  inputWrapper: {
+  position: 'relative',
+  justifyContent: 'center',
+},
+inputIcon: {
+  position: 'absolute',
+  right: 5,
+  top: '50%',
+  transform: [{ translateY: -10 }],
+},
 });

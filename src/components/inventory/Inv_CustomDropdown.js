@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between"
     },
-    inputDisabled: { backgroundColor: "#9D9FA3", borderColor: "#9D9FA3" },
+    inputDisabled: { backgroundColor: "#aeaeaeff", borderColor: "#9D9FA3" },
     valueText: { fontSize: ms(14), color: "#233E55", flex: 1, paddingRight: ms(6) },
     valueDisabled: { color: "#233E55" },
     placeholder: { color: "#A9B4BF" },

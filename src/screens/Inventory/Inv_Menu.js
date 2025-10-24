@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
@@ -22,11 +22,18 @@ const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 
 const Inv_Menu = ()=>{
-  const { OrgData } = useReceivingStore();
+  const { OrgData,removeOrgTransferDetails,resetOrgnaizationTransferItems,resetSubInvTransfer } = useReceivingStore();
   const navigation = useNavigation();
   const goHome = useCallback(() => navigation.navigate('SubInvTransfer'), [navigation]);
+  const goOrgTransfer = useCallback(() => navigation.navigate('orgTransfer'), [navigation]);
   const onBack = useCallback(() => navigation.navigate('Home'), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
+
+    useEffect(() => {
+      removeOrgTransferDetails();
+      resetOrgnaizationTransferItems();
+      resetSubInvTransfer();
+    }, []);
 
   return (
     <View style={styles.safe}>
@@ -59,7 +66,7 @@ const Inv_Menu = ()=>{
 
         <TouchableOpacity
           style={styles.card}
-          onPress={goHome}
+          onPress={goOrgTransfer}
           accessibilityRole="button"
           accessibilityLabel="Open Organization Transfer"
           hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
