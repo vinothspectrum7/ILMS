@@ -26,6 +26,7 @@ const Inv_Menu = ()=>{
   const navigation = useNavigation();
   const goHome = useCallback(() => navigation.navigate('SubInvTransfer'), [navigation]);
   const goOrgTransfer = useCallback(() => navigation.navigate('orgTransfer'), [navigation]);
+  const goInvAdjstmnts = useCallback(() => navigation.navigate('Inv_Adjustment_AddScreen'), [navigation]);
   const onBack = useCallback(() => navigation.navigate('Home'), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
 
@@ -82,7 +83,7 @@ const Inv_Menu = ()=>{
 
         <TouchableOpacity
           style={styles.card}
-          onPress={goHome}
+          onPress={goInvAdjstmnts}
           accessibilityRole="button"
           accessibilityLabel="Open Inventory Adjustments"
           hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
