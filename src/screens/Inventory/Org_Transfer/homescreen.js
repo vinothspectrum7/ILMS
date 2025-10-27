@@ -47,7 +47,7 @@ export default function Org_Transfer_Screen() {
   const cartcount = Number(route?.params?.cartcount || 0);
 
   const [showScanner, setShowScanner] = useState(false);
-  const [scannertype, setscannertype] = useState('org');
+  const [showitemScanner, setShowitemScanner] = useState(false);
   const [selectedOrgId, setselectedOrgId] = useState(null);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [fromSubId, setFromSubId] = useState(null);
@@ -278,17 +278,6 @@ const isAddEnabled = useMemo(() => {
 
   const handleScan = useCallback((value) => {
     const code = String(value).trim().toUpperCase();
-    if(scannertype=='item'){
-    const match = itemOptions.find((p) => String(p.label).toUpperCase() === code);
-    if (match) {
-      setSelectedItemId(match.value);
-      setShowScanner(false);
-      Toast.show({ type: 'success', text1: 'Item found', text2: match.label, position: 'top', visibilityTime: 2200 });
-    } else {
-      Toast.show({ type: 'error', text1: 'Item not found', text2: `Scanned value ${code} not found`, position: 'top' });
-      setShowScanner(false);
-    }
-}else{
        const match = OrgOptions.find((p) => String(p.org_code).toUpperCase() === code);
     if (match) {
       setselectedOrgId(match.value);
@@ -298,7 +287,20 @@ const isAddEnabled = useMemo(() => {
       Toast.show({ type: 'error', text1: 'Organization not found', text2: `Scanned value ${code} not found`, position: 'top' });
       setShowScanner(false);
     } 
-}
+
+  }, [OrgOptions]);
+
+    const handleitemScan = useCallback((value) => {
+    const code = String(value).trim().toUpperCase();
+    const match = itemOptions.find((p) => String(p.label).toUpperCase() === code);
+    if (match) {
+      setSelectedItemId(match.value);
+      setShowitemScanner(false);
+      Toast.show({ type: 'success', text1: 'Item found', text2: match.label, position: 'top', visibilityTime: 2200 });
+    } else {
+      Toast.show({ type: 'error', text1: 'Item not found', text2: `Scanned value ${code} not found`, position: 'top' });
+      setShowitemScanner(false);
+    }
   }, [itemOptions]);
 
   const onBack = useCallback(() => navigation.goBack(), [navigation]);
@@ -418,7 +420,6 @@ const isAddEnabled = useMemo(() => {
             <TouchableOpacity style={styles.scanBtn}
              onPress={() =>{
                 setShowScanner(true);
-                setscannertype('org');
              }}
               accessibilityLabel="Scan barcode">
               <BarcodeScannerIcon width={ms(30)} height={ms(30)} />
@@ -495,8 +496,7 @@ const isAddEnabled = useMemo(() => {
             />
             <TouchableOpacity style={styles.scanBtn} 
             onPress={() => {
-                setShowScanner(true);
-                setscannertype('item');
+                setShowitemScanner(true);
             }} 
             accessibilityLabel="Scan barcode">
               <BarcodeScannerIcon width={ms(30)} height={ms(30)} />
@@ -628,7 +628,9 @@ const isAddEnabled = useMemo(() => {
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
       </Modal>
-
+      <Modal visible={showitemScanner} animationType="slide" onRequestClose={() => setShowitemScanner(false)}>
+        <BarcodeScanner onScan={handleitemScan} onClose={() => setShowitemScanner(false)} />
+      </Modal>
       <Toast />
     </View>
   );

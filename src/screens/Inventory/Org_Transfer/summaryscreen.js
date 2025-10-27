@@ -45,12 +45,16 @@ export default function Org_TransferSummaryScreen() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [saveModalStatus, setSaveModalStatus] = useState("success");
+  const [ErrorMessage, setErrorMessage] = useState('');
   const swipeRefs = useRef({});
   const [rowHeights, setRowHeights] = useState({});
+  const [expandedFromLoc, setExpandedFromLoc] = useState({});
+  const [expandedToLoc, setExpandedToLoc] = useState({});
   const items = useMemo(() => Array.isArray(OrgnaizationTransferItems) ? OrgnaizationTransferItems : [], [OrgnaizationTransferItems]);
   const OrgnaizationDetails = useMemo(() => Orgtransferdetails ? Orgtransferdetails : {}, [Orgtransferdetails]);
   const cartCount = items.length;
   const PILL_HEIGHT = 56;
+  const EXPANDED_PILL_HEIGHT = 80;
 
   const onConfirmOpen = () => {
     if (!items.length) {
@@ -138,19 +142,21 @@ export default function Org_TransferSummaryScreen() {
         const payload = {
       "transactions": Mapconfirmdata(items)
     }
-           try {
-             const response = await SubInventoryTransferSubmit(payload);
-             console.log(response,"SubInventoryTransferSubmit");
-         if (response == "Inventory transfer successful."){
+    try {
+          const response = await SubInventoryTransferSubmit(payload);
+          console.log(response,"SubInventoryTransferSubmit");
+        if (response == "Inventory transfer successful."){
              onConfirmSuccess();
          } else{
           onConfirmFailure();
+          setErrorMessage('ORG Transfer failed. Please try again.');
          }
       } catch (err) {
       onConfirmFailure();
+      setErrorMessage(err?.detail);
       setTimeout(() => {
         setSaveModalVisible(false);
-      }, 1500);
+      }, 5000);
     };
   };
 
@@ -185,6 +191,9 @@ export default function Org_TransferSummaryScreen() {
     const toSub = item.to_sub_name ?? item.toSub ?? "-";
     const toLoc = item.to_locator_name ?? item.toLocator ?? "-";
     const itemCode = item.item_code ?? item.item ?? "-";
+    const isFromLocExpanded = expandedFromLoc[id] || false;
+    const isToLocExpanded = expandedToLoc[id] || false;
+    const gradBoxHeight = (isFromLocExpanded || isToLocExpanded) ? EXPANDED_PILL_HEIGHT : PILL_HEIGHT;
 
     return (
       <Swipeable
@@ -206,7 +215,7 @@ export default function Org_TransferSummaryScreen() {
             <Text style={styles.qtyText}>{qtyText}</Text>
           </View>
 
-          <View style={[styles.gradientBox, { height: PILL_HEIGHT }]}>
+          <View style={[styles.gradientBox, { height: gradBoxHeight }]}>
             <Inv_Summary_Gradiant_bg width="100%" height="100%" preserveAspectRatio="none" style={StyleSheet.absoluteFill} />
             <View style={styles.detailsRow}>
               <View style={styles.detailsHalf}>
@@ -214,10 +223,20 @@ export default function Org_TransferSummaryScreen() {
                   <Text style={styles.label}>From Sub</Text>
                   <Text style={styles.value} numberOfLines={1}>{fromSub}</Text>
                 </View>
-                <View style={styles.col}>
-                  <Text style={styles.label}>From Locator</Text>
-                  <Text style={styles.value} numberOfLines={1}>{fromLoc}</Text>
+              <View style={styles.col}>
+                <View style={{ flexDirection: 'column', width: '100%' }}>
+                  <View style={styles.topcol}>
+                    <Text style={styles.label}>From Locator</Text>
+                  </View>
+                  <View style={styles.bottomcol}>
+                    <TouchableOpacity style={{ width: '100%' }} onPress={() => setExpandedFromLoc((pre) => ({ ...pre, [id]: !isFromLocExpanded }))}>
+                      <Text style={[styles.value, { width: '100%' }]} numberOfLines={isFromLocExpanded ? 2 : 1} ellipsizeMode="tail">
+                        {fromLoc}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
+              </View>
               </View>
 
               <View style={styles.centerIcon}>
@@ -229,10 +248,20 @@ export default function Org_TransferSummaryScreen() {
                   <Text style={styles.label}>To Sub</Text>
                   <Text style={styles.value} numberOfLines={1}>{toSub}</Text>
                 </View>
-                <View style={styles.col}>
-                  <Text style={styles.label}>To Locator</Text>
-                  <Text style={styles.value} numberOfLines={1}>{toLoc}</Text>
+              <View style={styles.col}>
+                <View style={{ flexDirection: 'column', width: '100%' }}>
+                  <View style={styles.topcol}>
+                    <Text style={styles.label}>To Locator</Text>
+                  </View>
+                  <View style={styles.bottomcol}>
+                    <TouchableOpacity style={{ width: '100%' }} onPress={() => setExpandedToLoc((pre) => ({ ...pre, [id]: !isToLocExpanded }))}>
+                      <Text style={[styles.value, { width: '100%' }]} numberOfLines={isToLocExpanded ? 2 : 1} ellipsizeMode="tail">
+                        {toLoc}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
+              </View>
               </View>
             </View>
           </View>
@@ -324,7 +353,7 @@ export default function Org_TransferSummaryScreen() {
             <Text style={styles.modalText}>
               {saveModalStatus === "success"
                 ? "ORG Transfer created successfully"
-                : "Save failed. Please try again."}
+                :ErrorMessage}
             </Text>
             {/* <TouchableOpacity style={styles.modalBtn} onPress={() => setSaveModalVisible(false)}>
               <Text style={styles.modalBtnText}>OK</Text>
@@ -349,7 +378,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Mulish',
 fontWeight: 'bold',
 fontStyle: 'normal',
-fontSize: 14,
+fontSize: 12,
   },
   qtyText: { fontSize: 12, fontWeight: "700", color: "#233E55" },
   gradientBox: { borderRadius: 12, overflow: "hidden" },
@@ -398,5 +427,6 @@ fontSize: 14,
     marginBottom: 4,
   },
   orgvalue: { fontSize: 12, color: "rgba(35, 62, 85, 1)", fontWeight: "700" },
-
+  topcol: { justifyContent: 'flex-start', alignItems: 'flex-start', width: '100%' },
+  bottomcol: { justifyContent: 'flex-end', alignItems: 'flex-start', width: '100%' },
 });

@@ -682,4 +682,10 @@ inputIcon: {
   orgvalue: { fontSize: 12, color: "rgba(35, 62, 85, 1)", fontWeight: "700" },
 cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   itemCol: { flexDirection: "row", alignItems: "center", columnGap: 8 },
+    orgtext:{
+    fontFamily: 'Mulish',
+fontWeight: 'bold',
+fontStyle: 'normal',
+fontSize: 12,
+  },
 });
