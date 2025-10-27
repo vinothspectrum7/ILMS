@@ -165,15 +165,31 @@ export default function Inv_Adj_EditScreen() {
 
   const onUpdate = useCallback(() => {
     const f = adjustType === "Issue" ? issueFields : receiptFields;
+    // const payload = {
+    //   adjustmentType: adjustType,
+    //   item_id: f.itemId,
+    //   from_sub: f.fromSubId ?? null,
+    //   from_locator: f.fromLocId ?? null,
+    //   to_sub: f.toSubId ?? null,
+    //   to_locator: f.toLocId ?? null,
+    //   uom: f.uomId,
+    //   qty: Number(f.qty)
+    // };
     const payload = {
-      adjustmentType: adjustType,
       item_id: f.itemId,
+      item_code: labelOf(itemOptions, f.itemId),
       from_sub: f.fromSubId ?? null,
+      from_sub_name: labelOf(fromSubOptions, f.fromSubId),
       from_locator: f.fromLocId ?? null,
+      from_locator_name: labelOf(fromLocatorOptions, f.fromLocId),
       to_sub: f.toSubId ?? null,
+      to_sub_name: labelOf(toSubOptions, f.toSubId),
       to_locator: f.toLocId ?? null,
+      to_locator_name: labelOf(toLocatorOptions, f.toLocId),
       uom: f.uomId,
-      qty: Number(f.qty)
+      uom_label: labelOf(UOMOptions, f.uomId),
+      qty: Number(f.qty),
+      adjustmentType: adjustType,
     };
     if (EditIndex !== null && EditIndex >= 0) {
       editSubInvTransferItem(payload, EditIndex);

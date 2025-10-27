@@ -168,7 +168,7 @@ export default function Inv_TransferSummaryScreen() {
     <Swipeable
       ref={(r) => (swipeRefs.current[id] = r)}
       key={id}
-      renderLeftActions={() => renderLeftActions(() => handleEdit(item), id)}
+      renderLeftActions={() => renderLeftActions(() => handleEdit(item,index), id)}
       renderRightActions={() => renderRightActions(() => handleDelete(index), id)}
       onSwipeableOpen={() => closeOthers(id)}
     >

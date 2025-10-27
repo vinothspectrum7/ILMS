@@ -13,7 +13,7 @@ import DeleteIcon from "../../assets/icons/delete.svg";
 import Inv_Summary_Item_icon from "../../assets/icons/Inv_Summary_Item_icon.svg";
 import Inv_Summary_Gradiant_bg from "../../assets/icons/Inv_Summary_Gradiant_bg.svg";
 import { useReceivingStore } from "../../store/receivingStore";
-import { SubInventoryTransferSubmit } from "../../api/ApiServices";
+import { InventoryAdjustTransferSubmit, SubInventoryTransferSubmit } from "../../api/ApiServices";
 
 export default function Inv_Adj_SummaryScreen() {
   const navigation = useNavigation();
@@ -116,32 +116,30 @@ export default function Inv_Adj_SummaryScreen() {
   const mapPayload = (data) =>
     data.map((backend) => ({
       item_id: backend.item_id ?? null,
-      from_sub_inv_id: backend.from_sub ?? null,
-      to_sub_inv_id: backend.to_sub ?? null,
-      from_org_id: OrgData?.selectedOrg ?? null,
-      to_org_id: OrgData?.selectedOrg ?? null,
-      from_loc_id: backend.from_locator ?? null,
-      to_loc_id: backend.to_locator ?? null,
+      sub_inv_id: backend.adjustmentType =='Issue'? backend.from_sub:backend.to_sub,
+      org_id: OrgData?.selectedOrg ?? null,
+      loc_id: backend.adjustmentType =='Issue'? backend.from_locator:backend.to_locator,
       lot_number: "",
-      type: "inventory_adjustment",
-      adjustment_type: backend.adjustmentType || preferredType,
+      type: (backend.adjustmentType || '').toString().toLowerCase(),
       qty: backend.qty ?? 0,
       uom: backend.uom ?? "",
     }));
 
   const confirmAction = async () => {
+    console.log(items, "confrimactionitems")
     if (!items.length) return { success: false, message: "No items to confirm" };
     const payload = { transactions: mapPayload(items) };
     try {
-      const response = await SubInventoryTransferSubmit(payload);
-      if (response == "Inventory transfer successful.") {
+      const response = await InventoryAdjustTransferSubmit(payload,(preferredType || '').toString().toLowerCase());
+      console.log(response,"InventoryAdjustTransferSubmitresponse")
+      if (response == "Inventory adjustment transfer successful.") {
         onConfirmSuccess();
       } else {
         onConfirmFailure();
       }
     } catch {
       onConfirmFailure();
-      setTimeout(() => setSaveModalVisible(false), 1500);
+      setTimeout(() => setSaveModalVisible(false), 5000);
     }
   };
 
@@ -160,6 +158,7 @@ export default function Inv_Adj_SummaryScreen() {
     setConfirmVisible(false);
     setSaveModalStatus("failure");
     setSaveModalVisible(true);
+    setTimeout(() => setSaveModalVisible(false), 5000);
   };
 
   const clearAll = () => {

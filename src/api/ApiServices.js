@@ -237,3 +237,13 @@ export const SubInventoryTransferSubmit = async(data)=>{
     throw error.response?.data;
   }  
 }
+export const InventoryAdjustTransferSubmit = async(data,type)=>{
+    try {
+    const response = await api.post(API_ENDPOINTS.SUB_INVENTORY_ADJUST_TRANSFER(type),data);
+    console.log("INVENTORY_ADJUST_TRANSFER Data:", response);
+    return response.data;
+  } catch (error) {
+    console.error("INVENTORY_ADJUST_TRANSFER Error:", error.message, error.response?.data);
+    throw error.response?.data;
+  }  
+}
