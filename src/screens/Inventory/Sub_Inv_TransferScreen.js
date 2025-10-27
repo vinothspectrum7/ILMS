@@ -25,7 +25,7 @@ const QTY_W = scale(110);
 const ITEM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - SCAN_W;
 const UOM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - QTY_W;
 
-const OPTIONS_UOM = [{ label: 'Each', value: 'EA' }, { label: 'Piece', value: 'PC' }];
+// const OPTIONS_UOM = [{ label: 'Each', value: 'EA' }, { label: 'Piece', value: 'PC' }];
 
 const mkOpts = (arr, labelKey, idKey) => arr.map((o) => ({ label: o[labelKey], value: o[idKey] }));
 const findOption = (options, value) => options.find((o) => String(o.value) === String(value));
@@ -48,6 +48,12 @@ export default function Sub_Inv_TransferScreen() {
     const [showScanner, setShowScanner] = useState(false);
     const [openDropdownId, setOpenDropdownId] = useState(null);
 
+  const [itemOptions, SetitemOptions] = useState([]);
+  const [fromSubOptions, setFromSubOptions] = useState([]);
+  const [FromLocatorOption, setfromLocatorOption] = useState([]);
+  const [ToLocatorOption, setToLocatorOption] = useState([]);
+  const [OPTIONS_UOM,SETOPTIONS_UOM] = useState([]);
+  const [allItemsData, setAllItemsData] = useState([]); // store all items with UOM
     const [selectedItemId, setSelectedItemId] = useState(null);
     const [fromSubId, setFromSubId] = useState(null);
     const [fromLocId, setFromLocId] = useState(null);
@@ -56,15 +62,62 @@ export default function Sub_Inv_TransferScreen() {
     const [uomId, setUomId] = useState(null);
     const [qty, setQty] = useState(0);
 
-    const [itemOptions, SetitemOptions] = useState([]);
-    const [fromSubOptions, setFromSubOptions] = useState([]);
-    const [FromLocatorOption, setfromLocatorOption] = useState([]);
-    const [ToLocatorOption, setToLocatorOption] = useState([]);
-
     const [maxQty, setMaxQty] = useState(0);
 
     const { addSubInvTransferItem, OrgData } = useReceivingStore();
 
+  useEffect(() => {
+    if (!OrgData?.selectedOrg) return;
+    const LoadItems = async () => {
+      try {
+        const data = await ItemsList(OrgData?.selectedOrg);
+        setAllItemsData(data);
+        const formatteddata = mkOpts(data, 'item_code', 'item_id');
+        // const formatuomdata = (data?.UOM || []).map(u => ({ label: u, value: u }));
+        console.log(data,"data?.UOMdata?.UOMdata?.UOMdata?.UOM")
+        // console.log(formatuomdata,"formatuomdataformatuomdata");
+        SetitemOptions(formatteddata);
+        // SETOPTIONS_UOM(formatuomdata);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    };
+    LoadItems();
+  }, [OrgData?.selectedOrg]);
+
+  useEffect(() => {
+  if (!selectedItemId) {
+    SETOPTIONS_UOM([]);
+    setUomId(null);
+    return;
+  }
+
+  const selectedItem = allItemsData.find(it => String(it.item_id) === String(selectedItemId));
+  const formattedUOM = (selectedItem?.UOM || []).map(u => ({ label: u, value: u }));
+  SETOPTIONS_UOM(formattedUOM);
+  setUomId(null); // reset UOM selection
+}, [selectedItemId, allItemsData]);
+
+  useEffect(() => {
+    if (!selectedItemId || !OrgData?.selectedOrg) return;
+    const fetchFromSubInventory = async () => {
+      try {
+        const data = await SubInventoryList(OrgData.selectedOrg, selectedItemId);
+        const formatteddata = mkOpts(data, 'subinventory_name', 'subinventory_id');
+        setFromSubId(null);
+        setFromLocId(null);
+        setToSubId(null);
+        setToLocId(null);
+        setUomId(null);
+        setQty(0);
+        setMaxQty(0);
+        setFromSubOptions(formatteddata);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Sub Inventories. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    };
+    fetchFromSubInventory();
+  }, [selectedItemId, OrgData?.selectedOrg]);
     const isAddEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
 
     const handleDropdownToggle = useCallback((id, isOpen) => {
