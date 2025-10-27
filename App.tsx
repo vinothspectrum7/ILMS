@@ -31,14 +31,14 @@ import Sub_Inv_TransferScreen from './src/screens/Inventory/Sub_Inv_TransferScre
 import SummaryScreen from './src/screens/Inventory/Transfer_summary';
 import Sub_Inv_Addmore_TransferScreen from './src/screens/Inventory/Sub_Inv_Addmore_TransferScreen';
 import Sub_Inv_Edit_TransferScreen from './src/screens/Inventory/Sub_Inv_Edit_TransferScreen';
-import Inv_Adjustment_AddScreen from './src/screens/Inventory/Inv_Adjustment_AddScreen';
-import Inv_Adj_AddmoreScreen from './src/screens/Inventory/Inv_Adj_AddmoreScreen';
-import Inv_Adj_EditScreen from './src/screens/Inventory/Inv_Adj_EditScreen';
-import Inv_Adj_SummaryScreen from './src/screens/Inventory/Inv_Adj_SummaryScreen';
 import Org_Transfer_Screen from './src/screens/Inventory/Org_Transfer/homescreen';
 import Org_TransferSummaryScreen from './src/screens/Inventory/Org_Transfer/summaryscreen';
 import Org_EditTransfer_Screen from './src/screens/Inventory/Org_Transfer/EditScreen';
 import Org_AddMoreTransfer_Screen from './src/screens/Inventory/Org_Transfer/addmorescreen';
+import Inv_Adjustment_AddScreen from './src/screens/Inventory/Inv_Adjustment_AddScreen';
+import Inv_Adj_AddmoreScreen from './src/screens/Inventory/Inv_Adj_AddmoreScreen';
+import Inv_Adj_EditScreen from './src/screens/Inventory/Inv_Adj_EditScreen';
+import Inv_Adj_SummaryScreen from './src/screens/Inventory/Inv_Adj_SummaryScreen';
 
 const Stack = createNativeStackNavigator();
 

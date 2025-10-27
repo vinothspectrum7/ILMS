@@ -25,8 +25,8 @@ const Inv_Menu = ()=>{
   const { OrgData,removeOrgTransferDetails,resetOrgnaizationTransferItems,resetSubInvTransfer } = useReceivingStore();
   const navigation = useNavigation();
   const goHome = useCallback(() => navigation.navigate('SubInvTransfer'), [navigation]);
-  const goInvAdjstmnts = useCallback(() => navigation.navigate('Inv_Adjustment_AddScreen'), [navigation]);
   const goOrgTransfer = useCallback(() => navigation.navigate('orgTransfer'), [navigation]);
+  const goInvAdjstmnts = useCallback(() => navigation.navigate('Inv_Adjustment_AddScreen'), [navigation]);
   const onBack = useCallback(() => navigation.navigate('Home'), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
 
