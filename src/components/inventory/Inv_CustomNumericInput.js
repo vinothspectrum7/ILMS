@@ -59,7 +59,7 @@ const Inv_CustomNumericInput = ({
 
   const showFilled = isSelected && safeValue > 0;
   const dynamicStyles = disabledinput?styles.disabledvalue:showFilled ? styles.touched : styles.untouched;
-  const activeTextColor = disabledinput?'#fff':showFilled ? '#fff' : '#5D768B';
+  const activeTextColor = disabledinput?'#595A5C':showFilled ? '#fff' : '#5D768B';
 
   return (
     <View style={[styles.container, dynamicStyles.border, { width }, { height }]}>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     border: { borderWidth: 1, borderColor: '#fff' },
   },
   disabledvalue: {
-    bg: { backgroundColor: '#9D9FA3' },
+    bg: { backgroundColor: '#EFEFF0' },
     border: { borderWidth: 1, borderColor: '#fff' },
   },
 });
