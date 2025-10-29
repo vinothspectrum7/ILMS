@@ -90,7 +90,7 @@ export default function Inv_HeaderComponent({
         </View>
 
         <View style={styles.brandRight}>
-          <Text style={styles.version}>V: 25100717</Text>
+          <Text style={styles.version}>V: 25102918</Text>
 
           <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={scale(22)} height={scale(22)} />

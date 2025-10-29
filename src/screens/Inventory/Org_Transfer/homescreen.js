@@ -386,10 +386,12 @@ const isAddEnabled = useMemo(() => {
         cartCount={cartcount}
         onCartPress={onCartPress}
       />
-
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-                  <View style={styles.itemrowSplit}>
+        <ScrollView 
+        contentContainerStyle={styles.content} 
+        keyboardShouldPersistTaps="always"
+        scrollEventThrottle={16}
+        scrollEnabled>
+          <View style={styles.itemrowSplit}>
             <Inv_CustomDropdown
               dropdownId={DROPDOWN_ID.TO_ORG}
               openDropdownId={openDropdownId}
@@ -434,6 +436,8 @@ const isAddEnabled = useMemo(() => {
             style={styles.input}
             value={shipmentNumber}
             onChangeText={setShipmentNumber}
+            numberOfLines={1}
+            ellipsizeMode="tail"
             // placeholder="Enter Shipment Number"
           />
         </View>
@@ -445,6 +449,8 @@ const isAddEnabled = useMemo(() => {
             style={styles.input}
             value={waybill}
             onChangeText={setWaybill}
+            numberOfLines={1}
+            ellipsizeMode="tail"
             // placeholder="Enter Waybill"
           />
         </View>
@@ -459,6 +465,8 @@ const isAddEnabled = useMemo(() => {
                   value={receiptDate}
                 //   placeholder="YYYY/MM/DD"
                 //   editable={false}
+                 numberOfLines={1}
+                 ellipsizeMode="tail"
                 />
                 <CalendarIcon width={ms(20)} height={ms(20)} style={styles.inputIcon} onPress={openDatePicker} />
               </View>
@@ -621,7 +629,6 @@ const isAddEnabled = useMemo(() => {
 
           <View style={{ height: ms(24) }} />
         </ScrollView>
-      </KeyboardAvoidingView>
 
       <Inv_SingleFooterBtnComponent rightLabel="Add" rightEnabled={isAddEnabled} onRightPress={onAdd} />
 
@@ -659,7 +666,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ECF1F7',
     borderRadius: 8,
-    padding: 12,
+    padding: 8,
     margin: 16,
     backgroundColor: '#ECF1F7',
     shadowColor: '#000',
@@ -671,15 +678,19 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'stretch', // 👈 ensures all children match tallest one
+
   },
   fieldContainer: {
     flex: 1,
     marginHorizontal: 4,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   label: {
     fontFamily:'Mulish',
     fontWeight:500,
-    fontSize: 11,
+    fontSize: 10,
     color: '#595A5C',
     marginBottom: 4,
   },
@@ -689,6 +700,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 2,
     paddingHorizontal: 6,
+    color:'#242424',
     // fontSize: 14,
     paddingRight:25,
     backgroundColor: '#f9f9f9',

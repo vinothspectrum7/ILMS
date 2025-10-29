@@ -123,6 +123,7 @@ const Inv_CustomDropdown = ({
                 transparent
                 visible={open && !disabled}
                 onRequestClose={toggleOpen}
+                style={{overflow:'scroll'}}
             >
                 <TouchableWithoutFeedback onPress={toggleOpen}>
                     <View style={StyleSheet.absoluteFillObject} pointerEvents="auto" />
