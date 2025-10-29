@@ -7,7 +7,7 @@ import GlobalHeaderComponent from "../../components/GlobalHeaderComponent";
 import FooterButtonsComponent from "../../components/FooterButtonsComponent";
 import ConfirmModalComponent from "../../components/ConfirmModalComponent";
 import FailureSvg from "../../assets/icons/failure.svg";
-import TransferConfirm from "../../assets/icons/Transfer_success.svg";
+import ConfirmInvAdj from "../../assets/icons/ConfirmInvAdj.svg";
 import EditIcon from "../../assets/icons/edit.svg";
 import DeleteIcon from "../../assets/icons/delete.svg";
 import Inv_Summary_Item_icon from "../../assets/icons/Inv_Summary_Item_icon.svg";
@@ -272,10 +272,10 @@ export default function Inv_Adj_SummaryScreen() {
       <Modal visible={saveModalVisible} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            {saveModalStatus === "success" ? <TransferConfirm width={72} height={72} /> : <FailureSvg width={72} height={72} />}
+            {saveModalStatus === "success" ? <ConfirmInvAdj width={72} height={72} /> : <FailureSvg width={72} height={72} />}
             <Text style={styles.modalText}>
               {saveModalStatus === "success"
-                ? `Inventory ${preferredType} created successfully`
+                ? `Inventory Adjusted successfully`
                 : "Save failed. Please try again."}
             </Text>
           </View>
