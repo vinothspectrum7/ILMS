@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: rs(20),
+    paddingHorizontal: rs(10),
     zIndex: 10,
   },
     version:{

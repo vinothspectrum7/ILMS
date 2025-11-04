@@ -1,50 +1,67 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-  SafeAreaView,
-  Alert,
-  BackHandler,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, SafeAreaView, BackHandler, Platform } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { QrCode } from 'lucide-react-native';
-import HeaderComponent, { HEADER_METRICS } from '../components/HeaderComponent';
-import { ShippingStatusCard } from '../components/ShippingStatusCard';
-import OrderShippedIcon from '../assets/icons/Order_Shipped_icon.svg';
-import OrderScheduledTodayIcon from '../assets/icons/Order_Scheduled_today_icon.svg';
-import BackOrderedIcon from '../assets/icons/Back_ordered_icon.svg';
-import { useReceivingStore } from '../store/receivingStore';
-import { useFocusEffect } from '@react-navigation/native';
-import { GetInventryData, GetLocatorsData } from '../api/ApiServices';
 import Toast from 'react-native-toast-message';
+import HeaderComponent, { HEADER_METRICS } from '../components/HeaderComponent';
+import { useFocusEffect } from '@react-navigation/native';
+import { useReceivingStore } from '../store/receivingStore';
+import { GetInventryData, GetLocatorsData } from '../api/ApiServices';
+import StatusCountCard from '../components/dashboard/StatusCountCard';
+import TabbedCard from '../components/dashboard/TabbedCard';
+import DonutChart from '../components/dashboard/DonutChart';
+import StatsList from '../components/dashboard/StatsList';
+import ActivityItem from '../components/dashboard/ActivityItem';
+import TaskItem from '../components/dashboard/TaskItem';
+import { colors } from '../theme/colors';
+
+import TodayReceivedIcon from '../assets/icons/statuscount_today_received.svg';
+import OrderShippedIcon from '../assets/icons/statuscount_order_shipped.svg';
+import LowStockIcon from '../assets/icons/statuscount_low_stock.svg';
+import ExpandIcon from '../assets/icons/icon_expand.svg';
+import MoreIcon from '../assets/icons/icon_more.svg';
 
 const { width: screenWidth } = Dimensions.get('window');
 const baseWidth = 375;
-const scale = screenWidth / baseWidth;
-const responsiveSize = (size) => Math.round(size * scale);
+const rs = size => Math.round((screenWidth / baseWidth) * size);
 
 export default function HomeScreen({ navigation }) {
+  const [openPeriod, setOpenPeriod] = useState(false);
+  const [period, setPeriod] = useState('today');
+  const [periodItems] = useState([
+    { label: 'Today', value: 'today' },
+    { label: 'Weekly', value: 'weekly' },
+    { label: 'Monthly', value: 'monthly' }
+  ]);
+
   const [openInventoryOrgDropdown, setOpenInventoryOrgDropdown] = useState(false);
   const [Defaultorg, setDefaultorg] = useState(null);
   const [OrgCode, setOrgCode] = useState(null);
   const [defaultinventory, Setdefaultinventory] = useState(null);
-  const { OrgData, setOrgData, setInventoryList, setLocatorList, setLocatorInCache } = useReceivingStore();
-  const [selectedInventoryOrg, setSelectedInventoryOrg] = useState('Inventory ORG1');
-  const [inventoryOrganizations] = useState([
-    { label: 'Inventory ORG1', value: 'Inventory ORG1' },
-    { label: 'Inventory ORG2', value: 'Inventory ORG2' },
-    { label: 'Inventory ORG3', value: 'Inventory ORG3' },
-  ]);
-  const [profileName, setProfileName] = useState('');
+  const { setOrgData, setInventoryList, setLocatorList, setLocatorInCache } = useReceivingStore();
 
-  const handleNotificationPress = () => Alert.alert('Notification', 'Notification button pressed!');
-  const handleProfilePress = () => navigation.navigate('Login');
-  const handleOrganizationChange = (org) => {
+  const resetReceiving = useReceivingStore(s => s.resetReceiving);
+  const resetTab = useReceivingStore(s => s.resetTab);
+
+  useFocusEffect(React.useCallback(() => { resetReceiving(); return () => {}; }, [resetReceiving]));
+  useFocusEffect(React.useCallback(() => { resetTab(); return () => {}; }, [resetTab]));
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (Platform.OS !== 'android') return;
+      let lastPress = 0;
+      const onBackPress = () => {
+        const now = Date.now();
+        if (now - lastPress < 500) { BackHandler.exitApp(); return true; }
+        lastPress = now;
+        Toast.show({ type: 'info', text1: 'Press back again to exit', position: 'top', visibilityTime: 1000 });
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [navigation])
+  );
+
+  const handleOrganizationChange = org => {
     setDefaultorg(org.value);
     setOrgCode(org.org_code);
   };
@@ -55,336 +72,182 @@ export default function HomeScreen({ navigation }) {
       try {
         const inventrydata = await GetInventryData(Defaultorg);
         if (inventrydata) {
-          const inventoryList = inventrydata.map((d) => ({
-            id: d.sub_inv_id,
-            name: d.sub_inv_name,
-            enabled: d.sub_inv_enabled,
-            is_default: d.is_default,
-          }));
+          const inventoryList = inventrydata.map(d => ({ id: d.sub_inv_id, name: d.sub_inv_name, enabled: d.sub_inv_enabled, is_default: d.is_default }));
           setInventoryList(inventoryList);
-          const defaultinventry = inventrydata.find((o) => o.is_default);
+          const di = inventrydata.find(o => o.is_default);
           loadlocatordata(defaultinventory);
-          Setdefaultinventory(defaultinventry?.sub_inv_id ?? inventrydata[0]?.sub_inv_id);
+          Setdefaultinventory(di?.sub_inv_id ?? inventrydata[0]?.sub_inv_id);
         } else {
           Setdefaultinventory(null);
         }
       } catch (err) {
-        console.error('Error loading SubInventory data:', err);
-        Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: 'Failed to load SubInventories. Please try again.',
-          position: 'top',
-          visibilityTime: 5000
-        });
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     };
-    let obj = { selectedOrg: Defaultorg, selectedinventory: defaultinventory, selectedOrgCode: OrgCode };
-    setOrgData(obj);
+    setOrgData({ selectedOrg: Defaultorg, selectedinventory: defaultinventory, selectedOrgCode: OrgCode });
     loadinventrydata();
-  }, [Defaultorg, OrgCode,defaultinventory]);
+  }, [Defaultorg, OrgCode, defaultinventory, setInventoryList, setOrgData]);
 
-  const loadlocatordata = async (sub_id) => {
+  const loadlocatordata = async sub_id => {
     if (!sub_id) return;
     try {
       const locdata = await GetLocatorsData(sub_id);
       if (locdata) {
-        const LocatorList = locdata.map((d) => ({
-          id: d.locator_id,
-          name: d.locator_name,
-          enabled: d.locator_enabled,
-        }));
+        const LocatorList = locdata.map(d => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
         setLocatorList(LocatorList);
         setLocatorInCache(sub_id, LocatorList);
       }
     } catch (err) {
-      console.error('Error loading Locator data:', err);
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to load Locators. Please try again.',
-        position: 'top',
-        visibilityTime: 5000
-      });
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators. Please try again.', position: 'top', visibilityTime: 5000 });
     }
   };
 
-
-  const chartData = [
-    { value: 35, label: 'Item 1', color: '#6398D5' },
-    { value: 42, label: 'Item 2', color: '#88C152' },
-    { value: 78, label: 'Item 3', color: '#F1A938' },
-    { value: 65, label: 'Item 4', color: '#F8824A' },
-    { value: 90, label: 'Item 5', color: '#566A7D' },
-    { value: 35, label: 'Item 6', color: '#8C98A6' },
-    { value: 75, label: 'Item 7', color: '#F2A091' },
+  const STATUSCOUNT = [
+    { Icon: TodayReceivedIcon, title: 'Today Received', value: 287 },
+    { Icon: OrderShippedIcon, title: 'Order Shipped', value: 287 },
+    { Icon: LowStockIcon, title: 'Low Stock Items', value: 287 }
   ];
 
-  const resetReceiving = useReceivingStore((s) => s.resetReceiving);
+  const SHIPPING_STATUS = {
+    today: { total: 239, shipped: 156, processing: 28, ready: 43, hold: 12 },
+    weekly: { total: 540, shipped: 340, processing: 68, ready: 96, hold: 36 },
+    monthly: { total: 2100, shipped: 1400, processing: 220, ready: 360, hold: 120 },
+    yearly: { total: 24000, shipped: 16200, processing: 2100, ready: 4200, hold: 1500 }
+  };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      resetReceiving();
-      return () => {};
-    }, [resetReceiving])
-  );
+  const stats = [
+    { label: 'Shipped', value: SHIPPING_STATUS[period].shipped, color: colors.statGreen },
+    { label: 'Processing', value: SHIPPING_STATUS[period].processing, color: colors.statBlue },
+    { label: 'Ready to ship', value: SHIPPING_STATUS[period].ready, color: colors.statRed },
+    { label: 'On Hold', value: SHIPPING_STATUS[period].hold, color: colors.statOrange }
+  ];
 
-  const resetTab = useReceivingStore((s) => s.resetTab);
+  const segments = [
+    { value: SHIPPING_STATUS[period].shipped, color: colors.statGreen },
+    { value: SHIPPING_STATUS[period].processing, color: colors.statBlue },
+    { value: SHIPPING_STATUS[period].ready, color: colors.statRed },
+    { value: SHIPPING_STATUS[period].hold, color: colors.statOrange }
+  ];
 
-  useFocusEffect(
-    React.useCallback(() => {
-      resetTab();
-      return () => {};
-    }, [resetTab])
-  );
+  const recentActivity = [
+    { id: 'PO-24596', status: 'Received', ago: '2 mins', value: 150, unit: 'Units Scanned' },
+    { id: 'PO-24597', status: 'Shipped', ago: '2 mins', value: 150, unit: 'Units Scanned' },
+    { id: 'PO-24598', status: 'Received', ago: '2 mins', value: 150, unit: 'Units Scanned' }
+  ];
 
-  useFocusEffect(
-    React.useCallback(() => {
-      if (Platform.OS !== 'android') return;
-        let lastPress = 0;
-       const onBackPress = () => {
-        const now = Date.now();
-        if (now - lastPress < 500) {
-          BackHandler.exitApp();
-          return true; // handled
-        }
-        lastPress = now;
-        Toast.show({ type: 'info', text1: 'Press back again to exit', position: 'top', visibilityTime: 1000 });
-        return true; 
-      };
-      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () => sub.remove();
-    }, [navigation])
-  );
+  const priorityTasks = [
+    { label: 'Receive PO-24596', priority: 'High', due: '10am', value: 125, unit: 'Items' },
+    { label: 'Ship-24596', priority: 'Critical', due: '10am', value: 150, unit: 'Items' },
+    { label: 'Receive PO-24599', priority: 'Medium', due: '10am', value: 125, unit: 'Items' }
+  ];
+
+  const [analyticsTab, setAnalyticsTab] = useState('shipping');
+  const [listTab, setListTab] = useState('recent');
 
   return (
     <SafeAreaView style={styles.container}>
       <HeaderComponent
-        notificationCount={0}
-        // profileName={profileName}
-        onNotificationPress={handleNotificationPress}
+        notificationCount={1}
+        onNotificationPress={() => {}}
         onOrganizationChange={handleOrganizationChange}
-        Defaultorg={(value) => setDefaultorg(value)}
-        OrgCode={(value) => {
-          setOrgCode(value);
-        }}
-        onCardPress={(screen) => navigation.navigate(screen)}
+        Defaultorg={v => setDefaultorg(v)}
+        OrgCode={v => setOrgCode(v)}
+        onCardPress={screen => navigation.navigate(screen)}
       />
-
-      <ScrollView showsVerticalScrollIndicator={false}>
+      
         <View style={{ height: HEADER_METRICS.CONTENT_SPACER }} />
-
+        <View style={styles.statussection}>
+          <StatusCountCard items={STATUSCOUNT} />
+        </View>        
         <View style={styles.section}>
-          <Text style={styles.sectionShippingTitle}>Shipping Status</Text>
-          <View style={styles.shippingStatusCardsContainer}>
-            <ShippingStatusCard label="Shipped Orders" count="8" icon={OrderShippedIcon} iconColor="#033EFF" onPress={() => {}} />
-            <ShippingStatusCard
-              label={
-                <>
-                 Scheduled Orders
-                </>
-              }
-              count="15"
-              icon={OrderScheduledTodayIcon}
-              iconColor="#10b981"
-              onPress={() => {}}
-            />
-            <ShippingStatusCard label="Backorders" count="9" icon={BackOrderedIcon} iconColor="#f59e0b" onPress={() => {}} />
-          </View>
+          <TabbedCard
+            tabs={[{ key: 'shipping', label: 'Shipping Status' }, { key: 'inventory', label: 'Inventory Trends' }]}
+            activeKey={analyticsTab}
+            onChange={setAnalyticsTab}
+            right={
+              <DropDownPicker
+                open={openPeriod}
+                value={period}
+                items={periodItems}
+                setOpen={setOpenPeriod}
+                setValue={setPeriod}
+                containerStyle={styles.periodContainer}
+                style={styles.periodStyle}
+                labelStyle={styles.periodLabel}
+                textStyle={styles.periodText}
+                dropDownContainerStyle={styles.periodMenuContainer}
+                ArrowUpIconComponent={({ style }) => <Text style={[style, { color: colors.textSecondary }]}>▲</Text>}
+                ArrowDownIconComponent={({ style }) => <Text style={[style, { color: colors.textSecondary }]}>▼</Text>}
+              />
+            }
+          >
+            {analyticsTab === 'shipping' ? (
+              <View style={styles.analyticsBody}>
+                <DonutChart
+                  size={rs(150)}
+                  stroke={rs(18)}
+                  segments={segments}
+                  total={SHIPPING_STATUS[period].total}
+                  centerTop={'Total No. of\nOrders'}
+                  centerBottom={SHIPPING_STATUS[period].total}
+                />
+                <StatsList items={stats} />
+              </View>
+            ) : (
+              <View style={styles.inventoryTrendsStub}>
+                <Text style={styles.stubText}>Inventory Trends (static placeholder)</Text>
+              </View>
+            )}
+          </TabbedCard>
         </View>
-
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: rs(40) }}>
         <View style={styles.section}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.sectionTitle}>Inventory Chart</Text>
-            <DropDownPicker
-              open={openInventoryOrgDropdown}
-              value={selectedInventoryOrg}
-              items={inventoryOrganizations}
-              setOpen={setOpenInventoryOrgDropdown}
-              setValue={setSelectedInventoryOrg}
-              containerStyle={styles.inventoryOrgDropdownContainer}
-              style={styles.inventoryOrgDropdownStyle}
-              labelStyle={styles.inventoryOrgDropdownLabel}
-              textStyle={styles.inventoryOrgDropdownText}
-              dropDownContainerStyle={styles.inventoryOrgDropdownMenuContainer}
-              listMode="SCROLLVIEW"
-              renderBadge={() => null}
-              ArrowUpIconComponent={({ style }) => <Text style={[style, { color: '#6b7280' }]}>▲</Text>}
-              ArrowDownIconComponent={({ style }) => <Text style={[style, { color: '#6b7280' }]}>▼</Text>}
-            />
-          </View>
-
-          <View style={styles.inventoryChartContainer}>
-            <View style={styles.yAxisWithGrid}>
-              <View style={styles.yAxisLine} />
-              {[90, 80, 70, 60, 50, 40, 30, 20, 10, 0].map((val) => (
-                <View key={val} style={styles.gridRow}>
-                  <Text style={styles.yAxisLabel}>{val}</Text>
-                  <View style={styles.gridLine} />
-                </View>
-              ))}
-              <Text style={styles.yAxisTitle}>No. of Items</Text>
-            </View>
-
-            <View style={styles.chartBarsSection}>
-              <View style={styles.chartBarsContainer}>
-                {chartData.map((item, index) => (
-                  <View key={index} style={styles.barContainer}>
-                    <View
-                      style={[
-                        styles.bar,
-                        {
-                          height: (item.value / 90) * responsiveSize(160),
-                          backgroundColor: item.color,
-                        },
-                      ]}
-                    />
-                  </View>
+          <TabbedCard
+            tabs={[
+              { key: 'recent', label: 'Recent Activity' + '' },
+              { key: 'tasks', label: 'Priority Tasks' + '' }
+            ]}
+            activeKey={listTab}
+            onChange={setListTab}
+            right={
+              <View style={styles.headerIcons}>
+                <ExpandIcon width={rs(20)} height={rs(20)} style={{ marginRight: rs(12) }} />
+                <MoreIcon width={rs(20)} height={rs(20)} />
+              </View>
+            }
+          >
+            {listTab === 'recent' ? (
+              <View>
+                {recentActivity.map(a => (
+                  <ActivityItem key={a.id} refId={a.id} status={a.status} ago={a.ago} value={a.value} unit={a.unit} />
                 ))}
               </View>
-              <View style={styles.xAxisLine} />
-              <View style={styles.xAxisLabelsContainer}>
-                {chartData.map((item, index) => (
-                  <Text key={index} style={styles.xAxisLabel}>
-                    {item.label}
-                  </Text>
+            ) : (
+              <View>
+                {priorityTasks.map((t, i) => (
+                  <TaskItem key={i} label={t.label} priority={t.priority} due={t.due} value={t.value} unit={t.unit} />
                 ))}
               </View>
-            </View>
-          </View>
+            )}
+          </TabbedCard>
         </View>
-
-        <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  section: { paddingHorizontal: responsiveSize(20), marginBottom: responsiveSize(24) },
-  sectionTitle: {
-    fontSize: responsiveSize(16),
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: responsiveSize(16),
-    marginTop: responsiveSize(0),
-  },
-  sectionShippingTitle: {
-    fontSize: responsiveSize(16),
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: responsiveSize(16),
-    marginTop: responsiveSize(60),
-  },
-  shippingStatusCardsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: responsiveSize(8),
-    flexWrap: 'wrap',
-    marginTop: responsiveSize(5),
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: responsiveSize(16),
-  },
-  inventoryOrgDropdownContainer: { width: responsiveSize(150), height: responsiveSize(30), zIndex: 10 },
-  inventoryOrgDropdownStyle: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#e5e7eb',
-    borderRadius: responsiveSize(8),
-    minHeight: responsiveSize(30),
-  },
-  inventoryOrgDropdownLabel: { color: '#6b7280', fontSize: responsiveSize(14), textAlign: 'right' },
-  inventoryOrgDropdownText: { color: '#6b7280', fontSize: responsiveSize(14) },
-  inventoryOrgDropdownMenuContainer: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#e5e7eb',
-    borderWidth: 1,
-    borderRadius: responsiveSize(8),
-  },
-  inventoryChartContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: responsiveSize(16),
-    paddingHorizontal: responsiveSize(16),
-    paddingVertical: responsiveSize(20),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: responsiveSize(2) },
-    shadowOpacity: 0.1,
-    shadowRadius: responsiveSize(4),
-    elevation: 2,
-    minHeight: responsiveSize(270),
-  },
-  yAxisWithGrid: {
-    width: responsiveSize(40),
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    position: 'relative',
-    marginBottom: 11,
-  },
-  yAxisLine: {
-    position: 'absolute',
-    top: 0,
-    bottom: 5,
-    left: responsiveSize(40),
-    width: 1,
-    backgroundColor: '#d1d5db',
-    zIndex: 1,
-  },
-  gridRow: { flexDirection: 'row', alignItems: 'center', height: responsiveSize(18) },
-  yAxisLabel: {
-    fontSize: responsiveSize(10),
-    color: '#6b7280',
-    width: responsiveSize(30),
-    textAlign: 'right',
-    marginRight: responsiveSize(4),
-    marginBottom: responsiveSize(4),
-  },
-  gridLine: { height: 1, backgroundColor: '#e5e7eb', flex: 1, marginBottom: 1 },
-  yAxisTitle: {
-    position: 'absolute',
-    left: responsiveSize(-20),
-    top: '50%',
-    transform: [{ rotate: '-90deg' }, { translateY: -responsiveSize(20) }],
-    fontSize: responsiveSize(10),
-    color: '#6b7280',
-    fontWeight: '600',
-    width: responsiveSize(90),
-    textAlign: 'center',
-  },
-  chartBarsSection: { flex: 1, justifyContent: 'flex-end', position: 'relative', paddingBottom: -16 },
-  chartBarsContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    height: responsiveSize(180),
-    paddingBottom: 0,
-  },
-  barContainer: { alignItems: 'center', justifyContent: 'flex-end', width: responsiveSize(32) },
-  bar: { marginStart: 4, width: responsiveSize(12), borderRadius: responsiveSize(4), marginBottom: responsiveSize(3) },
-  xAxisLine: { position: 'absolute', bottom: responsiveSize(16), left: 0, right: 0, height: 1, backgroundColor: '#d1d5db' },
-  xAxisLabelsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: responsiveSize(4), paddingHorizontal: responsiveSize(6) },
-  xAxisLabel: { fontSize: responsiveSize(8), color: '#6b7280', textAlign: 'center', width: responsiveSize(32) },
-  bottomSpacing: { height: responsiveSize(100) },
-  fab: {
-    position: 'absolute',
-    bottom: responsiveSize(30),
-    left: '50%',
-    marginLeft: responsiveSize(-28),
-    width: responsiveSize(56),
-    height: responsiveSize(56),
-    borderRadius: responsiveSize(28),
-    backgroundColor: '#233E55',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: responsiveSize(4) },
-    shadowOpacity: 0.3,
-    shadowRadius: responsiveSize(12),
-    elevation: 8,
-    zIndex: 5,
-  },
+  container: { flex: 1, backgroundColor: colors.pageBg },
+  section: { paddingHorizontal: rs(16), marginBottom: rs(16) },
+  statussection: { paddingHorizontal: rs(16), marginBottom: rs(16), marginTop: rs(60) },
+  statusRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  analyticsBody: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: rs(6), paddingVertical: rs(8) },
+  inventoryTrendsStub: { padding: rs(20), alignItems: 'center', justifyContent: 'center' },
+  stubText: { color: colors.textSecondary },
+  periodContainer: { width: rs(110), height: rs(30), zIndex: 50 },
+  periodStyle: { backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderRadius: rs(8), minHeight: rs(30) },
+  periodLabel: { color: colors.textSecondary, fontSize: rs(12), textAlign: 'right' },
+  periodText: { color: colors.textSecondary, fontSize: rs(12) },
+  periodMenuContainer: { backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderRadius: rs(8) },
+  headerIcons: { flexDirection: 'row', alignItems: 'center' }
 });
