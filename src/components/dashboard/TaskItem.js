@@ -34,7 +34,7 @@ export default function TaskItem({ label, priority, due, value, unit }) {
 
 const styles = StyleSheet.create({
   item: {
-    backgroundColor: colors.cardBg,
+    backgroundColor: '#FBFBFB',
     borderRadius: rs(12),
     borderWidth: 1,
     borderColor: colors.cardBorder,

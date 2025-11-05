@@ -4,7 +4,7 @@ export const colors = {
   background: '#F5F5F5',
   cardBackground: '#FFFFFF',
   textPrimary: '#333333',
-  textSecondary: '#666666',
+  textSecondary: '#595A5C',
   statusCreated: '#1A73E8', // Blue
   statusDelivered: '#4CAF50', // Green
   statusPending: '#FFA726', // Orange
@@ -19,7 +19,7 @@ export const colors = {
   // textSecondary: '#6B7280',
   chipText: '#0F172A',
   tabActive: '#233E55',
-  tabInactive: '#90A4B5',
+  tabInactive: '#9D9FA3',
   hairline: '#D1D5DB',
   shadow: '#000000',
   statGreen: '#168035',

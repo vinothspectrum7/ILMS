@@ -69,14 +69,15 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: rs(6),
-    fontSize: rs(12),
-    fontWeight: '500',
+    fontSize: rs(10),
+    fontWeight: '600',
     color: colors.textSecondary,
-    textAlign: 'center'
+    textAlign: 'center',
+    fontFamily:'Mulish'
   },
   value: {
     marginTop: rs(4),
-    fontSize: rs(18),
+    fontSize: rs(16),
     fontWeight: '700',
     color: colors.textPrimary,
     textAlign: 'center'

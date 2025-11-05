@@ -22,9 +22,9 @@ export default function StatsList({ items }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingLeft: rs(8), paddingRight: rs(12) },
+  wrap: { paddingLeft: rs(8), paddingRight: rs(12),zIndex:-9 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: rs(6) },
   dot: { width: rs(10), height: rs(10), borderRadius: rs(5), marginRight: rs(8) },
-  label: { fontSize: rs(12), color: colors.textPrimary, marginRight: rs(10) },
-  value: { fontSize: rs(12), fontWeight: '600', color: colors.textPrimary }
+  label: { fontSize: rs(12), color: '#000000', marginRight: rs(10),fontWeight:600 },
+  value: { fontSize: rs(12), fontWeight: '600', color: '#000000' }
 });

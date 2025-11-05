@@ -14,9 +14,9 @@ import ActivityItem from '../components/dashboard/ActivityItem';
 import TaskItem from '../components/dashboard/TaskItem';
 import { colors } from '../theme/colors';
 
-import TodayReceivedIcon from '../assets/icons/statuscount_today_received.svg';
-import OrderShippedIcon from '../assets/icons/statuscount_order_shipped.svg';
-import LowStockIcon from '../assets/icons/statuscount_low_stock.svg';
+import TodayReceivedIcon from '../assets/icons/Received_icon.svg';
+import OrderShippedIcon from '../assets/icons/dash_Order_shipped_icon.svg';
+import LowStockIcon from '../assets/icons/Low_stock item_icon.svg';
 import ExpandIcon from '../assets/icons/icon_expand.svg';
 import MoreIcon from '../assets/icons/icon_more.svg';
 
@@ -154,7 +154,7 @@ export default function HomeScreen({ navigation }) {
         OrgCode={v => setOrgCode(v)}
         onCardPress={screen => navigation.navigate(screen)}
       />
-      
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: rs(40) }}>
         <View style={{ height: HEADER_METRICS.CONTENT_SPACER }} />
         <View style={styles.statussection}>
           <StatusCountCard items={STATUSCOUNT} />
@@ -200,7 +200,6 @@ export default function HomeScreen({ navigation }) {
             )}
           </TabbedCard>
         </View>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: rs(40) }}>
         <View style={styles.section}>
           <TabbedCard
             tabs={[
@@ -211,7 +210,7 @@ export default function HomeScreen({ navigation }) {
             onChange={setListTab}
             right={
               <View style={styles.headerIcons}>
-                <ExpandIcon width={rs(20)} height={rs(20)} style={{ marginRight: rs(12) }} />
+                <ExpandIcon width={rs(20)} height={rs(20)} style={{ marginRight: rs(10), }} />
                 <MoreIcon width={rs(20)} height={rs(20)} />
               </View>
             }
@@ -244,10 +243,10 @@ const styles = StyleSheet.create({
   analyticsBody: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: rs(6), paddingVertical: rs(8) },
   inventoryTrendsStub: { padding: rs(20), alignItems: 'center', justifyContent: 'center' },
   stubText: { color: colors.textSecondary },
-  periodContainer: { width: rs(110), height: rs(30), zIndex: 50 },
-  periodStyle: { backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderRadius: rs(8), minHeight: rs(30) },
-  periodLabel: { color: colors.textSecondary, fontSize: rs(12), textAlign: 'right' },
+  periodContainer: { width: rs(100), height: rs(30)},
+  periodStyle: { backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderRadius: rs(8), minHeight: rs(10) },
+  periodLabel: { color: colors.textSecondary, fontSize: rs(11), textAlign: 'center' },
   periodText: { color: colors.textSecondary, fontSize: rs(12) },
-  periodMenuContainer: { backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderRadius: rs(8) },
-  headerIcons: { flexDirection: 'row', alignItems: 'center' }
+  periodMenuContainer: { backgroundColor: '#FFFFFF', borderColor: colors.cardBorder, borderRadius: rs(8),elevation:1 },
+  headerIcons: { flexDirection: 'row', alignItems: 'flex-start',justifyContent:'flex-end',marginBottom:5}
 });
