@@ -36,30 +36,47 @@ const styles = StyleSheet.create({
     shadowRadius: rs(6),
     borderColor: colors.cardBorder,
     borderWidth: 1,
-    overflow: 'visible', // ensures borderBottom draws edge-to-edge
+    overflow: 'visible',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-end', // align underline flush at the bottom
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     marginBottom: rs(8),
     borderBottomWidth: 1,
     borderBottomColor: '#9D9FA3',
-    paddingHorizontal: rs(12), // move padding here, not on card
+    paddingHorizontal: rs(12),
     paddingTop: rs(12),
+
+    // stacking fix: ensure header (and its absolutely positioned children) paint above body
+    position: 'relative',
+    zIndex: 2,
   },
   tabs: { flexDirection: 'row', alignItems: 'center' },
   tabBtn: { marginRight: rs(18), alignItems: 'center' },
   tabText: { fontSize: rs(12), color: colors.tabInactive, fontWeight: '600' },
   tabTextActive: { color: colors.tabActive },
   underline: {
-    marginTop: rs(8), // smaller gap to sit right on borderBottom
+    marginTop: rs(8),
     height: rs(4),
     width: '100%',
     borderRadius: rs(2),
     backgroundColor: colors.tabActive,
   },
-  right: { flexDirection: 'row', alignItems: 'center', marginRight: rs(12) },
-  body: { padding: rs(12) }, // move content padding here
-});
+  right: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: rs(12),
 
+    // stacking fix: right zone (filter anchor) sits on top within header
+    position: 'relative',
+    zIndex: 3,
+  },
+  body: {
+    padding: rs(12),
+
+    // stacking fix: explicitly below header
+    position: 'relative',
+    zIndex: 1,
+  },
+});

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, SafeAreaView, BackHandler, Platform } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, SafeAreaView, BackHandler, Platform, TouchableOpacity } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Toast from 'react-native-toast-message';
 import HeaderComponent, { HEADER_METRICS } from '../components/HeaderComponent';
@@ -13,7 +13,6 @@ import StatsList from '../components/dashboard/StatsList';
 import ActivityItem from '../components/dashboard/ActivityItem';
 import TaskItem from '../components/dashboard/TaskItem';
 import { colors } from '../theme/colors';
-
 import TodayReceivedIcon from '../assets/icons/Received_icon.svg';
 import OrderShippedIcon from '../assets/icons/dash_Order_shipped_icon.svg';
 import LowStockIcon from '../assets/icons/Low_stock item_icon.svg';
@@ -38,13 +37,18 @@ export default function HomeScreen({ navigation }) {
   const [OrgCode, setOrgCode] = useState(null);
   const [defaultinventory, Setdefaultinventory] = useState(null);
   const { setOrgData, setInventoryList, setLocatorList, setLocatorInCache } = useReceivingStore();
-
   const resetReceiving = useReceivingStore(s => s.resetReceiving);
   const resetTab = useReceivingStore(s => s.resetTab);
 
+  const [analyticsTab, setAnalyticsTab] = useState('shipping');
+  const [listTab, setListTab] = useState('recent');
+
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [activeFilterRecent, setActiveFilterRecent] = useState(null);
+  const [activeFilterTasks, setActiveFilterTasks] = useState(null);
+
   useFocusEffect(React.useCallback(() => { resetReceiving(); return () => {}; }, [resetReceiving]));
   useFocusEffect(React.useCallback(() => { resetTab(); return () => {}; }, [resetTab]));
-
   useFocusEffect(
     React.useCallback(() => {
       if (Platform.OS !== 'android') return;
@@ -141,8 +145,42 @@ export default function HomeScreen({ navigation }) {
     { label: 'Receive PO-24599', priority: 'Medium', due: '10am', value: 125, unit: 'Items' }
   ];
 
-  const [analyticsTab, setAnalyticsTab] = useState('shipping');
-  const [listTab, setListTab] = useState('recent');
+  const visibleRecent = useMemo(() => {
+    if (!activeFilterRecent) return recentActivity;
+    const key = String(activeFilterRecent).toLowerCase();
+    return recentActivity.filter(r => String(r.status).toLowerCase() === key);
+  }, [recentActivity, activeFilterRecent]);
+
+  const visibleTasks = useMemo(() => {
+    if (!activeFilterTasks) return priorityTasks;
+    const key = String(activeFilterTasks).toLowerCase();
+    return priorityTasks.filter(t => String(t.priority).toLowerCase() === key);
+  }, [priorityTasks, activeFilterTasks]);
+
+  const toggleFilterMenu = () => setFilterMenuOpen(v => !v);
+
+  const pickRecent = key => {
+    setActiveFilterRecent(prev => (prev === key ? null : key));
+    setFilterMenuOpen(false);
+  };
+
+  const pickTask = key => {
+    setActiveFilterTasks(prev => (prev === key ? null : key));
+    setFilterMenuOpen(false);
+  };
+
+  const onChangeListTab = key => {
+    setListTab(key);
+    setActiveFilterRecent(null);
+    setActiveFilterTasks(null);
+    setFilterMenuOpen(false);
+  };
+
+  const isRecentTab = listTab === 'recent';
+  const menuItems = isRecentTab ? ['Received', 'Shipped'] : ['Critical', 'High', 'Medium'];
+  const activeKey = isRecentTab ? activeFilterRecent : activeFilterTasks;
+
+  const sectionZStyle = filterMenuOpen ? styles.zTop : null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -158,7 +196,7 @@ export default function HomeScreen({ navigation }) {
         <View style={{ height: HEADER_METRICS.CONTENT_SPACER }} />
         <View style={styles.statussection}>
           <StatusCountCard items={STATUSCOUNT} />
-        </View>        
+        </View>
         <View style={styles.section}>
           <TabbedCard
             tabs={[{ key: 'shipping', label: 'Shipping Status' }, { key: 'inventory', label: 'Inventory Trends' }]}
@@ -200,31 +238,52 @@ export default function HomeScreen({ navigation }) {
             )}
           </TabbedCard>
         </View>
-        <View style={styles.section}>
+        <View style={[styles.section, sectionZStyle]}>
           <TabbedCard
             tabs={[
-              { key: 'recent', label: 'Recent Activity' + '' },
-              { key: 'tasks', label: 'Priority Tasks' + '' }
+              { key: 'recent', label: 'Recent Activity' },
+              { key: 'tasks', label: 'Priority Tasks' }
             ]}
             activeKey={listTab}
-            onChange={setListTab}
+            onChange={onChangeListTab}
             right={
               <View style={styles.headerIcons}>
-                <ExpandIcon width={rs(20)} height={rs(20)} style={{ marginRight: rs(10), }} />
-                <MoreIcon width={rs(20)} height={rs(20)} />
+                <ExpandIcon width={rs(20)} height={rs(20)} style={{ marginRight: rs(10) }} />
+                <View style={styles.filterAnchor}>
+                  <TouchableOpacity onPress={toggleFilterMenu} activeOpacity={0.8}>
+                    <MoreIcon width={rs(20)} height={rs(20)} />
+                  </TouchableOpacity>
+                  {filterMenuOpen && (
+                    <View style={styles.menuAnchored}>
+                      {menuItems.map(m => {
+                        const isActive = activeKey && String(activeKey).toLowerCase() === String(m).toLowerCase();
+                        return (
+                          <TouchableOpacity
+                            key={m}
+                            style={[styles.menuItem, isActive && styles.menuItemActive]}
+                            activeOpacity={0.9}
+                            onPress={() => (isRecentTab ? pickRecent(m) : pickTask(m))}
+                          >
+                            <Text style={[styles.menuText, isActive && styles.menuTextActive]}>{m}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
               </View>
             }
           >
             {listTab === 'recent' ? (
               <View>
-                {recentActivity.map(a => (
+                {visibleRecent.map(a => (
                   <ActivityItem key={a.id} refId={a.id} status={a.status} ago={a.ago} value={a.value} unit={a.unit} />
                 ))}
               </View>
             ) : (
               <View>
-                {priorityTasks.map((t, i) => (
-                  <TaskItem key={i} label={t.label} priority={t.priority} due={t.due} value={t.value} unit={t.unit} />
+                {visibleTasks.map((t, i) => (
+                  <TaskItem key={`${t.label}-${i}`} label={t.label} priority={t.priority} due={t.due} value={t.value} unit={t.unit} />
                 ))}
               </View>
             )}
@@ -237,16 +296,23 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.pageBg },
-  section: { paddingHorizontal: rs(16), marginBottom: rs(16) },
+  section: { paddingHorizontal: rs(16), marginBottom: rs(16), position: 'relative', overflow: 'visible' },
+  zTop: { zIndex: 1000, elevation: 1000 },
   statussection: { paddingHorizontal: rs(16), marginBottom: rs(16), marginTop: rs(60) },
   statusRow: { flexDirection: 'row', justifyContent: 'space-between' },
   analyticsBody: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: rs(6), paddingVertical: rs(8) },
   inventoryTrendsStub: { padding: rs(20), alignItems: 'center', justifyContent: 'center' },
   stubText: { color: colors.textSecondary },
-  periodContainer: { width: rs(100), height: rs(30)},
+  periodContainer: { width: rs(100), height: rs(30) },
   periodStyle: { backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderRadius: rs(8), minHeight: rs(10) },
   periodLabel: { color: colors.textSecondary, fontSize: rs(11), textAlign: 'center' },
   periodText: { color: colors.textSecondary, fontSize: rs(12) },
-  periodMenuContainer: { backgroundColor: '#FFFFFF', borderColor: colors.cardBorder, borderRadius: rs(8),elevation:1 },
-  headerIcons: { flexDirection: 'row', alignItems: 'flex-start',justifyContent:'flex-end',marginBottom:5}
+  periodMenuContainer: { backgroundColor: '#FFFFFF', borderColor: colors.cardBorder, borderRadius: rs(8), elevation: 1 },
+  headerIcons: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'flex-end', marginBottom: 5, position: 'relative', zIndex: 1 },
+  filterAnchor: { position: 'relative', overflow: 'visible' },
+  menuAnchored: { position: 'absolute', top: rs(24), right: 0, backgroundColor: '#FFFFFF', borderRadius: rs(12), paddingVertical: rs(6), minWidth: rs(180), shadowColor: '#000000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, zIndex: 1, elevation: 2, overflow: 'visible' },
+  menuItem: { paddingVertical: rs(12), paddingHorizontal: rs(14), borderRadius: rs(8) },
+  menuItemActive: { backgroundColor: '#E6F0FA' },
+  menuText: { fontSize: rs(14), color: colors.textPrimary || '#111' },
+  menuTextActive: { fontWeight: '600' }
 });
