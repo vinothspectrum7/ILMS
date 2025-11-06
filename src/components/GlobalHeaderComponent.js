@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   navLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: ms(12) },
   backBtn: { paddingRight: ms(12) },
   title: { fontFamily: 'Mulish', fontWeight: '800', color: WHITE, fontSize: ms(14), letterSpacing: 0.3, flexShrink: 1 },
-  menuBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.15)' },
+  menuBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   menuAnchorRow: { position: 'absolute', top: ms(99), right: ms(12), left: ms(12), alignItems: 'flex-end' },
   menuCard: {
     width: SCREEN_WIDTH - ms(105),
