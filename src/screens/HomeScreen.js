@@ -182,6 +182,18 @@ export default function HomeScreen({ navigation }) {
 
   const sectionZStyle = filterMenuOpen ? styles.zTop : null;
 
+  const handleHeaderMenuSelect = name => {
+    if (name === 'Receiving') {
+      navigation.navigate('Receive');
+      return;
+    }
+    if (name === 'Inventory') {
+      navigation.navigate('Inventory');
+      return;
+    }
+    Toast.show({ type: 'info', text1: name, text2: 'Navigation will be added soon.', position: 'top', visibilityTime: 1200 });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <HeaderComponent
@@ -191,6 +203,8 @@ export default function HomeScreen({ navigation }) {
         Defaultorg={v => setDefaultorg(v)}
         OrgCode={v => setOrgCode(v)}
         onCardPress={screen => navigation.navigate(screen)}
+        onMenuSelect={handleHeaderMenuSelect}
+        menuVersion="1.0.1"
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: rs(40) }}>
         <View style={{ height: HEADER_METRICS.CONTENT_SPACER }} />
