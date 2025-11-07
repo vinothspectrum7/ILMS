@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   },
   version: { fontFamily: 'Mulish', fontWeight: 500, fontSize: 10, verticalAlign: 'middle', color: '#FFFFFF', marginRight: 10 },
   menuBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  menuAnchorRow: { position: 'absolute', top: ms(78), right: ms(12), left: ms(12), alignItems: 'flex-end' },
+  menuAnchorRow: { position: 'absolute', top: ms(90), right: ms(12), left: ms(12), alignItems: 'flex-end' },
   menuCard: {
     width: SCREEN_WIDTH - ms(105),
     backgroundColor: '#FFFFFF',
