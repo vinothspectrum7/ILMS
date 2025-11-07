@@ -9,8 +9,6 @@ import {
   Dimensions,
   SafeAreaView,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
 import { useReceivingStore } from '../../store/receivingStore';
 import LinearGradient from 'react-native-linear-gradient';
 // Import your SVG icons here
@@ -23,6 +21,7 @@ import CalendarIcon from '../../assets/icons/schedule_icon.svg';
 import ShieldIcon from '../../assets/icons/security_icon.svg';
 import HelpIcon from '../../assets/icons/support_icon.svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 
 const BG = '#FFFFFF';
 const { width } = Dimensions.get('window');
@@ -52,7 +51,7 @@ const SettingsScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <Inv_HeaderComponent
+      <GlobalHeaderComponent
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Settings"
         notificationCount={0}
