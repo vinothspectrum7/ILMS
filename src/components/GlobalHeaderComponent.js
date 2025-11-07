@@ -67,7 +67,7 @@ export default function GlobalHeaderComponent({
   onMenu = () => {},
   onNotificationPress = () => {},
   onMenuSelect = () => {},
-  menuVersion = '1.0.1',
+  menuVersion = '25110719',
 }) {
   const title = `${org3(organizationName)} – ${screenTitle}${contextInfo ? `(${contextInfo})` : ''}`;
   const showDot = Number(notificationCount) > 0;
@@ -94,6 +94,9 @@ export default function GlobalHeaderComponent({
     );
     const profilePress = async()=>{
       navigation.navigate("settings");
+    }
+    const NotificationPress = async()=>{
+      navigation.navigate("Notification");
     }
 
   const toggleMenu = () => {
@@ -122,7 +125,7 @@ export default function GlobalHeaderComponent({
         </View>
         <View style={styles.brandRight}>
           <Text style={styles.version}>V: 25102918</Text>
-          <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
+          <TouchableOpacity onPress={NotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={scale(22)} height={scale(22)} />
             {showDot && <View style={styles.dot} />}
           </TouchableOpacity>

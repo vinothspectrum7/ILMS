@@ -204,7 +204,7 @@ export default function HomeScreen({ navigation }) {
         OrgCode={v => setOrgCode(v)}
         onCardPress={screen => navigation.navigate(screen)}
         onMenuSelect={handleHeaderMenuSelect}
-        menuVersion="1.0.1"
+        menuVersion="25102918"
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: rs(40) }}>
         <View style={{ height: HEADER_METRICS.CONTENT_SPACER }} />

@@ -76,7 +76,7 @@ export default function HeaderComponent({
   notificationCount = 0,
   onCardPress = () => {},
   onMenuSelect = () => {},
-  menuVersion = '1.0.1',
+  menuVersion = '25110719',
 }) {
   const [openOrgDropdown, setOpenOrgDropdown] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState(null);
