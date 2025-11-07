@@ -72,10 +72,9 @@ export default function Inv_HeaderComponent({
     }, [loadUserName])
   );
 
-  const handlelogout = async () => {
-    await AsyncStorage.removeItem('access_token');
-    navigation.navigate('Login');
-  };
+    const profilePress = async()=>{
+      navigation.navigate("settings");
+    }
 
   const showCartBadge = showCartIcon && Number(cartCount) > 0;
   const displayCount = Number(cartCount) > 99 ? '99+' : String(cartCount);
@@ -97,7 +96,7 @@ export default function Inv_HeaderComponent({
             {showDot && <View style={styles.dot} />}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handlelogout} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
+          <TouchableOpacity onPress={profilePress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
             <Text style={styles.avatarText}>{profileNames}</Text>
           </TouchableOpacity>
         </View>

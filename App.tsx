@@ -39,6 +39,7 @@ import Inv_Adjustment_AddScreen from './src/screens/Inventory/Inv_Adjustment_Add
 import Inv_Adj_AddmoreScreen from './src/screens/Inventory/Inv_Adj_AddmoreScreen';
 import Inv_Adj_EditScreen from './src/screens/Inventory/Inv_Adj_EditScreen';
 import Inv_Adj_SummaryScreen from './src/screens/Inventory/Inv_Adj_SummaryScreen';
+import SettingsScreen from './src/screens/Profile/profile';
 
 const Stack = createNativeStackNavigator();
 
@@ -232,6 +233,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="Inv_Adj_AddmoreScreen"
 component={Inv_Adj_AddmoreScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="settings"
+component={SettingsScreen}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>

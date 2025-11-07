@@ -233,7 +233,7 @@ export default function HomeScreen({ navigation }) {
               </View>
             ) : (
               <View style={styles.inventoryTrendsStub}>
-                <Text style={styles.stubText}>Inventory Trends (static placeholder)</Text>
+                <Text style={styles.stubText}>Inventory Trends</Text>
               </View>
             )}
           </TabbedCard>

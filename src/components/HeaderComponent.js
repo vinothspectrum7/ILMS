@@ -132,9 +132,8 @@ const maporgdata = (data) => {
       }, [loadUserName])
     );
 
-    const handlelogout = async()=>{
-      await AsyncStorage.removeItem("access_token");
-      navigation.navigate("Login");
+    const profilePress = async()=>{
+      navigation.navigate("settings");
     }
 
   return (
@@ -153,7 +152,7 @@ const maporgdata = (data) => {
             {showDot && <View style={styles.dot} />}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handlelogout} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
+          <TouchableOpacity onPress={profilePress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.avatar}>
             <Text style={styles.avatarText}>{profileNames}</Text>
           </TouchableOpacity>
         </View>
