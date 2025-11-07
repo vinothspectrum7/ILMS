@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Toast, { BaseToast, ToastConfig } from 'react-native-toast-message';
 
 import LoginScreen from './src/screens/LoginScreen';
+import NotificationScreen from './src/screens/NotificationScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ReceiveScreen from './src/screens/ReceiveScreen';
 import NewReceiveScreen from './src/screens/NewReceiveScreen';
@@ -68,6 +69,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="Home"
 component={HomeScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Notification"
+component={NotificationScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen

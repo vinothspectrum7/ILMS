@@ -145,6 +145,10 @@ export default function HeaderComponent({
       navigation.navigate("settings");
     }
 
+    const NotificationPress = async()=>{
+      navigation.navigate("Notification");
+    }
+
   const toggleMenu = () => setMenuOpen(v => !v);
 
   const handleSelect = name => {
@@ -168,7 +172,7 @@ export default function HeaderComponent({
         </View>
         <View style={styles.brandRight}>
           <Text style={styles.version}>V: 25102918</Text>
-          <TouchableOpacity onPress={onNotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
+          <TouchableOpacity onPress={NotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={rs(22)} height={rs(22)} />
             {showDot && <View style={styles.dot} />}
           </TouchableOpacity>
