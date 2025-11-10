@@ -26,7 +26,8 @@ export const API_ENDPOINTS = {
   ITEMS_SUBINVENTORY: (org_id,item_id) => `${BASE_URL}/inventory/items?org_id=${org_id}&item_id=${item_id}`,
   ITEMS_SUB_LOCATOR: (org_id,item_id,sub_id) => `${BASE_URL}/inventory/items?org_id=${org_id}&item_id=${item_id}&sub_inv_id=${sub_id}`,
   SUB_INVENTORY_TRANSFER: `${BASE_URL}/inventory/transfer`,
-  SUB_INVENTORY_ADJUST_TRANSFER: (type) => `${BASE_URL}/inventory/adj_transfer?type=${type}`
+  SUB_INVENTORY_ADJUST_TRANSFER: (type) => `${BASE_URL}/inventory/adj_transfer?type=${type}`,
+  RECENT_LIST: (org_id,limit) => `${BASE_URL}/dashboard/recent-activities?org_uuid=${org_id}&limit=${limit}`,
 
 
 

@@ -247,3 +247,13 @@ export const InventoryAdjustTransferSubmit = async(data,type)=>{
     throw error.response?.data;
   }  
 }
+export const RecentActivityList = async(org_id,limit)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.RECENT_LIST(org_id,limit));
+        console.log("RECENT_LIST:", response);
+    return response.data;
+  }catch (error) {
+    console.error("RECENT_LIST ERROR:", error.response?.data);
+    throw error.response?.data?.detail;
+  }
+}

@@ -32,7 +32,7 @@ export default function ActivityItem({ refId, status, ago, value, unit }) {
             <Text style={[styles.chipText, { color: fg }]}>{status}</Text>
           </View>
           <Text style={styles.dot}>•</Text>
-          <Text style={styles.time}>{ago} ago</Text>
+          <Text style={styles.time}>{ago}</Text>
         </View>
       </View>
       <View style={styles.right}>

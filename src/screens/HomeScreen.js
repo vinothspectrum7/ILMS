@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, SafeAreaView, BackHandler, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, SafeAreaView, BackHandler, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Toast from 'react-native-toast-message';
 import HeaderComponent, { HEADER_METRICS } from '../components/HeaderComponent';
 import { useFocusEffect } from '@react-navigation/native';
 import { useReceivingStore } from '../store/receivingStore';
-import { GetInventryData, GetLocatorsData } from '../api/ApiServices';
+import { GetInventryData, GetLocatorsData, RecentActivityList } from '../api/ApiServices';
 import StatusCountCard from '../components/dashboard/StatusCountCard';
 import TabbedCard from '../components/dashboard/TabbedCard';
 import DonutChart from '../components/dashboard/DonutChart';
@@ -34,7 +34,9 @@ export default function HomeScreen({ navigation }) {
 
   const [openInventoryOrgDropdown, setOpenInventoryOrgDropdown] = useState(false);
   const [Defaultorg, setDefaultorg] = useState(null);
+  const [loadingRecent, setLoadingRecent] = useState(false);
   const [OrgCode, setOrgCode] = useState(null);
+  const [RecentList,setRecentList] = useState([]);
   const [defaultinventory, Setdefaultinventory] = useState(null);
   const { setOrgData, setInventoryList, setLocatorList, setLocatorInCache } = useReceivingStore();
   const resetReceiving = useReceivingStore(s => s.resetReceiving);
@@ -72,6 +74,7 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     if (!Defaultorg) return;
+    setLoadingRecent(true);
     const loadinventrydata = async () => {
       try {
         const inventrydata = await GetInventryData(Defaultorg);
@@ -88,9 +91,50 @@ export default function HomeScreen({ navigation }) {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     };
+    const loadrecentactivity = async () => {
+      setRecentList([]);
+      try {
+        const recentdata = await RecentActivityList(Defaultorg,50);
+        if (recentdata) {
+          const recentList = recentdata.map(d => ({ id: d.po_num, status:capitalizeFirstLetter(d.status), ago:getTimeAgo(d.time), value:d.units,unit: 'Units Scanned' }));
+          // recentList.push({ id: 'PO-24596', status: 'Shipped', ago: '2 mins', value: 150, unit: 'Units Scanned' });
+          setRecentList(recentList);
+          setLoadingRecent(false);
+        } else {
+          setRecentList([]);
+          setLoadingRecent(false);
+        }
+      } catch (err) {
+        setLoadingRecent(false);
+        Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
+      }
+    };
     setOrgData({ selectedOrg: Defaultorg, selectedinventory: defaultinventory, selectedOrgCode: OrgCode });
     loadinventrydata();
+    loadrecentactivity();
   }, [Defaultorg, OrgCode, defaultinventory, setInventoryList, setOrgData]);
+
+  // helper function
+function getTimeAgo(isoTime) {
+  const now = new Date();
+  const past = new Date(isoTime);
+  const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
+  const minutes = Math.floor(diffInSeconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (diffInSeconds < 60) return `${diffInSeconds} sec${diffInSeconds !== 1 ? 's' : ''} ago`;
+  if (minutes < 60) return `${minutes} min${minutes !== 1 ? 's' : ''} ago`;
+  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  return `${days} day${days !== 1 ? 's' : ''} ago`;
+}
+
+// Helper to capitalize first letter
+function capitalizeFirstLetter(str) {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
 
   const loadlocatordata = async sub_id => {
     if (!sub_id) return;
@@ -133,11 +177,11 @@ export default function HomeScreen({ navigation }) {
     { value: SHIPPING_STATUS[period].hold, color: colors.statOrange }
   ];
 
-  const recentActivity = [
-    { id: 'PO-24596', status: 'Received', ago: '2 mins', value: 150, unit: 'Units Scanned' },
-    { id: 'PO-24597', status: 'Shipped', ago: '2 mins', value: 150, unit: 'Units Scanned' },
-    { id: 'PO-24598', status: 'Received', ago: '2 mins', value: 150, unit: 'Units Scanned' }
-  ];
+  // const recentActivity = [
+  //   { id: 'PO-24596', status: 'Received', ago: '2 mins', value: 150, unit: 'Units Scanned' },
+  //   { id: 'PO-24597', status: 'Shipped', ago: '2 mins', value: 150, unit: 'Units Scanned' },
+  //   { id: 'PO-24598', status: 'Received', ago: '2 mins', value: 150, unit: 'Units Scanned' }
+  // ];
 
   const priorityTasks = [
     { label: 'Receive PO-24596', priority: 'High', due: '10am', value: 125, unit: 'Items' },
@@ -146,10 +190,10 @@ export default function HomeScreen({ navigation }) {
   ];
 
   const visibleRecent = useMemo(() => {
-    if (!activeFilterRecent) return recentActivity;
+    if (!activeFilterRecent) return RecentList;
     const key = String(activeFilterRecent).toLowerCase();
-    return recentActivity.filter(r => String(r.status).toLowerCase() === key);
-  }, [recentActivity, activeFilterRecent]);
+    return RecentList.filter(r => String(r.status).toLowerCase() === key);
+  }, [RecentList, activeFilterRecent]);
 
   const visibleTasks = useMemo(() => {
     if (!activeFilterTasks) return priorityTasks;
@@ -288,19 +332,43 @@ export default function HomeScreen({ navigation }) {
               </View>
             }
           >
-            {listTab === 'recent' ? (
-              <View>
-                {visibleRecent.map(a => (
-                  <ActivityItem key={a.id} refId={a.id} status={a.status} ago={a.ago} value={a.value} unit={a.unit} />
-                ))}
-              </View>
-            ) : (
-              <View>
-                {visibleTasks.map((t, i) => (
-                  <TaskItem key={`${t.label}-${i}`} label={t.label} priority={t.priority} due={t.due} value={t.value} unit={t.unit} />
-                ))}
-              </View>
-            )}
+      {listTab === 'recent' ? (
+        <View>
+          {loadingRecent ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 30 }}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : visibleRecent.length > 0 ? (
+            visibleRecent.map(a => (
+              <ActivityItem
+                key={a.id}
+                refId={a.id}
+                status={a.status}
+                ago={a.ago}
+                value={a.value}
+                unit={a.unit}
+              />
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center', color: colors.textSecondary, marginVertical: 20 }}>
+              No recent activity found
+            </Text>
+          )}
+        </View>
+      ) : (
+        <View>
+          {visibleTasks.map((t, i) => (
+            <TaskItem
+              key={`${t.label}-${i}`}
+              label={t.label}
+              priority={t.priority}
+              due={t.due}
+              value={t.value}
+              unit={t.unit}
+            />
+          ))}
+        </View>
+      )}
           </TabbedCard>
         </View>
       </ScrollView>
