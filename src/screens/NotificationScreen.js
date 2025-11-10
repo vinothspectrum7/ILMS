@@ -7,9 +7,9 @@ const BRAND_BG = '#233E55';
 const SECONDARY_BG = '#EDEFF2';
 const PRIMARY_TEXT = '#233E55';
 const BODY_TEXT = '#4F5B67';
-const BUTTON_PRIMARY_BG = '#233E55';
+const BUTTON_PRIMARY_BG = '#5D768B';
 const BUTTON_PRIMARY_TEXT = '#FFFFFF';
-const BUTTON_SECONDARY_BG = '#D3DCE6';
+const BUTTON_SECONDARY_BG = '#D9E4EE';
 const BUTTON_SECONDARY_TEXT = '#233E55';
 const CLEAR_ALL = '#233E55';
 
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    elevation: 2,
   },
   cardHeaderRow: {
     flexDirection: 'row',
