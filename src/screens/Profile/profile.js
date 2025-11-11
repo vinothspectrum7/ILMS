@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -30,6 +30,8 @@ const cardWidth = (width - 60) / 3; // 3 columns with margin between them
 const SettingsScreen = () => {
   const { OrgData } = useReceivingStore();
   const navigation = useNavigation();
+  const [profileNames, setprofileName] = useState(null);
+  const [FirstandLastName, setFirstandLastName] = useState(null);
 
     const settings = [
     { title: 'Personal Information', icon: <UserIcon width={28} height={28} /> },
@@ -48,6 +50,33 @@ const SettingsScreen = () => {
     await AsyncStorage.removeItem('access_token');
     navigation.navigate('Login');
   };
+
+    const loadUserName = useCallback(async () => {
+        const raw = await AsyncStorage.getItem('user_name');
+        if(raw){
+          const initials = getInitials(raw);
+          setprofileName(initials);
+          setFirstandLastName(raw);
+        }
+    }, []);
+  
+    useEffect(() => {
+      loadUserName();
+    }, [loadUserName]);
+  
+    useFocusEffect(
+      React.useCallback(() => {
+        loadUserName();
+      }, [loadUserName])
+    );
+
+    function getInitials(name = '') {
+  const n = String(name).trim().replace(/\s+/g, ' ');
+  if (!n) return '';
+  const parts = n.split(' ');
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -68,10 +97,10 @@ const SettingsScreen = () => {
         {/* User Info Card */}
         <View style={styles.userCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>JD</Text>
+            <Text style={styles.avatarText}>{profileNames}</Text>
           </View>
           <View>
-            <Text style={styles.userName}>John Doe</Text>
+            <Text style={styles.userName}>{FirstandLastName}</Text>
             <Text style={styles.userRole}>
               Warehouse Supervisor | Facility: WH-001
             </Text>
