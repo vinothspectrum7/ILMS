@@ -12,6 +12,7 @@ const GREY_MID = '#C2C2C2';
 const GREY_DARK = '#A9A9A9';
 
 const RADIUS = 42;
+const GLOSSRADIUS = 37;
 const HEIGHT = 48;
 
 const Inv_SingleFooterBtnComponent = memo(({
@@ -128,8 +129,9 @@ const styles = StyleSheet.create({
     right: 2,
     bottom: 0,
     height: '36%',
-    borderBottomLeftRadius: RADIUS,
-    borderBottomRightRadius: RADIUS,
+    marginTop: 1,
+    borderBottomLeftRadius: GLOSSRADIUS,
+    borderBottomRightRadius: GLOSSRADIUS,
     zIndex: 1,
   },
   sideVignette: {

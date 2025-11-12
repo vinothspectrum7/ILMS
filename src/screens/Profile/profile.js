@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   },
     logoutContainer: {
     paddingHorizontal: 20, // aligns with cards
-    paddingBottom: 15, // safe area space
+    paddingBottom: 35, // safe area space
     backgroundColor: '#F7F9FC',
   },
   userCard: {
@@ -281,8 +281,9 @@ glossWrapper: {
 glossOverlay: {
   height: '60%', // Top part
   width: '100%',
-  borderTopLeftRadius: 30,
-  borderTopRightRadius: 30,
+  marginTop: 1,
+  borderTopLeftRadius: 25,
+  borderTopRightRadius: 25,
 },
 });
 

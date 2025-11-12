@@ -307,8 +307,9 @@ glossWrapper: {
 glossOverlay: {
   height: '60%', // Top part
   width: '100%',
-  borderTopLeftRadius: 30,
-  borderTopRightRadius: 30,
+  marginTop: 1,
+  borderTopLeftRadius: 25,
+  borderTopRightRadius: 25,
 },
 
   touchIdButton: {
@@ -351,7 +352,7 @@ glossOverlay: {
   watermark: {
     width: '100%',
     height: '100%',
-    opacity: 0.6,
+    opacity: 0.3,
     position: 'absolute',
   },
 });
