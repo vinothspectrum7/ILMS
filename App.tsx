@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Toast, { BaseToast, ToastConfig } from 'react-native-toast-message';
 
 import LoginScreen from './src/screens/LoginScreen';
+import ForgetPassword from './src/screens/ForgetPassword';
 import NotificationScreen from './src/screens/NotificationScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ReceiveScreen from './src/screens/ReceiveScreen';
@@ -41,6 +42,8 @@ import Inv_Adj_AddmoreScreen from './src/screens/Inventory/Inv_Adj_AddmoreScreen
 import Inv_Adj_EditScreen from './src/screens/Inventory/Inv_Adj_EditScreen';
 import Inv_Adj_SummaryScreen from './src/screens/Inventory/Inv_Adj_SummaryScreen';
 import SettingsScreen from './src/screens/Profile/profile';
+import ChangePassword from './src/screens/Profile/ChangePassword';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -244,6 +247,16 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="settings"
 component={SettingsScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="ForgetPassword"
+component={ForgetPassword}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="ChangePassword"
+component={ChangePassword}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>

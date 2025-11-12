@@ -44,6 +44,10 @@ const SettingsScreen = () => {
     { title: 'Help & Support', icon: <HelpIcon width={28} height={28} /> },
   ];
 
+  const handleChangepwd = async () => {
+    navigation.navigate('ChangePassword');
+  };
+
   const onBack = useCallback(() => navigation.navigate('Home'), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
   const handlelogout = async () => {
@@ -111,7 +115,16 @@ const SettingsScreen = () => {
         <Text style={styles.sectionTitle}>Other Settings</Text>
         <View style={styles.gridContainer}>
           {settings.map((item, index) => (
-            <TouchableOpacity key={index} style={styles.gridItem} activeOpacity={0.8}>
+            <TouchableOpacity
+              key={index}
+              style={styles.gridItem}
+              activeOpacity={0.8}
+              onPress={() => {
+                if (item.title === 'Change Password') {
+                  handleChangepwd();
+                }
+              }}
+            >
               <View style={styles.icon}>{item.icon}</View>
               <Text style={styles.gridText}>{item.title}</Text>
             </TouchableOpacity>

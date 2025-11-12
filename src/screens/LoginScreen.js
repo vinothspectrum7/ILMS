@@ -28,6 +28,11 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleForget = async () => {
+    navigation.navigate('ForgetPassword');
+
+  };
+
   const handleLogin = async () => {
   if (employeeId === '' || password === '') {
     Alert.alert('Alert', 'Please enter both Employee ID and password.');
@@ -145,7 +150,7 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity  style={styles.forgotPasswordButton}>
+          <TouchableOpacity  style={styles.forgotPasswordButton} onPress={handleForget}>
             <Text style={styles.forgotPasswordText}>Forgot password?</Text>
           </TouchableOpacity>
 
