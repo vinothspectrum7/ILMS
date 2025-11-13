@@ -46,6 +46,6 @@ export default function DonutChart({ size = rs(140), stroke = rs(16), segments, 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', justifyContent: 'center' },
   center: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  centerTop: { fontSize: rs(12), color: colors.textSecondary, textAlign: 'center' },
+  centerTop: { fontSize: rs(12), color: '#000000', textAlign: 'center', fontWeight:500 },
   centerBottom: { fontSize: rs(18), fontWeight: '700', color: colors.textPrimary }
 });

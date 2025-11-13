@@ -54,8 +54,8 @@ const styles = StyleSheet.create({
   },
   tabs: { flexDirection: 'row', alignItems: 'center' },
   tabBtn: { marginRight: rs(18), alignItems: 'center' },
-  tabText: { fontSize: rs(12), color: colors.tabInactive, fontWeight: '600' },
-  tabTextActive: { color: colors.tabActive },
+  tabText: { fontSize: rs(12), color: colors.tabInactive, fontWeight: '700' },
+  tabTextActive: { color: colors.tabActive, fontWeight:700, fontSize:14 },
   underline: {
     marginTop: rs(8),
     height: rs(4),

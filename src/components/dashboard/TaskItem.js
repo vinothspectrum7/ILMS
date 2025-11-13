@@ -45,13 +45,13 @@ const styles = StyleSheet.create({
     marginBottom: rs(10)
   },
   left: { flexShrink: 1, paddingRight: rs(8) },
-  ref: { fontSize: rs(14), fontWeight: '600', color: colors.textPrimary, marginBottom: rs(6) },
+  ref: { fontSize: rs(14), fontWeight: '700', color: colors.textPrimary, marginBottom: rs(6) },
   subRow: { flexDirection: 'row', alignItems: 'center' },
-  chip: { borderRadius: rs(8), paddingHorizontal: rs(8), paddingVertical: rs(2), marginRight: rs(6) },
-  chipText: { fontSize: rs(11), fontWeight: '600' },
+  chip: { borderRadius: rs(5), paddingHorizontal: rs(15), paddingVertical: rs(5), marginRight: rs(6) },
+  chipText: { fontSize: rs(12), fontWeight: '600', fontFamily: 'sans-serif' },
   dot: { marginHorizontal: rs(4), color: colors.textSecondary },
   time: { fontSize: rs(12), color: colors.textSecondary },
   right: { alignItems: 'flex-end' },
-  value: { fontSize: rs(18), fontWeight: '700', color: colors.textPrimary },
-  unit: { fontSize: rs(11), color: colors.textSecondary }
+  value: { fontSize: rs(16), fontWeight: '700', color: '#242424',fontFamily: 'sans-serif' },
+  unit: { fontSize: rs(12), color: colors.textSecondary, fontWeight:400 }
 });

@@ -257,3 +257,13 @@ export const RecentActivityList = async(org_id,limit)=>{
     throw error.response?.data?.detail;
   }
 }
+export const PriorityTaskList = async(org_id,limit)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.PRIORITY_LIST(org_id,limit));
+        console.log("PRIORITY_LIST:", response);
+    return response.data;
+  }catch (error) {
+    console.error("PRIORITY_LIST ERROR:", error.response?.data);
+    throw error.response?.data?.detail;
+  }
+}
