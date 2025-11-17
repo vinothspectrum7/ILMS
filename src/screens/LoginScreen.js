@@ -14,6 +14,9 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import EnnVeeLogo from '../assets/icons/EnnVeeLogo.svg';
+import MailIcon from '../assets/icons/mail.svg';
+import LockIcon from '../assets/icons/lock.svg';
+import EyeIcon from '../assets/icons/eye.svg';
 
 import axios from 'axios';
 import { BASE_URL } from '../config/config';
@@ -109,14 +112,11 @@ const LoginScreen = ({ navigation }) => {
 
       <View style={styles.bottomSection}>
         <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <Image
-              source={require('../assets/images/mail.png')}
-              style={styles.inputIcon}
-            />
+          <View style={styles.inputWrapper}>            
+            <MailIcon width={24} height={24} />
             <TextInput
               style={styles.input}
-              placeholder="Employee_101"
+              placeholder="Username"
               placeholderTextColor="#A0A0A0"
               value={employeeId}
               onChangeText={setEmployeeId}
@@ -126,10 +126,7 @@ const LoginScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.inputWrapper}>
-            <Image
-              source={require('../assets/images/lock.png')}
-              style={styles.inputIcon}
-            />
+            <LockIcon width={24} height={24} />
             <TextInput
               style={styles.input}
               placeholder="Password"
@@ -139,14 +136,7 @@ const LoginScreen = ({ navigation }) => {
               secureTextEntry={!showPassword}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIconContainer}>
-              <Image
-                source={showPassword
-                  ? require('../assets/images/eye.png')
-                  : require('../assets/images/eye.png')
-                }
-                style={styles.eyeIcon}
-                resizeMode="contain"
-              />
+              <EyeIcon width={24} height={24} />
             </TouchableOpacity>
           </View>
 
@@ -159,7 +149,7 @@ const LoginScreen = ({ navigation }) => {
   
   <View style={styles.glossWrapper}>
     <LinearGradient
-      colors={['rgba(255, 255, 255, 0.6)', 'rgba(255, 255, 255, 0.1)', 'transparent']}
+      colors={['rgba(255, 255, 255, 0.6)', 'transparent', 'transparent', 'transparent', 'transparent', 'rgba(255, 255, 255, 0.3)']}
       style={styles.glossOverlay}
       start={{ x: 0.0, y: 0.0 }}
       end={{ x: 0.0, y: 1.0 }}
@@ -310,11 +300,14 @@ glossWrapper: {
 },
 
 glossOverlay: {
-  height: '60%', // Top part
+  height: '97%', // Top part
   width: '100%',
   marginTop: 1,
-  borderTopLeftRadius: 25,
-  borderTopRightRadius: 25,
+  marginBottom: 1,
+  borderTopLeftRadius: 95,
+  borderTopRightRadius: 95,
+  borderBottomLeftRadius: 45, 
+  borderBottomRightRadius: 45,
 },
 
   touchIdButton: {

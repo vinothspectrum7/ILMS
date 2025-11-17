@@ -139,7 +139,7 @@ const SettingsScreen = () => {
               >
                   <View style={styles.glossWrapper}>
                     <LinearGradient
-                      colors={['rgba(255, 255, 255, 0.6)', 'rgba(255, 255, 255, 0.1)', 'transparent']}
+                      colors={['rgba(255, 255, 255, 0.6)', 'transparent', 'transparent', 'transparent', 'transparent', 'rgba(255, 255, 255, 0.3)']}
                       style={styles.glossOverlay}
                       start={{ x: 0.0, y: 0.0 }}
                       end={{ x: 0.0, y: 1.0 }}
@@ -292,11 +292,14 @@ glossWrapper: {
   overflow: 'hidden',
 },
 glossOverlay: {
-  height: '60%', // Top part
+  height: '97%',
   width: '100%',
   marginTop: 1,
-  borderTopLeftRadius: 25,
-  borderTopRightRadius: 25,
+  marginBottom: 1,
+  borderTopLeftRadius: 95,
+  borderTopRightRadius: 95,
+  borderBottomLeftRadius: 45, 
+  borderBottomRightRadius: 45,
 },
 });
 
