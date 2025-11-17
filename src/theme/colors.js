@@ -28,6 +28,6 @@ export const colors = {
   statOrange: '#F06000',
   tintGreen: '#ECFDF5',
   tintBlue: '#EBF2FF',
-  tintRed: '#FEE2E2',
+  tintRed: '#F8D2D4',
   tintOrange: '#FFF7ED'
 };

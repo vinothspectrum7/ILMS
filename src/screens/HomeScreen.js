@@ -5,7 +5,7 @@ import Toast from 'react-native-toast-message';
 import HeaderComponent, { HEADER_METRICS } from '../components/HeaderComponent';
 import { useFocusEffect } from '@react-navigation/native';
 import { useReceivingStore } from '../store/receivingStore';
-import { GetInventryData, GetLocatorsData, RecentActivityList } from '../api/ApiServices';
+import { GetInventryData, GetLocatorsData, PriorityTaskList, RecentActivityList } from '../api/ApiServices';
 import StatusCountCard from '../components/dashboard/StatusCountCard';
 import TabbedCard from '../components/dashboard/TabbedCard';
 import DonutChart from '../components/dashboard/DonutChart';
@@ -37,6 +37,8 @@ export default function HomeScreen({ navigation }) {
   const [loadingRecent, setLoadingRecent] = useState(false);
   const [OrgCode, setOrgCode] = useState(null);
   const [RecentList,setRecentList] = useState([]);
+  const [PriorityList,setPriorityList] = useState([]);
+  const [loadingPriority, setloadingPriority] = useState(false);
   const [defaultinventory, Setdefaultinventory] = useState(null);
   const { setOrgData, setInventoryList, setLocatorList, setLocatorInCache } = useReceivingStore();
   const resetReceiving = useReceivingStore(s => s.resetReceiving);
@@ -75,6 +77,7 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     if (!Defaultorg) return;
     setLoadingRecent(true);
+    setloadingPriority(true);
     const loadinventrydata = async () => {
       try {
         const inventrydata = await GetInventryData(Defaultorg);
@@ -96,7 +99,7 @@ export default function HomeScreen({ navigation }) {
       try {
         const recentdata = await RecentActivityList(Defaultorg,50);
         if (recentdata) {
-          const recentList = recentdata.map(d => ({ id: d.po_num, status:capitalizeFirstLetter(d.status), ago:getTimeAgo(d.time), value:d.units,unit: 'Units Scanned' }));
+          const recentList = recentdata.map(d => ({ id: `${d.type=='asn'?`ASN-${d.asn_num}`:`PO-${d.po_num}`}`, status:capitalizeFirstLetter(d.status), ago:getTimeAgo(d.time), value:d.units,unit: 'Units Scanned' }));
           // recentList.push({ id: 'PO-24596', status: 'Shipped', ago: '2 mins', value: 150, unit: 'Units Scanned' });
           setRecentList(recentList);
           setLoadingRecent(false);
@@ -109,9 +112,33 @@ export default function HomeScreen({ navigation }) {
         Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
       }
     };
+    const loadpriorityList = async () => {
+      setPriorityList([]);
+      try {
+        const prioritydata = await PriorityTaskList(Defaultorg,50);
+        if (prioritydata) {
+          const priorityList = prioritydata.map(d => ({ 
+            id: d.type=='asn'?d.asn_num:d.po_num,
+            label:`Receive ${d.type=='asn'?`ASN-${d.asn_num}`:`PO-${d.po_num}`}`, 
+            value:d.units,
+            unit: 'Items',
+            priority:capitalizeFirstLetter(d.priority),
+            due:getTimeAgo(d.time) }));
+          setPriorityList(priorityList);
+          setloadingPriority(false);
+        } else {
+          setPriorityList([]);
+          setloadingPriority(false);
+        }
+      } catch (err) {
+        setLoadingRecent(false);
+        Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
+      }
+    };
     setOrgData({ selectedOrg: Defaultorg, selectedinventory: defaultinventory, selectedOrgCode: OrgCode });
     loadinventrydata();
     loadrecentactivity();
+    loadpriorityList();
   }, [Defaultorg, OrgCode, defaultinventory, setInventoryList, setOrgData]);
 
   // helper function
@@ -196,10 +223,10 @@ function capitalizeFirstLetter(str) {
   }, [RecentList, activeFilterRecent]);
 
   const visibleTasks = useMemo(() => {
-    if (!activeFilterTasks) return priorityTasks;
+    if (!activeFilterTasks) return PriorityList;
     const key = String(activeFilterTasks).toLowerCase();
-    return priorityTasks.filter(t => String(t.priority).toLowerCase() === key);
-  }, [priorityTasks, activeFilterTasks]);
+    return PriorityList.filter(t => String(t.priority).toLowerCase() === key);
+  }, [PriorityList, activeFilterTasks]);
 
   const toggleFilterMenu = () => setFilterMenuOpen(v => !v);
 
@@ -357,7 +384,12 @@ function capitalizeFirstLetter(str) {
         </View>
       ) : (
         <View>
-          {visibleTasks.map((t, i) => (
+        {loadingPriority ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 30 }}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : visibleTasks.length > 0 ? (
+          visibleTasks.map((t, i) => (
             <TaskItem
               key={`${t.label}-${i}`}
               label={t.label}
@@ -366,7 +398,13 @@ function capitalizeFirstLetter(str) {
               value={t.value}
               unit={t.unit}
             />
-          ))}
+          ))
+          ) : (
+            <Text style={{ textAlign: 'center', color: colors.textSecondary, marginVertical: 20 }}>
+              Data Not Found
+            </Text>
+          )
+          }
         </View>
       )}
           </TabbedCard>
