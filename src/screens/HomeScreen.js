@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   analyticsBody: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: rs(6), paddingVertical: rs(8) },
   inventoryTrendsStub: { padding: rs(20), alignItems: 'center', justifyContent: 'center' },
   stubText: { color: colors.textSecondary },
-  periodContainer: { width: rs(100), height: rs(30) },
+  periodContainer: { width: rs(90), height: rs(30), marginStart: rs(5) },
   periodStyle: { backgroundColor: colors.cardBg, borderColor: colors.cardBorder, borderRadius: rs(8), minHeight: rs(10) },
   periodLabel: { color: colors.textSecondary, fontSize: rs(11), textAlign: 'center' },
   periodText: { color: colors.textSecondary, fontSize: rs(12) },
