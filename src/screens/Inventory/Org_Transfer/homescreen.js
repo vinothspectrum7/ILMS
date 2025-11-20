@@ -605,7 +605,7 @@ export default function Org_Transfer_Screen() {
         <View style={{ height: ms(24) }} />
       </ScrollView>
 
-      <Inv_SingleFooterBtnComponent rightLabel="Add" rightEnabled={isAddEnabled} onRightPress={onAdd} />
+      <Inv_SingleFooterBtnComponent rightLabel="Add" enabled={isAddEnabled} onRightPress={onAdd} />
 
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />

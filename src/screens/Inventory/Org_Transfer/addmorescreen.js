@@ -579,8 +579,8 @@ const OnSummary = () => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* <Inv_SingleFooterBtnComponent rightLabel="Add" rightEnabled={isAddEnabled} onRightPress={onAdd} /> */}
-      <Inv_FooterBtnComponent leftLabel="View Summary" rightLabel="Add" rightEnabled={isAddEnabled} onLeftPress={OnSummary} onRightPress={onAdd} />
+      {/* <Inv_SingleFooterBtnComponent rightLabel="Add" enabled={isAddEnabled} onRightPress={onAdd} /> */}
+      <Inv_FooterBtnComponent leftLabel="View Summary" rightLabel="Add" enabled={isAddEnabled} onLeftPress={OnSummary} onRightPress={onAdd} />
 
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />

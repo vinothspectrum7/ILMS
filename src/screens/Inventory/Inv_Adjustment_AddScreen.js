@@ -379,7 +379,7 @@ export default function Inv_Adjustment_Add() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: "padding", android: undefined })}>
         {renderLayout()}
       </KeyboardAvoidingView>
-      <Inv_SingleFooterBtnComponent rightLabel="Add" rightEnabled={isAddEnabled} onRightPress={onAdd} />
+      <Inv_SingleFooterBtnComponent rightLabel="Add" enabled={isAddEnabled} onRightPress={onAdd} />
       <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
       </Modal>

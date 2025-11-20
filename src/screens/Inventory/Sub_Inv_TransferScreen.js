@@ -1,439 +1,768 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Dimensions, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+// src/screens/Inventory/Sub_Inv_TransferScreen.js
+
+import React, { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  Modal,
+  TouchableOpacity,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Toast from 'react-native-toast-message';
 import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
-import Inv_SingleFooterBtnComponent from '../../components/inventory/Inv_SingleFooterBtnComponent';
+import FooterButtonsComponent from '../../components/FooterButtonsComponent';
+import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
+import Inv_Dropdown from '../../components/inventory/Inv_Dropdown';
 import Inv_CustomNumericInput from '../../components/inventory/Inv_CustomNumericInput';
-import Inv_CustomDropdown from '../../components/inventory/Inv_CustomDropdown';
-import BarcodeScanner from '../../components/inventory/Inv_BarCodeScanner';
-import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
+import Inv_LotModalPopup from '../../components/inventory/Inv_LotModalPopup';
+import BarcodeScanner from '../../screens/BarCodeScanner';
+import {
+  MOCK_ITEMS,
+  MOCK_SUB_INVENTORIES,
+  MOCK_LOCATORS,
+  MOCK_UOMS,
+} from '../../data/inventoryMockData';
 import { useReceivingStore } from '../../store/receivingStore';
-import { ItemsList, LocatorList, SubInventoryList } from '../../api/ApiServices';
+import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg';
+import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
 
-const BG = '#F6F8FA';
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
-const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
-const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
-
-const INVENTORY_MENU_WIDTH = SCREEN_WIDTH;
-const H_PADDING = ms(16);
-const GAP = ms(12);
-const SCAN_W = ms(44);
-const QTY_W = scale(110);
-const ITEM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - SCAN_W;
-const UOM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - QTY_W;
-
-// const OPTIONS_UOM = [{ label: 'Each', value: 'EA' }, { label: 'Piece', value: 'PC' }];
-
-const mkOpts = (arr, labelKey, idKey) => arr.map((o) => ({ label: o[labelKey], value: o[idKey] }));
-const findOption = (options, value) => options.find((o) => String(o.value) === String(value));
-const labelOf = (options, value) => findOption(options, value)?.label ?? null;
-
-const DROPDOWN_ID = {
-    ITEM: 'item',
-    FROM_SUB: 'from_sub',
-    FROM_LOC: 'from_loc',
-    TO_SUB: 'to_sub',
-    TO_LOC: 'to_loc',
-    UOM: 'uom',
-};
+const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
 
 export default function Sub_Inv_TransferScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
-    const cartcount = Number(route?.params?.cartcount || 0);
+  const navigation = useNavigation();
+  const route = useRoute();
+  const editIndex = route.params?.editIndex ?? null;
+  const isAddMore = route.params?.isAddMore === true;
 
-    const [showScanner, setShowScanner] = useState(false);
-    const [openDropdownId, setOpenDropdownId] = useState(null);
+  const {
+    OrgData,
+    subInvTransferItems,
+    addSubInvTransferItem,
+    editSubInvTransferItem,
+  } = useReceivingStore();
 
-  const [itemOptions, SetitemOptions] = useState([]);
-  const [fromSubOptions, setFromSubOptions] = useState([]);
-  const [FromLocatorOption, setfromLocatorOption] = useState([]);
-  const [ToLocatorOption, setToLocatorOption] = useState([]);
-  const [OPTIONS_UOM,SETOPTIONS_UOM] = useState([]);
-  const [allItemsData, setAllItemsData] = useState([]); // store all items with UOM
-    const [selectedItemId, setSelectedItemId] = useState(null);
-    const [fromSubId, setFromSubId] = useState(null);
-    const [fromLocId, setFromLocId] = useState(null);
-    const [toSubId, setToSubId] = useState(null);
-    const [toLocId, setToLocId] = useState(null);
-    const [uomId, setUomId] = useState(null);
-    const [qty, setQty] = useState(0);
+  const [initialStoreCount] = useState(subInvTransferItems.length);
 
-    const [maxQty, setMaxQty] = useState(0);
+  const showCartForHeader = isAddMore || initialStoreCount > 0;
+  const useSingleFooter = isAddMore || initialStoreCount > 0;
 
-    const { addSubInvTransferItem, OrgData } = useReceivingStore();
+  const existingItem = editIndex != null ? subInvTransferItems[editIndex] : null;
 
-  useEffect(() => {
-    if (!OrgData?.selectedOrg) return;
-    const LoadItems = async () => {
-      try {
-        const data = await ItemsList(OrgData?.selectedOrg);
-        setAllItemsData(data);
-        const formatteddata = mkOpts(data, 'item_code', 'item_id');
-        // const formatuomdata = (data?.UOM || []).map(u => ({ label: u, value: u }));
-        console.log(data,"data?.UOMdata?.UOMdata?.UOMdata?.UOM")
-        // console.log(formatuomdata,"formatuomdataformatuomdata");
-        SetitemOptions(formatteddata);
-        // SETOPTIONS_UOM(formatuomdata);
-      } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
-      }
+  const [selectedItem, setSelectedItem] = useState(existingItem?.item || null);
+  const [fromSub, setFromSub] = useState(existingItem?.fromSub || null);
+  const [fromLocator, setFromLocator] = useState(existingItem?.fromLocator || null);
+  const [toSub, setToSub] = useState(existingItem?.toSub || null);
+  const [toLocator, setToLocator] = useState(existingItem?.toLocator || null);
+  const [uom, setUom] = useState(existingItem?.uom || null);
+  const [qty, setQty] = useState(existingItem?.qty || 0);
+  const [notes, setNotes] = useState(existingItem?.notes || '');
+  const [lotStatus, setLotStatus] = useState(existingItem?.lotStatus || null);
+  const [lotModalVisible, setLotModalVisible] = useState(false);
+  const [persistedIndex, setPersistedIndex] = useState(editIndex);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+
+  const availableLocatorsFrom = useMemo(() => {
+    if (!fromSub) return [];
+    return MOCK_LOCATORS.filter(l => l.subInventoryId === fromSub.id);
+  }, [fromSub]);
+
+  const availableLocatorsTo = useMemo(() => {
+    if (!toSub) return [];
+    return MOCK_LOCATORS.filter(l => l.subInventoryId === toSub.id);
+  }, [toSub]);
+
+  const itemAvailableQty = selectedItem?.openQty ?? 0;
+
+  const baseLineLabel = useMemo(() => {
+    const idx = persistedIndex != null ? persistedIndex : subInvTransferItems.length;
+    return `Line ${idx + 1}`;
+  }, [persistedIndex, subInvTransferItems.length]);
+
+  const handlePersistMainLine = () => {
+    const existingLots =
+      persistedIndex != null
+        ? subInvTransferItems[persistedIndex]?.lots || []
+        : existingItem?.lots || [];
+
+    const payload = {
+      item: selectedItem,
+      fromSub,
+      fromLocator,
+      toSub,
+      toLocator,
+      uom,
+      qty,
+      notes,
+      lots: existingLots,
+      lotStatus,
     };
-    LoadItems();
-  }, [OrgData?.selectedOrg]);
 
-  useEffect(() => {
-  if (!selectedItemId) {
-    SETOPTIONS_UOM([]);
-    setUomId(null);
-    return;
+    if (persistedIndex != null) {
+      editSubInvTransferItem(payload, persistedIndex);
+      return persistedIndex;
+    }
+
+    addSubInvTransferItem(payload);
+    const newIndex = subInvTransferItems.length;
+    setPersistedIndex(newIndex);
+    return newIndex;
+  };
+
+  const lineValid =
+    !!selectedItem &&
+    !!fromSub &&
+    !!fromLocator &&
+    !!toSub &&
+    !!toLocator &&
+    !!uom &&
+    qty > 0;
+
+  const qtyExceeds = !!selectedItem && qty > itemAvailableQty;
+
+  const canOpenLot = lineValid && !qtyExceeds;
+
+  const canUseFooterButtons =
+    lineValid &&
+    !!lotStatus &&
+    lotStatus.totalQty === qty &&
+    !qtyExceeds;
+
+  const currentLots =
+    persistedIndex != null
+      ? subInvTransferItems[persistedIndex]?.lots || []
+      : [];
+
+  const handleOpenLotModal = () => {
+    const idx = handlePersistMainLine();
+    setPersistedIndex(idx);
+    setLotModalVisible(true);
+  };
+
+  const handleSaveLots = (lots, totalQty) => {
+    if (persistedIndex == null) return;
+    const updated = {
+      item: selectedItem,
+      fromSub,
+      fromLocator,
+      toSub,
+      toLocator,
+      uom,
+      qty,
+      notes,
+      lots,
+      lotStatus: {
+        count: lots.length,
+        totalQty,
+      },
+    };
+    editSubInvTransferItem(updated, persistedIndex);
+    setLotStatus({ count: lots.length, totalQty });
+  };
+
+  const handleAdd = () => {
+    if (!canUseFooterButtons) return;
+    handlePersistMainLine();
+    navigation.navigate('Sub_Inv_TransferSummaryScreen');
+  };
+
+  const handleTransfer = () => {
+    if (!canUseFooterButtons) return;
+    handlePersistMainLine();
+    setConfirmVisible(true);
+  };
+
+  const handleConfirmTransfer = () => {
+    setConfirmVisible(false);
+    setSuccessVisible(true);
+    setTimeout(() => {
+      setSuccessVisible(false);
+      navigation.navigate('Inventory');
+    }, 1500);
+  };
+
+  const handleBarcodePress = () => {
+    setScannerVisible(true);
+  };
+
+  const handleBarcodeScanned = codeString => {
+    const scanned = String(codeString || '').trim().toLowerCase();
+    if (!scanned) {
+      setScannerVisible(false);
+      return;
+    }
+
+    const matchedItem =
+      MOCK_ITEMS.find(
+        it => String(it.code || '').trim().toLowerCase() === scanned,
+      ) || null;
+
+    if (!matchedItem) {
+      setScannerVisible(false);
+      return;
+    }
+
+    setSelectedItem(matchedItem);
+    const maxQty = matchedItem.openQty ?? 0;
+    if (qty > maxQty) {
+      setQty(maxQty);
+    }
+    setScannerVisible(false);
+  };
+
+  if (scannerVisible) {
+    return (
+      <BarcodeScanner
+        onScan={handleBarcodeScanned}
+        onClose={() => setScannerVisible(false)}
+      />
+    );
   }
 
-  const selectedItem = allItemsData.find(it => String(it.item_id) === String(selectedItemId));
-  const formattedUOM = (selectedItem?.UOM || []).map(u => ({ label: u, value: u }));
-  SETOPTIONS_UOM(formattedUOM);
-  setUomId(null); // reset UOM selection
-}, [selectedItemId, allItemsData]);
+  const addLotEnabled = canOpenLot;
 
-  useEffect(() => {
-    if (!selectedItemId || !OrgData?.selectedOrg) return;
-    const fetchFromSubInventory = async () => {
-      try {
-        const data = await SubInventoryList(OrgData.selectedOrg, selectedItemId);
-        const formatteddata = mkOpts(data, 'subinventory_name', 'subinventory_id');
-        setFromSubId(null);
-        setFromLocId(null);
-        setToSubId(null);
-        setToLocId(null);
-        setUomId(null);
-        setQty(0);
-        setMaxQty(0);
-        setFromSubOptions(formatteddata);
-      } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Sub Inventories. Please try again.', position: 'top', visibilityTime: 5000 });
-      }
-    };
-    fetchFromSubInventory();
-  }, [selectedItemId, OrgData?.selectedOrg]);
-    const isAddEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
+  return (
+    <View style={styles.root}>
+      <Inv_HeaderComponent
+        organizationName={OrgData?.org_name || 'EnnVee'}
+        screenTitle="Sub Inventory Transfer"
+        onBack={() => navigation.goBack()}
+        showCartIcon={showCartForHeader}
+        cartCount={subInvTransferItems.length}
+        onCartPress={() => navigation.navigate('Sub_Inv_TransferSummaryScreen')}
+      />
 
-    const handleDropdownToggle = useCallback((id, isOpen) => {
-        setOpenDropdownId(isOpen ? id : null);
-    }, []);
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: rs(120) }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {qtyExceeds && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>
+              Insufficient Stock: Quantity exceeds available stock
+            </Text>
+          </View>
+        )}
 
-    useEffect(() => {
-        if (!OrgData?.selectedOrg) return;
-        const LoadItems = async () => {
-            try {
-                const data = await ItemsList(OrgData?.selectedOrg);
-                const formatteddata = mkOpts(data, 'item_code', 'item_id');
-                SetitemOptions(formatteddata);
-            } catch {
-                Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
-            }
-        };
-        LoadItems();
-    }, [OrgData?.selectedOrg]);
+        <View style={styles.cardWrapper}>
+          <View style={styles.lineBadgeFloating}>
+            <View style={styles.lineBadge}>
+              <Text style={styles.lineBadgeText}>{baseLineLabel}</Text>
+            </View>
+          </View>
 
-    useEffect(() => {
-        if (!selectedItemId || !OrgData?.selectedOrg) return;
-        const fetchFromSubInventory = async () => {
-            try {
-                const data = await SubInventoryList(OrgData.selectedOrg, selectedItemId);
-                const formatteddata = mkOpts(data, 'subinventory_name', 'subinventory_id');
-                setFromSubId(null);
-                setFromLocId(null);
-                setToSubId(null);
-                setToLocId(null);
-                setUomId(null);
-                setQty(0);
-                setMaxQty(0);
-                setFromSubOptions(formatteddata);
-            } catch {
-                Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Sub Inventories. Please try again.', position: 'top', visibilityTime: 5000 });
-            }
-        };
-        fetchFromSubInventory();
-    }, [selectedItemId, OrgData?.selectedOrg]);
-
-    useEffect(() => {
-        if (!selectedItemId || !OrgData?.selectedOrg || !fromSubId) return;
-        const fetchLocator = async () => {
-            try {
-                const data = await LocatorList(OrgData.selectedOrg, selectedItemId, fromSubId);
-                const formatted = data.map((d) => ({
-                    label: d.locator_name,
-                    value: d.locator_id,
-                    on_hand_qty: Number(d.on_hand_qty ?? 0),
-                }));
-                setFromLocId(null);
-                setToSubId(null);
-                setToLocId(null);
-                setUomId(null);
-                setQty(0);
-                setMaxQty(0);
-                setfromLocatorOption(formatted);
-            } catch {
-                Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Locators. Please try again.', position: 'top', visibilityTime: 5000 });
-            }
-        };
-        fetchLocator();
-    }, [selectedItemId, OrgData?.selectedOrg, fromSubId]);
-
-    useEffect(() => {
-        if (!selectedItemId || !OrgData?.selectedOrg || !toSubId) return;
-        const fetchLocator = async () => {
-            try {
-                const data = await LocatorList(OrgData.selectedOrg, selectedItemId, toSubId);
-                const formatted = data.map((d) => ({
-                    label: d.locator_name,
-                    value: d.locator_id,
-                }));
-                setToLocId(null);
-                setUomId(null);
-                setQty(0);
-                setToLocatorOption(formatted);
-            } catch {
-                Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load To Locators. Please try again.', position: 'top', visibilityTime: 5000 });
-            }
-        };
-        fetchLocator();
-    }, [selectedItemId, OrgData?.selectedOrg, toSubId]);
-
-    const handleScan = useCallback((value) => {
-        const code = String(value).trim().toUpperCase();
-        const match = itemOptions.find((p) => String(p.label).toUpperCase() === code);
-        if (match) {
-            setSelectedItemId(match.value);
-            setShowScanner(false);
-            Toast.show({ type: 'success', text1: 'Item found', text2: match.label, position: 'top', visibilityTime: 2200 });
-        } else {
-            Toast.show({ type: 'error', text1: 'Item not found', text2: `Scanned value ${code} not found`, position: 'top' });
-            setShowScanner(false);
-        }
-    }, [itemOptions]);
-
-    const onBack = useCallback(() => navigation.goBack(), [navigation]);
-    const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
-    const onCartPress = useCallback(() => navigation.navigate('InventoryCart'), [navigation]);
-
-    const onSelectFromLocator = useCallback((id) => {
-        setFromLocId(id);
-        const opt = findOption(FromLocatorOption, id);
-        const nextMax = Number(opt?.on_hand_qty ?? 0);
-        setMaxQty(nextMax);
-        if (Number(qty) > nextMax) setQty(nextMax);
-    }, [FromLocatorOption, qty]);
-
-    const payloadForAdd = useMemo(() => {
-        const itemLabel = labelOf(itemOptions, selectedItemId);
-        const fromSubLabel = labelOf(fromSubOptions, fromSubId);
-        const fromLocLabel = labelOf(FromLocatorOption, fromLocId);
-        const toSubLabel = labelOf(fromSubOptions, toSubId);
-        const toLocLabel = labelOf(ToLocatorOption, toLocId);
-        const uomLabel = labelOf(OPTIONS_UOM, uomId);
-
-        return { item_id: selectedItemId, item_code: itemLabel ?? null, from_sub: fromSubId, from_sub_name: fromSubLabel ?? null, from_locator: fromLocId, from_locator_name: fromLocLabel ?? null, to_sub: toSubId, to_sub_name: toSubLabel ?? null, to_locator: toLocId, to_locator_name: toLocLabel ?? null, uom: uomId, uom_label: uomLabel ?? null, qty: Number(qty), };
-
-    }, [
-        selectedItemId,
-        fromSubId,
-        fromLocId,
-        toSubId,
-        toLocId,
-        uomId,
-        qty,
-        itemOptions,
-        fromSubOptions,
-        FromLocatorOption,
-        ToLocatorOption,
-    ]);
-
-    const onAdd = useCallback(() => {
-        addSubInvTransferItem(payloadForAdd);
-        navigation.navigate('SubInvTransfer_summary');
-    }, [addSubInvTransferItem, payloadForAdd, navigation]);
-
-    return (
-        <View style={styles.safe}>
-            <Inv_HeaderComponent
-                organizationName={OrgData?.selectedOrgCode}
-                screenTitle="Sub Inventory Transfer"
-                notificationCount={0}
-                onBack={onBack}
-                onMenu={onMenu}
-                showCartIcon={cartcount > 0}
-                cartCount={cartcount}
-                onCartPress={onCartPress}
+          <View style={styles.card}>
+            <Inv_Dropdown
+              label="Select Item"
+              required
+              value={selectedItem}
+              onChange={item => {
+                setSelectedItem(item);
+                if (item && qty > item.openQty) {
+                  setQty(item.openQty);
+                }
+              }}
+              items={MOCK_ITEMS}
+              displayValue={it => it.name}
+              renderCode={it => it.code}
+              showBarcodeIcon
+              onBarcodePress={handleBarcodePress}
             />
 
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
-                <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-                    <View style={styles.itemrowSplit}>
-                        <Inv_CustomDropdown
-                            dropdownId={DROPDOWN_ID.ITEM}
-                            openDropdownId={openDropdownId}
-                            onToggleOpen={handleDropdownToggle}
-                            label={null}
-                            placeholder="Select Item*"
-                            value={selectedItemId}
-                            onChange={(id) => { setSelectedItemId(id); setFromSubId(null); setFromLocId(null); setToSubId(null); setToLocId(null); setUomId(null); setQty(0); setMaxQty(0); }}
-                            options={itemOptions}
-                            idKey="value"
-                            nameKey="label"
-                            disabled={false}
-                            selectedwidth={ITEM_FIELD_W}
-                            menuWidth={INVENTORY_MENU_WIDTH}
-                            menuAlign="left"
-                            autoSelectWhenEmpty={false}
-                        />
-                        <TouchableOpacity style={styles.scanBtn} onPress={() => setShowScanner(true)} accessibilityLabel="Scan barcode">
-                            <BarcodeScannerIcon width={ms(30)} height={ms(30)} />
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.dropdown}>
-                        <Inv_CustomDropdown
-                            dropdownId={DROPDOWN_ID.FROM_SUB}
-                            openDropdownId={openDropdownId}
-                            onToggleOpen={handleDropdownToggle}
-                            label={null}
-                            placeholder="From Sub*"
-                            value={fromSubId}
-                            onChange={(id) => { setFromSubId(id); setFromLocId(null); setMaxQty(0); }}
-                            options={fromSubOptions}
-                            idKey="value"
-                            nameKey="label"
-                            disabled={!selectedItemId}
-                            selectedwidth={SCREEN_WIDTH - (2 * H_PADDING)}
-                            menuWidth={INVENTORY_MENU_WIDTH}
-                            menuAlign="left"
-                            autoSelectWhenEmpty={false}
-                        />
-                    </View>
-                    <View style={styles.dropdown}>
-                        {!!fromSubId && (
-                            <Inv_CustomDropdown
-                                dropdownId={DROPDOWN_ID.FROM_LOC}
-                                openDropdownId={openDropdownId}
-                                onToggleOpen={handleDropdownToggle}
-                                label={null}
-                                placeholder="From Locator*"
-                                value={fromLocId}
-                                onChange={onSelectFromLocator}
-                                options={FromLocatorOption}
-                                idKey="value"
-                                nameKey="label"
-                                disabled={!fromSubId}
-                                selectedwidth={SCREEN_WIDTH - (2 * H_PADDING)}
-                                menuWidth={INVENTORY_MENU_WIDTH}
-                                menuAlign="left"
-                                autoSelectWhenEmpty={false}
-                            />
-                        )}
-                    </View>
-                    <View style={styles.dropdown}>
-                        <Inv_CustomDropdown
-                            dropdownId={DROPDOWN_ID.TO_SUB}
-                            openDropdownId={openDropdownId}
-                            onToggleOpen={handleDropdownToggle}
-                            label={null}
-                            placeholder="To Sub*"
-                            value={toSubId}
-                            onChange={(id) => { setToSubId(id); setToLocId(null); }}
-                            options={fromSubOptions}
-                            idKey="value"
-                            nameKey="label"
-                            disabled={!fromLocId}
-                            selectedwidth={SCREEN_WIDTH - (2 * H_PADDING)}
-                            menuWidth={INVENTORY_MENU_WIDTH}
-                            menuAlign="left"
-                            autoSelectWhenEmpty={false}
-                        />
-                    </View>
-                    <View style={styles.dropdown}>
-                        {!!toSubId && (
-                            <Inv_CustomDropdown
-                                dropdownId={DROPDOWN_ID.TO_LOC}
-                                openDropdownId={openDropdownId}
-                                onToggleOpen={handleDropdownToggle}
-                                label={null}
-                                placeholder="To Locator*"
-                                value={toLocId}
-                                onChange={setToLocId}
-                                options={ToLocatorOption}
-                                idKey="value"
-                                nameKey="label"
-                                disabled={!toSubId}
-                                selectedwidth={SCREEN_WIDTH - (2 * H_PADDING)}
-                                menuWidth={INVENTORY_MENU_WIDTH}
-                                menuAlign="left"
-                                autoSelectWhenEmpty={false}
-                            />
-                        )}
-                    </View>
-                    <View style={styles.uomrowSplit}>
-                        <Inv_CustomDropdown
-                            dropdownId={DROPDOWN_ID.UOM}
-                            openDropdownId={openDropdownId}
-                            onToggleOpen={handleDropdownToggle}
-                            label={null}
-                            placeholder="Select UOM*"
-                            value={uomId}
-                            onChange={setUomId}
-                            options={OPTIONS_UOM}
-                            idKey="value"
-                            nameKey="label"
-                            disabled={!toLocId}
-                            selectedwidth={UOM_FIELD_W}
-                            menuWidth={INVENTORY_MENU_WIDTH}
-                            menuAlign="left"
-                            autoSelectWhenEmpty={false}
-                        />
-                        <View style={styles.qtyCol}>
-                            <Inv_CustomNumericInput
-                                value={qty}
-                                setValue={setQty}
-                                width={QTY_W}
-                                height={ms(40)}
-                                disabledinput={!uomId}
-                                min={0}
-                                max={maxQty}
-                                step={1}
-                            />
-                        </View>
-                    </View>
-                    <View style={{ height: ms(24) }} />
-                </ScrollView>
-            </KeyboardAvoidingView>
-            <Inv_SingleFooterBtnComponent rightLabel="Add" rightEnabled={isAddEnabled} onRightPress={onAdd} />
-            <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
-                <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
-            </Modal>
-            <Toast />
+            {selectedItem ? (
+              <View style={styles.itemInfoStrip}>
+                <View style={styles.infoCol}>
+                  <Text style={styles.infoLabel}>Available Stock</Text>
+                  <Text style={styles.infoValue}>
+                    {selectedItem.availableStock} {selectedItem.availableUom}
+                  </Text>
+                </View>
+                <View style={styles.infoCol}>
+                  <Text style={styles.infoLabel}>Item Code</Text>
+                  <Text style={styles.infoValue}>{selectedItem.code}</Text>
+                </View>
+                <View style={styles.infoCol}>
+                  <Text style={styles.infoLabel}>Control Type</Text>
+                  <Text style={styles.infoValue}>{selectedItem.controlType}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            <View style={styles.rowSplit}>
+              <View style={styles.colHalf}>
+                <Inv_Dropdown
+                  label="From Sub"
+                  required
+                  value={fromSub}
+                  onChange={it => {
+                    setFromSub(it);
+                    setFromLocator(null);
+                  }}
+                  items={MOCK_SUB_INVENTORIES}
+                  displayValue={it => it.name}
+                  renderCode={it => it.code}
+                />
+              </View>
+              {fromSub ? (
+                <View style={styles.colHalf}>
+                  <Inv_Dropdown
+                    label="From Locator"
+                    required
+                    value={fromLocator}
+                    onChange={setFromLocator}
+                    items={availableLocatorsFrom}
+                    displayValue={it => it.name}
+                    renderCode={it => it.code}
+                  />
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.rowSplit}>
+              <View style={styles.colHalf}>
+                <Inv_Dropdown
+                  label="To Sub"
+                  required
+                  value={toSub}
+                  onChange={it => {
+                    setToSub(it);
+                    setToLocator(null);
+                  }}
+                  items={MOCK_SUB_INVENTORIES}
+                  displayValue={it => it.name}
+                  renderCode={it => it.code}
+                />
+              </View>
+              {toSub ? (
+                <View style={styles.colHalf}>
+                  <Inv_Dropdown
+                    label="To Locator"
+                    required
+                    value={toLocator}
+                    onChange={setToLocator}
+                    items={availableLocatorsTo}
+                    displayValue={it => it.name}
+                    renderCode={it => it.code}
+                  />
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.rowSplit}>
+              <View style={styles.colHalf}>
+                <Inv_Dropdown
+                  label="Select UOM"
+                  required
+                  value={uom}
+                  onChange={setUom}
+                  items={MOCK_UOMS}
+                  displayValue={it => it.name}
+                  renderCode={it => it.code}
+                />
+              </View>
+              <View style={styles.colHalf}>
+                <Text style={styles.fieldLabel}>
+                  Select QTY<Text style={styles.required}>*</Text>
+                </Text>
+                <Inv_CustomNumericInput
+                  value={qty}
+                  setValue={setQty}
+                  min={0}
+                  max={itemAvailableQty}
+                  disabledinput={!selectedItem}
+                  width="100%"
+                  height={rs(44)}
+                />
+              </View>
+            </View>
+
+            {addLotEnabled && (
+              <View style={styles.lotRow}>
+                <Text style={styles.fieldLabel}>
+                  Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
+                  <Text style={styles.linkText}>(Lot Controlled)</Text>
+                </Text>
+
+                <TouchableAddLot
+                  enabled={addLotEnabled}
+                  lotStatus={lotStatus}
+                  onPress={handleOpenLotModal}
+                />
+              </View>
+            )}
+
+            <View style={styles.notesWrapper}>
+              <Text style={styles.fieldLabel}>
+                Notes <Text style={styles.optional}>(Optional)</Text>
+              </Text>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Maximum 100 characters"
+                multiline
+                maxLength={100}
+                value={notes}
+                onChangeText={setNotes}
+              />
+            </View>
+          </View>
         </View>
+      </ScrollView>
+
+      {useSingleFooter ? (
+        <SingleFooterBtnComponent
+          label="Add"
+          onPress={handleAdd}
+          enabled={canUseFooterButtons}
+        />
+      ) : (
+        <FooterButtonsComponent
+          leftLabel="Add"
+          rightLabel="Transfer"
+          onLeftPress={handleAdd}
+          onRightPress={handleTransfer}
+          leftEnabled={!!canUseFooterButtons}
+          rightEnabled={!!canUseFooterButtons}
+        />
+      )}
+
+      <Inv_LotModalPopup
+        visible={lotModalVisible}
+        onClose={() => setLotModalVisible(false)}
+        lineQty={qty}
+        itemName={selectedItem?.name}
+        initialLots={currentLots}
+        onSave={handleSaveLots}
+      />
+
+      <ConfirmModal
+        visible={confirmVisible}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={handleConfirmTransfer}
+      />
+
+      <SuccessModal
+        visible={successVisible}
+        onClose={() => setSuccessVisible(false)}
+      />
+    </View>
+  );
+}
+
+function TouchableAddLot({ enabled, lotStatus, onPress }) {
+  const hasLots = !!(lotStatus && lotStatus.count > 0);
+
+  if (!enabled) {
+    return (
+      <View style={[styles.addLotBase, styles.addLotDisabled]}>
+        <Text style={[styles.addLotText, styles.addLotTextDisabled]}>
+          {hasLots && lotStatus
+            ? `${lotStatus.count}LOTS - ${lotStatus.totalQty} QTY`
+            : 'Add Lot'}
+        </Text>
+      </View>
     );
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={hasLots ? styles.addLotStatusWrapper : styles.addLotGradientWrapper}
+    >
+      <View style={hasLots ? styles.addLotStatusInner : styles.addLotGradientInner}>
+        <Text style={hasLots ? styles.addLotStatusText : styles.addLotText}>
+          {hasLots && lotStatus
+            ? `${lotStatus.count}LOTS - ${lotStatus.totalQty} QTY`
+            : 'Add Lot'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function ConfirmModal({ visible, onCancel, onConfirm }) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalTop}>
+            <ConfirmSubInventoryIcon width={rs(80)} height={rs(80)} />
+          </View>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitle}>Confirmation</Text>
+            <Text style={styles.modalText}>
+              Are you sure want to transfer this Inventory
+            </Text>
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancel]}
+                onPress={onCancel}
+              >
+                <Text style={[styles.modalButtonText, styles.modalCancelText]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirm]}
+                onPress={onConfirm}
+              >
+                <Text style={[styles.modalButtonText, styles.modalConfirmText]}>
+                  Confirm
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function SuccessModal({ visible, onClose }) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalTop}>
+            <InventorySuccessIcon width={rs(80)} height={rs(80)} />
+          </View>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitle}>
+              Sub Inventory Transfer created successfully
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 const styles = StyleSheet.create({
-    safe: { flex: 1, backgroundColor: BG },
-    content: { paddingHorizontal: ms(2), paddingTop: ms(12) },
-    dropdown: { marginTop: ms(10) },
-    itemrowSplit: { flexDirection: 'row', alignItems: 'center', gap: ms(0), paddingHorizontal: 0, marginTop: ms(10) },
-    uomrowSplit: { flexDirection: 'row', alignItems: 'center', gap: ms(0), paddingHorizontal: 0, marginTop: ms(20) },
-    scanBtn: {
-        height: ms(40),
-        width: ms(40),
-        backgroundColor: '#EFEFF0',
-        borderRadius: ms(4),
-        borderWidth: 1,
-        borderColor: '#EFEFF0',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: ms(2),
-        marginTop: ms(12)
-    },
-    qtyCol: { alignItems: 'flex-end', justifyContent: 'flex-end', marginRight: ms(8), marginTop: ms(10) }
+  root: { flex: 1, backgroundColor: '#F5F6F8' },
+  scroll: { flex: 1 },
+
+  errorBanner: {
+    marginHorizontal: rs(16),
+    marginTop: rs(12),
+    marginBottom: rs(4),
+    paddingVertical: rs(10),
+    paddingHorizontal: rs(12),
+    borderRadius: rs(24),
+    backgroundColor: '#FDE3E3',
+  },
+  errorBannerText: {
+    color: '#D32F2F',
+    fontSize: rs(13),
+    fontWeight: '600',
+  },
+
+  cardWrapper: {
+    marginHorizontal: rs(16),
+    marginTop: rs(12),
+    marginBottom: rs(16),
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: rs(12),
+    padding: rs(16),
+    paddingTop: rs(24),
+    marginTop: rs(10),
+  },
+  lineBadgeFloating: {
+    position: 'absolute',
+    top: 0,
+    left: rs(16),
+    zIndex: 2,
+  },
+  lineBadge: {
+    backgroundColor: '#5D768B',
+    borderTopLeftRadius: rs(6),
+    borderTopRightRadius: rs(6),
+    borderBottomRightRadius: rs(6),
+    paddingVertical: rs(4),
+    paddingHorizontal: rs(16),
+  },
+  lineBadgeText: {
+    color: '#FFFFFF',
+    fontSize: rs(13),
+    fontWeight: '600',
+  },
+
+  itemInfoStrip: {
+    flexDirection: 'row',
+    backgroundColor: '#E6EEF7',
+    borderRadius: rs(8),
+    paddingVertical: rs(10),
+    paddingHorizontal: rs(12),
+    marginBottom: rs(16),
+    marginTop: rs(8),
+  },
+  infoCol: { flex: 1 },
+  infoLabel: { fontSize: rs(11), color: '#555555' },
+  infoValue: {
+    fontSize: rs(13),
+    color: '#233E55',
+    fontWeight: '600',
+    marginTop: rs(2),
+  },
+  rowSplit: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    columnGap: rs(12),
+  },
+  colHalf: {
+    flex: 1,
+  },
+  fieldLabel: {
+    fontSize: rs(12),
+    color: '#555555',
+    marginBottom: rs(4),
+  },
+  required: { color: '#E53935' },
+  lotRow: {
+    marginTop: rs(16),
+  },
+  linkText: {
+    color: '#1E88E5',
+    fontSize: rs(12),
+  },
+  notesWrapper: {
+    marginTop: rs(16),
+  },
+  optional: { color: '#888888' },
+  notesInput: {
+    marginTop: rs(4),
+    minHeight: rs(80),
+    borderRadius: rs(8),
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    padding: rs(10),
+    fontSize: rs(13),
+    textAlignVertical: 'top',
+  },
+
+  addLotBase: {
+    marginTop: rs(8),
+    alignSelf: 'stretch',
+    borderRadius: rs(4),
+    paddingVertical: rs(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addLotGradientWrapper: {
+    marginTop: rs(8),
+    alignSelf: 'stretch',
+  },
+  addLotGradientInner: {
+    borderRadius: rs(8),
+    paddingVertical: rs(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#7392AA',
+  },
+  addLotStatusWrapper: {
+    marginTop: rs(8),
+    alignSelf: 'stretch',
+  },
+  addLotStatusInner: {
+    borderRadius: rs(4),
+    paddingVertical: rs(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#73B386',
+  },
+  addLotText: {
+    color: '#FFFFFF',
+    fontSize: rs(13),
+    fontWeight: '500',
+  },
+  addLotStatusText: {
+    color: '#FFFFFF',
+    fontSize: rs(13),
+    fontWeight: '500',
+  },
+  addLotDisabled: {
+    backgroundColor: '#CCCCCC',
+  },
+  addLotTextDisabled: {
+    color: '#777777',
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: rs(24),
+  },
+  modalCard: {
+    width: '100%',
+    borderRadius: rs(16),
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  modalTop: {
+    backgroundColor: '#ECF1F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: rs(24),
+  },
+  modalBody: {
+    paddingHorizontal: rs(20),
+    paddingVertical: rs(20),
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: rs(16),
+    fontWeight: '700',
+    color: '#233E55',
+    textAlign: 'center',
+  },
+  modalText: {
+    marginTop: rs(8),
+    fontSize: rs(14),
+    color: '#555555',
+    textAlign: 'center',
+  },
+  modalButtonsRow: {
+    marginTop: rs(20),
+    flexDirection: 'row',
+    columnGap: rs(12),
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    height: rs(44),
+    borderRadius: rs(30),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancel: {
+    borderWidth: 1,
+    borderColor: '#233E55',
+    backgroundColor: '#FFFFFF',
+  },
+  modalConfirm: {
+    backgroundColor: '#233E55',
+  },
+  modalButtonText: {
+    fontSize: rs(14),
+    fontWeight: '600',
+  },
+  modalCancelText: {
+    color: '#233E55',
+  },
+  modalConfirmText: {
+    color: '#FFFFFF',
+  },
 });

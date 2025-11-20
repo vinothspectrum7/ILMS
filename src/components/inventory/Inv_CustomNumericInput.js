@@ -1,3 +1,5 @@
+// src/components/inventory/Inv_CustomNumericInput.js
+
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
 
@@ -10,7 +12,7 @@ const Inv_CustomNumericInput = ({
   min = 0,
   step = 1,
   width = 100,
-  height= 40,
+  height = 40,
   isSelected = true,
   disabledinput = true,
   onLimit,
@@ -25,7 +27,7 @@ const Inv_CustomNumericInput = ({
   const canDec = safeValue > min;
   const canInc = safeValue < max;
 
-  const apply = (next) => {
+  const apply = next => {
     const clamped = clamp(Number(next) || 0, min, max);
     if (clamped !== safeValue) {
       setValue(clamped);
@@ -35,82 +37,114 @@ const Inv_CustomNumericInput = ({
   };
 
   const handleMinus = () => {
-    console.log(canDec,safeValue,max,min,"cande")
-    if (!canDec) { onLimit?.(); return; }
+    if (!canDec) {
+      onLimit?.();
+      return;
+    }
     markTouched();
     const next = clamp(safeValue - step, min, max);
-    console.log(next,"NXTEETESTTET")
     setValue(next);
   };
 
   const handlePlus = () => {
-    if (!canInc) { onLimit?.(); return; }
+    if (!canInc) {
+      onLimit?.();
+      return;
+    }
     markTouched();
-    const next = clamp(safeValue + 10, min, max);
+    const next = clamp(safeValue + step, min, max);
     setValue(next);
   };
 
-  const handleManualInput = (text) => {
-    // if (!isSelected) return;
+  const handleManualInput = text => {
     markTouched();
     const numeric = parseInt(String(text).replace(/[^0-9]/g, ''), 10);
     apply(isNaN(numeric) ? 0 : numeric);
   };
 
   const showFilled = isSelected && safeValue > 0;
-  const dynamicStyles = disabledinput?styles.disabledvalue:showFilled ? styles.touched : styles.untouched;
-  const activeTextColor = disabledinput?'#595A5C':showFilled ? '#fff' : '#5D768B';
+  const dynamicStyles = disabledinput ? styles.disabledvalue : showFilled ? styles.touched : styles.untouched;
+  const activeTextColor = disabledinput ? '#595A5C' : showFilled ? '#fff' : '#5D768B';
 
   return (
-    <View style={[styles.container, dynamicStyles.border, { width }, { height }]}>
-      <TouchableOpacity disabled={!canDec ||disabledinput} onPress={handleMinus}  style={[styles.button, dynamicStyles.bg]}>
-        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canDec ? 1 : 0.5 }]}>—</Text>
+    <View style={[styles.container, dynamicStyles.border, { width, height }]}>
+      <TouchableOpacity
+        disabled={!canDec || disabledinput}
+        onPress={handleMinus}
+        style={[styles.button, dynamicStyles.bg]}
+      >
+        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canDec ? 1 : 0.5 }]}>
+          —
+        </Text>
       </TouchableOpacity>
 
       <TextInput
         style={[styles.input, dynamicStyles.bg, { color: activeTextColor }]}
         value={String(safeValue)}
-          onChangeText={(text) => {
-    // only digits allowed in the state
-    const onlyDigits = text.replace(/[^0-9]/g, '');
-    handleManualInput(onlyDigits);
-  }}
-  onKeyPress={({ nativeEvent }) => {
-    const { key } = nativeEvent;
-
-    // Block invalid keys like '.' or letters
-    if (!/^[0-9]$/.test(key) && key !== 'Backspace') {
-      // do nothing (ignore this key)
-      return;
-    }
-  }}
+        onChangeText={text => {
+          const onlyDigits = text.replace(/[^0-9]/g, '');
+          handleManualInput(onlyDigits);
+        }}
+        onKeyPress={({ nativeEvent }) => {
+          const { key } = nativeEvent;
+          if (!/^[0-9]$/.test(key) && key !== 'Backspace') {
+            return;
+          }
+        }}
         keyboardType="numeric"
         editable={!disabledinput}
       />
 
-      <TouchableOpacity disabled={!canInc||disabledinput} onPress={handlePlus}  style={[styles.button, dynamicStyles.bg]}>
-        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canInc ? 1 : 0.5 }]}>＋</Text>
+      <TouchableOpacity
+        disabled={!canInc || disabledinput}
+        onPress={handlePlus}
+        style={[styles.button, dynamicStyles.bg]}
+      >
+        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canInc ? 1 : 0.5 }]}>
+          ＋
+        </Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', alignItems: 'center', borderRadius: 6, overflow: 'hidden' },
-  button: { width: 30, height: '100%', justifyContent: 'center', alignItems: 'center' },
-  buttonText: { fontSize: 18, fontWeight: 'bold' },
-  input: { flex: 1, height: '100%', textAlign: 'center', fontSize: 16, paddingVertical: 0,marginRight:-1,marginLeft:-1 },
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  button: {
+    width: 36,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  input: {
+    flex: 1,
+    height: '100%',
+    textAlign: 'center',
+    fontSize: 16,
+    paddingVertical: 0,
+    marginRight: -1,
+    marginLeft: -1,
+  },
   untouched: {
-    bg: { backgroundColor: '#fff' },
+    bg: { backgroundColor: '#FFFFFF' },
     border: { borderWidth: 1, borderColor: '#00000040' },
   },
   touched: {
     bg: { backgroundColor: '#5D768B' },
-    border: { borderWidth: 1, borderColor: '#fff' },
+    border: { borderWidth: 1, borderColor: '#FFFFFF' },
   },
   disabledvalue: {
     bg: { backgroundColor: '#EFEFF0' },
-    border: { borderWidth: 1, borderColor: '#fff' },
+    border: { borderWidth: 1, borderColor: '#FFFFFF' },
   },
 });
 

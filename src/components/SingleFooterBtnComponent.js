@@ -9,8 +9,8 @@ const MUTED_WHITE = 'rgba(255,255,255,0.85)';
 const RADIUS = 42;
 const HEIGHT = 48;
 
-const Inv_SingleFooterBtnComponent = memo(({
-  label = 'Add',
+const SingleFooterBtnComponent = memo(({
+  label = 'Submit',
   onPress,
   enabled = true,
   containerStyle,
@@ -96,4 +96,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Inv_SingleFooterBtnComponent;
+export default SingleFooterBtnComponent;
