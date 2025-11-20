@@ -9,11 +9,21 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import ConfirmSuccess from '../assets/icons/ConfirmSuccess.svg';
-import ConfirmIcon from '../assets/icons/confirm.svg';
-import CancelIcon from '../assets/icons/cancel.svg';
+import PoSuccess from '../assets/icons/PoSuccess.svg';
+// import ConfirmSuccess from '../assets/icons/ConfirmSuccess.svg';
+// import cancel from '../assets/icons/cancel.svg';
+import PoFailure from '../assets/icons/PoFailure.svg';
+// import ConfirmIcon from '../assets/icons/confirm.svg';
+// import CancelIcon from '../assets/icons/cancel.svg';
+import LinearGradient from 'react-native-linear-gradient';
 
 const { width } = Dimensions.get('window');
+const BRAND = '#233E55';
+const WHITE = '#FFFFFF';
+
+const RADIUS = 42;
+const HEIGHT = 48;
+
 
 const ConfirmModalComponent = ({
   visible,
@@ -22,17 +32,17 @@ const ConfirmModalComponent = ({
   confirmColor = 'green',
   cancelColor = 'red',
   backdropColor = 'rgba(0,0,0,0.3)',
-  headerBg = '#5D768B1A',
+  headerBg = '#ECF1F7',
   widthRatio = 0.85,
   confirmAction,
   onCancel,
   onSuccess,
   onFailure,
   successMessage = 'Order receipt created successfully',
-  failureMessage = 'Something went wrong. Please try again.',
-  SuccessIcon = ConfirmSuccess,
-  FailureIcon = ConfirmSuccess,
-  autoDismissMsSuccess = 1500,
+  failureMessage = 'Order receipt creation failed',
+  SuccessIcon = PoSuccess,
+  FailureIcon = PoFailure,
+  autoDismissMsSuccess = 1000,
   autoDismissMsFailure = 1500,
   buttonSize = 50,
 }) => {
@@ -65,11 +75,11 @@ const ConfirmModalComponent = ({
     }
   }, [
     phase,
-    autoDismissMsSuccess,
-    autoDismissMsFailure,
-    onCancel,
-    onSuccess,
-    onFailure,
+    // autoDismissMsSuccess,
+    // autoDismissMsFailure,
+    // onCancel,
+    // onSuccess,
+    // onFailure,
   ]);
 
   const handleYes = async () => {
@@ -78,8 +88,14 @@ const ConfirmModalComponent = ({
 
     try {
       const res = await Promise.resolve(confirmAction());
+      console.log(res,"reserererererererrergrefegfregrrgefef")
       const ok = typeof res === 'object' ? !!res.success : !!res;
-      setPhase(ok ? 'success' : 'failure');
+      console.log(ok,"OKOKOKOKOKOKOKOKO")
+      if (!ok) {
+  failureMessage = res.message;
+}
+      setPhase(ok?"success":"failure");
+      console.log(phase,"OKADSNDIIDIH")
     } catch {
       setPhase('failure');
     }
@@ -106,47 +122,57 @@ const ConfirmModalComponent = ({
 
               <View style={styles.modalBody}>
                 <Text style={styles.modalMessage}>{message}</Text>
-
                 <View style={styles.buttonRow}>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={handleYes}
-                    style={[
-                      styles.circleButton,
-                      {
-                        borderColor: confirmColor,
-                        width: buttonSize,
-                        height: buttonSize,
-                        borderRadius: buttonSize / 2,
-                      },
-                    ]}
-                  >
-                    <ConfirmIcon
-                      width={buttonSize - 2}
-                      height={buttonSize - 2}
-                      fill={confirmColor}
-                    />
-                  </TouchableOpacity>
+      <TouchableOpacity
+        onPress={handleNo}
+        activeOpacity={0.85}
+        style={[styles.buttonBase, styles.half, styles.left]}
+      >
+        <LinearGradient
+          colors={['rgba(255,255,255,0.70)', '#EBF7F6']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.fillGradient}
+        />
+        <Text style={[styles.label, { color: '#233E55' }]}>Cancel</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={handleYes}
+        activeOpacity={0.85}
+        // disabled={!rightEnabled}
+        style={[styles.buttonBase, styles.half, styles.right]}
+      >
+        {/* {rightEnabled ? ( */}
+          <View style={styles.fillSolidBrand} />
+        {/* ) : ( */}
+        {/* )} */}
 
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={handleNo}
-                    style={[
-                      styles.circleButton,
-                      {
-                        borderColor: cancelColor,
-                        width: buttonSize,
-                        height: buttonSize,
-                        borderRadius: buttonSize / 2,
-                      },
-                    ]}
-                  >
-                    <CancelIcon
-                      width={buttonSize - 2}
-                      height={buttonSize - 2}
-                      fill={cancelColor}
-                    />
-                  </TouchableOpacity>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.53)', 'rgba(255,255,255,0)']}
+          locations={[0, 1]}
+          start={{ x: 0.5, y: 0.5 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.topGloss}
+        />
+
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.23)']}
+          locations={[0.55, 1]}
+          start={{ x: 0.5, y: 0.55 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.bottomInnerShadow}
+        />
+
+        <LinearGradient
+          colors={['rgba(0,0,0,0.16)', 'transparent', 'transparent', 'rgba(0,0,0,0.16)']}
+          locations={[0, 0.2, 0.8, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.sideVignette}
+        />
+
+        <Text style={[styles.label, { color: '#FFFFFF' }]}>Confirm</Text>
+      </TouchableOpacity>
                 </View>
               </View>
             </>
@@ -155,13 +181,13 @@ const ConfirmModalComponent = ({
           {phase === 'loading' && (
             <View style={styles.statusBody}>
               <ActivityIndicator size="large" />
-              <Text style={styles.statusText}>Processing…</Text>
+              <Text style={styles.statusText}>Loading...</Text>
             </View>
           )}
 
           {phase === 'success' && (
             <View style={styles.statusBody}>
-              <SuccessIcon width={96} height={96} />
+              <SuccessIcon width={96} height={96}  />
               <Text style={styles.statusText}>{successMessage}</Text>
             </View>
           )}
@@ -191,28 +217,46 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   modalHeader: {
-    padding: 12,
-    alignItems: 'center',
+    padding: 20,
+    alignItems: 'flex-start',
   },
+  buttonBase: {
+    height: HEIGHT,
+    borderRadius: RADIUS,
+    overflow: 'hidden',
+    // marginBottom: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+    sideVignette: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: RADIUS,
+      zIndex: 1,
+    },
+  fillGradient: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: '600',
+    color: '#242424',
+    fontFamily:'Mulish'
   },
   modalBody: {
     padding: 20,
-    alignItems: 'center',
+    // alignItems: 'center',
   },
   modalMessage: {
-    fontSize: 16,
-    textAlign: 'center',
+    fontSize: 18,
+    textAlign: 'flex-start',
     marginBottom: 20,
-    color: '#555',
+    color: '#595A5C',
+    fontFamily:'Mulish'
   },
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '60%',
+    justifyContent: 'center',
+    // width: '40%',
+    alignItems:'center'
   },
   circleButton: {
     justifyContent: 'center',
@@ -231,6 +275,30 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
   },
+  half: { width: '48%' },
+  label: { zIndex: 5, fontWeight: '700',fontFamily:'Mulish', fontSize: 16 },
+  left: { marginRight:5,borderWidth: 1, borderColor: BRAND, backgroundColor: WHITE },
+    topGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 2,
+    right: 2,
+    height: '52%',
+    borderTopLeftRadius: RADIUS,
+    borderTopRightRadius: RADIUS,
+    zIndex: 2,
+  },
+  bottomInnerShadow: {
+    position: 'absolute',
+    left: 2,
+    right: 2,
+    bottom: 0,
+    height: '36%',
+    borderBottomLeftRadius: RADIUS,
+    borderBottomRightRadius: RADIUS,
+    zIndex: 1,
+  },
+  fillSolidBrand: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS, backgroundColor: BRAND },
 });
 
 export default ConfirmModalComponent;

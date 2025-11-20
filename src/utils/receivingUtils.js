@@ -11,6 +11,33 @@ const clampToOpen = (qty, open) => {
 export const useReceivingStore = create((set, get) => ({
   poHeader: null,
   setPoHeader: (header) => set({ poHeader: header }),
+  setActiveTab: (tab) => set({ActiveTab:tab}),
+  setOrgData: (data) => set({OrgData:data}),
+  setInventoryList: (data) => set({InventoryList:data}),
+    // cache helpers
+  getLocatorFromCache: (subInventoryId) => {
+    return get().locatorCache[subInventoryId] || null;
+  },
+  setLocatorInCache: (subInventoryId, locators) => {
+    set((state) => ({
+      locatorCache: {
+        ...state.locatorCache,
+        [subInventoryId]: locators,
+      },
+    }));
+  },
+    getImageFromCache: (itemid) => {
+    return get().imageCache[itemid] || null;
+  },
+    setImageInCache: (itemid, locators) => {
+    set((state) => ({
+      imageCache: {
+        ...state.imageCache,
+        [itemid]: locators,
+      },
+    }));
+  },
+  setLocatorList: (data) => set({LocatorList:data}),
 
   receiveItems: [],
   initReceiveItems: (items) => set({ receiveItems: items }),
@@ -27,6 +54,7 @@ export const useReceivingStore = create((set, get) => ({
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
+            imageUri: patch.imageUri ?? it.imageUri
           }
         : it
     );
@@ -54,10 +82,77 @@ export const useReceivingStore = create((set, get) => ({
     set({ summaryItems: next });
   },
 
+      resetTab: () =>
+    set({
+      ActiveTab: null
+    }),
+
+  resetLocators: () =>
+    set({
+      locatorCache: null
+    }),
+
+  resetImage: () =>
+    set({
+      imageCache: null
+    }),
+
   resetReceiving: () =>
     set({
       poHeader: null,
       receiveItems: [],
       summaryItems: [],
     }),
+  // Store for Sub Inventory Transfer Payloads
+  subInvTransferItems: [],
+  addSubInvTransferItem: (item) =>
+    set((state) => ({
+      subInvTransferItems: [...state.subInvTransferItems, item],
+    })),
+  // Edit an existing item by index or item_id
+editSubInvTransferItem: (updatedItem) =>
+  set((state) => ({
+    subInvTransferItems: state.subInvTransferItems.map((it) =>
+      String(it.item_id) === String(updatedItem.item_id)
+        ? { ...it, ...updatedItem }
+        : it
+    ),
+  })),
+
+  setSubInvTransferItems: (items) => set({ subInvTransferItems: Array.isArray(items) ? items : [] }),
+
+  removeSubInvTransferItem: (index) =>
+    set((state) => ({
+      subInvTransferItems: state.subInvTransferItems.filter((_, i) => i !== index),
+    })),
+
+  resetSubInvTransfer: () => set({ subInvTransferItems: [] }),
+
+// Orgnaization Transfer Store
+    OrgnaizationTransferItems: [],
+  addOrgnaizationTransferItems: (item) =>
+    set((state) => ({
+      OrgnaizationTransferItems: [...state.OrgnaizationTransferItems, item],
+    })),
+
+editOrgnaizationTransferItems: (updatedItem, editIndex) =>
+  set((state) => {
+    const list = [...state.OrgnaizationTransferItems];
+    if (editIndex !== null && editIndex >= 0 && editIndex < list.length) {
+      list[editIndex] = { ...list[editIndex], ...updatedItem };
+    }
+    return { OrgnaizationTransferItems: list };
+  }),
+
+  removeOrgnaizationTransferItems: (index) =>
+    set((state) => ({
+      OrgnaizationTransferItems: state.OrgnaizationTransferItems.filter((_, i) => i !== index),
+    })),
+
+  resetOrgnaizationTransferItems: () => set({ OrgnaizationTransferItems: [] }),
+
+  // Orgnaization details
+  Orgtransferdetails: null,
+  addOrgTransferDetails: (org_details) => set({ Orgtransferdetails: org_details }),
+  removeOrgTransferDetails: () => set({ Orgtransferdetails: null })
 }));

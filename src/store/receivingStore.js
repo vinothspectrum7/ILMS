@@ -11,21 +11,49 @@ const clampToOpen = (qty, open) => {
 export const useReceivingStore = create((set, get) => ({
   poHeader: null,
   setPoHeader: (header) => set({ poHeader: header }),
+  setActiveTab: (tab) => set({ ActiveTab: tab }),
+  setOrgData: (data) => set({ OrgData: data }),
+  setInventoryList: (data) => set({ InventoryList: data }),
+  getLocatorFromCache: (subInventoryId) => {
+    return get().locatorCache[subInventoryId] || null;
+  },
+  getImageFromCache: (itemid) => {
+    return get().imageCache[itemid] || null;
+  },
+    setImageInCache: (itemid, image) => {
+    set((state) => ({
+      imageCache: {
+        ...state.imageCache,
+        [itemid]: image,
+      },
+    }));
+  },
+  setLocatorInCache: (subInventoryId, locators) => {
+    set((state) => ({
+      locatorCache: {
+        ...state.locatorCache,
+        [subInventoryId]: locators,
+      },
+    }));
+  },
+  setLocatorList: (data) => set({ LocatorList: data }),
 
   receiveItems: [],
   initReceiveItems: (items) => set({ receiveItems: items }),
   mergePatchIntoReceiveItems: (patch) => {
     if (!patch || !patch.id) return;
-    const next = get().receiveItems.map(it =>
+    const next = get().receiveItems.map((it) =>
       String(it.id) === String(patch.id)
         ? {
             ...it,
-            qtyToReceive: typeof patch.receivingQty === 'number'
-              ? clampToOpen(patch.receivingQty, it.openQty)
-              : it.qtyToReceive,
+            qtyToReceive:
+              typeof patch.receivingQty === 'number'
+                ? clampToOpen(patch.receivingQty, it.max_open_qty)
+                : it.qtyToReceive,
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
+            imageUri: patch.imageUri ?? it.imageUri
           }
         : it
     );
@@ -36,13 +64,14 @@ export const useReceivingStore = create((set, get) => ({
   initSummaryItems: (items) => set({ summaryItems: items }),
   mergePatchIntoSummaryItems: (patch) => {
     if (!patch || !patch.id) return;
-    const next = get().summaryItems.map(it =>
+    const next = get().summaryItems.map((it) =>
       String(it.id) === String(patch.id)
         ? {
             ...it,
-            qtyToReceive: typeof patch.receivingQty === 'number'
-              ? clampToOpen(patch.receivingQty, it.openQty)
-              : it.qtyToReceive,
+            qtyToReceive:
+              typeof patch.receivingQty === 'number'
+                ? clampToOpen(patch.receivingQty, it.openQty)
+                : it.qtyToReceive,
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
@@ -52,10 +81,126 @@ export const useReceivingStore = create((set, get) => ({
     set({ summaryItems: next });
   },
 
-  resetReceiving: () =>
+  resetTab: () => set({ ActiveTab: null }),
+    resetLocators: () =>
     set({
-      poHeader: null,
-      receiveItems: [],
-      summaryItems: [],
+      locatorCache: null
     }),
+  resetImage: () =>
+    set({
+      imageCache: null
+    }),
+  resetReceiving: () => set({ poHeader: null, receiveItems: [], summaryItems: [] }),
+
+  asnHeader: null,
+  setAsnHeader: (header) => set({ asnHeader: header }),
+  asnSelectedLines: [],
+  initAsnSelectedLines: (lines) => set({ asnSelectedLines: Array.isArray(lines) ? lines : [] }),
+  updateAsnLine: (patch) => {
+    if (!patch || !patch.id) return;
+    const next = get().asnSelectedLines.map((it) =>
+      String(it.id) === String(patch.id)
+        ? { ...it, line: { ...it.line, ...patch.line } }
+        : it
+    );
+    set({ asnSelectedLines: next });
+  },
+
+  asnSelectedPOIds: [],
+  setAsnSelectedPOIds: (ids) =>
+    set({ asnSelectedPOIds: Array.from(new Set((ids || []).map((x) => String(x)))) }),
+  selectAsnPOId: (id) => {
+    const cur = (get().asnSelectedPOIds || []).map(String);
+    const nid = String(id);
+    if (!cur.includes(nid)) set({ asnSelectedPOIds: [...cur, nid] });
+  },
+  unselectAsnPOId: (id) => {
+    set({
+      asnSelectedPOIds: (get().asnSelectedPOIds || []).map(String).filter((x) => x !== String(id)),
+    });
+  },
+
+  asnPoEdits: {},
+  setAsnEditedLinesForPO: (poId, lines) =>
+    set((state) => ({
+      asnPoEdits: { ...(state.asnPoEdits || {}), [String(poId)]: Array.isArray(lines) ? lines : [] },
+    })),
+  getAsnEditedLinesForPO: (poId) => {
+    const map = get().asnPoEdits || {};
+    return map[String(poId)] || [];
+  },
+  removeAsnEditedLinesForPO: (poId) =>
+    set((state) => {
+      const next = { ...(state.asnPoEdits || {}) };
+      delete next[String(poId)];
+      return { asnPoEdits: next };
+    }),
+
+  clearAsnFlow: () =>
+    set({
+      asnHeader: null,
+      asnSelectedLines: [],
+      asnSelectedPOIds: [],
+      asnPoEdits: {},
+    }),
+    // Store for Sub Inventory Transfer Payloads
+  subInvTransferItems: [],
+  addSubInvTransferItem: (item) =>
+    set((state) => ({
+      subInvTransferItems: [...state.subInvTransferItems, item],
+    })),
+   // Edit an existing item by index or item_id
+// editSubInvTransferItem: (updatedItem) =>
+//   set((state) => ({
+//     subInvTransferItems: state.subInvTransferItems.map((it) =>
+//       String(it.item_id) === String(updatedItem.item_id)
+//         ? { ...it, ...updatedItem }
+//         : it
+//     ),
+//   })),
+
+editSubInvTransferItem: (updatedItem, editIndex) =>
+  set((state) => {
+    const list = [...state.subInvTransferItems];
+    if (editIndex !== null && editIndex >= 0 && editIndex < list.length) {
+      list[editIndex] = { ...list[editIndex], ...updatedItem };
+    }
+    return { subInvTransferItems: list };
+  }),
+
+  setSubInvTransferItems: (items) => set({ subInvTransferItems: Array.isArray(items) ? items : [] }),
+
+  removeSubInvTransferItem: (index) =>
+    set((state) => ({
+      subInvTransferItems: state.subInvTransferItems.filter((_, i) => i !== index),
+    })),
+
+  resetSubInvTransfer: () => set({ subInvTransferItems: [] }),
+// Orgnaizationtransfer store
+  OrgnaizationTransferItems: [],
+  addOrgnaizationTransferItems: (item) =>
+    set((state) => ({
+      OrgnaizationTransferItems: [...state.OrgnaizationTransferItems, item],
+    })),
+
+editOrgnaizationTransferItems: (updatedItem, editIndex) =>
+  set((state) => {
+    const list = [...state.OrgnaizationTransferItems];
+    if (editIndex !== null && editIndex >= 0 && editIndex < list.length) {
+      list[editIndex] = { ...list[editIndex], ...updatedItem };
+    }
+    return { OrgnaizationTransferItems: list };
+  }),
+
+  removeOrgnaizationTransferItems: (index) =>
+    set((state) => ({
+      OrgnaizationTransferItems: state.OrgnaizationTransferItems.filter((_, i) => i !== index),
+    })),
+
+  resetOrgnaizationTransferItems: () => set({ OrgnaizationTransferItems: [] }),
+
+  // Orgnaization details
+  Orgtransferdetails: null,
+  addOrgTransferDetails: (org_details) => set({ Orgtransferdetails: org_details }),
+  removeOrgTransferDetails: () => set({ Orgtransferdetails: null })
 }));

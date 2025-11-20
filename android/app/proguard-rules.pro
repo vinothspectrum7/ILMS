@@ -8,3 +8,9 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+-keep class com.imagepicker.** { *; }
+-keep class androidx.core.content.FileProvider { *; }
+-keep class com.google.zxing.** { *; }
+-keep class com.facebook.react.bridge.** { *; }
+-keep class com.facebook.react.modules.core.** { *; }
+

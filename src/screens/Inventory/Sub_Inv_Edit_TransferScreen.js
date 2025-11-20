@@ -1,0 +1,434 @@
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, Dimensions, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
+import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
+import Inv_FooterBtnComponent from '../../components/inventory/Inv_FooterBtnComponent';
+import Inv_CustomNumericInput from '../../components/inventory/Inv_CustomNumericInput';
+import Inv_CustomDropdown from '../../components/inventory/Inv_CustomDropdown';
+import BarcodeScanner from '../../components/inventory/Inv_BarCodeScanner';
+import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
+import { useReceivingStore } from '../../store/receivingStore';
+import { ItemsList, LocatorList, SubInventoryList } from '../../api/ApiServices';
+
+const BG = '#F6F8FA';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
+
+const INVENTORY_MENU_WIDTH = SCREEN_WIDTH;
+const H_PADDING = ms(16);
+const GAP = ms(12);
+const SCAN_W = ms(44);
+const QTY_W = scale(110);
+const ITEM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - SCAN_W;
+const UOM_FIELD_W = SCREEN_WIDTH - (2 * H_PADDING) - GAP - QTY_W;
+
+// const OPTIONS_UOM = [{ label: 'Each', value: 'EA' }, { label: 'Piece', value: 'PC' }];
+
+const mkOpts = (arr, labelKey, idKey) => arr.map((o) => ({ label: o[labelKey], value: o[idKey] }));
+const findOption = (options, value) => options.find((o) => String(o.value) === String(value));
+const labelOf = (options, value) => findOption(options, value)?.label ?? null;
+
+const DROPDOWN_ID = {
+  ITEM: 'item',
+  FROM_SUB: 'from_sub',
+  FROM_LOC: 'from_loc',
+  TO_SUB: 'to_sub',
+  TO_LOC: 'to_loc',
+  UOM: 'uom',
+};
+
+export default function Sub_Inv_Edit_TransferScreen() {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const cartcount = Number(route?.params?.cartcount || 0);
+  const itemToEdit = route?.params?.itemToEdit || null;
+  const EditIndex = route?.params?.EditIndex ?? null;
+
+  const [showScanner, setShowScanner] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+
+  const [selectedItemId, setSelectedItemId] = useState(itemToEdit?.item_id ?? null);
+  const [fromSubId, setFromSubId] = useState(itemToEdit?.from_sub ?? null);
+  const [fromLocId, setFromLocId] = useState(itemToEdit?.from_locator ?? null);
+  const [toSubId, setToSubId] = useState(itemToEdit?.to_sub ?? null);
+  const [toLocId, setToLocId] = useState(itemToEdit?.to_locator ?? null);
+  const [uomId, setUomId] = useState(itemToEdit?.uom ?? null);
+  const [allItemsData, setAllItemsData] = useState([]); // store all items with UOM
+  const [qty, setQty] = useState(Number(itemToEdit?.qty ?? 0));
+
+  const [itemOptions, SetitemOptions] = useState([]);
+  const [fromSubOptions, setFromSubOptions] = useState([]);
+  const [FromLocatorOption, setfromLocatorOption] = useState([]);
+  const [ToLocatorOption, setToLocatorOption] = useState([]);
+  const [OPTIONS_UOM,SETOPTIONS_UOM] = useState([]);
+  const [maxQty, setMaxQty] = useState(0);
+
+  const { subInvTransferItems, editSubInvTransferItem, setSubInvTransferItems, OrgData } = useReceivingStore();
+
+  const isUpdateEnabled = !!selectedItemId && !!fromSubId && !!fromLocId && !!toSubId && !!toLocId && !!uomId && Number(qty) > 0;
+
+  const handleDropdownToggle = useCallback((id, isOpen) => {
+    setOpenDropdownId(isOpen ? id : null);
+  }, []);
+
+    useEffect(() => {
+    if (!selectedItemId) {
+      SETOPTIONS_UOM([]);
+      setUomId(null);
+      return;
+    }
+  
+    const selectedItem = allItemsData.find(it => String(it.item_id) === String(selectedItemId));
+    const formattedUOM = (selectedItem?.UOM || []).map(u => ({ label: u, value: u }));
+    SETOPTIONS_UOM(formattedUOM);
+    // setUomId(null); // reset UOM selection
+  }, [selectedItemId, allItemsData]);
+
+  useEffect(() => {
+    if (!OrgData?.selectedOrg) return;
+    const LoadItems = async () => {
+      try {
+        const data = await ItemsList(OrgData?.selectedOrg);
+        const formatteddata = mkOpts(data, 'item_code', 'item_id');
+        setAllItemsData(data);
+        SetitemOptions(formatteddata);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load items. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    };
+    LoadItems();
+  }, [OrgData?.selectedOrg]);
+
+  useEffect(() => {
+    if (!selectedItemId || !OrgData?.selectedOrg) return;
+    const fetchFromSubInventory = async () => {
+      try {
+        const data = await SubInventoryList(OrgData.selectedOrg, selectedItemId);
+        const formatteddata = mkOpts(data, 'subinventory_name', 'subinventory_id');
+        setFromSubOptions(formatteddata);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Sub Inventories.', position: 'top', visibilityTime: 5000 });
+      }
+    };
+    fetchFromSubInventory();
+  }, [selectedItemId, OrgData?.selectedOrg]);
+
+  useEffect(() => {
+    if (!selectedItemId || !OrgData?.selectedOrg || !fromSubId) return;
+    const fetchLocator = async () => {
+      try {
+        const data = await LocatorList(OrgData.selectedOrg, selectedItemId, fromSubId);
+        const formatted = data.map((d) => ({
+          label: d.locator_name,
+          value: d.locator_id,
+          on_hand_qty: Number(d.on_hand_qty ?? 0),
+        }));
+        setfromLocatorOption(formatted);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load From Locators.', position: 'top', visibilityTime: 5000 });
+      }
+    };
+    fetchLocator();
+  }, [selectedItemId, OrgData?.selectedOrg, fromSubId]);
+
+  useEffect(() => {
+    if (!selectedItemId || !OrgData?.selectedOrg || !toSubId) return;
+    const fetchLocator = async () => {
+      try {
+        const data = await LocatorList(OrgData.selectedOrg, selectedItemId, toSubId);
+        const formatted = data.map((d) => ({
+          label: d.locator_name,
+          value: d.locator_id,
+        }));
+        setToLocatorOption(formatted);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load To Locators.', position: 'top', visibilityTime: 5000 });
+      }
+    };
+    fetchLocator();
+  }, [selectedItemId, OrgData?.selectedOrg, toSubId]);
+
+  useEffect(() => {
+    if (itemToEdit && fromLocId && FromLocatorOption.length > 0) {
+      const opt = findOption(FromLocatorOption, fromLocId);
+      const nextMax = Number(opt?.on_hand_qty ?? 0);
+      setMaxQty(nextMax);
+      const presetQty = Math.min(Number(itemToEdit.qty ?? 0), nextMax);
+      setQty(presetQty);
+    }
+  }, [itemToEdit, fromLocId, FromLocatorOption]);
+
+  const handleScan = useCallback((value) => {
+    const code = String(value).trim().toUpperCase();
+    const match = itemOptions.find((p) => String(p.label).toUpperCase() === code);
+    if (match) {
+      setSelectedItemId(match.value);
+      setShowScanner(false);
+      Toast.show({ type: 'success', text1: 'Item found', text2: match.label, position: 'top', visibilityTime: 2200 });
+    } else {
+      Toast.show({ type: 'error', text1: 'Item not found', text2: `Scanned value ${code} not found`, position: 'top' });
+      setShowScanner(false);
+    }
+  }, [itemOptions]);
+
+  const onBack = useCallback(() => navigation.goBack(), [navigation]);
+  const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
+  const onCartPress = useCallback(() => navigation.navigate('InventoryCart'), [navigation]);
+
+  const onSelectFromLocator = useCallback((id) => {
+    setFromLocId(id);
+    const opt = findOption(FromLocatorOption, id);
+    const nextMax = Number(opt?.on_hand_qty ?? 0);
+    setMaxQty(nextMax);
+    if (Number(qty) > nextMax) setQty(nextMax);
+  }, [FromLocatorOption, qty]);
+
+  const payloadForUpdate = useMemo(() => {
+    const itemLabel = labelOf(itemOptions, selectedItemId);
+    const fromSubLabel = labelOf(fromSubOptions, fromSubId);
+    const fromLocLabel = labelOf(FromLocatorOption, fromLocId);
+    const toSubLabel = labelOf(fromSubOptions, toSubId);
+    const toLocLabel = labelOf(ToLocatorOption, toLocId);
+    const uomLabel = labelOf(OPTIONS_UOM, uomId);
+
+    return {
+      item_id: selectedItemId,
+      item_code: itemLabel ?? null,
+      from_sub: fromSubId,
+      from_sub_name: fromSubLabel ?? null,
+      from_locator: fromLocId,
+      from_locator_name: fromLocLabel ?? null,
+      to_sub: toSubId,
+      to_sub_name: toSubLabel ?? null,
+      to_locator: toLocId,
+      to_locator_name: toLocLabel ?? null,
+      uom: uomId,
+      uom_label: uomLabel ?? null,
+      qty: Number(qty),
+    };
+  }, [
+    selectedItemId,
+    fromSubId,
+    fromLocId,
+    toSubId,
+    toLocId,
+    uomId,
+    qty,
+    itemOptions,
+    fromSubOptions,
+    FromLocatorOption,
+    ToLocatorOption,
+  ]);
+
+  const onUpdate = useCallback(() => {
+            console.log(EditIndex,"EDITINDEXEIDT");
+        console.log(payloadForUpdate,"payloadForUpdate");
+      if (EditIndex !== null && EditIndex >= 0) {
+        console.log(EditIndex,"EDITINDEXEIDT");
+        console.log(payloadForUpdate,"payloadForUpdate");
+    editSubInvTransferItem(payloadForUpdate, EditIndex);
+  }else{
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Item not found to update', position: 'top', visibilityTime: 5000 });
+  }
+    navigation.navigate('SubInvTransfer_summary');
+  }, [itemToEdit,EditIndex, payloadForUpdate, subInvTransferItems, editSubInvTransferItem, navigation]);
+
+  const onCancel = useCallback(() => {
+    navigation.navigate('SubInvTransfer_summary');
+  }, [navigation]);
+
+  return (
+    <View style={styles.safe}>
+      <Inv_HeaderComponent
+        organizationName={OrgData?.selectedOrgCode}
+        screenTitle="Sub Inventory Transfer"
+        notificationCount={0}
+        onBack={onBack}
+        onMenu={onMenu}
+        showCartIcon={cartcount > 0}
+        cartCount={cartcount}
+        onCartPress={onCartPress}
+      />
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.itemrowSplit}>
+            <Inv_CustomDropdown
+              dropdownId={DROPDOWN_ID.ITEM}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
+              label={null}
+              placeholder="Select Item*"
+              value={selectedItemId}
+              onChange={(id) => {
+                setSelectedItemId(id);
+                setFromSubId(null);
+                setFromLocId(null);
+                setToSubId(null);
+                setToLocId(null);
+                setUomId(null);
+                setQty(0);
+                setMaxQty(0);
+              }}
+              options={itemOptions}
+              idKey="value"
+              nameKey="label"
+              disabled={false}
+              selectedwidth={ITEM_FIELD_W}
+              menuWidth={INVENTORY_MENU_WIDTH}
+              menuAlign="left"
+              autoSelectWhenEmpty={false}
+            />
+            <TouchableOpacity style={styles.scanBtn} onPress={() => setShowScanner(true)} accessibilityLabel="Scan barcode">
+              <BarcodeScannerIcon width={ms(30)} height={ms(30)} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.dropdown}>
+            <Inv_CustomDropdown
+              dropdownId={DROPDOWN_ID.FROM_SUB}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
+              label={null}
+              placeholder="From Sub*"
+              value={fromSubId}
+              onChange={(id) => { setFromSubId(id); setFromLocId(null); setMaxQty(0); }}
+              options={fromSubOptions}
+              idKey="value"
+              nameKey="label"
+              disabled={!selectedItemId}
+              selectedwidth={SCREEN_WIDTH - (2 * H_PADDING)}
+              menuWidth={INVENTORY_MENU_WIDTH}
+              menuAlign="left"
+              autoSelectWhenEmpty={false}
+            />
+          </View>
+
+          <View style={styles.dropdown}>
+            {!!fromSubId && (
+              <Inv_CustomDropdown
+                dropdownId={DROPDOWN_ID.FROM_LOC}
+                openDropdownId={openDropdownId}
+                onToggleOpen={handleDropdownToggle}
+                label={null}
+                placeholder="From Locator*"
+                value={fromLocId}
+                onChange={onSelectFromLocator}
+                options={FromLocatorOption}
+                idKey="value"
+                nameKey="label"
+                disabled={!fromSubId}
+                selectedwidth={SCREEN_WIDTH - (2 * H_PADDING)}
+                menuWidth={INVENTORY_MENU_WIDTH}
+                menuAlign="left"
+                autoSelectWhenEmpty={false}
+              />
+            )}
+          </View>
+
+          <View style={styles.dropdown}>
+            <Inv_CustomDropdown
+              dropdownId={DROPDOWN_ID.TO_SUB}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
+              label={null}
+              placeholder="To Sub*"
+              value={toSubId}
+              onChange={(id) => { setToSubId(id); setToLocId(null); }}
+              options={fromSubOptions}
+              idKey="value"
+              nameKey="label"
+              disabled={!fromLocId}
+              selectedwidth={SCREEN_WIDTH - (2 * H_PADDING)}
+              menuWidth={INVENTORY_MENU_WIDTH}
+              menuAlign="left"
+              autoSelectWhenEmpty={false}
+            />
+          </View>
+
+          <View style={styles.dropdown}>
+            {!!toSubId && (
+              <Inv_CustomDropdown
+                dropdownId={DROPDOWN_ID.TO_LOC}
+                openDropdownId={openDropdownId}
+                onToggleOpen={handleDropdownToggle}
+                label={null}
+                placeholder="To Locator*"
+                value={toLocId}
+                onChange={setToLocId}
+                options={ToLocatorOption}
+                idKey="value"
+                nameKey="label"
+                disabled={!toSubId}
+                selectedwidth={SCREEN_WIDTH - (2 * H_PADDING)}
+                menuWidth={INVENTORY_MENU_WIDTH}
+                menuAlign="left"
+                autoSelectWhenEmpty={false}
+              />
+            )}
+          </View>
+
+          <View style={styles.uomrowSplit}>
+            <Inv_CustomDropdown
+              dropdownId={DROPDOWN_ID.UOM}
+              openDropdownId={openDropdownId}
+              onToggleOpen={handleDropdownToggle}
+              label={null}
+              placeholder="Select UOM*"
+              value={uomId}
+              onChange={setUomId}
+              options={OPTIONS_UOM}
+              idKey="value"
+              nameKey="label"
+              disabled={!toLocId}
+              selectedwidth={UOM_FIELD_W}
+              menuWidth={INVENTORY_MENU_WIDTH}
+              menuAlign="left"
+              autoSelectWhenEmpty={false}
+            />
+            <View style={styles.qtyCol}>
+              <Inv_CustomNumericInput
+                value={qty}
+                setValue={setQty}
+                width={QTY_W}
+                height={ms(40)}
+                disabledinput={!uomId}
+                min={0}
+                max={maxQty}
+                step={1}
+              />
+            </View>
+          </View>
+          <View style={{ height: ms(24) }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <Inv_FooterBtnComponent
+        leftLabel="Cancel"
+        rightLabel="Update"
+        rightEnabled={isUpdateEnabled}
+        onLeftPress={onCancel}
+        onRightPress={onUpdate}
+      />
+
+      <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
+        <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
+      </Modal>
+
+      <Toast />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: BG },
+  content: { paddingHorizontal: ms(2), paddingTop: ms(12) },
+  dropdown: { marginTop: ms(10) },
+  itemrowSplit: { flexDirection: 'row', alignItems: 'center', gap: ms(0), paddingHorizontal: 0, marginTop: ms(10) },
+  uomrowSplit: { flexDirection: 'row', alignItems: 'center', gap: ms(0), paddingHorizontal: 0, marginTop: ms(20) },
+  scanBtn: { height: ms(40), width: ms(40), backgroundColor: '#EFEFF0', borderRadius: ms(4), borderWidth: 1, borderColor: '#EFEFF0', alignItems: 'center', justifyContent: 'center', marginRight: ms(2), marginTop: ms(12) },
+  qtyCol: { alignItems: 'flex-end', justifyContent: 'flex-end', marginRight: ms(8), marginTop: ms(10) }
+});

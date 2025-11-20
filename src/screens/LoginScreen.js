@@ -14,6 +14,9 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import EnnVeeLogo from '../assets/icons/EnnVeeLogo.svg';
+import MailIcon from '../assets/icons/mail.svg';
+import LockIcon from '../assets/icons/lock.svg';
+import EyeIcon from '../assets/icons/eye.svg';
 
 import axios from 'axios';
 import { BASE_URL } from '../config/config';
@@ -28,6 +31,11 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleForget = async () => {
+    navigation.navigate('ForgetPassword');
+
+  };
+
   const handleLogin = async () => {
   if (employeeId === '' || password === '') {
     Alert.alert('Alert', 'Please enter both Employee ID and password.');
@@ -39,19 +47,23 @@ const LoginScreen = ({ navigation }) => {
     formData.append('grant_type', "password");
     formData.append('username', employeeId);
     formData.append('password', password);
+        console.log('entered login data',formData);
 
     const response = await UserLogin(formData);
     console.log('responseresponseresponseresponse',response);
 
-    if (response.status === 200 && response.data.access_token) {
+    if (response.status === 200 && response.data.access_token && response.data.user_name) {
       await AsyncStorage.setItem('access_token', response.data.access_token);
+      await AsyncStorage.setItem('user_name', response.data.user_name);
       navigation.replace('Home');
     } else {
-      navigation.replace('Home');
-      // Alert.alert('Login failed', 'Incorrect credentials or unexpected response.');
+      // navigation.replace('Home');
+      Alert.alert('Login failed', 'Invalid credentials.');
     }
   } catch (error) {
-    navigation.replace('Home');
+      Alert.alert('Login failed', 'Invalid credentials.');
+        console.log('errror response login',error);
+    // navigation.replace('Home');
     // if (error.response && error.response.data) {
     //   navigation.replace('Home');
     //   // Alert.alert('Login failed', JSON.stringify(error.response.data));
@@ -100,14 +112,11 @@ const LoginScreen = ({ navigation }) => {
 
       <View style={styles.bottomSection}>
         <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <Image
-              source={require('../assets/images/mail.png')}
-              style={styles.inputIcon}
-            />
+          <View style={styles.inputWrapper}>            
+            <MailIcon width={24} height={24} />
             <TextInput
               style={styles.input}
-              placeholder="Employee_101"
+              placeholder="Username"
               placeholderTextColor="#A0A0A0"
               value={employeeId}
               onChangeText={setEmployeeId}
@@ -117,10 +126,7 @@ const LoginScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.inputWrapper}>
-            <Image
-              source={require('../assets/images/lock.png')}
-              style={styles.inputIcon}
-            />
+            <LockIcon width={24} height={24} />
             <TextInput
               style={styles.input}
               placeholder="Password"
@@ -130,18 +136,11 @@ const LoginScreen = ({ navigation }) => {
               secureTextEntry={!showPassword}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIconContainer}>
-              <Image
-                source={showPassword
-                  ? require('../assets/images/eye.png')
-                  : require('../assets/images/eye.png')
-                }
-                style={styles.eyeIcon}
-                resizeMode="contain"
-              />
+              <EyeIcon width={24} height={24} />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotPasswordButton}>
+          <TouchableOpacity  style={styles.forgotPasswordButton} onPress={handleForget}>
             <Text style={styles.forgotPasswordText}>Forgot password?</Text>
           </TouchableOpacity>
 
@@ -150,7 +149,7 @@ const LoginScreen = ({ navigation }) => {
   
   <View style={styles.glossWrapper}>
     <LinearGradient
-      colors={['rgba(255, 255, 255, 0.6)', 'rgba(255, 255, 255, 0.1)', 'transparent']}
+      colors={['rgba(255, 255, 255, 0.6)', 'transparent', 'transparent', 'transparent', 'transparent', 'rgba(255, 255, 255, 0.3)']}
       style={styles.glossOverlay}
       start={{ x: 0.0, y: 0.0 }}
       end={{ x: 0.0, y: 1.0 }}
@@ -301,10 +300,14 @@ glossWrapper: {
 },
 
 glossOverlay: {
-  height: '60%', // Top part
+  height: '97%', // Top part
   width: '100%',
-  borderTopLeftRadius: 30,
-  borderTopRightRadius: 30,
+  marginTop: 1,
+  marginBottom: 1,
+  borderTopLeftRadius: 95,
+  borderTopRightRadius: 95,
+  borderBottomLeftRadius: 45, 
+  borderBottomRightRadius: 45,
 },
 
   touchIdButton: {
@@ -347,7 +350,7 @@ glossOverlay: {
   watermark: {
     width: '100%',
     height: '100%',
-    opacity: 0.6,
+    opacity: 0.3,
     position: 'absolute',
   },
 });

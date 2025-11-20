@@ -16,11 +16,13 @@ import { launchImageLibrary } from "react-native-image-picker";
 import RNQRGenerator from "rn-qr-generator";
 import { Images, Zap, ZapOff } from "lucide-react-native";
 import GlobalHeaderComponent from "../components/GlobalHeaderComponent";
+import { useReceivingStore } from "../store/receivingStore";
 
 export default function BarcodeScanner({ onScan, onClose }) {
   const [hasCameraPermission, setHasCameraPermission] = useState(Platform.OS !== "android");
   const [isScanning, setIsScanning] = useState(true);
   const [torchOn, setTorchOn] = useState(false);
+  const {OrgData} = useReceivingStore();
 
   const BRAND_BG = "#000000";
 
@@ -182,14 +184,23 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <GlobalHeaderComponent title="Barcode Scanner" dateText={formatToday()} onBack={onClose} onMenu={() => {}} />
+     <GlobalHeaderComponent
+        organizationName={OrgData?.selectedOrgCode}
+        screenTitle="Barcode Scanner"
+        notificationCount={0}
+        // profileName="Vinoth Umasankar"
+        onBack={onClose}
+        // onMenu={() => setMenuOpen(true)}
+        // onNotificationPress={() => navigation.navigate('Home')}
+        // onProfilePress={() => navigation.navigate('Home')}
+      />
       {isScanning ? (
         <View style={styles.scannerContainer}>
           <Camera
             style={StyleSheet.absoluteFill}
             cameraOptions={{ flashMode: "auto", focusMode: "on", zoomMode: "on" }}
             scanBarcode
-            showFrame
+            // showFrame
             laserColor="#233E55"
             frameColor="#FFFFFF"
             torchMode={torchOn ? "on" : "off"}
@@ -216,7 +227,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
       ) : (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text style={styles.loadingText}>Processing...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       )}
     </View>

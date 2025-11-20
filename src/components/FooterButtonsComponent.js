@@ -12,6 +12,8 @@ const GREY_MID = '#C2C2C2';
 const GREY_DARK = '#A9A9A9';
 
 const RADIUS = 42;
+const TOPGLOSSRADIUS = 37;
+const BOTTOMGLOSSRADIUS = 62;
 const HEIGHT = 48;
 
 const FooterButtonsComponent = memo(({
@@ -136,8 +138,12 @@ const styles = StyleSheet.create({
     left: 2,
     right: 2,
     height: '52%',
-    borderTopLeftRadius: RADIUS,
-    borderTopRightRadius: RADIUS,
+    marginTop: 1,
+    marginBottom: 1,  
+    borderTopLeftRadius: TOPGLOSSRADIUS,
+    borderTopRightRadius: TOPGLOSSRADIUS,
+    borderBottomLeftRadius: BOTTOMGLOSSRADIUS, 
+    borderBottomRightRadius: BOTTOMGLOSSRADIUS,
     zIndex: 2,
   },
   bottomInnerShadow: {
