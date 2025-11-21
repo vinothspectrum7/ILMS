@@ -568,27 +568,27 @@ const styles = StyleSheet.create({
 
   cardWrapper: {
     marginHorizontal: rs(16),
-    marginTop: rs(12),
+    marginTop: rs(30),
     marginBottom: rs(16),
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: rs(12),
+    borderRadius: rs(0),
     padding: rs(16),
-    paddingTop: rs(24),
+    paddingTop: rs(10),
     marginTop: rs(10),
   },
   lineBadgeFloating: {
     position: 'absolute',
-    top: 0,
-    left: rs(16),
+    top: -15,
+    left: rs(0),
     zIndex: 2,
   },
   lineBadge: {
     backgroundColor: '#5D768B',
     borderTopLeftRadius: rs(6),
     borderTopRightRadius: rs(6),
-    borderBottomRightRadius: rs(6),
+    borderBottomRightRadius: rs(0),
     paddingVertical: rs(4),
     paddingHorizontal: rs(16),
   },

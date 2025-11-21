@@ -24,7 +24,7 @@ export const MOCK_ITEMS = [
   {
     id: 'ITEM003',
     name: 'Item3',
-    code: 'ITM908', 
+    code: 'ITM908',
     description:
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
     controlType: 'Lot',
@@ -55,7 +55,6 @@ export const MOCK_ITEMS = [
     openQty: 200,
   },
 ];
-
 
 export const MOCK_SUB_INVENTORIES = [
   {
@@ -95,10 +94,8 @@ export const MOCK_SUB_INVENTORIES = [
   },
 ];
 
-
 export const MOCK_FROM_SUB_LIST = MOCK_SUB_INVENTORIES;
 export const MOCK_TO_SUB_LIST = MOCK_SUB_INVENTORIES;
-
 
 export const MOCK_LOCATORS = [
   {
@@ -143,10 +140,8 @@ export const MOCK_LOCATORS = [
   },
 ];
 
-
 export const MOCK_FROM_LOCATOR_LIST = MOCK_LOCATORS;
 export const MOCK_TO_LOCATOR_LIST = MOCK_LOCATORS;
-
 
 export const MOCK_UOMS = [
   {
@@ -166,6 +161,23 @@ export const MOCK_UOMS = [
   },
 ];
 
+export const MOCK_LOTS = [
+  {
+    id: 'LOT251113-528',
+    name: 'LOT251113-528',
+    code: 'LOT251113-528',
+  },
+  {
+    id: 'LOT176356-379',
+    name: 'LOT176356-379',
+    code: 'LOT176356-379',
+  },
+  {
+    id: 'LOT365807-977',
+    name: 'LOT365807-977',
+    code: 'LOT365807-977',
+  },
+];
 
 export const MOCK_INVENTORY_DATA = {
   items: MOCK_ITEMS,
@@ -174,4 +186,5 @@ export const MOCK_INVENTORY_DATA = {
   fromLocators: MOCK_FROM_LOCATOR_LIST,
   toLocators: MOCK_TO_LOCATOR_LIST,
   uoms: MOCK_UOMS,
+  lots: MOCK_LOTS,
 };
