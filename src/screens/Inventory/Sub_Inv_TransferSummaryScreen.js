@@ -53,7 +53,7 @@ export default function Sub_Inv_TransferSummaryScreen() {
   };
 
   const handleAddMore = () => {
-    navigation.navigate('Sub_Inv_TransferScreen', { isAddMore: true });
+    navigation.navigate('SubInvTransfer', { isAddMore: true });
   };
 
   const handleTransferPress = () => {
