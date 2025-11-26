@@ -12,7 +12,6 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Dimensions,
-  Platform,
 } from 'react-native';
 import DropdownIcon from '../../assets/icons/dropdown.svg';
 import SearchIcon from '../../assets/icons/search.svg';
@@ -222,8 +221,8 @@ export default function Inv_Dropdown({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => {
-              const code = renderCode ? renderCode(item) : item.code;
               const isSelected = value && value.id === item.id;
+              const description = item.description ? String(item.description) : '';
 
               return (
                 <TouchableOpacity
@@ -235,23 +234,15 @@ export default function Inv_Dropdown({
                     <Text style={styles.rowTitle} numberOfLines={1}>
                       {item.name}
                     </Text>
-                    {code ? (
-                      <View
-                        style={[
-                          styles.codePill,
-                          isSelected && styles.codePillSelected,
-                        ]}
+                    {description ? (
+                      <Text
+                        style={styles.rowRightDesc}
+                        numberOfLines={1}
                       >
-                        <Text style={styles.codeText}>{code}</Text>
-                      </View>
+                        {description}
+                      </Text>
                     ) : null}
                   </View>
-
-                  {!!item.description && (
-                    <Text style={styles.rowDesc} numberOfLines={2}>
-                      {item.description}
-                    </Text>
-                  )}
                   <View style={styles.rowdivider} />
                 </TouchableOpacity>
               );
@@ -305,11 +296,9 @@ const styles = StyleSheet.create({
   dropdownIcon: {
     marginLeft: rs(6),
   },
-
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
-
   cardContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: rs(12),
@@ -318,11 +307,9 @@ const styles = StyleSheet.create({
     paddingBottom: rs(16),
     elevation: 2,
   },
-
   list: {
     maxHeight: SCREEN_HEIGHT * 0.55,
   },
-
   searchLabelRow: {
     marginBottom: rs(4),
   },
@@ -349,14 +336,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEEEEE',
     marginVertical: rs(10),
   },
-
   rowdivider: {
     width: '100%',
     height: 1,
     backgroundColor: '#EEEEEE',
     marginTop: rs(5),
   },
-
   row: {
     paddingVertical: rs(5),
     paddingHorizontal: rs(4),
@@ -378,21 +363,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: rs(8),
   },
-  rowDesc: {
+  rowRightDesc: {
     fontSize: rs(12),
-    color: '#666666',
-  },
-  codePill: {
-    borderRadius: rs(16),
-    paddingHorizontal: rs(10),
-    paddingVertical: rs(4),
-    backgroundColor: '#F5F5F5',
-  },
-  codePillSelected: {
-    backgroundColor: '#D9E4EE',
-  },
-  codeText: {
-    fontSize: rs(11),
-    color: '#444444',
+    color: '#777777',
+    maxWidth: '50%',
+    textAlign: 'right',
   },
 });

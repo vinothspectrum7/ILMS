@@ -4,7 +4,7 @@ export const MOCK_ITEMS = [
     name: 'Item1',
     code: 'ITM001',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
     controlType: 'None',
     availableStock: 120,
     availableUom: 'Each',
@@ -15,7 +15,7 @@ export const MOCK_ITEMS = [
     name: 'Item2',
     code: 'ITM002',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
     controlType: 'None',
     availableStock: 80,
     availableUom: 'Each',
@@ -26,7 +26,7 @@ export const MOCK_ITEMS = [
     name: 'Item3',
     code: 'ITM908',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
     controlType: 'Lot',
     availableStock: 56,
     availableUom: 'Each',
@@ -37,7 +37,7 @@ export const MOCK_ITEMS = [
     name: 'Item4',
     code: 'ITM004',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
     controlType: 'Serial',
     availableStock: 30,
     availableUom: 'Each',
@@ -48,7 +48,7 @@ export const MOCK_ITEMS = [
     name: 'Item5',
     code: 'ITM005',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
     controlType: 'Lot',
     availableStock: 200,
     availableUom: 'Each',
@@ -62,35 +62,35 @@ export const MOCK_SUB_INVENTORIES = [
     name: 'FGI 1',
     code: 'SUB0001',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
   {
     id: 'SUB0002',
     name: 'FGI 2',
     code: 'SUB0002',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
   {
     id: 'SUB0003',
     name: 'FGI 3',
     code: 'SUB0003',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
   {
     id: 'SUB0004',
     name: 'FGI 4',
     code: 'SUB0004',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
   {
     id: 'SUB0005',
     name: 'FGI 5',
     code: 'SUB0005',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
 ];
 
@@ -104,7 +104,7 @@ export const MOCK_LOCATORS = [
     code: 'LOC0001',
     subInventoryId: 'SUB0001',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
   {
     id: 'LOC0002',
@@ -112,7 +112,7 @@ export const MOCK_LOCATORS = [
     code: 'LOC0002',
     subInventoryId: 'SUB0002',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
   {
     id: 'LOC0003',
@@ -120,7 +120,7 @@ export const MOCK_LOCATORS = [
     code: 'LOC0003',
     subInventoryId: 'SUB0003',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
   {
     id: 'LOC0004',
@@ -128,7 +128,7 @@ export const MOCK_LOCATORS = [
     code: 'LOC0004',
     subInventoryId: 'SUB0004',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
   {
     id: 'LOC0005',
@@ -136,7 +136,7 @@ export const MOCK_LOCATORS = [
     code: 'LOC0005',
     subInventoryId: 'SUB0005',
     description:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      'Lorem ipsum dolor sit amet.',
   },
 ];
 

@@ -1,5 +1,3 @@
-// src/screens/Inventory/Sub_Inv_TransferScreen.js
-
 import React, { useMemo, useState } from 'react';
 import {
   View,
@@ -438,6 +436,7 @@ export default function Sub_Inv_TransferScreen() {
         itemName={selectedItem?.name}
         initialLots={currentLots}
         onSave={handleSaveLots}
+        lineLabel={baseLineLabel}
       />
 
       <ConfirmModal

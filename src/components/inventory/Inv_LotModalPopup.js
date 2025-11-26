@@ -11,13 +11,16 @@ import {
   Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import LinearGradient from 'react-native-linear-gradient';
 import CloseIcon from '../../assets/icons/close.svg';
-import DeleteIcon from '../../assets/icons/deleteicon.svg';
 import CalendarIcon from '../../assets/icons/calendar.svg';
 import Inv_CustomNumericInput from './Inv_CustomNumericInput';
 import Inv_Dropdown from './Inv_Dropdown';
 import BarcodeScanner from '../../screens/BarCodeScanner';
 import { MOCK_LOTS } from '../../data/inventoryMockData';
+import LotSerialItemIcon from '../../assets/icons/lotserialitem.svg';
+import LotSerialDeleteIcon from '../../assets/icons/lotserialdelete.svg';
+import ErrorIcon from '../../assets/icons/error.svg';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -63,6 +66,7 @@ export default function Inv_LotModalPopup({
   itemName = '',
   initialLots = [],
   onSave,
+  lineLabel,
 }) {
   const [lots, setLots] = useState([]);
   const [scannerVisible, setScannerVisible] = useState(false);
@@ -71,6 +75,7 @@ export default function Inv_LotModalPopup({
   const [datePickerDate, setDatePickerDate] = useState(new Date());
   const [datePickerLotIdx, setDatePickerLotIdx] = useState(null);
   const [datePickerField, setDatePickerField] = useState(null);
+  const [showQtyError, setShowQtyError] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -100,6 +105,7 @@ export default function Inv_LotModalPopup({
           },
         ]);
       }
+      setShowQtyError(false);
     }
   }, [visible, initialLots]);
 
@@ -121,6 +127,7 @@ export default function Inv_LotModalPopup({
     const otherTotal = totalQty - currentQty + (Number(nextQty) || 0);
     if (otherTotal > lineQty) return;
     updateLot(idx, { qty: nextQty });
+    setShowQtyError(false);
   };
 
   const handleAddLot = () => {
@@ -154,12 +161,11 @@ export default function Inv_LotModalPopup({
         qty: 0,
       },
     ]);
+    setShowQtyError(false);
   };
 
-  const isValid =
+  const hasAllFields =
     lots.length > 0 &&
-    lineQty > 0 &&
-    totalQty === lineQty &&
     lots.every(
       l =>
         l.lotNumber &&
@@ -169,7 +175,15 @@ export default function Inv_LotModalPopup({
     );
 
   const handleSave = () => {
-    if (!isValid) return;
+    if (lineQty > 0 && totalQty < lineQty) {
+      setShowQtyError(true);
+      return;
+    }
+
+    if (!hasAllFields || totalQty !== lineQty || lineQty <= 0) {
+      return;
+    }
+
     const payload = lots.map(({ idx, selectedLot, ...rest }) => rest);
     onSave?.(payload, totalQty);
     onClose?.();
@@ -224,12 +238,7 @@ export default function Inv_LotModalPopup({
     return null;
   }
 
-  const qtyColorStyle =
-    totalQty <= 0
-      ? styles.qtyPending
-      : totalQty < lineQty
-      ? styles.qtyPartial
-      : styles.qtyOk;
+  const qtySelectedActive = totalQty > 0;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -242,7 +251,9 @@ export default function Inv_LotModalPopup({
         <View style={styles.root}>
           <View style={styles.content}>
             <View style={styles.headerBar}>
-              <Text style={styles.headerTitle}>Lot Number Details</Text>
+              <Text style={styles.headerTitle}>
+                {lineLabel ? `Lot Number Details - ${lineLabel}` : 'Lot Number Details'}
+              </Text>
               <TouchableOpacity
                 onPress={onClose}
                 hitSlop={{ top: rs(10), bottom: rs(10), left: rs(10), right: rs(10) }}
@@ -251,17 +262,47 @@ export default function Inv_LotModalPopup({
               </TouchableOpacity>
             </View>
 
-            <View style={styles.topInfo}>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemLabel}>Item Name</Text>
-                <Text style={styles.itemValue}>{itemName || '-'}</Text>
-              </View>
-              <View style={styles.qtyInfo}>
-                <Text style={styles.itemLabel}>Qty Selected</Text>
-                <Text style={[styles.qtyValue, qtyColorStyle]}>
-                  {totalQty}/{lineQty}
+            {showQtyError && (
+              <View style={styles.errorBanner}>
+                <ErrorIcon width={rs(16)} height={rs(16)} />
+                <Text style={styles.errorText}>
+                  Enter the complete transfer quantity to continue.
                 </Text>
               </View>
+            )}
+
+            <View style={styles.topInfoWrapper}>
+              <LinearGradient
+                colors={['#5D7688', '#233655']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.topInfo}
+              >
+                <View style={styles.topLeft}>
+                  <View style={styles.iconBox}>
+                    <LotSerialItemIcon width={rs(32)} height={rs(32)} />
+                  </View>
+                  <View style={styles.itemTextBlock}>
+                    <Text style={styles.itemLabel}>Item Name</Text>
+                    <Text style={styles.itemValue}>{itemName || '-'}</Text>
+                  </View>
+                </View>
+                <View style={styles.qtyInfo}>
+                  <Text style={styles.topQtyLabel}>Qty Selected</Text>
+                  <Text style={styles.qtyValue}>
+                    <Text
+                      style={[
+                        styles.qtySelected,
+                        qtySelectedActive && styles.qtySelectedActive,
+                      ]}
+                    >
+                      {totalQty}
+                    </Text>
+                    <Text style={styles.qtySlash}>/</Text>
+                    <Text style={styles.qtyTotal}>{lineQty}</Text>
+                  </Text>
+                </View>
+              </LinearGradient>
             </View>
 
             <ScrollView
@@ -276,19 +317,24 @@ export default function Inv_LotModalPopup({
 
                 return (
                   <View key={lot.idx} style={styles.lotGroup}>
-                    <View style={styles.lotHeaderFloating}>
-                      <Text style={styles.lotTitle}>Lot {index + 1}</Text>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteLot(lot.idx)}
-                        hitSlop={{ top: rs(8), bottom: rs(8), left: rs(8), right: rs(8) }}
-                      >
-                        <View style={styles.deleteCircle}>
-                          <DeleteIcon width={rs(18)} height={rs(18)} />
-                        </View>
-                      </TouchableOpacity>
-                    </View>
-
                     <View style={styles.lotCard}>
+                      <View style={styles.lotHeaderRow}>
+                        <Text style={styles.lotTitle}>Lot {index + 1}</Text>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteLot(lot.idx)}
+                          hitSlop={{
+                            top: rs(8),
+                            bottom: rs(8),
+                            left: rs(8),
+                            right: rs(8),
+                          }}
+                        >
+                          <View style={styles.lotDeleteIconWrapper}>
+                            <LotSerialDeleteIcon width={rs(16)} height={rs(16)} />
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+
                       <Inv_Dropdown
                         label="Lot Number"
                         required
@@ -314,7 +360,7 @@ export default function Inv_LotModalPopup({
                           </Text>
                           <View style={styles.dateRow}>
                             <TextInput
-                              style={styles.dateInput}
+                              style={[styles.dateInput, styles.dateInputMfg]}
                               value={lot.mfgDate}
                               onChangeText={t => updateLot(lot.idx, { mfgDate: t })}
                               placeholder="DD/MM/YYYY"
@@ -336,7 +382,7 @@ export default function Inv_LotModalPopup({
                           </Text>
                           <View style={styles.dateRow}>
                             <TextInput
-                              style={styles.dateInput}
+                              style={[styles.dateInput, styles.dateInputExp]}
                               value={lot.expDate}
                               onChangeText={t => updateLot(lot.idx, { expDate: t })}
                               placeholder="DD/MM/YYYY"
@@ -387,11 +433,7 @@ export default function Inv_LotModalPopup({
                 <Text style={styles.deleteAllText}>Delete All</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.saveBtn, !isValid && styles.disabledBtn]}
-                disabled={!isValid}
-                onPress={handleSave}
-              >
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
                 <Text style={styles.saveText}>Save</Text>
               </TouchableOpacity>
 
@@ -443,43 +485,88 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#233E55',
   },
+  errorBanner: {
+    marginTop: rs(8),
+    marginHorizontal: rs(16),
+    borderRadius: rs(8),
+    backgroundColor: '#FDE3E3',
+    paddingVertical: rs(8),
+    paddingHorizontal: rs(10),
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: rs(12),
+    fontWeight: '600',
+    marginLeft: rs(6),
+  },
+  topInfoWrapper: {
+    marginTop: rs(8),
+    marginHorizontal: rs(16),
+  },
   topInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: rs(16),
-    paddingVertical: rs(12),
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: rs(12),
+    paddingVertical: rs(10),
+    borderRadius: rs(8),
+    alignItems: 'center',
   },
-  itemInfo: {
+  topLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  qtyInfo: {
-    alignItems: 'flex-end',
+  iconBox: {
+    width: rs(40),
+    height: rs(40),
+    borderRadius: rs(8),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: rs(10),
+  },
+  itemTextBlock: {
+    flex: 1,
   },
   itemLabel: {
-    fontSize: rs(12),
-    color: '#555555',
+    fontSize: rs(11),
+    color: '#FFFFFF',
+    opacity: 0.8,
   },
   itemValue: {
     fontSize: rs(14),
     fontWeight: '600',
-    color: '#222222',
+    color: '#FFFFFF',
     marginTop: rs(2),
+  },
+  qtyInfo: {
+    alignItems: 'flex-end',
+  },
+  topQtyLabel: {
+    fontSize: rs(11),
+    color: '#FFFFFF',
+    opacity: 0.8,
   },
   qtyValue: {
-    fontSize: rs(14),
-    fontWeight: '600',
     marginTop: rs(2),
   },
-  qtyPending: {
-    color: '#E53935',
+  qtySelected: {
+    fontSize: rs(14),
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-  qtyPartial: {
-    color: '#F57C00',
+  qtySelectedActive: {
+    fontSize: rs(16),
   },
-  qtyOk: {
-    color: '#2E7D32',
+  qtySlash: {
+    fontSize: rs(14),
+    color: '#FFFFFF',
+  },
+  qtyTotal: {
+    fontSize: rs(14),
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   scroll: {
     flex: 1,
@@ -489,43 +576,39 @@ const styles = StyleSheet.create({
   lotGroup: {
     marginBottom: rs(20),
   },
-  lotHeaderFloating: {
-    position: 'absolute',
-    top: rs(-10),
-    left: rs(20),
-    right: rs(-10),
-    zIndex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   lotCard: {
     borderRadius: rs(8),
     borderWidth: 1,
     borderColor: '#E0E0E0',
     padding: rs(12),
-    paddingTop: rs(20),
     backgroundColor: '#FFFFFF',
   },
-  deleteCircle: {
-    width: rs(22),
-    height: rs(22),
-    borderRadius: rs(16),
-    backgroundColor: '#DA1E28',
-    justifyContent: 'center',
+  lotHeaderRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    elevation: 1,
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
+    justifyContent: 'space-between',
+    backgroundColor: '#ECF1F7',
+    paddingHorizontal: rs(10),
+    paddingVertical: rs(6),
+    marginHorizontal: -rs(12),
+    marginTop: -rs(12),
+    marginBottom: rs(12),
+    borderTopLeftRadius: rs(8),
+    borderTopRightRadius: rs(8),
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   lotTitle: {
     fontSize: rs(14),
     fontWeight: '600',
     color: '#333333',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: rs(8),
+  },
+  lotDeleteIconWrapper: {
+    width: rs(24),
+    height: rs(24),
+    borderRadius: rs(12),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   fieldLabel: {
     fontSize: rs(12),
@@ -555,13 +638,18 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: rs(8),
     borderWidth: 1,
-    borderColor: '#EFEFF0',
     height: rs(40),
     paddingHorizontal: rs(10),
     paddingRight: rs(36),
     fontSize: rs(10),
     color: '#222222',
     backgroundColor: '#FFFFFF',
+  },
+  dateInputMfg: {
+    borderColor: '#2E7D32',
+  },
+  dateInputExp: {
+    borderColor: '#F57C00',
   },
   dateIconBtn: {
     position: 'absolute',
@@ -637,8 +725,5 @@ const styles = StyleSheet.create({
   },
   addLotTextDisabled: {
     color: '#888888',
-  },
-  disabledBtn: {
-    opacity: 0.4,
   },
 });
