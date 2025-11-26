@@ -43,6 +43,7 @@ import Inv_Adj_EditScreen from './src/screens/Inventory/Inv_Adj_EditScreen';
 import Inv_Adj_SummaryScreen from './src/screens/Inventory/Inv_Adj_SummaryScreen';
 import SettingsScreen from './src/screens/Profile/profile';
 import ChangePassword from './src/screens/Profile/ChangePassword';
+import Sub_Inv_TransferSummaryScreen from './src/screens/Inventory/Sub_Inv_TransferSummaryScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -257,6 +258,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="ChangePassword"
 component={ChangePassword}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Sub_Inv_TransferSummaryScreen"
+component={Sub_Inv_TransferSummaryScreen}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>
