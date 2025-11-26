@@ -299,16 +299,21 @@ const styles = StyleSheet.create({
   },
   itemInfoLeft: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   itemInfoRight: {
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    minWidth: rs(80),
   },
   itemLabel: {
     fontSize: rs(11),
     color: '#555555',
   },
   itemValue: {
-    marginTop: rs(2),
+    marginLeft: rs(6),
     fontSize: rs(14),
     fontWeight: '600',
     color: '#233E55',
@@ -347,7 +352,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D9E4EE',
     borderRadius: rs(8),
     paddingHorizontal: rs(10),
-    paddingVertical: rs(6),    
+    paddingVertical: rs(6),
   },
   detailsValueText: {
     fontSize: rs(13),
