@@ -130,7 +130,7 @@ const SettingsScreen = () => {
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={styles.versionText}>Version 25110719</Text>
+        <Text style={styles.versionText}>Version 25112620</Text>
       </ScrollView>
         {/* Log Out Button (Fixed SafeArea Padding + Bottom Alignment) */}
         <View style={styles.logoutContainer}>

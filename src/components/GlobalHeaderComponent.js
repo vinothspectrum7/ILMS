@@ -67,7 +67,7 @@ export default function GlobalHeaderComponent({
   onMenu = () => {},
   onNotificationPress = () => {},
   onMenuSelect = () => {},
-  menuVersion = '25110719',
+  menuVersion = '25112620',
 }) {
   const title = `${org3(organizationName)} – ${screenTitle}${contextInfo ? `(${contextInfo})` : ''}`;
   const showDot = Number(notificationCount) > 0;

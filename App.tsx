@@ -44,6 +44,7 @@ import Inv_Adj_SummaryScreen from './src/screens/Inventory/Inv_Adj_SummaryScreen
 import SettingsScreen from './src/screens/Profile/profile';
 import ChangePassword from './src/screens/Profile/ChangePassword';
 import Sub_Inv_TransferSummaryScreen from './src/screens/Inventory/Sub_Inv_TransferSummaryScreen';
+import Rec_ViewItemDetailsScreen from './src/screens/Receive/Rec_ViewItemDetailsScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -263,6 +264,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="Sub_Inv_TransferSummaryScreen"
 component={Sub_Inv_TransferSummaryScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Rec_ViewItemDetailsScreen"
+component={Rec_ViewItemDetailsScreen}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>
