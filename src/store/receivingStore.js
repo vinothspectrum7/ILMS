@@ -1,5 +1,3 @@
-// src/store/receivingStore.js
-
 import { create } from 'zustand';
 
 const clampToOpen = (qty, open) => {
@@ -12,44 +10,49 @@ const clampToOpen = (qty, open) => {
 
 export const useReceivingStore = create((set, get) => ({
   poHeader: null,
-  setPoHeader: (header) => set({ poHeader: header }),
-  setActiveTab: (tab) => set({ ActiveTab: tab }),
-  setOrgData: (data) => set({ OrgData: data }),
-  setInventoryList: (data) => set({ InventoryList: data }),
+  setPoHeader: header => set({ poHeader: header }),
+  setActiveTab: tab => set({ ActiveTab: tab }),
+  setOrgData: data => set({ OrgData: data }),
+  setInventoryList: data => set({ InventoryList: data }),
 
-  getLocatorFromCache: (subInventoryId) => {
-    return get().locatorCache[subInventoryId] || null;
+  locatorCache: {},
+  imageCache: {},
+
+  getLocatorFromCache: subInventoryId => {
+    const cache = get().locatorCache || {};
+    return cache[subInventoryId] || null;
   },
 
-  getImageFromCache: (itemid) => {
-    return get().imageCache[itemid] || null;
+  getImageFromCache: itemid => {
+    const cache = get().imageCache || {};
+    return cache[itemid] || null;
   },
 
   setImageInCache: (itemid, image) => {
-    set((state) => ({
+    set(state => ({
       imageCache: {
-        ...state.imageCache,
+        ...(state.imageCache || {}),
         [itemid]: image,
       },
     }));
   },
 
   setLocatorInCache: (subInventoryId, locators) => {
-    set((state) => ({
+    set(state => ({
       locatorCache: {
-        ...state.locatorCache,
+        ...(state.locatorCache || {}),
         [subInventoryId]: locators,
       },
     }));
   },
 
-  setLocatorList: (data) => set({ LocatorList: data }),
+  setLocatorList: data => set({ LocatorList: data }),
 
   receiveItems: [],
-  initReceiveItems: (items) => set({ receiveItems: items }),
-  mergePatchIntoReceiveItems: (patch) => {
+  initReceiveItems: items => set({ receiveItems: items }),
+  mergePatchIntoReceiveItems: patch => {
     if (!patch || !patch.id) return;
-    const next = get().receiveItems.map((it) =>
+    const next = get().receiveItems.map(it =>
       String(it.id) === String(patch.id)
         ? {
             ...it,
@@ -61,6 +64,11 @@ export const useReceivingStore = create((set, get) => ({
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
             imageUri: patch.imageUri ?? it.imageUri,
+            lotLines: patch.lotLines ?? it.lotLines,
+            lotTotalQty:
+              typeof patch.lotTotalQty === 'number'
+                ? patch.lotTotalQty
+                : it.lotTotalQty,
           }
         : it,
     );
@@ -68,10 +76,10 @@ export const useReceivingStore = create((set, get) => ({
   },
 
   summaryItems: [],
-  initSummaryItems: (items) => set({ summaryItems: items }),
-  mergePatchIntoSummaryItems: (patch) => {
+  initSummaryItems: items => set({ summaryItems: items }),
+  mergePatchIntoSummaryItems: patch => {
     if (!patch || !patch.id) return;
-    const next = get().summaryItems.map((it) =>
+    const next = get().summaryItems.map(it =>
       String(it.id) === String(patch.id)
         ? {
             ...it,
@@ -100,18 +108,19 @@ export const useReceivingStore = create((set, get) => ({
       imageCache: null,
     }),
 
-  resetReceiving: () => set({ poHeader: null, receiveItems: [], summaryItems: [] }),
+  resetReceiving: () =>
+    set({ poHeader: null, receiveItems: [], summaryItems: [] }),
 
   asnHeader: null,
-  setAsnHeader: (header) => set({ asnHeader: header }),
+  setAsnHeader: header => set({ asnHeader: header }),
 
   asnSelectedLines: [],
-  initAsnSelectedLines: (lines) =>
+  initAsnSelectedLines: lines =>
     set({ asnSelectedLines: Array.isArray(lines) ? lines : [] }),
 
-  updateAsnLine: (patch) => {
+  updateAsnLine: patch => {
     if (!patch || !patch.id) return;
-    const next = get().asnSelectedLines.map((it) =>
+    const next = get().asnSelectedLines.map(it =>
       String(it.id) === String(patch.id)
         ? { ...it, line: { ...it.line, ...patch.line } }
         : it,
@@ -120,37 +129,43 @@ export const useReceivingStore = create((set, get) => ({
   },
 
   asnSelectedPOIds: [],
-  setAsnSelectedPOIds: (ids) =>
-    set({ asnSelectedPOIds: Array.from(new Set((ids || []).map((x) => String(x)))) }),
+  setAsnSelectedPOIds: ids =>
+    set({
+      asnSelectedPOIds: Array.from(
+        new Set((ids || []).map(x => String(x))),
+      ),
+    }),
 
-  selectAsnPOId: (id) => {
+  selectAsnPOId: id => {
     const cur = (get().asnSelectedPOIds || []).map(String);
     const nid = String(id);
     if (!cur.includes(nid)) set({ asnSelectedPOIds: [...cur, nid] });
   },
 
-  unselectAsnPOId: (id) => {
+  unselectAsnPOId: id => {
     set({
-      asnSelectedPOIds: (get().asnSelectedPOIds || []).map(String).filter((x) => x !== String(id)),
+      asnSelectedPOIds: (get().asnSelectedPOIds || [])
+        .map(String)
+        .filter(x => x !== String(id)),
     });
   },
 
   asnPoEdits: {},
   setAsnEditedLinesForPO: (poId, lines) =>
-    set((state) => ({
+    set(state => ({
       asnPoEdits: {
         ...(state.asnPoEdits || {}),
         [String(poId)]: Array.isArray(lines) ? lines : [],
       },
     })),
 
-  getAsnEditedLinesForPO: (poId) => {
+  getAsnEditedLinesForPO: poId => {
     const map = get().asnPoEdits || {};
     return map[String(poId)] || [];
   },
 
-  removeAsnEditedLinesForPO: (poId) =>
-    set((state) => {
+  removeAsnEditedLinesForPO: poId =>
+    set(state => {
       const next = { ...(state.asnPoEdits || {}) };
       delete next[String(poId)];
       return { asnPoEdits: next };
@@ -164,15 +179,14 @@ export const useReceivingStore = create((set, get) => ({
       asnPoEdits: {},
     }),
 
-  // Store for Sub Inventory Transfer payloads
   subInvTransferItems: [],
-  addSubInvTransferItem: (item) =>
-    set((state) => ({
+  addSubInvTransferItem: item =>
+    set(state => ({
       subInvTransferItems: [...state.subInvTransferItems, item],
     })),
 
   editSubInvTransferItem: (updatedItem, editIndex) =>
-    set((state) => {
+    set(state => {
       const list = [...state.subInvTransferItems];
       if (editIndex !== null && editIndex >= 0 && editIndex < list.length) {
         list[editIndex] = { ...list[editIndex], ...updatedItem };
@@ -180,25 +194,24 @@ export const useReceivingStore = create((set, get) => ({
       return { subInvTransferItems: list };
     }),
 
-  setSubInvTransferItems: (items) =>
+  setSubInvTransferItems: items =>
     set({ subInvTransferItems: Array.isArray(items) ? items : [] }),
 
-  removeSubInvTransferItem: (index) =>
-    set((state) => ({
+  removeSubInvTransferItem: index =>
+    set(state => ({
       subInvTransferItems: state.subInvTransferItems.filter((_, i) => i !== index),
     })),
 
   resetSubInvTransfer: () => set({ subInvTransferItems: [] }),
 
-  // Organization Transfer store
   OrgnaizationTransferItems: [],
-  addOrgnaizationTransferItems: (item) =>
-    set((state) => ({
+  addOrgnaizationTransferItems: item =>
+    set(state => ({
       OrgnaizationTransferItems: [...state.OrgnaizationTransferItems, item],
     })),
 
   editOrgnaizationTransferItems: (updatedItem, editIndex) =>
-    set((state) => {
+    set(state => {
       const list = [...state.OrgnaizationTransferItems];
       if (editIndex !== null && editIndex >= 0 && editIndex < list.length) {
         list[editIndex] = { ...list[editIndex], ...updatedItem };
@@ -206,17 +219,17 @@ export const useReceivingStore = create((set, get) => ({
       return { OrgnaizationTransferItems: list };
     }),
 
-  removeOrgnaizationTransferItems: (index) =>
-    set((state) => ({
+  removeOrgnaizationTransferItems: index =>
+    set(state => ({
       OrgnaizationTransferItems: state.OrgnaizationTransferItems.filter(
         (_, i) => i !== index,
       ),
     })),
 
-  resetOrgnaizationTransferItems: () => set({ OrgnaizationTransferItems: [] }),
+  resetOrgnaizationTransferItems: () =>
+    set({ OrgnaizationTransferItems: [] }),
 
-  // Organization transfer details
   Orgtransferdetails: null,
-  addOrgTransferDetails: (org_details) => set({ Orgtransferdetails: org_details }),
+  addOrgTransferDetails: org_details => set({ Orgtransferdetails: org_details }),
   removeOrgTransferDetails: () => set({ Orgtransferdetails: null }),
 }));

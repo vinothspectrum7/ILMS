@@ -8,16 +8,14 @@ import {
   ScrollView,
   TextInput,
   Platform,
-  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import LinearGradient from 'react-native-linear-gradient';
 import CloseIcon from '../../assets/icons/close.svg';
 import CalendarIcon from '../../assets/icons/calendar.svg';
+import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
 import Rec_CustomNumericInput from './Rec_CustomNumericInput';
-import Rec_Dropdown from './Rec_DropDown';
 import BarcodeScanner from '../../screens/BarCodeScanner';
-import { MOCK_LOTS } from '../../data/inventoryMockData';
 import LotSerialItemIcon from '../../assets/icons/lotserialitem.svg';
 import LotSerialDeleteIcon from '../../assets/icons/lotserialdelete.svg';
 import ErrorIcon from '../../assets/icons/error.svg';
@@ -47,16 +45,15 @@ const parseDate = str => {
   return d;
 };
 
-const findLotOption = lotCode => {
-  if (!lotCode) return null;
-  const target = String(lotCode).toLowerCase().trim();
-  return (
-    MOCK_LOTS.find(l => {
-      const code = String(l.code || '').toLowerCase().trim();
-      const name = String(l.name || '').toLowerCase().trim();
-      return code === target || name === target;
-    }) || null
-  );
+const pad2 = n => String(n).padStart(2, '0');
+
+const generateLotNumber = () => {
+  const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = pad2(d.getMonth() + 1);
+  const dd = pad2(d.getDate());
+  const rand = String(Math.floor(100 + Math.random() * 900));
+  return `LOT${yy}${mm}${dd}-${rand}`;
 };
 
 export default function Rec_LotModalPopup({
@@ -64,6 +61,7 @@ export default function Rec_LotModalPopup({
   onClose,
   lineQty = 0,
   itemName = '',
+  itemCode = '',
   initialLots = [],
   onSave,
   lineLabel,
@@ -78,35 +76,29 @@ export default function Rec_LotModalPopup({
   const [showQtyError, setShowQtyError] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-      if (initialLots && initialLots.length > 0) {
-        setLots(
-          initialLots.map((l, idx) => {
-            const lotOpt = findLotOption(l.lotNumber);
-            return {
-              idx,
-              lotNumber: l.lotNumber || lotOpt?.code || lotOpt?.name || '',
-              selectedLot: lotOpt,
-              mfgDate: l.mfgDate || '',
-              expDate: l.expDate || '',
-              qty: Number(l.qty) || 0,
-            };
-          }),
-        );
-      } else {
-        setLots([
-          {
-            idx: 0,
-            lotNumber: '',
-            selectedLot: null,
-            mfgDate: '',
-            expDate: '',
-            qty: 0,
-          },
-        ]);
-      }
-      setShowQtyError(false);
+    if (!visible) return;
+    if (Array.isArray(initialLots) && initialLots.length > 0) {
+      setLots(
+        initialLots.map((l, index) => ({
+          idx: Number.isFinite(l.idx) ? l.idx : index,
+          lotNumber: l.lotNumber || '',
+          mfgDate: l.mfgDate || '',
+          expDate: l.expDate || '',
+          qty: Number(l.qty) || 0,
+        })),
+      );
+    } else {
+      setLots([
+        {
+          idx: 0,
+          lotNumber: '',
+          mfgDate: '',
+          expDate: '',
+          qty: 0,
+        },
+      ]);
     }
+    setShowQtyError(false);
   }, [visible, initialLots]);
 
   const totalQty = useMemo(
@@ -138,7 +130,6 @@ export default function Rec_LotModalPopup({
       {
         idx: nextIdx,
         lotNumber: '',
-        selectedLot: null,
         mfgDate: '',
         expDate: '',
         qty: 0,
@@ -155,7 +146,6 @@ export default function Rec_LotModalPopup({
       {
         idx: 0,
         lotNumber: '',
-        selectedLot: null,
         mfgDate: '',
         expDate: '',
         qty: 0,
@@ -166,25 +156,16 @@ export default function Rec_LotModalPopup({
 
   const hasAllFields =
     lots.length > 0 &&
-    lots.every(
-      l =>
-        l.lotNumber &&
-        l.mfgDate &&
-        l.expDate &&
-        Number(l.qty) > 0,
-    );
+    lots.every(l => l.lotNumber && l.mfgDate && l.expDate && Number(l.qty) > 0);
 
   const handleSave = () => {
     if (lineQty > 0 && totalQty < lineQty) {
       setShowQtyError(true);
       return;
     }
+    if (!hasAllFields || totalQty !== lineQty || lineQty <= 0) return;
 
-    if (!hasAllFields || totalQty !== lineQty || lineQty <= 0) {
-      return;
-    }
-
-    const payload = lots.map(({ idx, selectedLot, ...rest }) => rest);
+    const payload = lots.map(({ idx, ...rest }) => rest);
     onSave?.(payload, totalQty);
     onClose?.();
   };
@@ -197,15 +178,7 @@ export default function Rec_LotModalPopup({
   const handleLotScanned = codeString => {
     const scannedRaw = String(codeString || '').trim();
     if (scannedRaw && scanTargetIdx != null) {
-      const lotOpt = findLotOption(scannedRaw);
-      if (lotOpt) {
-        updateLot(scanTargetIdx, {
-          selectedLot: lotOpt,
-          lotNumber: lotOpt.code || lotOpt.name || scannedRaw,
-        });
-      } else {
-        Alert.alert('Lot not found', 'Scanned code does not match any LOT.');
-      }
+      updateLot(scanTargetIdx, { lotNumber: scannedRaw });
     }
     setScannerVisible(false);
   };
@@ -234,25 +207,25 @@ export default function Rec_LotModalPopup({
     }
   };
 
-  if (!visible) {
-    return null;
-  }
+  if (!visible) return null;
 
   const qtySelectedActive = totalQty > 0;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       {scannerVisible ? (
-        <BarcodeScanner
-          onScan={handleLotScanned}
-          onClose={() => setScannerVisible(false)}
-        />
+        <BarcodeScanner onScan={handleLotScanned} onClose={() => setScannerVisible(false)} />
       ) : (
         <View style={styles.root}>
           <View style={styles.content}>
             <View style={styles.headerBar}>
               <Text style={styles.headerTitle}>
-                {lineLabel ? `Lot Number Details - ${lineLabel}` : 'Lot Number Details'}
+                {lineLabel ? `${lineLabel} - Lot Number Details` : 'Lot Number Details'}
               </Text>
               <TouchableOpacity
                 onPress={onClose}
@@ -284,18 +257,15 @@ export default function Rec_LotModalPopup({
                   </View>
                   <View style={styles.itemTextBlock}>
                     <Text style={styles.itemLabel}>Item Name</Text>
-                    <Text style={styles.itemValue}>{itemName || '-'}</Text>
+                    <Text style={styles.itemValue} numberOfLines={1}>
+                      {itemName || itemCode || '-'}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.qtyInfo}>
                   <Text style={styles.topQtyLabel}>Qty Selected</Text>
                   <Text style={styles.qtyValue}>
-                    <Text
-                      style={[
-                        styles.qtySelected,
-                        qtySelectedActive && styles.qtySelectedActive,
-                      ]}
-                    >
+                    <Text style={[styles.qtySelected, qtySelectedActive && styles.qtySelectedActive]}>
                       {totalQty}
                     </Text>
                     <Text style={styles.qtySlash}>/</Text>
@@ -322,12 +292,7 @@ export default function Rec_LotModalPopup({
                         <Text style={styles.lotTitle}>Lot {index + 1}</Text>
                         <TouchableOpacity
                           onPress={() => handleDeleteLot(lot.idx)}
-                          hitSlop={{
-                            top: rs(8),
-                            bottom: rs(8),
-                            left: rs(8),
-                            right: rs(8),
-                          }}
+                          hitSlop={{ top: rs(8), bottom: rs(8), left: rs(8), right: rs(8) }}
                         >
                           <View style={styles.lotDeleteIconWrapper}>
                             <LotSerialDeleteIcon width={rs(16)} height={rs(16)} />
@@ -335,23 +300,35 @@ export default function Rec_LotModalPopup({
                         </TouchableOpacity>
                       </View>
 
-                      <Rec_Dropdown
-                        label="Lot Number"
-                        required
-                        placeholder="Select LOT"
-                        value={lot.selectedLot}
-                        onChange={item =>
-                          updateLot(lot.idx, {
-                            selectedLot: item,
-                            lotNumber: item?.name || item?.code || '',
-                          })
-                        }
-                        items={MOCK_LOTS}
-                        displayValue={it => it.name || it.code}
-                        renderCode={() => ''}
-                        showBarcodeIcon
-                        onBarcodePress={() => openScannerForLot(lot.idx)}
-                      />
+                      <Text style={styles.fieldLabel}>
+                        Lot Number<Text style={styles.required}>*</Text>
+                      </Text>
+
+                      <View style={styles.lotNumberRow}>
+                        <View style={styles.lotNumberInputWrap}>
+                          <TextInput
+                            style={styles.lotNumberInput}
+                            value={lot.lotNumber}
+                            onChangeText={t => updateLot(lot.idx, { lotNumber: t })}
+                            placeholder="Enter Lot Number"
+                          />
+                          <TouchableOpacity
+                            style={styles.barcodeBtn}
+                            onPress={() => openScannerForLot(lot.idx)}
+                            hitSlop={{ top: rs(10), bottom: rs(10), left: rs(10), right: rs(10) }}
+                          >
+                            <BarcodeScannerIcon width={rs(18)} height={rs(18)} />
+                          </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity
+                          style={styles.generateBtn}
+                          onPress={() => updateLot(lot.idx, { lotNumber: generateLotNumber() })}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={styles.generateText}>Generate</Text>
+                        </TouchableOpacity>
+                      </View>
 
                       <View style={styles.row2}>
                         <View style={styles.col}>
@@ -367,9 +344,7 @@ export default function Rec_LotModalPopup({
                             />
                             <TouchableOpacity
                               style={styles.dateIconBtn}
-                              onPress={() =>
-                                openDatePicker(lot.idx, 'mfg', lot.mfgDate)
-                              }
+                              onPress={() => openDatePicker(lot.idx, 'mfg', lot.mfgDate)}
                             >
                               <CalendarIcon width={rs(16)} height={rs(16)} />
                             </TouchableOpacity>
@@ -389,9 +364,7 @@ export default function Rec_LotModalPopup({
                             />
                             <TouchableOpacity
                               style={styles.dateIconBtn}
-                              onPress={() =>
-                                openDatePicker(lot.idx, 'exp', lot.expDate)
-                              }
+                              onPress={() => openDatePicker(lot.idx, 'exp', lot.expDate)}
                             >
                               <CalendarIcon width={rs(16)} height={rs(16)} />
                             </TouchableOpacity>
@@ -438,19 +411,11 @@ export default function Rec_LotModalPopup({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[
-                  styles.addLotBtn,
-                  !canAddMoreLots && styles.addLotDisabled,
-                ]}
+                style={[styles.addLotBtn, !canAddMoreLots && styles.addLotDisabled]}
                 disabled={!canAddMoreLots}
                 onPress={handleAddLot}
               >
-                <Text
-                  style={[
-                    styles.addLotText,
-                    !canAddMoreLots && styles.addLotTextDisabled,
-                  ]}
-                >
+                <Text style={[styles.addLotText, !canAddMoreLots && styles.addLotTextDisabled]}>
                   Add Lot
                 </Text>
               </TouchableOpacity>
@@ -463,15 +428,9 @@ export default function Rec_LotModalPopup({
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  content: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    marginTop: rs(102),
-  },
+  root: { flex: 1, backgroundColor: 'transparent' },
+  content: { flex: 1, backgroundColor: '#FFFFFF', marginTop: rs(102) },
+
   headerBar: {
     height: rs(42),
     paddingHorizontal: rs(16),
@@ -480,11 +439,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#E6EEF7',
   },
-  headerTitle: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#233E55',
-  },
+  headerTitle: { fontSize: rs(14), fontWeight: '600', color: '#233E55' },
+
   errorBanner: {
     marginTop: rs(8),
     marginHorizontal: rs(16),
@@ -495,16 +451,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  errorText: {
-    color: '#D32F2F',
-    fontSize: rs(12),
-    fontWeight: '600',
-    marginLeft: rs(6),
-  },
-  topInfoWrapper: {
-    marginTop: rs(8),
-    marginHorizontal: rs(16),
-  },
+  errorText: { color: '#D32F2F', fontSize: rs(12), fontWeight: '600', marginLeft: rs(6) },
+
+  topInfoWrapper: { marginTop: rs(8), marginHorizontal: rs(16) },
   topInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -513,11 +462,7 @@ const styles = StyleSheet.create({
     borderRadius: rs(8),
     alignItems: 'center',
   },
-  topLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
+  topLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   iconBox: {
     width: rs(40),
     height: rs(40),
@@ -526,56 +471,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: rs(10),
   },
-  itemTextBlock: {
-    flex: 1,
-  },
-  itemLabel: {
-    fontSize: rs(11),
-    color: '#FFFFFF',
-    opacity: 0.8,
-  },
-  itemValue: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginTop: rs(2),
-  },
-  qtyInfo: {
-    alignItems: 'flex-end',
-  },
-  topQtyLabel: {
-    fontSize: rs(11),
-    color: '#FFFFFF',
-    opacity: 0.8,
-  },
-  qtyValue: {
-    marginTop: rs(2),
-  },
-  qtySelected: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  qtySelectedActive: {
-    fontSize: rs(16),
-  },
-  qtySlash: {
-    fontSize: rs(14),
-    color: '#FFFFFF',
-  },
-  qtyTotal: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  scroll: {
-    flex: 1,
-    paddingHorizontal: rs(16),
-    paddingTop: rs(16),
-  },
-  lotGroup: {
-    marginBottom: rs(20),
-  },
+  itemTextBlock: { flex: 1 },
+  itemLabel: { fontSize: rs(11), color: '#FFFFFF', opacity: 0.8 },
+  itemValue: { fontSize: rs(14), fontWeight: '600', color: '#FFFFFF', marginTop: rs(2) },
+
+  qtyInfo: { alignItems: 'flex-end' },
+  topQtyLabel: { fontSize: rs(11), color: '#FFFFFF', opacity: 0.8 },
+  qtyValue: { marginTop: rs(2) },
+  qtySelected: { fontSize: rs(14), fontWeight: '600', color: '#FFFFFF' },
+  qtySelectedActive: { fontSize: rs(16) },
+  qtySlash: { fontSize: rs(14), color: '#FFFFFF' },
+  qtyTotal: { fontSize: rs(14), fontWeight: '600', color: '#FFFFFF' },
+
+  scroll: { flex: 1, paddingHorizontal: rs(16), paddingTop: rs(16) },
+  lotGroup: { marginBottom: rs(20) },
   lotCard: {
     borderRadius: rs(8),
     borderWidth: 1,
@@ -595,14 +504,8 @@ const styles = StyleSheet.create({
     marginBottom: rs(12),
     borderTopLeftRadius: rs(8),
     borderTopRightRadius: rs(8),
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
   },
-  lotTitle: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#333333',
-  },
+  lotTitle: { fontSize: rs(14), fontWeight: '600', color: '#333333' },
   lotDeleteIconWrapper: {
     width: rs(24),
     height: rs(24),
@@ -610,30 +513,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fieldLabel: {
-    fontSize: rs(12),
-    color: '#555555',
-    marginBottom: rs(4),
-  },
-  required: {
-    color: '#E53935',
-  },
-  row2: {
-    flexDirection: 'row',
-    marginTop: rs(4),
-  },
-  col: {
-    flex: 1,
-    marginRight: rs(8),
-  },
-  colQty: {
-    width: rs(90),
-    marginStart: rs(10),
-  },
-  dateRow: {
+
+  fieldLabel: { fontSize: rs(12), color: '#555555', marginBottom: rs(6) },
+  required: { color: '#E53935' },
+
+  lotNumberRow: { flexDirection: 'row', alignItems: 'center', marginBottom: rs(12) },
+  lotNumberInputWrap: { flex: 1, position: 'relative' },
+  lotNumberInput: {
     width: '100%',
-    position: 'relative',
+    borderRadius: rs(10),
+    borderWidth: 1,
+    borderColor: '#D8DEE6',
+    height: rs(44),
+    paddingHorizontal: rs(12),
+    paddingRight: rs(44),
+    fontSize: rs(12),
+    color: '#111827',
+    backgroundColor: '#FFFFFF',
   },
+  barcodeBtn: {
+    position: 'absolute',
+    right: rs(10),
+    top: rs(11),
+    width: rs(22),
+    height: rs(22),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generateBtn: {
+    marginLeft: rs(10),
+    height: rs(44),
+    paddingHorizontal: rs(16),
+    borderRadius: rs(10),
+    backgroundColor: '#EEF3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generateText: { color: '#111827', fontSize: rs(12), fontWeight: '600' },
+
+  row2: { flexDirection: 'row', marginTop: rs(4) },
+  col: { flex: 1, marginRight: rs(8) },
+  colQty: { width: rs(90), marginStart: rs(10) },
+
+  dateRow: { width: '100%', position: 'relative' },
   dateInput: {
     width: '100%',
     borderRadius: rs(8),
@@ -645,12 +567,8 @@ const styles = StyleSheet.create({
     color: '#222222',
     backgroundColor: '#FFFFFF',
   },
-  dateInputMfg: {
-    borderColor: '#2E7D32',
-  },
-  dateInputExp: {
-    borderColor: '#F57C00',
-  },
+  dateInputMfg: { borderColor: '#2E7D32' },
+  dateInputExp: { borderColor: '#F57C00' },
   dateIconBtn: {
     position: 'absolute',
     right: rs(8),
@@ -662,6 +580,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   footerBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -682,11 +601,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: rs(3),
   },
-  deleteAllText: {
-    color: '#FFFFFF',
-    fontSize: rs(13),
-    fontWeight: '500',
-  },
+  deleteAllText: { color: '#FFFFFF', fontSize: rs(13), fontWeight: '500' },
   saveBtn: {
     height: rs(36),
     minWidth: rs(116),
@@ -697,11 +612,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: rs(3),
   },
-  saveText: {
-    color: '#FFFFFF',
-    fontSize: rs(13),
-    fontWeight: '500',
-  },
+  saveText: { color: '#FFFFFF', fontSize: rs(13), fontWeight: '500' },
   addLotBtn: {
     height: rs(36),
     minWidth: rs(116),
@@ -714,16 +625,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: rs(3),
   },
-  addLotDisabled: {
-    borderColor: '#CCCCCC',
-    backgroundColor: '#F5F5F5',
-  },
-  addLotText: {
-    color: '#233E55',
-    fontSize: rs(13),
-    fontWeight: '500',
-  },
-  addLotTextDisabled: {
-    color: '#888888',
-  },
+  addLotDisabled: { borderColor: '#CCCCCC', backgroundColor: '#F5F5F5' },
+  addLotText: { color: '#233E55', fontSize: rs(13), fontWeight: '500' },
+  addLotTextDisabled: { color: '#888888' },
 });
