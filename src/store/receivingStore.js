@@ -52,6 +52,7 @@ export const useReceivingStore = create((set, get) => ({
   initReceiveItems: items => set({ receiveItems: items }),
   mergePatchIntoReceiveItems: patch => {
     if (!patch || !patch.id) return;
+
     const next = get().receiveItems.map(it =>
       String(it.id) === String(patch.id)
         ? {
@@ -69,9 +70,21 @@ export const useReceivingStore = create((set, get) => ({
               typeof patch.lotTotalQty === 'number'
                 ? patch.lotTotalQty
                 : it.lotTotalQty,
+            serialLines: Array.isArray(patch.serialLines) ? patch.serialLines : it.serialLines,
+            serialTotalQty:
+              typeof patch.serialTotalQty === 'number'
+                ? patch.serialTotalQty
+                : it.serialTotalQty,
+            serialMode:
+              patch.serialMode === 'individual'
+                ? 'individual'
+                : patch.serialMode === 'ranges'
+                  ? 'ranges'
+                  : it.serialMode,
           }
         : it,
     );
+
     set({ receiveItems: next });
   },
 
@@ -79,6 +92,7 @@ export const useReceivingStore = create((set, get) => ({
   initSummaryItems: items => set({ summaryItems: items }),
   mergePatchIntoSummaryItems: patch => {
     if (!patch || !patch.id) return;
+
     const next = get().summaryItems.map(it =>
       String(it.id) === String(patch.id)
         ? {
@@ -89,16 +103,28 @@ export const useReceivingStore = create((set, get) => ({
                 : it.qtyToReceive,
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
-            locator: patch.locator ?? it.locator, 
+            locator: patch.locator ?? it.locator,
             imageUri: patch.imageUri ?? it.imageUri,
             lotLines: patch.lotLines ?? it.lotLines,
             lotTotalQty:
               typeof patch.lotTotalQty === 'number'
                 ? patch.lotTotalQty
                 : it.lotTotalQty,
+            serialLines: Array.isArray(patch.serialLines) ? patch.serialLines : it.serialLines,
+            serialTotalQty:
+              typeof patch.serialTotalQty === 'number'
+                ? patch.serialTotalQty
+                : it.serialTotalQty,
+            serialMode:
+              patch.serialMode === 'individual'
+                ? 'individual'
+                : patch.serialMode === 'ranges'
+                  ? 'ranges'
+                  : it.serialMode,
           }
         : it,
     );
+
     set({ summaryItems: next });
   },
 

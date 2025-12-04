@@ -16,6 +16,7 @@ import FooterButtonsComponent from '../../components/FooterButtonsComponent';
 import CustomNumericInput from '../../components/CustomNumericInput';
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
 import Rec_LotModalPopup from '../../components/receive/Rec_LotModalPopup';
+import Rec_SerialModalPopup from '../../components/receive/Rec_SerialModalPopup';
 import { useReceivingStore } from '../../store/receivingStore';
 import { GetLocatorsData } from '../../api/ApiServices';
 import ReceiveItemBoxIcon from '../../assets/icons/receiveitemboxicon.svg';
@@ -92,6 +93,7 @@ const Rec_ViewItemDetailsScreen = () => {
   const [edited, setEdited] = useState({});
   const [locatorDataMap, setLocatorDataMap] = useState({});
   const [lotRowsMap, setLotRowsMap] = useState({});
+  const [serialRowsMap, setSerialRowsMap] = useState({});
   const listRef = useRef(null);
   const isProgrammaticScroll = useRef(false);
 
@@ -115,6 +117,23 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const lotsCount = currentLotLines.length;
   const hasLots = lotsCount > 0;
+
+  const currentSerialLines = useMemo(() => {
+    if (!current) return [];
+    const fromStore = currentStoreLine?.serialLines;
+    if (Array.isArray(fromStore)) return fromStore;
+    const fromLocal = serialRowsMap[current.id];
+    return Array.isArray(fromLocal) ? fromLocal : [];
+  }, [current, currentStoreLine, serialRowsMap]);
+
+  const serialCount = currentSerialLines.length;
+  const hasSerials = serialCount > 0;
+
+  const serialMode = useMemo(() => {
+    if (!current) return 'ranges';
+    const m = currentStoreLine?.serialMode;
+    return m === 'individual' ? 'individual' : 'ranges';
+  }, [current, currentStoreLine]);
 
   useEffect(() => {
     if (readOnly) return;
@@ -227,10 +246,16 @@ const Rec_ViewItemDetailsScreen = () => {
   };
 
   const [lotModalVisible, setLotModalVisible] = useState(false);
+  const [serialModalVisible, setSerialModalVisible] = useState(false);
 
   const openLotModal = () => {
     if (!current) return;
     setLotModalVisible(true);
+  };
+
+  const openSerialModal = () => {
+    if (!current) return;
+    setSerialModalVisible(true);
   };
 
   const handleSaveLots = (lots, totalQty) => {
@@ -254,6 +279,29 @@ const Rec_ViewItemDetailsScreen = () => {
       ...prev,
       [current.id]: safeLots,
     }));
+
+    setLotModalVisible(false);
+  };
+
+  const handleSaveSerials = (serials, mode) => {
+    if (!current) return;
+    const safeSerials = Array.isArray(serials)
+      ? serials.map(s => String(s || '').trim()).filter(Boolean)
+      : [];
+
+    mergePatchIntoReceiveItems({
+      id: String(current.id),
+      serialLines: safeSerials,
+      serialTotalQty: safeSerials.length,
+      serialMode: mode === 'individual' ? 'individual' : 'ranges',
+    });
+
+    setSerialRowsMap(prev => ({
+      ...prev,
+      [current.id]: safeSerials,
+    }));
+
+    setSerialModalVisible(false);
   };
 
   const persistPatches = () => {
@@ -541,33 +589,65 @@ const Rec_ViewItemDetailsScreen = () => {
                   </View>
                 </View>
 
-                <View style={styles.addLotRow}>
-                  <TouchableOpacity
-                    style={styles.addLotBtn}
-                    activeOpacity={0.85}
-                    onPress={openLotModal}
-                    disabled={readOnly || Number(current.openQty ?? 0) === 0}
-                  >
-                    {hasLots ? (
-                      <View style={styles.addLotGreen}>
-                        <ReceiveAddIcon width={16} height={16} />
-                        <Text style={styles.addLotGreenText}>
-                          {`${lotsCount} Lots Added - ${currentQty} QTY`}
-                        </Text>
-                      </View>
-                    ) : (
-                      <LinearGradient
-                        colors={['#7392AA', '#89ADC9']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.addLotGrad}
-                      >
-                        <ReceiveAddIcon width={16} height={16} />
-                        <Text style={styles.addLotText}>Add Lot</Text>
-                      </LinearGradient>
-                    )}
-                  </TouchableOpacity>
-                </View>
+                {itemPills.showLot && (
+                  <View style={styles.addLotRow}>
+                    <TouchableOpacity
+                      style={styles.addLotBtn}
+                      activeOpacity={0.85}
+                      onPress={openLotModal}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0}
+                    >
+                      {hasLots ? (
+                        <View style={styles.addLotGreen}>
+                          <ReceiveAddIcon width={16} height={16} />
+                          <Text style={styles.addLotGreenText}>
+                            {`${lotsCount} Lots Added - ${currentQty} QTY`}
+                          </Text>
+                        </View>
+                      ) : (
+                        <LinearGradient
+                          colors={['#7392AA', '#89ADC9']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.addLotGrad}
+                        >
+                          <ReceiveAddIcon width={16} height={16} />
+                          <Text style={styles.addLotText}>Add Lot</Text>
+                        </LinearGradient>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {itemPills.showSerial && (
+                  <View style={styles.addLotRow}>
+                    <TouchableOpacity
+                      style={styles.addLotBtn}
+                      activeOpacity={0.85}
+                      onPress={openSerialModal}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0}
+                    >
+                      {hasSerials ? (
+                        <View style={styles.addLotGreen}>
+                          <ReceiveAddIcon width={16} height={16} />
+                          <Text style={styles.addLotGreenText}>
+                            {`${serialCount} Serials Added - ${currentQty} QTY`}
+                          </Text>
+                        </View>
+                      ) : (
+                        <LinearGradient
+                          colors={['#7392AA', '#89ADC9']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.addLotGrad}
+                        >
+                          <ReceiveAddIcon width={16} height={16} />
+                          <Text style={styles.addLotText}>Add Serial</Text>
+                        </LinearGradient>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </>
           )}
@@ -586,16 +666,30 @@ const Rec_ViewItemDetailsScreen = () => {
       )}
 
       {current && (
-        <Rec_LotModalPopup
-          visible={lotModalVisible}
-          onClose={() => setLotModalVisible(false)}
-          onSave={handleSaveLots}
-          itemName={current.itemName}
-          itemCode={current.itemid}
-          lineQty={currentQty}
-          lineLabel={lineLabel}
-          initialLots={currentLotLines}
-        />
+        <>
+          <Rec_LotModalPopup
+            visible={lotModalVisible}
+            onClose={() => setLotModalVisible(false)}
+            onSave={handleSaveLots}
+            itemName={current.itemName}
+            itemCode={current.itemid}
+            lineQty={currentQty}
+            lineLabel={lineLabel}
+            initialLots={currentLotLines}
+          />
+
+          <Rec_SerialModalPopup
+            visible={serialModalVisible}
+            onClose={() => setSerialModalVisible(false)}
+            onSave={handleSaveSerials}
+            itemName={current.itemName}
+            itemCode={current.itemid}
+            lineQty={currentQty}
+            lineLabel={lineLabel}
+            initialSerials={currentSerialLines}
+            initialMode={serialMode}
+          />
+        </>
       )}
     </SafeAreaView>
   );
