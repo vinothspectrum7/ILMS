@@ -89,7 +89,13 @@ export const useReceivingStore = create((set, get) => ({
                 : it.qtyToReceive,
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
-            locator: patch.locator ?? it.locator,
+            locator: patch.locator ?? it.locator, 
+            imageUri: patch.imageUri ?? it.imageUri,
+            lotLines: patch.lotLines ?? it.lotLines,
+            lotTotalQty:
+              typeof patch.lotTotalQty === 'number'
+                ? patch.lotTotalQty
+                : it.lotTotalQty,
           }
         : it,
     );

@@ -195,9 +195,9 @@ export default function Rec_DropDown({
             }
           }}
         >
-          <View style={styles.searchLabelRow}>
+          {/* <View style={styles.searchLabelRow}>
             <Text style={styles.searchLabel}>Search</Text>
-          </View>
+          </View> */}
 
           <View style={styles.searchInputWrapper}>
             <TextInput
@@ -319,7 +319,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: rs(8),
-    borderWidth: 1,
+    borderWidth: 0,
+    borderBottomWidth: 1,
     borderColor: '#E0E0E0',
     paddingHorizontal: rs(10),
     height: rs(40),
