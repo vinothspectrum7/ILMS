@@ -731,7 +731,7 @@ const styles = StyleSheet.create({
     gap: rs(6),
   },
   tabBtnActive: { backgroundColor: '#CFE0FF' },
-  tabText: { fontSize: rs(13), fontWeight: '800', color: '#445565' },
+  tabText: { fontSize: rs(13), fontWeight: '600', color: '#445565' },
   tabTextActive: { color: '#233E55' },
   tabSubText: { fontSize: rs(10), fontWeight: '700', color: '#6B7C8B' },
 
@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     padding: rs(12),
   },
-  sectionTitle: { fontSize: rs(14), color: '#1F2D3D', fontWeight: '800' },
+  sectionTitle: { fontSize: rs(14), color: '#1F2D3D', fontWeight: '600' },
 
   autoBox: {
     backgroundColor: '#ECF1F7',
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
     color: '#1F2D3D',
     fontWeight: '800',
   },
-  spinnerBtns: { width: rs(44), borderLeftWidth: 1, borderLeftColor: '#D7DEE6' },
+  spinnerBtns: { width: rs(34), borderLeftWidth: 1, borderLeftColor: '#D7DEE6' },
   spinnerBtn: { height: rs(20), alignItems: 'center', justifyContent: 'center' },
 
   helperText: { marginTop: rs(10), fontSize: rs(12), color: '#6B7C8B', fontWeight: '700' },
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
   },
-  generateTxt: { color: '#FFFFFF', fontSize: rs(14), fontWeight: '900' },
+  generateTxt: { color: '#FFFFFF', fontSize: rs(14), fontWeight: '700' },
 
   tableHeader: {
     backgroundColor: '#EEF3FF',
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: rs(12),
   },
-  tableHeaderTxt: { fontSize: rs(13), color: '#1F2D3D', fontWeight: '900' },
+  tableHeaderTxt: { fontSize: rs(13), color: '#1F2D3D', fontWeight: '700' },
 
   colsHeader: {
     flexDirection: 'row',
@@ -818,8 +818,8 @@ const styles = StyleSheet.create({
     paddingTop: rs(12),
     paddingBottom: rs(6),
   },
-  colEntry: { width: rs(60), fontSize: rs(11), color: '#6B7C8B', fontWeight: '800' },
-  colSerial: { flex: 1, fontSize: rs(11), color: '#6B7C8B', fontWeight: '800' },
+  colEntry: { width: rs(60), fontSize: rs(11), color: '#6B7C8B', fontWeight: '600' },
+  colSerial: { flex: 1, fontSize: rs(11), color: '#6B7C8B', fontWeight: '600' },
   colDel: { width: rs(36) },
 
   rowWrap: {
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E7EDF3',
   },
-  rowEntryText: { width: rs(60), fontSize: rs(13), fontWeight: '900', color: '#3B4B59' },
+  rowEntryText: { width: rs(60), fontSize: rs(13), fontWeight: '700', color: '#3B4B59' },
 
   inputWrap: { flex: 1, position: 'relative' },
   serialInput: {
@@ -841,7 +841,7 @@ const styles = StyleSheet.create({
     paddingRight: rs(40),
     fontSize: rs(13),
     color: '#1F2D3D',
-    fontWeight: '700',
+    fontWeight: '600',
     backgroundColor: '#FFFFFF',
   },
   serialInputDisabled: { backgroundColor: '#F2F5F8', color: '#5B6B79' },
