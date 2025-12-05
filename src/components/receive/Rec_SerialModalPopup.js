@@ -25,6 +25,7 @@ import BarcodeIcon from '../../assets/icons/barcodeicon.svg';
 import LotSerialItemIcon from '../../assets/icons/lotserialitem.svg';
 
 import BarcodeScanner from '../../screens/BarCodeScanner';
+import ErrorIcon from '../../assets/icons/error.svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -479,6 +480,7 @@ export default function Rec_SerialModalPopup({
 
               {showError ? (
                 <View style={styles.errorBanner}>
+                    <ErrorIcon width={rs(16)} height={rs(16)} />
                   <Text style={styles.errorText}>{errorMsg}</Text>
                 </View>
               ) : null}
@@ -672,12 +674,14 @@ const styles = StyleSheet.create({
   errorBanner: {
     marginTop: rs(8),
     marginHorizontal: rs(16),
-    backgroundColor: '#DA1E28',
-    borderRadius: rs(10),
-    paddingVertical: rs(10),
-    paddingHorizontal: rs(12),
+    borderRadius: rs(8),
+    backgroundColor: '#FDE3E3',
+    paddingVertical: rs(8),
+    paddingHorizontal: rs(10),
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  errorText: { color: '#FFFFFF', fontSize: rs(12), fontWeight: '700' },
+  errorText: { color: '#D32F2F', fontSize: rs(12), fontWeight: '600', marginLeft: rs(6) },
 
   topInfoWrapper: { marginTop: rs(8), marginHorizontal: rs(16) },
   topInfo: {

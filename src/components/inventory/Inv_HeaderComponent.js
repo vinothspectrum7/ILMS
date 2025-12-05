@@ -160,7 +160,7 @@ export default function Inv_HeaderComponent({
         </View>
 
         <View style={styles.brandRight}>
-          <Text style={styles.version}>V: 25100717</Text>
+          {/* <Text style={styles.version}>V: 25100717</Text> */}
 
           <TouchableOpacity
             onPress={onNotificationPress}

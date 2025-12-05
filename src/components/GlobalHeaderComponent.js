@@ -124,7 +124,7 @@ export default function GlobalHeaderComponent({
           <EnnVeeLogoSmall width={scale(140)} height={scale(36)} />
         </View>
         <View style={styles.brandRight}>
-          <Text style={styles.version}>V: 25102918</Text>
+          {/* <Text style={styles.version}>V: 25102918</Text> */}
           <TouchableOpacity onPress={NotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={scale(22)} height={scale(22)} />
             {showDot && <View style={styles.dot} />}
