@@ -1,3 +1,4 @@
+// src/components/receive/Rec_SerialModalPopup.js
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -12,25 +13,17 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-
-import SelectedRangesIcon from '../../assets/icons/selectedrangesicon.svg';
-import RangesIcon from '../../assets/icons/rangesicon.svg';
-import SelectedIndividualIcon from '../../assets/icons/selectedindividualicon.svg';
-import IndividualIcon from '../../assets/icons/individualicon.svg';
-
 import SerialUpIcon from '../../assets/icons/serialupicon.svg';
 import SerialDownIcon from '../../assets/icons/serialdownicon.svg';
 import SerialDeleteIcon from '../../assets/icons/serialdeleteicon.svg';
 import BarcodeIcon from '../../assets/icons/barcodeicon.svg';
 import LotSerialItemIcon from '../../assets/icons/lotserialitem.svg';
-
 import BarcodeScanner from '../../screens/BarCodeScanner';
 import ErrorIcon from '../../assets/icons/error.svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
-
 const padN = (num, n) => String(Math.max(0, Number(num) || 0)).padStart(n, '0');
 const makeId = () => `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
@@ -59,28 +52,34 @@ export default function Rec_SerialModalPopup({
   initialMode = 'ranges',
 }) {
   const qty = Number(lineQty || 0);
+  const initialSerialsNormalized = useMemo(() => normalizeInitialSerials(initialSerials), [initialSerials]);
 
-  const initialSerialsNormalized = useMemo(
-    () => normalizeInitialSerials(initialSerials),
-    [initialSerials],
-  );
+  const normalizeMode = m => (m === 'manual' || m === 'individual' ? 'manual' : 'ranges');
+  const [activeMode, setActiveMode] = useState(normalizeMode(initialMode));
 
-  const [activeMode, setActiveMode] = useState(
-    initialMode === 'individual' ? 'individual' : 'ranges',
-  );
-  const [hasGenerated, setHasGenerated] = useState(false);
-
+  const [rangesRows, setRangesRows] = useState([]);
+  const [rangesHasGenerated, setRangesHasGenerated] = useState(false);
   const [prefix, setPrefix] = useState('SN');
   const [startNumberText, setStartNumberText] = useState('1');
 
-  const [rows, setRows] = useState([]);
+  const [manualRows, setManualRows] = useState([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
+
   const [errorMsg, setErrorMsg] = useState('');
-
   const [scannerVisible, setScannerVisible] = useState(false);
-  const scanTargetRef = useRef({ type: 'row', rowId: null, placeholder: false });
-
+  const scanTargetRef = useRef({ rowId: null, fromTouchArea: false });
   const clearError = useCallback(() => setErrorMsg(''), []);
-  const showError = !!errorMsg;
+
+  const activeRows = activeMode === 'ranges' ? rangesRows : manualRows;
+  const setActiveRows = useCallback(
+    updater => {
+      if (activeMode === 'ranges') {
+        setRangesRows(prev => updater([...prev]).map((r, i) => ({ ...r, entry: i + 1 })));
+      } else {
+        setManualRows(prev => updater([...prev]).map((r, i) => ({ ...r, entry: i + 1 })));
+      }
+    },
+    [activeMode],
+  );
 
   const startNumberValue = useMemo(() => {
     const cleaned = String(startNumberText ?? '').replace(/[^\d]/g, '');
@@ -89,9 +88,10 @@ export default function Rec_SerialModalPopup({
     return Number.isFinite(n) ? n : 0;
   }, [startNumberText]);
 
-  const selectedCount = useMemo(() => {
-    return rows.filter(r => (r.serial || '').trim().length > 0).length;
-  }, [rows]);
+  const selectedCount = useMemo(
+    () => activeRows.filter(r => (r.serial || '').trim().length > 0).length,
+    [activeRows],
+  );
 
   const helperRangeText = useMemo(() => {
     const p = String(prefix || '').trim();
@@ -104,59 +104,49 @@ export default function Rec_SerialModalPopup({
     return `We generate ${a} to ${b}`;
   }, [prefix, startNumberValue, qty]);
 
-  const hasAnyEmptyRow = useMemo(() => rows.some(r => !(r.serial || '').trim()), [rows]);
-  const canAddRow = useMemo(() => rows.length < qty, [rows.length, qty]);
-
-  const placeholderRow = useMemo(() => {
-    if (!canAddRow) return null;
-    if (activeMode === 'ranges') {
-      if (!hasGenerated) return null;
-      if (hasAnyEmptyRow) return null;
-      return { __placeholder: true, entry: rows.length + 1 };
-    }
-    return null;
-  }, [activeMode, canAddRow, hasGenerated, hasAnyEmptyRow, rows.length]);
-
-  const shouldShowFooter = useMemo(() => {
-    if (activeMode === 'ranges') return hasGenerated;
-    return true;
-  }, [activeMode, hasGenerated]);
-
-  const resetRangesToAutoGenerate = useCallback(() => {
-    setHasGenerated(false);
-    setRows([]);
-    setPrefix('SN');
-    setStartNumberText('1');
+  const computeDupIds = useCallback(list => {
+    const map = new Map();
+    list.forEach(r => {
+      const v = (r.serial || '').trim().toLowerCase();
+      if (!v) return;
+      if (!map.has(v)) map.set(v, []);
+      map.get(v).push(r.id);
+    });
+    const dups = new Set();
+    map.forEach(ids => {
+      if (ids.length > 1) ids.forEach(id => dups.add(id));
+    });
+    return dups;
   }, []);
+  const dupIds = useMemo(() => computeDupIds(activeRows), [activeRows, computeDupIds]);
 
-  const resetIndividualToSingleRow = useCallback(() => {
-    setHasGenerated(false);
-    setRows([{ id: makeId(), entry: 1, serial: '', locked: false }]);
-  }, []);
+  const canAddRow = useMemo(() => activeRows.length < qty, [activeRows.length, qty]);
+  const showTouchArea = activeMode === 'ranges' ? rangesHasGenerated : true;
+  const shouldShowFooter = activeMode === 'ranges' ? rangesHasGenerated : true;
 
   const hydrateOnOpen = useCallback(() => {
     clearError();
-    scanTargetRef.current = { type: 'row', rowId: null, placeholder: false };
+    scanTargetRef.current = { rowId: null, fromTouchArea: false };
     setScannerVisible(false);
-
-    const mode = initialMode === 'individual' ? 'individual' : 'ranges';
+    const mode = normalizeMode(initialMode);
     setActiveMode(mode);
     setPrefix('SN');
     setStartNumberText('1');
 
-    if (mode === 'individual') {
+    if (mode === 'manual') {
       if (initialSerialsNormalized.length > 0) {
         const list = initialSerialsNormalized.slice(0, qty).map((s, i) => ({
           id: makeId(),
           entry: i + 1,
           serial: s,
-          locked: false,
+          source: 'manual',
         }));
-        setRows(list.length > 0 ? list : [{ id: makeId(), entry: 1, serial: '', locked: false }]);
+        setManualRows(list.length ? list : [{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
       } else {
-        setRows([{ id: makeId(), entry: 1, serial: '', locked: false }]);
+        setManualRows([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
       }
-      setHasGenerated(false);
+      setRangesRows([]);
+      setRangesHasGenerated(false);
       return;
     }
 
@@ -165,23 +155,25 @@ export default function Rec_SerialModalPopup({
         id: makeId(),
         entry: i + 1,
         serial: s,
-        locked: true,
+        source: 'auto',
       }));
-      setRows(list);
-      setHasGenerated(true);
+      setRangesRows(list);
+      setRangesHasGenerated(true);
     } else {
-      resetRangesToAutoGenerate();
+      setRangesRows([]);
+      setRangesHasGenerated(false);
     }
-  }, [clearError, initialMode, initialSerialsNormalized, qty, resetRangesToAutoGenerate]);
+    setManualRows([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
+  }, [clearError, initialMode, initialSerialsNormalized, qty]);
 
   useEffect(() => {
     if (visible) hydrateOnOpen();
   }, [visible, hydrateOnOpen]);
 
   const openScannerForRow = useCallback(
-    (rowId, isPlaceholder) => {
+    (rowId, fromTouchArea = false) => {
       clearError();
-      scanTargetRef.current = { type: 'row', rowId: rowId || null, placeholder: !!isPlaceholder };
+      scanTargetRef.current = { rowId: rowId || null, fromTouchArea: !!fromTouchArea };
       setScannerVisible(true);
     },
     [clearError],
@@ -190,93 +182,54 @@ export default function Rec_SerialModalPopup({
   const handleSerialScanned = useCallback(
     codeString => {
       const v = String(codeString || '').trim();
-      if (!v) {
-        setScannerVisible(false);
-        return;
-      }
-
-      const pending = scanTargetRef.current;
-      if (!pending) {
-        setScannerVisible(false);
-        return;
-      }
-
-      setRows(prev => {
-        const list = [...prev];
-
-        if (pending.placeholder) {
-          if (list.length >= qty) return list;
-          list.push({ id: makeId(), entry: list.length + 1, serial: v, locked: false });
-          return list.slice(0, qty).map((r, idx) => ({ ...r, entry: idx + 1 }));
-        }
-
-        const idx = list.findIndex(r => r.id === pending.rowId);
-        if (idx >= 0) {
-          list[idx] = { ...list[idx], serial: v };
-        }
-        return list.map((r, i) => ({ ...r, entry: i + 1 }));
-      });
-
-      scanTargetRef.current = { type: 'row', rowId: null, placeholder: false };
       setScannerVisible(false);
+      if (!v) return;
+      const target = scanTargetRef.current;
+      setActiveRows(list => {
+        if (target.fromTouchArea) {
+          if (list.length >= qty) return list;
+          list.push({ id: makeId(), entry: list.length + 1, serial: v, source: 'scan' });
+          return list.slice(0, qty);
+        }
+        const idx = list.findIndex(r => r.id === target.rowId);
+        if (idx >= 0) list[idx] = { ...list[idx], serial: v, source: 'scan' };
+        return list;
+      });
+      scanTargetRef.current = { rowId: null, fromTouchArea: false };
     },
-    [qty],
+    [qty, setActiveRows],
   );
 
   const setRowSerial = useCallback(
     (rowId, value) => {
       clearError();
-      setRows(prev => {
-        const list = [...prev];
+      setActiveRows(list => {
         const idx = list.findIndex(r => r.id === rowId);
         if (idx >= 0) list[idx] = { ...list[idx], serial: value };
-        return list.map((r, i) => ({ ...r, entry: i + 1 }));
+        return list;
       });
     },
-    [clearError],
-  );
-
-  const onChangePlaceholderSerial = useCallback(
-    value => {
-      clearError();
-      const v = String(value || '');
-      setRows(prev => {
-        if (prev.length >= qty) return prev;
-        const list = [...prev, { id: makeId(), entry: prev.length + 1, serial: v, locked: false }];
-        return list.map((r, i) => ({ ...r, entry: i + 1 }));
-      });
-    },
-    [clearError, qty],
+    [clearError, setActiveRows],
   );
 
   const deleteRow = useCallback(
     rowId => {
       clearError();
-      setRows(prev => {
-        const list = prev.filter(r => r.id !== rowId);
-        return list.map((r, i) => ({ ...r, entry: i + 1 }));
-      });
+      setActiveRows(list => list.filter(r => r.id !== rowId));
     },
-    [clearError],
+    [clearError, setActiveRows],
   );
 
   const addSerialRow = useCallback(() => {
     clearError();
-    setRows(prev => {
-      if (prev.length >= qty) return prev;
-      if (activeMode === 'ranges' && !hasGenerated) return prev;
-      if (activeMode === 'ranges' && prev.some(r => !(r.serial || '').trim())) return prev;
-      const list = [...prev, { id: makeId(), entry: prev.length + 1, serial: '', locked: false }];
-      return list.map((r, i) => ({ ...r, entry: i + 1 }));
-    });
-  }, [activeMode, clearError, hasGenerated, qty]);
+    if (!canAddRow) return;
+    setActiveRows(list => [...list, { id: makeId(), entry: list.length + 1, serial: '', source: 'manual' }]);
+  }, [clearError, canAddRow, setActiveRows]);
 
   const onPressGenerate = useCallback(() => {
     clearError();
-
     const p = String(prefix || '').trim();
     const s = Number(startNumberValue || 0);
-
     if (!Number.isFinite(qty) || qty <= 0) {
       setErrorMsg('Invalid quantity');
       return;
@@ -289,56 +242,56 @@ export default function Rec_SerialModalPopup({
       setErrorMsg('Please enter a valid Start Number');
       return;
     }
-
     const generated = Array.from({ length: qty }, (_, i) => ({
       id: makeId(),
       entry: i + 1,
       serial: `${p}${padN(s + i, 6)}`,
-      locked: true,
+      source: 'auto',
     }));
-
-    setRows(generated);
-    setHasGenerated(true);
+    setRangesRows(generated);
+    setRangesHasGenerated(true);
   }, [clearError, prefix, qty, startNumberValue]);
 
-  const validateBeforeSave = useCallback(() => {
+  const validateAndGetSerials = useCallback(() => {
     if (!Number.isFinite(qty) || qty <= 0) return { ok: false, msg: 'Invalid quantity' };
-    if (rows.length !== qty) return { ok: false, msg: `Please ensure ${qty} serials are entered` };
-
-    const serials = rows.map(r => (r.serial || '').trim());
+    if (activeRows.length !== qty) return { ok: false, msg: `Please ensure ${qty} serials are entered` };
+    const serials = activeRows.map(r => (r.serial || '').trim());
     if (serials.some(s => !s)) return { ok: false, msg: 'Please fill all serial numbers' };
-
-    const set = new Set();
-    for (const s of serials) {
-      const key = s.toLowerCase();
-      if (set.has(key)) return { ok: false, msg: 'Duplicate serial numbers are not allowed' };
-      set.add(key);
-    }
-    return { ok: true, msg: '' };
-  }, [rows, qty]);
+    if (computeDupIds(activeRows).size > 0) return { ok: false, msg: 'Same Serial No cannot be repeated' };
+    return { ok: true, msg: '', serials };
+  }, [activeRows, qty, computeDupIds]);
 
   const handleSave = useCallback(() => {
-    const v = validateBeforeSave();
+    const v = validateAndGetSerials();
     if (!v.ok) {
       setErrorMsg(v.msg);
       return;
     }
     clearError();
-    const serials = rows.map(r => (r.serial || '').trim());
-    onSave?.(serials, activeMode);
-  }, [activeMode, clearError, onSave, rows, validateBeforeSave]);
+    onSave?.(v.serials, activeMode);
+    if (activeMode === 'ranges') {
+      setManualRows([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
+    } else {
+      setRangesRows([]);
+      setRangesHasGenerated(false);
+      setPrefix('SN');
+      setStartNumberText('1');
+    }
+  }, [activeMode, clearError, onSave, validateAndGetSerials]);
 
   const handleDeleteAll = useCallback(() => {
     clearError();
-    scanTargetRef.current = { type: 'row', rowId: null, placeholder: false };
+    scanTargetRef.current = { rowId: null, fromTouchArea: false };
     setScannerVisible(false);
-
     if (activeMode === 'ranges') {
-      resetRangesToAutoGenerate();
+      setRangesRows([]);
+      setRangesHasGenerated(false);
+      setPrefix('SN');
+      setStartNumberText('1');
       return;
     }
-    resetIndividualToSingleRow();
-  }, [activeMode, clearError, resetIndividualToSingleRow, resetRangesToAutoGenerate]);
+    setManualRows([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
+  }, [activeMode, clearError]);
 
   const incStart = useCallback(() => {
     clearError();
@@ -365,101 +318,18 @@ export default function Rec_SerialModalPopup({
 
   const switchMode = useCallback(
     nextMode => {
-      if (nextMode === activeMode) return;
-
+      const nm = nextMode === 'manual' || nextMode === 'individual' ? 'manual' : 'ranges';
+      if (nm === activeMode) return;
       clearError();
-      scanTargetRef.current = { type: 'row', rowId: null, placeholder: false };
+      scanTargetRef.current = { rowId: null, fromTouchArea: false };
       setScannerVisible(false);
-
-      if (nextMode === 'individual') {
-        setActiveMode('individual');
-        resetIndividualToSingleRow();
-        return;
+      if (nm === 'manual' && manualRows.length === 0) {
+        setManualRows([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
       }
-
-      setActiveMode('ranges');
-      resetRangesToAutoGenerate();
+      setActiveMode(nm);
     },
-    [activeMode, clearError, resetIndividualToSingleRow, resetRangesToAutoGenerate],
+    [activeMode, clearError, manualRows.length],
   );
-
-  const renderRow = useCallback(
-    r => {
-      const disabled = !!r.locked;
-
-      const showScan =
-        activeMode === 'individual'
-          ? true
-          : !disabled;
-
-      return (
-        <View key={r.id} style={styles.rowWrap}>
-          <Text style={styles.rowEntryText}>#{r.entry}</Text>
-
-          <View style={styles.inputWrap}>
-            <TextInput
-              value={r.serial}
-              onChangeText={txt => setRowSerial(r.id, txt)}
-              editable={!disabled}
-              placeholder="Enter Serial"
-              placeholderTextColor="#91A3B3"
-              style={[styles.serialInput, disabled ? styles.serialInputDisabled : null]}
-            />
-            {showScan ? (
-              <TouchableOpacity
-                onPress={() => openScannerForRow(r.id, false)}
-                activeOpacity={0.85}
-                style={styles.scanBtn}
-              >
-                <BarcodeIcon width={rs(18)} height={rs(18)} />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          <TouchableOpacity onPress={() => deleteRow(r.id)} activeOpacity={0.85} style={styles.deleteBtn}>
-            <SerialDeleteIcon width={rs(18)} height={rs(18)} />
-          </TouchableOpacity>
-        </View>
-      );
-    },
-    [activeMode, deleteRow, openScannerForRow, setRowSerial],
-  );
-
-  const renderPlaceholder = useMemo(() => {
-    if (!placeholderRow) return null;
-
-    return (
-      <View key="__placeholder" style={styles.rowWrap}>
-        <Text style={styles.rowEntryText}>#{placeholderRow.entry}</Text>
-
-        <View style={styles.inputWrap}>
-          <TextInput
-            value=""
-            onChangeText={onChangePlaceholderSerial}
-            editable
-            placeholder="Enter Serial"
-            placeholderTextColor="#91A3B3"
-            style={styles.serialInput}
-          />
-          <TouchableOpacity
-            onPress={() => openScannerForRow(null, true)}
-            activeOpacity={0.85}
-            style={styles.scanBtn}
-          >
-            <BarcodeIcon width={rs(18)} height={rs(18)} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.deleteBtnGhost} />
-      </View>
-    );
-  }, [onChangePlaceholderSerial, openScannerForRow, placeholderRow]);
-
-  const qtySelectedActive = selectedCount > 0;
-  const bodyTitle = useMemo(() => {
-    if (activeMode === 'ranges' && !hasGenerated) return 'Auto Generate Serials';
-    return 'Serial Numbers';
-  }, [activeMode, hasGenerated]);
 
   if (!visible) return null;
 
@@ -478,20 +348,15 @@ export default function Rec_SerialModalPopup({
                 </TouchableOpacity>
               </View>
 
-              {showError ? (
+              {!!errorMsg && (
                 <View style={styles.errorBanner}>
-                    <ErrorIcon width={rs(16)} height={rs(16)} />
+                  <ErrorIcon width={rs(16)} height={rs(16)} />
                   <Text style={styles.errorText}>{errorMsg}</Text>
                 </View>
-              ) : null}
+              )}
 
               <View style={styles.topInfoWrapper}>
-                <LinearGradient
-                  colors={['#5D7688', '#233655']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.topInfo}
-                >
+                <LinearGradient colors={['#5D7688', '#233655']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.topInfo}>
                   <View style={styles.topLeft}>
                     <View style={styles.iconBox}>
                       <LotSerialItemIcon width={rs(32)} height={rs(32)} />
@@ -503,13 +368,10 @@ export default function Rec_SerialModalPopup({
                       </Text>
                     </View>
                   </View>
-
                   <View style={styles.qtyInfo}>
                     <Text style={styles.topQtyLabel}>Qty Selected</Text>
                     <Text style={styles.qtyValue}>
-                      <Text style={[styles.qtySelected, qtySelectedActive && styles.qtySelectedActive]}>
-                        {selectedCount}
-                      </Text>
+                      <Text style={styles.qtySelected}>{selectedCount}</Text>
                       <Text style={styles.qtySlash}>/</Text>
                       <Text style={styles.qtyTotal}>{qty}</Text>
                     </Text>
@@ -517,136 +379,150 @@ export default function Rec_SerialModalPopup({
                 </LinearGradient>
               </View>
 
-              <View style={styles.tabsRow}>
-                <TouchableOpacity
-                  onPress={() => switchMode('ranges')}
-                  activeOpacity={0.9}
-                  style={[styles.tabBtn, activeMode === 'ranges' ? styles.tabBtnActive : null]}
-                >
-                  {activeMode === 'ranges' ? (
-                    <SelectedRangesIcon width={rs(18)} height={rs(18)} />
-                  ) : (
-                    <RangesIcon width={rs(18)} height={rs(18)} />
-                  )}
-                  <Text style={[styles.tabText, activeMode === 'ranges' ? styles.tabTextActive : null]}>
-                    Ranges
-                  </Text>
-                  <Text style={styles.tabSubText}>(Auto generate)</Text>
-                </TouchableOpacity>
+              <LinearGradient colors={['#89ADC9', '#B1CADE']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.modeBar}>
+                <Text style={styles.modeLeftText}>Add Serial</Text>
+                <View style={styles.modeTabs}>
+                  <TouchableOpacity
+                    onPress={() => switchMode('ranges')}
+                    activeOpacity={0.9}
+                    style={[styles.modeTabBtn, activeMode === 'ranges' ? styles.modeTabBtnActive : styles.modeTabBtnInactive]}
+                  >
+                    <Text style={[styles.modeTabTxt, activeMode === 'ranges' ? styles.modeTabTxtActive : styles.modeTabTxtInactive]}>Ranges</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => switchMode('manual')}
+                    activeOpacity={0.9}
+                    style={[styles.modeTabBtn, activeMode === 'manual' ? styles.modeTabBtnActive : styles.modeTabBtnInactive]}
+                  >
+                    <Text style={[styles.modeTabTxt, activeMode === 'manual' ? styles.modeTabTxtActive : styles.modeTabTxtInactive]}>Manual</Text>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
 
-                <TouchableOpacity
-                  onPress={() => switchMode('individual')}
-                  activeOpacity={0.9}
-                  style={[styles.tabBtn, activeMode === 'individual' ? styles.tabBtnActive : null]}
-                >
-                  {activeMode === 'individual' ? (
-                    <SelectedIndividualIcon width={rs(18)} height={rs(18)} />
-                  ) : (
-                    <IndividualIcon width={rs(18)} height={rs(18)} />
-                  )}
-                  <Text style={[styles.tabText, activeMode === 'individual' ? styles.tabTextActive : null]}>
-                    Individual
-                  </Text>
-                  <Text style={styles.tabSubText}>(Manual)</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView
-                style={styles.scroll}
-                contentContainerStyle={{ paddingBottom: rs(18) }}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.sectionCard}>
-                  <Text style={styles.sectionTitle}>{bodyTitle}</Text>
-
-                  {activeMode === 'ranges' && !hasGenerated ? (
-                    <View style={{ marginTop: rs(12) }}>
-                      <View style={styles.autoBox}>
-                        <View style={styles.autoRow}>
-                          <View style={styles.fieldBox}>
-                            <Text style={styles.fieldLabel}>Prefix</Text>
+              <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: rs(18) }} keyboardShouldPersistTaps="handled">
+                {activeMode === 'ranges' && !rangesHasGenerated ? (
+                  <View style={styles.sectionCard}>
+                    <Text style={styles.sectionTitle}>Auto Generate Serials</Text>
+                    <View style={styles.autoBox}>
+                      <View style={styles.autoRow}>
+                        <View style={styles.fieldBox}>
+                          <Text style={styles.fieldLabel}>Prefix</Text>
+                          <TextInput
+                            value={prefix}
+                            onChangeText={t => {
+                              clearError();
+                              setPrefix(t);
+                            }}
+                            style={styles.fieldInput}
+                            placeholder="SN"
+                            placeholderTextColor="#91A3B3"
+                            autoCapitalize="characters"
+                          />
+                        </View>
+                        <View style={styles.fieldBox}>
+                          <Text style={styles.fieldLabel}>Start Number</Text>
+                          <View style={styles.spinnerBox}>
                             <TextInput
-                              value={prefix}
-                              onChangeText={t => {
-                                clearError();
-                                setPrefix(t);
-                              }}
-                              style={styles.fieldInput}
-                              placeholder="SN"
+                              value={startNumberText}
+                              onChangeText={onStartManualChange}
+                              style={styles.spinnerInput}
+                              keyboardType="number-pad"
+                              placeholder="001"
                               placeholderTextColor="#91A3B3"
-                              autoCapitalize="characters"
                             />
-                          </View>
-
-                          <View style={styles.fieldBox}>
-                            <Text style={styles.fieldLabel}>Start Number</Text>
-                            <View style={styles.spinnerBox}>
-                              <TextInput
-                                value={startNumberText}
-                                onChangeText={onStartManualChange}
-                                style={styles.spinnerInput}
-                                keyboardType="number-pad"
-                                placeholder="001"
-                                placeholderTextColor="#91A3B3"
-                              />
-                              <View style={styles.spinnerBtns}>
-                                <TouchableOpacity onPress={incStart} style={styles.spinnerBtn} activeOpacity={0.85}>
-                                  <SerialUpIcon width={rs(16)} height={rs(16)} />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={decStart} style={styles.spinnerBtn} activeOpacity={0.85}>
-                                  <SerialDownIcon width={rs(16)} height={rs(16)} />
-                                </TouchableOpacity>
-                              </View>
+                            <View style={styles.spinnerBtns}>
+                              <TouchableOpacity onPress={incStart} style={styles.spinnerBtn} activeOpacity={0.85}>
+                                <SerialUpIcon width={rs(16)} height={rs(16)} />
+                              </TouchableOpacity>
+                              <TouchableOpacity onPress={decStart} style={styles.spinnerBtn} activeOpacity={0.85}>
+                                <SerialDownIcon width={rs(16)} height={rs(16)} />
+                              </TouchableOpacity>
                             </View>
                           </View>
                         </View>
-
-                        <Text style={styles.helperText}>{helperRangeText}</Text>
                       </View>
-
-                      <TouchableOpacity onPress={onPressGenerate} style={styles.generateBtn} activeOpacity={0.9}>
-                        <Text style={styles.generateTxt}>Generate</Text>
-                      </TouchableOpacity>
+                      <Text style={styles.helperText}>{helperRangeText}</Text>
                     </View>
-                  ) : (
-                    <View style={{ marginTop: rs(12) }}>
-                      <View style={styles.tableHeader}>
-                        <Text style={styles.tableHeaderTxt}>Serial Numbers</Text>
+                    <TouchableOpacity onPress={onPressGenerate} style={styles.generateBtn} activeOpacity={0.9}>
+                      <Text style={styles.generateTxt}>Generate</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.sectionCard}>
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      disabled={!showTouchArea || !canAddRow}
+                      onPress={() => openScannerForRow(null, true)}
+                      style={[styles.addTouchWrap, (!showTouchArea || !canAddRow) && styles.addTouchDisabled]}
+                    >
+                      <Text style={[styles.addTouchText, (!showTouchArea || !canAddRow) && styles.addTouchTextDisabled]}>Add Serial Number</Text>
+                      <View style={[styles.addTouchScan, (!showTouchArea || !canAddRow) && styles.addTouchScanDisabled]}>
+                        <BarcodeIcon width={rs(18)} height={rs(18)} />
                       </View>
+                    </TouchableOpacity>
 
-                      <View style={styles.colsHeader}>
-                        <Text style={styles.colEntry}>Entry</Text>
-                        <Text style={styles.colSerial}>Serial No</Text>
-                        <Text style={styles.colDel} />
-                      </View>
-
-                      {rows.map(renderRow)}
-                      {renderPlaceholder}
+                    <View style={styles.tableHeader}>
+                      <Text style={styles.tableHeaderTxt}>Serial Numbers</Text>
                     </View>
-                  )}
-                </View>
+                    <View style={styles.colsHeader}>
+                      <Text style={styles.colEntry}>Entry</Text>
+                      <Text style={styles.colSerial}>Serial No</Text>
+                      <Text style={styles.colDel} />
+                    </View>
+
+                    {activeRows.map(r => {
+                      const locked = r.source === 'auto' || r.source === 'scan';
+                      return (
+                        <View key={r.id} style={styles.rowWrap}>
+                          <Text style={styles.rowEntryText}>#{r.entry}</Text>
+                          <View style={styles.inputWrap}>
+                            <View style={[styles.inputBox, locked && styles.inputBoxLocked, dupIds.has(r.id) && styles.inputBoxError]}>
+                              <TextInput
+                                value={r.serial}
+                                onChangeText={txt => setRowSerial(r.id, txt)}
+                                placeholder="Enter Serial"
+                                placeholderTextColor="#91A3B3"
+                                style={[styles.serialInput, locked && styles.serialInputLocked]}
+                                editable={!locked}
+                              />
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => openScannerForRow(r.id, false)}
+                              activeOpacity={0.85}
+                              disabled={locked}
+                              style={[styles.scanBtn, locked && styles.scanBtnDisabled]}
+                            >
+                              <BarcodeIcon width={rs(18)} height={rs(18)} />
+                            </TouchableOpacity>
+                          </View>
+                          <TouchableOpacity onPress={() => deleteRow(r.id)} activeOpacity={0.85} style={styles.deleteBtn}>
+                            <SerialDeleteIcon width={rs(18)} height={rs(18)} />
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
               </ScrollView>
 
-              {shouldShowFooter ? (
+              {shouldShowFooter && (
                 <View style={styles.footerBar}>
                   <TouchableOpacity style={styles.deleteAllBtn} onPress={handleDeleteAll} activeOpacity={0.9}>
                     <Text style={styles.deleteAllText}>Delete All</Text>
                   </TouchableOpacity>
-
                   <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.9}>
                     <Text style={styles.saveText}>Save</Text>
                   </TouchableOpacity>
-
                   <TouchableOpacity
-                    style={[styles.addBtn, !canAddRow ? styles.addBtnDisabled : null]}
+                    style={[styles.addBtn, !canAddRow && styles.addBtnDisabled]}
                     disabled={!canAddRow}
                     onPress={addSerialRow}
                     activeOpacity={0.9}
                   >
-                    <Text style={[styles.addText, !canAddRow ? styles.addTextDisabled : null]}>Add Serial</Text>
+                    <Text style={[styles.addText, !canAddRow && styles.addTextDisabled]}>Add Serial</Text>
                   </TouchableOpacity>
                 </View>
-              ) : null}
+              )}
             </KeyboardAvoidingView>
           </View>
         </View>
@@ -693,14 +569,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   topLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  iconBox: {
-    width: rs(40),
-    height: rs(40),
-    borderRadius: rs(8),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: rs(10),
-  },
+  iconBox: { width: rs(40), height: rs(40), borderRadius: rs(8), alignItems: 'center', justifyContent: 'center', marginRight: rs(10) },
   itemTextBlock: { flex: 1 },
   itemLabel: { fontSize: rs(11), color: '#FFFFFF', opacity: 0.8 },
   itemValue: { fontSize: rs(14), fontWeight: '600', color: '#FFFFFF', marginTop: rs(2) },
@@ -709,48 +578,46 @@ const styles = StyleSheet.create({
   topQtyLabel: { fontSize: rs(11), color: '#FFFFFF', opacity: 0.8 },
   qtyValue: { marginTop: rs(2) },
   qtySelected: { fontSize: rs(14), fontWeight: '600', color: '#FFFFFF' },
-  qtySelectedActive: { fontSize: rs(16) },
   qtySlash: { fontSize: rs(14), color: '#FFFFFF' },
   qtyTotal: { fontSize: rs(14), fontWeight: '600', color: '#FFFFFF' },
 
-  tabsRow: {
-    marginTop: rs(10),
+  modeBar: {
+    marginTop: rs(12),
     marginHorizontal: rs(16),
-    flexDirection: 'row',
-    gap: rs(10),
-  },
-  tabBtn: {
-    flex: 1,
-    backgroundColor: '#F0F0F0',
     borderRadius: rs(10),
-    paddingVertical: rs(10),
+    paddingVertical: rs(8),
     paddingHorizontal: rs(10),
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: rs(6),
+    justifyContent: 'space-between',
   },
-  tabBtnActive: { backgroundColor: '#CFE0FF' },
-  tabText: { fontSize: rs(13), fontWeight: '600', color: '#445565' },
-  tabTextActive: { color: '#233E55' },
-  tabSubText: { fontSize: rs(10), fontWeight: '700', color: '#6B7C8B' },
+  modeLeftText: { color: '#1F2D3D', fontSize: rs(12), fontWeight: '700' },
+  modeTabs: { flexDirection: 'row', gap: rs(8) },
 
-  scroll: { flex: 1, paddingHorizontal: rs(16), paddingTop: rs(16) },
+  modeTabBtn: {
+    paddingVertical: rs(6),
+    paddingHorizontal: rs(16),
+    borderRadius: rs(8),
+    borderWidth: 1,
+  },
+  modeTabBtnActive: { backgroundColor: '#5D768B', borderColor: '#5D768B' },
+  modeTabBtnInactive: { backgroundColor: '#FFFFFF', borderColor: '#5D768B' },
+  modeTabTxt: { fontSize: rs(12), fontWeight: '700' },
+  modeTabTxtActive: { color: '#FFFFFF' },
+  modeTabTxtInactive: { color: '#5D768B' },
+
+  scroll: { flex: 1, paddingHorizontal: rs(16), paddingTop: rs(12) },
 
   sectionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: rs(8),
+    borderRadius: rs(10),
     borderWidth: 1,
     borderColor: '#E0E0E0',
     padding: rs(12),
   },
-  sectionTitle: { fontSize: rs(14), color: '#1F2D3D', fontWeight: '600' },
+  sectionTitle: { fontSize: rs(14), color: '#1F2D3D', fontWeight: '700' },
 
-  autoBox: {
-    backgroundColor: '#ECF1F7',
-    borderRadius: rs(10),
-    padding: rs(12),
-  },
+  autoBox: { backgroundColor: '#ECF1F7', borderRadius: rs(10), padding: rs(12) },
   autoRow: { flexDirection: 'row', gap: rs(10) },
 
   fieldBox: { flex: 1 },
@@ -808,6 +675,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'center',
     paddingHorizontal: rs(12),
+    marginTop: rs(12),
   },
   tableHeaderTxt: { fontSize: rs(13), color: '#1F2D3D', fontWeight: '700' },
 
@@ -826,37 +694,61 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: rs(10),
-    borderBottomWidth: 1,
-    borderBottomColor: '#E7EDF3',
+    paddingHorizontal: rs(6),
+    borderRadius: rs(10),
+    backgroundColor: '#D9E4EE',
+    marginBottom: rs(10),
   },
   rowEntryText: { width: rs(60), fontSize: rs(13), fontWeight: '700', color: '#3B4B59' },
 
   inputWrap: { flex: 1, position: 'relative' },
-  serialInput: {
+  inputBox: {
     height: rs(40),
+    borderRadius: rs(8),
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#D7DEE6',
-    borderRadius: rs(10),
     paddingHorizontal: rs(12),
-    paddingRight: rs(40),
-    fontSize: rs(13),
-    color: '#1F2D3D',
-    fontWeight: '600',
-    backgroundColor: '#FFFFFF',
-  },
-  serialInputDisabled: { backgroundColor: '#F2F5F8', color: '#5B6B79' },
-
-  scanBtn: {
-    position: 'absolute',
-    right: rs(10),
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      android: { elevation: 2 },
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
+    }),
   },
+  inputBoxError: { borderColor: '#D32F2F' },
+  serialInput: {
+    fontSize: rs(13),
+    color: '#000000',
+    fontWeight: '700',
+    paddingRight: rs(40),
+  },
+  scanBtn: { position: 'absolute', right: rs(10), top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
 
   deleteBtn: { width: rs(36), height: rs(36), alignItems: 'center', justifyContent: 'center' },
-  deleteBtnGhost: { width: rs(36), height: rs(36) },
+
+  addTouchWrap: {
+    height: rs(46),
+    borderRadius: rs(10),
+    borderWidth: 1,
+    borderColor: '#C9D6E1',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: rs(12),
+    marginBottom: rs(12),
+  },
+  addTouchDisabled: { opacity: 0.45 },
+  addTouchText: { fontSize: rs(12), color: '#1F2D3D', fontWeight: '700' },
+  addTouchTextDisabled: { color: '#6B7C8B' },
+  addTouchScan: {
+    width: rs(36),
+    height: rs(36),
+    borderRadius: rs(8),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E9F0F7',
+  },
+  addTouchScanDisabled: { backgroundColor: '#EFF4F8' },
 
   footerBar: {
     flexDirection: 'row',
