@@ -362,9 +362,9 @@ export default function Rec_LotSerialModalPopup({
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
-    const qty = Number(l.qty) || 0;
-    const p = String(l.prefix || '').trim();
-    const s = Number(l.startNumberText || 0);
+    const qty = Number(lot.qty) || 0;
+    const p = String(lot.prefix || '').trim();
+    const s = Number(lot.startNumberText || 0);
     if (!Number.isFinite(qty) || qty <= 0) {
       setErrorMsg('Invalid quantity for this Lot');
       return;
