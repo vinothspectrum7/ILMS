@@ -308,8 +308,8 @@ export default function Rec_LotSerialModalPopup({
         });
         return;
       }
-      
-      if (lotQty <= 0) {        
+
+      if (lotQty <= 0) {
         updateLot(lotIdx, {
           serialMode: 'manual',
           rangesHasGenerated: false,
@@ -344,7 +344,7 @@ export default function Rec_LotSerialModalPopup({
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
-    const base = Number(lot.startNumberText || 0) || 0;
+    const base = Number(l.startNumberText || 0) || 0;
     const next = Math.max(1, base + 1);
     updateLot(lotIdx, { startNumberText: String(next) });
   };
@@ -353,7 +353,7 @@ export default function Rec_LotSerialModalPopup({
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
-    const base = Number(lot.startNumberText || 0) || 0;
+    const base = Number(l.startNumberText || 0) || 0;
     const next = Math.max(1, base - 1);
     updateLot(lotIdx, { startNumberText: String(next) });
   };
@@ -362,9 +362,9 @@ export default function Rec_LotSerialModalPopup({
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
-    const qty = Number(lot.qty) || 0;
-    const p = String(lot.prefix || '').trim();
-    const s = Number(lot.startNumberText || 0);
+    const qty = Number(l.qty) || 0;
+    const p = String(l.prefix || '').trim();
+    const s = Number(l.startNumberText || 0);
     if (!Number.isFinite(qty) || qty <= 0) {
       setErrorMsg('Invalid quantity for this Lot');
       return;
@@ -395,7 +395,7 @@ export default function Rec_LotSerialModalPopup({
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
-    const qty = Number(lot.qty) || 0;
+    const qty = Number(l.qty) || 0;
     const current = lot.serialRows || [];
     if (current.length >= qty) return;
     updateLotSerials(lotIdx, list => [
@@ -748,7 +748,7 @@ export default function Rec_LotSerialModalPopup({
     };
 
     const renderManualAddTouch = () => {
-      if (!hasSerialModeForAddTouch) return null;
+      if (!hasSerialModeForAddTouch || !lot.serialExpanded) return null;
       return (
         <TouchableOpacity
           activeOpacity={0.9}
@@ -1402,6 +1402,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: rs(8),
+    backgroundColor: '#ECF1F7',
+    borderRadius: rs(8),
+    paddingHorizontal: rs(8),
+    paddingVertical: rs(6),
   },
   serialHeaderLeft: {
     flexDirection: 'row',
@@ -1411,13 +1415,13 @@ const styles = StyleSheet.create({
   serialHeaderEntry: {
     width: rs(60),
     fontSize: rs(11),
-    color: '#6B7C8B',
+    color: '#233E55',
     fontWeight: '600',
   },
   serialHeaderSerial: {
     flex: 1,
     fontSize: rs(11),
-    color: '#6B7C8B',
+    color: '#233E55',
     fontWeight: '600',
   },
   serialHeaderActions: {
