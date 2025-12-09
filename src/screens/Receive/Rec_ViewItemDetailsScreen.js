@@ -272,18 +272,42 @@ const Rec_ViewItemDetailsScreen = () => {
   const [serialModalVisible, setSerialModalVisible] = useState(false);
   const [lotserialModalVisible, setLotSerialModalVisible] = useState(false);
 
+  const persistPatches = () => {
+    const patches = [];
+    allItems.forEach(it => {
+      const st = edited[it.id];
+      if (!st) return;
+      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
+      const clampedQty = clampToLimit(Number(st.receivingQty ?? 0), limit);
+      if (!readOnly) {
+        patches.push({
+          id: String(it.id),
+          receivingQty: clampedQty,
+          qtyToReceive: clampedQty,
+          lpn: st.lpn ?? '',
+          subInventory: st.subInventory ?? '',
+          locator: st.locator ?? null,
+        });
+      }
+    });
+    patches.forEach(p => mergePatchIntoReceiveItems(p));
+  };
+
   const openLotModal = () => {
-    if (!current) return;
+    if (!current || readOnly) return;
+    persistPatches();
     setLotModalVisible(true);
   };
 
   const openSerialModal = () => {
-    if (!current) return;
+    if (!current || readOnly) return;
+    persistPatches();
     setSerialModalVisible(true);
   };
 
   const openLotSerialModal = () => {
-    if (!current) return;
+    if (!current || readOnly) return;
+    persistPatches();
     setLotSerialModalVisible(true);
   };
 
@@ -374,27 +398,6 @@ const Rec_ViewItemDetailsScreen = () => {
     }));
 
     setLotSerialModalVisible(false);
-  };
-
-  const persistPatches = () => {
-    const patches = [];
-    allItems.forEach(it => {
-      const st = edited[it.id];
-      if (!st) return;
-      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
-      const clampedQty = clampToLimit(Number(st.receivingQty ?? 0), limit);
-      if (!readOnly) {
-        patches.push({
-          id: String(it.id),
-          receivingQty: clampedQty,
-          qtyToReceive: clampedQty,
-          lpn: st.lpn ?? '',
-          subInventory: st.subInventory ?? '',
-          locator: st.locator ?? null,
-        });
-      }
-    });
-    patches.forEach(p => mergePatchIntoReceiveItems(p));
   };
 
   const isSubmitEnabled = useMemo(() => {
@@ -667,7 +670,7 @@ const Rec_ViewItemDetailsScreen = () => {
                     <ReceiveLocationIcon width={18} height={18} />
                     <Text style={styles.sectionTitle}>Ship-To Location</Text>
                   </View>
-                <Text style={styles.shipValue} numberOfLines={1}>
+                  <Text style={styles.shipValue} numberOfLines={1}>
                     {current?.ship_to_location || '-'}
                   </Text>
                 </View>
