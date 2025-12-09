@@ -151,6 +151,19 @@ const NewReceiveScreen = () => {
     setPoHeader(mapHeader(selectedPO));
   }, [selectedPO, setPoHeader]);
 
+  const getLabel = (lot_enabled, serial_enabled) => {
+  if (lot_enabled && serial_enabled) {
+    return "Lot+Serial";
+  } else if (lot_enabled) {
+    return "Lot";
+  } else if (serial_enabled) {
+    return "Serial";
+  } else {
+    return null;
+  }
+};
+
+
   const mapBackendArrayToFrontend = (data, posingledata) => {
     const mapped = data.map((backend, index) => ({
       id: index + 1,
@@ -161,7 +174,7 @@ const NewReceiveScreen = () => {
       description: backend.item?.description || '',
       orderedQty: backend.ord_qty,
       orderqty: backend.ord_qty,
-      itemtype: backend.item_type ?? backend.itemtype ?? 'Serial',
+      itemtype: getLabel(backend.item?.lot_enabled, backend.item?.serial_enabled),
       ship_to_location: backend.ship_to_location,
       receivedQty: backend.rcvd_qty,
       openQty:
@@ -209,6 +222,7 @@ const NewReceiveScreen = () => {
           const lockstatus = posingledata?.po_user_action == 'ASSIGNED' ? true : false;
           setCurrentPO(selectedPO.po_id, lockstatus);
           setPurchaseReceipt(posingledata?.next_receipt_num);
+          console.log(posingledata,"posingledata.purchase_order_linesposingledata.purchase_order_lines")
           const frontendArray = mapBackendArrayToFrontend(posingledata.purchase_order_lines, posingledata);
           setPoListItems(frontendArray);
         } else {
@@ -322,7 +336,7 @@ const NewReceiveScreen = () => {
         description: i.description,
         orderedQty: i.orderedQty,
         orderqty: i.orderqty,
-        itemtype: i.itemtype ?? 'Serial',
+        itemtype: i.itemtype ?? null,
         ship_to_location: i.ship_to_location,
         receivedQty: i.receivedQty,
         openQty: i.openQty,
@@ -437,6 +451,7 @@ const NewReceiveScreen = () => {
   };
 
   const goToLineItemDetails = (startIdx = 0, source = draftItems, readonly = false, listType = 'line') => {
+    console.log(draftItems,"DRAFTITEMSSS");
     const withLatestFromStore = source.map((it, i) => {
       const s = receiveItems.find(r => String(r.id) === String(it.id));
       const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
@@ -450,7 +465,7 @@ const NewReceiveScreen = () => {
         itemDescription: it.itemDescription ?? it.description ?? '—',
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
-        itemtype: it.itemtype ?? 'Serial',
+        itemtype: it.itemtype ?? null,
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
         receivingQty: qty,

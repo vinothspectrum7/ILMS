@@ -18,7 +18,7 @@ import Rec_DropDown from '../../components/receive/Rec_DropDown';
 import Rec_LotModalPopup from '../../components/receive/Rec_LotModalPopup';
 import Rec_SerialModalPopup from '../../components/receive/Rec_SerialModalPopup';
 import { useReceivingStore } from '../../store/receivingStore';
-import { GetLocatorsData } from '../../api/ApiServices';
+import { GetLocatorsData, LPNList } from '../../api/ApiServices';
 import ReceiveItemBoxIcon from '../../assets/icons/receiveitemboxicon.svg';
 import ReceiveQtyIcon from '../../assets/icons/receiveqtyicon.svg';
 import ReceiveLocationIcon from '../../assets/icons/receivelocationicon.svg';
@@ -43,7 +43,48 @@ const clampToLimit = (qty, limit) => {
   if (!Number.isFinite(q) || q <= 0) return 0;
   return Math.min(q, lim);
 };
-
+ const MOCK_LOCATORS = [
+  {
+    id: 'LOC0001',
+    name: 'FGI 1',
+    code: 'LOC0001',
+    subInventoryId: 'SUB0001',
+    description:
+      'Lorem ipsum dolor sit amet.',
+  },
+  {
+    id: 'LOC0002',
+    name: 'FGI 2',
+    code: 'LOC0002',
+    subInventoryId: 'SUB0002',
+    description:
+      'Lorem ipsum dolor sit amet.',
+  },
+  {
+    id: 'LOC0003',
+    name: 'FGI 3',
+    code: 'LOC0003',
+    subInventoryId: 'SUB0003',
+    description:
+      'Lorem ipsum dolor sit amet.',
+  },
+  {
+    id: 'LOC0004',
+    name: 'FGI 4',
+    code: 'LOC0004',
+    subInventoryId: 'SUB0004',
+    description:
+      'Lorem ipsum dolor sit amet.',
+  },
+  {
+    id: 'LOC0005',
+    name: 'FGI 5',
+    code: 'LOC0005',
+    subInventoryId: 'SUB0005',
+    description:
+      'Lorem ipsum dolor sit amet.',
+  },
+];
 const Rec_ViewItemDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -93,6 +134,7 @@ const Rec_ViewItemDetailsScreen = () => {
   const [edited, setEdited] = useState({});
   const [locatorDataMap, setLocatorDataMap] = useState({});
   const [lotRowsMap, setLotRowsMap] = useState({});
+  const [LpnListData,setLPNoption] = useState([]);
   const [serialRowsMap, setSerialRowsMap] = useState({});
   const listRef = useRef(null);
   const isProgrammaticScroll = useRef(false);
@@ -179,18 +221,26 @@ const Rec_ViewItemDetailsScreen = () => {
     }
   }, [allItems, edited, readOnly, OrgData, getLocatorFromCache, setLocatorInCache]);
 
-  const lpnOptions = useMemo(() => {
-    const set = new Map();
-    receiveItems.forEach(r => {
-      if (r.lpn) {
-        const key = String(r.lpn);
-        if (!set.has(key)) {
-          set.set(key, { id: key, name: key });
-        }
-      }
-    });
-    return Array.from(set.values());
-  }, [receiveItems]);
+  useEffect(async() => {
+    const Lpndata = await LPNList();
+    const LpndataList = Lpndata.map(d => ({ id: d.lpn_id, name: d.lpn_num, enabled: d.lpn_enabled }));
+    // const LpnList = LpndataList.find(o => o.enabled);
+    setLPNoption(LpndataList);
+    console.log(LpndataList,"LpnlistLpnlist");
+  },[]);
+
+  // const lpnOptions = useMemo(() => {
+  //   const set = new Map();
+  //   LpnList.forEach(r => {
+  //     if (r.lpn) {
+  //       const key = String(r.lpn);
+  //       if (!set.has(key)) {
+  //         set.set(key, { id: key, name: key });
+  //       }
+  //     }
+  //   });
+  //   return Array.from(set.values());
+  // }, [LpnList]);
 
   const scrollToIndex = useCallback(
     i => {
@@ -279,6 +329,7 @@ const Rec_ViewItemDetailsScreen = () => {
       ...prev,
       [current.id]: safeLots,
     }));
+    console.log(safeLots,"safeLotssafeLots");
 
     setLotModalVisible(false);
   };
@@ -554,7 +605,7 @@ const Rec_ViewItemDetailsScreen = () => {
                   <Rec_DropDown
                     value={currentEdited.lpn}
                     onChange={id => handleLpnChange(current.id, id)}
-                    options={lpnOptions}
+                    items={LpnListData}
                     placeholder="Select LPN"
                     disabled={readOnly || Number(current.openQty ?? 0) === 0}
                     width="100%"
@@ -568,7 +619,7 @@ const Rec_ViewItemDetailsScreen = () => {
                     <Rec_DropDown
                       value={currentEdited.subInventory}
                       onChange={id => handleSubInvChange(current.id, id)}
-                      options={InventoryList}
+                      items={InventoryList}
                       placeholder="Select Sub Inv"
                       disabled={readOnly || Number(current.openQty ?? 0) === 0}
                       width="100%"
@@ -580,7 +631,7 @@ const Rec_ViewItemDetailsScreen = () => {
                     <Rec_DropDown
                       value={currentEdited.locator}
                       onChange={id => handleLocatorChange(current.id, id)}
-                      options={locatorDataMap[current.id] ?? []}
+                      items={locatorDataMap[current.id] ?? []}
                       placeholder="Select Locator"
                       disabled={readOnly || Number(current.openQty ?? 0) === 0}
                       width="100%"
@@ -625,7 +676,7 @@ const Rec_ViewItemDetailsScreen = () => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openSerialModal}
-                      disabled={readOnly || Number(current.openQty ?? 0) === 0}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty ==0}
                     >
                       {hasSerials ? (
                         <View style={styles.addLotGreen}>
@@ -748,7 +799,7 @@ const styles = StyleSheet.create({
   tabRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: ms(10) },
   tabWrapper: { flex: 1, marginHorizontal: ms(2) },
   tabBtn: {
-    borderRadius: ms(24),
+    borderRadius: ms(8),
     paddingVertical: ms(9),
     paddingHorizontal: ms(8),
     flexDirection: 'row',
@@ -779,9 +830,9 @@ const styles = StyleSheet.create({
   itemName: { fontSize: ms(13), fontWeight: '700', color: '#111827' },
   itemCode: { marginTop: ms(3), fontSize: ms(11), color: '#9D9FA3' },
   itemPillsCol: { alignItems: 'flex-end', justifyContent: 'center' },
-  pillLot: { minWidth: ms(48), paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(12), backgroundColor: '#D9E4EE', alignItems: 'center', justifyContent: 'center' },
+  pillLot: { minWidth: ms(48), paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(4), backgroundColor: '#D9E4EE', alignItems: 'center', justifyContent: 'center' },
   pillLotText: { fontSize: ms(10), color: '#5C996E', fontWeight: '600' },
-  pillSerial: { minWidth: ms(48), paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(12), backgroundColor: '#9CC6F6', alignItems: 'center', justifyContent: 'center', marginTop: ms(4) },
+  pillSerial: { minWidth: ms(48), paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(4), backgroundColor: '#9CC6F6', alignItems: 'center', justifyContent: 'center', marginTop: ms(4) },
   pillSerialText: { fontSize: ms(10), color: '#668694', fontWeight: '600' },
 
   section: { marginTop: ms(16) },
