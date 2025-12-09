@@ -16,6 +16,7 @@ import FooterButtonsComponent from '../../components/FooterButtonsComponent';
 import CustomNumericInput from '../../components/CustomNumericInput';
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
 import Rec_LotModalPopup from '../../components/receive/Rec_LotModalPopup';
+import Rec_LotSerialModalPopup from '../../components/receive/Rec_LotSerialModalPopup';
 import Rec_SerialModalPopup from '../../components/receive/Rec_SerialModalPopup';
 import { useReceivingStore } from '../../store/receivingStore';
 import { GetLocatorsData, LPNList } from '../../api/ApiServices';
@@ -136,6 +137,7 @@ const Rec_ViewItemDetailsScreen = () => {
   const [lotRowsMap, setLotRowsMap] = useState({});
   const [LpnListData,setLPNoption] = useState([]);
   const [serialRowsMap, setSerialRowsMap] = useState({});
+  const [lotserialRowsMap, setSerialLotRowsMap] = useState({});
   const listRef = useRef(null);
   const isProgrammaticScroll = useRef(false);
 
@@ -157,8 +159,29 @@ const Rec_ViewItemDetailsScreen = () => {
     return Array.isArray(fromLocal) ? fromLocal : [];
   }, [current, currentStoreLine, lotRowsMap]);
 
+  const currentLotSerialLines = useMemo(() => {
+    if (!current) return [];
+    const fromStore = currentStoreLine?.lotLines;
+    if (Array.isArray(fromStore)) return fromStore;
+    const fromLocal = lotserialRowsMap[current.id];
+    return Array.isArray(fromLocal) ? fromLocal : [];
+  }, [current, currentStoreLine, lotserialRowsMap]);
+
   const lotsCount = currentLotLines.length;
   const hasLots = lotsCount > 0;
+
+  const lotSerialLotsCount = currentLotSerialLines.length;
+  const hasLotSerials = lotSerialLotsCount > 0;
+
+  const lotSerialSerialCount = currentLotSerialLines.reduce((sum, l) => {
+    const arr = Array.isArray(l.serials) ? l.serials : [];
+    return sum + arr.length;
+  }, 0);
+
+  const lotSerialTotalQty = currentLotSerialLines.reduce(
+    (sum, l) => sum + (Number(l.qty) || 0),
+    0,
+  );
 
   const currentSerialLines = useMemo(() => {
     if (!current) return [];
@@ -174,7 +197,7 @@ const Rec_ViewItemDetailsScreen = () => {
   const serialMode = useMemo(() => {
     if (!current) return 'ranges';
     const m = currentStoreLine?.serialMode;
-    return m === 'individual' ? 'individual' : 'ranges';
+    return m === 'manual' ? 'manual' : 'ranges';
   }, [current, currentStoreLine]);
 
   useEffect(() => {
@@ -297,6 +320,7 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const [lotModalVisible, setLotModalVisible] = useState(false);
   const [serialModalVisible, setSerialModalVisible] = useState(false);
+  const [lotserialModalVisible, setLotSerialModalVisible] = useState(false);
 
   const openLotModal = () => {
     if (!current) return;
@@ -306,6 +330,11 @@ const Rec_ViewItemDetailsScreen = () => {
   const openSerialModal = () => {
     if (!current) return;
     setSerialModalVisible(true);
+  };
+
+  const openLotSerialModal = () => {
+    if (!current) return;
+    setLotSerialModalVisible(true);
   };
 
   const handleSaveLots = (lots, totalQty) => {
@@ -344,7 +373,7 @@ const Rec_ViewItemDetailsScreen = () => {
       id: String(current.id),
       serialLines: safeSerials,
       serialTotalQty: safeSerials.length,
-      serialMode: mode === 'individual' ? 'individual' : 'ranges',
+      serialMode: mode === 'manual' ? 'manual' : 'ranges',
     });
 
     setSerialRowsMap(prev => ({
@@ -353,6 +382,49 @@ const Rec_ViewItemDetailsScreen = () => {
     }));
 
     setSerialModalVisible(false);
+  };
+
+  const handleSaveLotSerials = (lots, totalQty) => {
+    if (!current) return;
+
+    const safeLots = Array.isArray(lots)
+      ? lots.map(l => ({
+          lotNumber: String(l.lotNumber || ''),
+          mfgDate: String(l.mfgDate || ''),
+          expDate: String(l.expDate || ''),
+          qty: Number(l.qty) || 0,
+          serialMode: l.serialMode ?? null,
+          serials: Array.isArray(l.serials)
+            ? l.serials.map(s => String(s || '').trim()).filter(Boolean)
+            : [],
+        }))
+      : [];
+
+    const flatSerials = safeLots.flatMap(l => l.serials || []);
+    const flatSerialCount = flatSerials.length;
+
+    let overallSerialMode = null;
+    if (flatSerialCount > 0) {
+      const allRanges =
+        safeLots.length > 0 && safeLots.every(l => l.serialMode === 'ranges');
+      overallSerialMode = allRanges ? 'ranges' : 'manual';
+    }
+
+    mergePatchIntoReceiveItems({
+      id: String(current.id),
+      lotLines: safeLots,
+      lotTotalQty: Number(totalQty) || 0,
+      serialLines: flatSerials,
+      serialTotalQty: flatSerialCount,
+      serialMode: overallSerialMode,
+    });
+
+    setSerialLotRowsMap(prev => ({
+      ...prev,
+      [current.id]: safeLots,
+    }));
+
+    setLotSerialModalVisible(false);
   };
 
   const persistPatches = () => {
@@ -407,9 +479,11 @@ const Rec_ViewItemDetailsScreen = () => {
   const itemType = current?.itemType || 'Lot';
 
   const itemPills = (() => {
-    const showLot = itemType === 'Lot' || itemType === 'Lot+Serial';
-    const showSerial = itemType === 'Serial' || itemType === 'Lot+Serial';
-    return { showLot, showSerial };
+    console.log(itemType,"itemPillsitemPillsitemPillsitemPillsitemPills")
+    const showLot = itemType === 'Lot';
+    const showSerial = itemType === 'Serial';
+    const showLotSerial = itemType === 'Lot+Serial';
+    return { showLot, showSerial, showLotSerial };
   })();
 
   const lineLabel = `Line${index + 1}`;
@@ -449,13 +523,24 @@ const Rec_ViewItemDetailsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.mainContainer}>
           <View style={styles.cardReceive}>
             <View style={styles.tabRow}>
-              <TouchableOpacity style={styles.tabWrapper} activeOpacity={0.9} onPress={() => setActiveTab('Receive')}>
+              <TouchableOpacity
+                style={styles.tabWrapper}
+                activeOpacity={0.9}
+                onPress={() => setActiveTab('Receive')}
+              >
                 <LinearGradient
-                  colors={activeTab === 'Receive' ? ['#233E55', '#5D768B'] : ['#E5E7EB', '#D1D5DB']}
+                  colors={
+                    activeTab === 'Receive'
+                      ? ['#233E55', '#5D768B']
+                      : ['#E5E7EB', '#D1D5DB']
+                  }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={[styles.tabBtn, activeTab === 'Receive' && styles.tabBtnActive]}
@@ -465,15 +550,30 @@ const Rec_ViewItemDetailsScreen = () => {
                   ) : (
                     <ReceiveTabIcon width={16} height={16} />
                   )}
-                  <Text style={[styles.tabText, activeTab === 'Receive' ? styles.tabTextActive : styles.tabTextInactive]}>
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeTab === 'Receive'
+                        ? styles.tabTextActive
+                        : styles.tabTextInactive,
+                    ]}
+                  >
                     Receive
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.tabWrapper} activeOpacity={0.9} onPress={() => setActiveTab('Inspect')}>
+              <TouchableOpacity
+                style={styles.tabWrapper}
+                activeOpacity={0.9}
+                onPress={() => setActiveTab('Inspect')}
+              >
                 <LinearGradient
-                  colors={activeTab === 'Inspect' ? ['#233E55', '#5D768B'] : ['#F3F4F6', '#E5E7EB']}
+                  colors={
+                    activeTab === 'Inspect'
+                      ? ['#233E55', '#5D768B']
+                      : ['#F3F4F6', '#E5E7EB']
+                  }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={[styles.tabBtn, activeTab === 'Inspect' && styles.tabBtnActive]}
@@ -483,15 +583,29 @@ const Rec_ViewItemDetailsScreen = () => {
                   ) : (
                     <InspectTabIcon width={16} height={16} />
                   )}
-                  <Text style={activeTab === 'Inspect' ? [styles.tabText, styles.tabTextActive] : [styles.tabText, styles.tabTextInactive]}>
+                  <Text
+                    style={
+                      activeTab === 'Inspect'
+                        ? [styles.tabText, styles.tabTextActive]
+                        : [styles.tabText, styles.tabTextInactive]
+                    }
+                  >
                     Inspect
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.tabWrapper} activeOpacity={0.9} onPress={() => setActiveTab('PutAway')}>
+              <TouchableOpacity
+                style={styles.tabWrapper}
+                activeOpacity={0.9}
+                onPress={() => setActiveTab('PutAway')}
+              >
                 <LinearGradient
-                  colors={activeTab === 'PutAway' ? ['#233E55', '#5D768B'] : ['#F3F4F6', '#E5E7EB']}
+                  colors={
+                    activeTab === 'PutAway'
+                      ? ['#233E55', '#5D768B']
+                      : ['#F3F4F6', '#E5E7EB']
+                  }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={[styles.tabBtn, activeTab === 'PutAway' && styles.tabBtnActive]}
@@ -501,7 +615,13 @@ const Rec_ViewItemDetailsScreen = () => {
                   ) : (
                     <PutAwayTabIcon width={16} height={16} />
                   )}
-                  <Text style={activeTab === 'PutAway' ? [styles.tabText, styles.tabTextActive] : [styles.tabText, styles.tabTextInactive]}>
+                  <Text
+                    style={
+                      activeTab === 'PutAway'
+                        ? [styles.tabText, styles.tabTextActive]
+                        : [styles.tabText, styles.tabTextInactive]
+                    }
+                  >
                     Put Away
                   </Text>
                 </LinearGradient>
@@ -532,6 +652,16 @@ const Rec_ViewItemDetailsScreen = () => {
                       <Text style={styles.pillSerialText}>Serial</Text>
                     </View>
                   )}
+                  {itemPills.showLotSerial && (
+                    <View style={styles.pilllotserial}>
+                      <View style={styles.pillLot}>
+                        <Text style={styles.pillLotText}>Lot</Text>
+                      </View>
+                      <View style={styles.pillSerial}>
+                        <Text style={styles.pillSerialText}>Serial</Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
               </View>
             </View>
@@ -546,7 +676,8 @@ const Rec_ViewItemDetailsScreen = () => {
                 <View style={styles.row}>
                   <Text style={styles.label}>Order Quantity</Text>
                   <Text style={styles.orderQtyText}>
-                    {current.orderQty} <Text style={styles.orderQtyUom}>/ {current.uom}</Text>
+                    {current.orderQty}{' '}
+                    <Text style={styles.orderQtyUom}>/ {current.uom}</Text>
                   </Text>
                 </View>
 
@@ -588,7 +719,7 @@ const Rec_ViewItemDetailsScreen = () => {
                     <ReceiveLocationIcon width={18} height={18} />
                     <Text style={styles.sectionTitle}>Ship-To Location</Text>
                   </View>
-                  <Text style={styles.shipValue} numberOfLines={1}>
+                <Text style={styles.shipValue} numberOfLines={1}>
                     {current?.ship_to_location || '-'}
                   </Text>
                 </View>
@@ -699,6 +830,36 @@ const Rec_ViewItemDetailsScreen = () => {
                     </TouchableOpacity>
                   </View>
                 )}
+
+                {itemPills.showLotSerial && (
+                  <View style={styles.addLotRow}>
+                    <TouchableOpacity
+                      style={styles.addLotBtn}
+                      activeOpacity={0.85}
+                      onPress={openLotSerialModal}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0}
+                    >
+                      {hasLotSerials ? (
+                        <View style={styles.addLotGreen}>
+                          <ReceiveAddIcon width={16} height={16} />
+                          <Text style={styles.addLotGreenText}>
+                            {`${lotSerialLotsCount} Lots + ${lotSerialSerialCount} Serials Added - ${lotSerialTotalQty} QTY`}
+                          </Text>
+                        </View>
+                      ) : (
+                        <LinearGradient
+                          colors={['#7392AA', '#89ADC9']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.addLotGrad}
+                        >
+                          <ReceiveAddIcon width={16} height={16} />
+                          <Text style={styles.addLotText}>Add Lot + Serial</Text>
+                        </LinearGradient>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </>
           )}
@@ -740,6 +901,17 @@ const Rec_ViewItemDetailsScreen = () => {
             initialSerials={currentSerialLines}
             initialMode={serialMode}
           />
+
+          <Rec_LotSerialModalPopup
+            visible={lotserialModalVisible}
+            onClose={() => setLotSerialModalVisible(false)}
+            onSave={handleSaveLotSerials}
+            itemName={current.itemName}
+            itemCode={current.itemid}
+            lineQty={currentQty}
+            lineLabel={lineLabel}
+            initialLots={currentLotSerialLines}
+          />
         </>
       )}
     </SafeAreaView>
@@ -760,8 +932,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 3,
   },
-  navEdge: { width: ms(44), height: ms(32), alignItems: 'center', justifyContent: 'center' },
-  navTitle: { flex: 1, color: '#233E55', textAlign: 'center', fontSize: ms(12), fontWeight: '600' },
+  navEdge: {
+    width: ms(44),
+    height: ms(32),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navTitle: {
+    flex: 1,
+    color: '#233E55',
+    textAlign: 'center',
+    fontSize: ms(12),
+    fontWeight: '600',
+  },
   scrollContent: { paddingBottom: ms(120) },
   mainContainer: { paddingBottom: ms(16) },
 
@@ -796,7 +979,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  tabRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: ms(10) },
+  tabRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: ms(10),
+  },
   tabWrapper: { flex: 1, marginHorizontal: ms(2) },
   tabBtn: {
     borderRadius: ms(8),
@@ -825,30 +1012,89 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   itemInfoRow: { flexDirection: 'row', alignItems: 'center' },
-  itemIconWrap: { width: ms(46), height: ms(46), borderRadius: ms(10), alignItems: 'center', justifyContent: 'center', marginRight: ms(10) },
+  itemIconWrap: {
+    width: ms(46),
+    height: ms(46),
+    borderRadius: ms(10),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: ms(10),
+  },
   itemTextCol: { flex: 1 },
   itemName: { fontSize: ms(13), fontWeight: '700', color: '#111827' },
   itemCode: { marginTop: ms(3), fontSize: ms(11), color: '#9D9FA3' },
   itemPillsCol: { alignItems: 'flex-end', justifyContent: 'center' },
-  pillLot: { minWidth: ms(48), paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(4), backgroundColor: '#D9E4EE', alignItems: 'center', justifyContent: 'center' },
+  pilllotserial: {
+    minWidth: ms(50),
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(8),
+    borderRadius: ms(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillLot: {
+    minWidth: ms(48),
+    paddingHorizontal: ms(8),
+    paddingVertical: ms(3),
+    borderRadius: ms(12),
+    backgroundColor: '#D9E4EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pillLotText: { fontSize: ms(10), color: '#5C996E', fontWeight: '600' },
-  pillSerial: { minWidth: ms(48), paddingHorizontal: ms(8), paddingVertical: ms(3), borderRadius: ms(4), backgroundColor: '#9CC6F6', alignItems: 'center', justifyContent: 'center', marginTop: ms(4) },
+  pillSerial: {
+    minWidth: ms(48),
+    paddingHorizontal: ms(8),
+    paddingVertical: ms(3),
+    borderRadius: ms(12),
+    backgroundColor: '#9CC6F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: ms(4),
+  },
   pillSerialText: { fontSize: ms(10), color: '#668694', fontWeight: '600' },
 
   section: { marginTop: ms(16) },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: ms(8) },
-  sectionTitle: { marginLeft: ms(6), fontSize: ms(13), fontWeight: '700', color: '#111827' },
+  sectionTitle: {
+    marginLeft: ms(6),
+    fontSize: ms(13),
+    fontWeight: '700',
+    color: '#111827',
+  },
 
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: ms(6), justifyContent: 'space-between' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: ms(6),
+    justifyContent: 'space-between',
+  },
   label: { fontSize: ms(11), color: '#6C6C6C' },
   orderQtyText: { fontSize: ms(13), fontWeight: '700', color: '#111827' },
   orderQtyUom: { fontSize: ms(11), fontWeight: '600', color: '#6B7280' },
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
-  uomText: { fontSize: ms(10), color: '#595A5C', marginTop: ms(2), marginRight: ms(2), textAlign: 'right' },
+  uomText: {
+    fontSize: ms(10),
+    color: '#595A5C',
+    marginTop: ms(2),
+    marginRight: ms(2),
+    textAlign: 'right',
+  },
 
-  shipHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  shipHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   shipHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
-  shipValue: { fontSize: ms(12), fontWeight: '700', color: '#111827', marginLeft: ms(8), flexShrink: 1, textAlign: 'right' },
+  shipValue: {
+    fontSize: ms(12),
+    fontWeight: '700',
+    color: '#111827',
+    marginLeft: ms(8),
+    flexShrink: 1,
+    textAlign: 'right',
+  },
 
   fieldBlockFull: { marginTop: ms(10) },
   mandLabel: { fontSize: ms(11), color: '#6C6C6C', marginBottom: ms(4) },
@@ -868,7 +1114,12 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     justifyContent: 'center',
   },
-  addLotText: { marginLeft: ms(6), fontSize: ms(11), fontWeight: '700', color: '#FFFFFF' },
+  addLotText: {
+    marginLeft: ms(6),
+    fontSize: ms(11),
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
 
   addLotGreen: {
     flexDirection: 'row',
@@ -880,7 +1131,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#73B386',
   },
-  addLotGreenText: { marginLeft: ms(6), fontSize: ms(11), fontWeight: '700', color: '#FFFFFF' },
+  addLotGreenText: {
+    marginLeft: ms(6),
+    fontSize: ms(11),
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
 });
 
 export default Rec_ViewItemDetailsScreen;
