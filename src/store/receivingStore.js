@@ -70,17 +70,17 @@ export const useReceivingStore = create((set, get) => ({
               typeof patch.lotTotalQty === 'number'
                 ? patch.lotTotalQty
                 : it.lotTotalQty,
-            serialLines: Array.isArray(patch.serialLines) ? patch.serialLines : it.serialLines,
+            serialLines: Array.isArray(patch.serialLines)
+              ? patch.serialLines
+              : it.serialLines,
             serialTotalQty:
               typeof patch.serialTotalQty === 'number'
                 ? patch.serialTotalQty
-                : it.serialTotalQty,
+                : it.serialTotalQty,            
             serialMode:
-              patch.serialMode === 'individual'
-                ? 'individual'
-                : patch.serialMode === 'ranges'
-                  ? 'ranges'
-                  : it.serialMode,
+              typeof patch.serialMode === 'string'
+                ? patch.serialMode
+                : it.serialMode,
           }
         : it,
     );
@@ -110,17 +110,17 @@ export const useReceivingStore = create((set, get) => ({
               typeof patch.lotTotalQty === 'number'
                 ? patch.lotTotalQty
                 : it.lotTotalQty,
-            serialLines: Array.isArray(patch.serialLines) ? patch.serialLines : it.serialLines,
+            serialLines: Array.isArray(patch.serialLines)
+              ? patch.serialLines
+              : it.serialLines,
             serialTotalQty:
               typeof patch.serialTotalQty === 'number'
                 ? patch.serialTotalQty
-                : it.serialTotalQty,
+                : it.serialTotalQty,            
             serialMode:
-              patch.serialMode === 'individual'
-                ? 'individual'
-                : patch.serialMode === 'ranges'
-                  ? 'ranges'
-                  : it.serialMode,
+              typeof patch.serialMode === 'string'
+                ? patch.serialMode
+                : it.serialMode,
           }
         : it,
     );
