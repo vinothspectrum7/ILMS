@@ -395,7 +395,7 @@ export default function Rec_LotSerialModalPopup({
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
-    const qty = Number(l.qty) || 0;
+    const qty = Number(lot.qty) || 0;
     const current = lot.serialRows || [];
     if (current.length >= qty) return;
     updateLotSerials(lotIdx, list => [
