@@ -450,7 +450,7 @@ const NewReceiveScreen = () => {
         itemDescription: it.itemDescription ?? it.description ?? '—',
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
-        itemtype: it.itemtype ?? 'LotSerial',
+        itemtype: it.itemtype ?? 'Lot',
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
         receivingQty: qty,
