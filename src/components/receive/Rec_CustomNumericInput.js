@@ -14,6 +14,9 @@ const Rec_CustomNumericInput = ({
   isSelected = true,
   disabledinput = true,
   onLimit,
+  bgColor,       // optional override for background color
+  borderColor,   // optional override for border color
+  textColor,     // optional override for text color
 }) => {
   const [touched, setTouched] = useState(false);
 
@@ -61,23 +64,54 @@ const Rec_CustomNumericInput = ({
   };
 
   const showFilled = isSelected && safeValue > 0;
-  const dynamicStyles = disabledinput ? styles.disabledvalue : showFilled ? styles.touched : styles.untouched;
-  const activeTextColor = disabledinput ? '#595A5C' : showFilled ? '#fff' : '#5D768B';
+
+  const baseStateStyles = disabledinput
+    ? styles.disabledvalue
+    : showFilled
+    ? styles.touched
+    : styles.untouched;
+
+  const activeTextColor = disabledinput ? '#595A5C' : showFilled ? '#FFFFFF' : '#5D768B';
+  const appliedTextColor = textColor || activeTextColor;
+
+  const containerBorderStyle = [
+    baseStateStyles.border,
+    borderColor && { borderColor },
+  ];
+
+  const containerBgStyle = [
+    baseStateStyles.bg,
+    bgColor && { backgroundColor: bgColor },
+  ];
+
+  const innerBgStyle = containerBgStyle; // use same bg for buttons & input
 
   return (
-    <View style={[styles.container, dynamicStyles.border, { width, height }]}>
+    <View
+      style={[
+        styles.container,
+        containerBorderStyle,
+        containerBgStyle,
+        { width, height },
+      ]}
+    >
       <TouchableOpacity
         disabled={!canDec || disabledinput}
         onPress={handleMinus}
-        style={[styles.button, dynamicStyles.bg]}
+        style={[styles.button, innerBgStyle]}
       >
-        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canDec ? 1 : 0.5 }]}>
+        <Text
+          style={[
+            styles.buttonText,
+            { color: appliedTextColor, opacity: canDec && !disabledinput ? 1 : 0.5 },
+          ]}
+        >
           —
         </Text>
       </TouchableOpacity>
 
       <TextInput
-        style={[styles.input, dynamicStyles.bg, { color: activeTextColor }]}
+        style={[styles.input, innerBgStyle, { color: appliedTextColor }]}
         value={String(safeValue)}
         onChangeText={text => {
           const onlyDigits = text.replace(/[^0-9]/g, '');
@@ -96,9 +130,14 @@ const Rec_CustomNumericInput = ({
       <TouchableOpacity
         disabled={!canInc || disabledinput}
         onPress={handlePlus}
-        style={[styles.button, dynamicStyles.bg]}
+        style={[styles.button, innerBgStyle]}
       >
-        <Text style={[styles.buttonText, { color: activeTextColor, opacity: canInc ? 1 : 0.5 }]}>
+        <Text
+          style={[
+            styles.buttonText,
+            { color: appliedTextColor, opacity: canInc && !disabledinput ? 1 : 0.5 },
+          ]}
+        >
           ＋
         </Text>
       </TouchableOpacity>
@@ -129,8 +168,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     paddingVertical: 0,
-    marginRight: -1,
-    marginLeft: -1,
   },
   untouched: {
     bg: { backgroundColor: '#FFFFFF' },
