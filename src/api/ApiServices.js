@@ -267,3 +267,13 @@ export const PriorityTaskList = async(org_id,limit)=>{
     throw error.response?.data?.detail;
   }
 }
+export const LPNList = async()=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.LPN_LIST);
+        console.log("LPN_LIST:", response);
+    return response.data;
+  }catch (error) {
+    console.error("LPN_LIST ERROR:", error.response?.data);
+    throw error.response?.data?.detail;
+  }
+}

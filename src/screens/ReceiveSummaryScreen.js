@@ -216,6 +216,25 @@ const ReceiveSummaryScreen = () => {
       interface_header_id: Interface_Id,
       received_type: 'purchase_order',
       asn_header_uuid: null,
+            // new fields
+      lpn_number: "string",
+      failed_qty: 0,
+      on_hold_qty: 0,
+      lot_enabled: false,
+      serial_enabled: false,
+      lot_serial_data: [
+      {
+        "lot_name": "string",
+        "lot_qty": "string",
+        "lot_mfg_date": "2025-12-09",
+        "lot_exp_date": "2025-12-09",
+        "serial_start_num": "string",
+        "serial_end_num": "string"
+      }
+    ],
+    "inspection_item_img_paths": [],  // Inspection items images
+    "inspection_notes": "string",
+    "is_putaway_completed": false,
     }));
   };
 
