@@ -701,11 +701,11 @@ useEffect(() => {
             {activeTab === 'Receive' && current && (
               <View style={styles.section}>
                 <View style={styles.sectionHeaderRow}>
-                  <ReceiveQtyIcon width={18} height={18} />
+                  <ReceiveQtyIcon width={19} height={19} />
                   <Text style={styles.sectionTitle}>Quantity Overview</Text>
                 </View>
 
-                <View style={styles.row}>
+                <View style={[styles.row,{borderBottomWidth:0.5,borderBottomColor:'#CCCED2'}]}>
                   <Text style={styles.label}>Order Quantity</Text>
                   <Text style={styles.orderQtyText}>
                     {current.orderQty}{' '}
@@ -809,7 +809,7 @@ useEffect(() => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openLotModal}
-                      disabled={readOnly || Number(current.openQty ?? 0) === 0}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty==0}
                     >
                       {hasLots ? (
                         <View style={styles.addLotGreen}>
@@ -869,7 +869,7 @@ useEffect(() => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openLotSerialModal}
-                      disabled={readOnly || Number(current.openQty ?? 0) === 0}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty==0}
                     >
                       {hasLotSerials ? (
                         <View style={styles.addLotGreen}>
@@ -1068,7 +1068,7 @@ const styles = StyleSheet.create({
     minWidth: ms(48),
     paddingHorizontal: ms(8),
     paddingVertical: ms(3),
-    borderRadius: ms(12),
+    borderRadius: ms(4),
     backgroundColor: '#D9E4EE',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1078,7 +1078,7 @@ const styles = StyleSheet.create({
     minWidth: ms(48),
     paddingHorizontal: ms(8),
     paddingVertical: ms(3),
-    borderRadius: ms(12),
+    borderRadius: ms(4),
     backgroundColor: '#9CC6F6',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1090,18 +1090,19 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: ms(8) },
   sectionTitle: {
     marginLeft: ms(6),
-    fontSize: ms(13),
+    fontSize: ms(14),
     fontWeight: '700',
-    color: '#111827',
+    color: '#242424',
+    fontFamily:'Mulish'
   },
 
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: ms(6),
+    paddingVertical: ms(8),
     justifyContent: 'space-between',
   },
-  label: { fontSize: ms(11), color: '#6C6C6C' },
+  label: { fontSize: ms(12), color: '#595A5C' },
   orderQtyText: { fontSize: ms(13), fontWeight: '700', color: '#111827' },
   orderQtyUom: { fontSize: ms(11), fontWeight: '600', color: '#6B7280' },
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
@@ -1141,15 +1142,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: ms(12),
-    paddingVertical: ms(8),
-    borderRadius: ms(18),
+    paddingVertical: ms(10),
+    borderRadius: ms(8),
     alignSelf: 'stretch',
-    justifyContent: 'center',
+    // justifyContent: 'center',
   },
   addLotText: {
     marginLeft: ms(6),
-    fontSize: ms(11),
-    fontWeight: '700',
+    fontSize: ms(14),
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 

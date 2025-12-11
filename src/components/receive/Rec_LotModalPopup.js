@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#E6EEF7',
   },
-  headerTitle: { fontSize: rs(14), fontWeight: '600', color: '#233E55' },
+  headerTitle: { fontSize: rs(14), fontWeight: '600', color: '#242424' },
 
   errorBanner: {
     marginTop: rs(8),
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: rs(8),
     borderTopRightRadius: rs(8),
   },
-  lotTitle: { fontSize: rs(14), fontWeight: '600', color: '#333333' },
+  lotTitle: { fontSize: rs(14), fontWeight: '600', color: '#5D768B' },
   lotDeleteIconWrapper: {
     width: rs(24),
     height: rs(24),
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  fieldLabel: { fontSize: rs(12), color: '#555555', marginBottom: rs(6) },
+  fieldLabel: { fontSize: rs(12), color: '#595A5C', marginBottom: rs(6) },
   required: { color: '#E53935' },
 
   lotNumberRow: { flexDirection: 'row', alignItems: 'center', marginBottom: rs(12) },
@@ -544,12 +544,12 @@ const styles = StyleSheet.create({
     marginLeft: rs(10),
     height: rs(44),
     paddingHorizontal: rs(16),
-    borderRadius: rs(10),
-    backgroundColor: '#EEF3FF',
+    borderRadius: rs(6),
+    backgroundColor: '#ECF1F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  generateText: { color: '#111827', fontSize: rs(12), fontWeight: '600' },
+  generateText: { color: '#145DA0', fontSize: rs(12), fontWeight: '600' },
 
   row2: { flexDirection: 'row', marginTop: rs(4) },
   col: { flex: 1, marginRight: rs(8) },
