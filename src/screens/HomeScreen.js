@@ -74,26 +74,41 @@ export default function HomeScreen({ navigation }) {
     setOrgCode(org.org_code);
   };
 
-  useEffect(() => {
-    if (!Defaultorg) return;
-    setLoadingRecent(true);
-    setloadingPriority(true);
-    const loadinventrydata = async () => {
-      try {
-        const inventrydata = await GetInventryData(Defaultorg);
-        if (inventrydata) {
-          const inventoryList = inventrydata.map(d => ({ id: d.sub_inv_id, name: d.sub_inv_name, enabled: d.sub_inv_enabled, is_default: d.is_default }));
-          setInventoryList(inventoryList);
-          const di = inventrydata.find(o => o.is_default);
-          loadlocatordata(defaultinventory);
-          Setdefaultinventory(di?.sub_inv_id ?? inventrydata[0]?.sub_inv_id);
-        } else {
-          Setdefaultinventory(null);
-        }
-      } catch (err) {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories. Please try again.', position: 'top', visibilityTime: 5000 });
+useEffect(() => {
+  if (!Defaultorg) return;
+  setLoadingRecent(true);
+  setloadingPriority(true);
+  const loadinventrydata = async () => {
+    try {
+      const inventrydata = await GetInventryData(Defaultorg);
+      if (inventrydata) {
+        const inventoryList = inventrydata.map(d => ({
+          id: d.sub_inv_id,
+          name: d.sub_inv_name,
+          enabled: d.sub_inv_enabled,
+          is_default: d.is_default
+        }));
+
+        setInventoryList(inventoryList);
+        const di = inventoryList.find(o => o.is_default);
+        Setdefaultinventory(di);   // ✔ set the new default inventory
+    setOrgData({
+    selectedOrg: Defaultorg,
+    selectedinventory: di,
+    selectedOrgCode: OrgCode
+  });
+      } else {
+    Setdefaultinventory(null);
+    setOrgData({
+    selectedOrg: Defaultorg,
+    selectedinventory: null,
+    selectedOrgCode: OrgCode
+  });
       }
-    };
+    } catch (err) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories.' });
+    }
+  };
     const loadrecentactivity = async () => {
       setRecentList([]);
       try {
@@ -135,11 +150,18 @@ export default function HomeScreen({ navigation }) {
         Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
       }
     };
-    setOrgData({ selectedOrg: Defaultorg, selectedinventory: defaultinventory, selectedOrgCode: OrgCode });
-    loadinventrydata();
-    loadrecentactivity();
-    loadpriorityList();
-  }, [Defaultorg, OrgCode, defaultinventory, setInventoryList, setOrgData]);
+  loadinventrydata();
+  loadrecentactivity();
+  loadpriorityList();
+
+}, [Defaultorg, OrgCode, setInventoryList, setOrgData]);
+
+useEffect(() => {
+  if (defaultinventory) {
+    loadlocatordata(defaultinventory);
+  }
+}, [defaultinventory]);
+
 
   // helper function
 function getTimeAgo(isoTime) {
@@ -163,14 +185,15 @@ function capitalizeFirstLetter(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
-  const loadlocatordata = async sub_id => {
-    if (!sub_id) return;
+  const loadlocatordata = async sub_inv => {
+    if (!sub_inv) return;
     try {
-      const locdata = await GetLocatorsData(sub_id);
+      const locdata = await GetLocatorsData(sub_inv?.id);
       if (locdata) {
         const LocatorList = locdata.map(d => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
         setLocatorList(LocatorList);
-        setLocatorInCache(sub_id, LocatorList);
+        console.log(LocatorList,"LocatorList")
+        setLocatorInCache(sub_inv?.id, LocatorList);
       }
     } catch (err) {
       Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators. Please try again.', position: 'top', visibilityTime: 5000 });
