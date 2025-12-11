@@ -7,17 +7,23 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
+  TextInput,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Toast from 'react-native-toast-message';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import FooterButtonsComponent from '../../components/FooterButtonsComponent';
 import CustomNumericInput from '../../components/CustomNumericInput';
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
+import Rec_CustomNumericInput from '../../components/receive/Rec_CustomNumericInput';
 import Rec_LotModalPopup from '../../components/receive/Rec_LotModalPopup';
 import Rec_LotSerialModalPopup from '../../components/receive/Rec_LotSerialModalPopup';
 import Rec_SerialModalPopup from '../../components/receive/Rec_SerialModalPopup';
+import Rec_InspectSerialModalPopup from '../../components/receive/Rec_InspectSerialModalPopup';
 import { useReceivingStore } from '../../store/receivingStore';
 import { GetLocatorsData, LPNList } from '../../api/ApiServices';
 import ReceiveItemBoxIcon from '../../assets/icons/receiveitemboxicon.svg';
@@ -31,6 +37,12 @@ import SelectedReceiveTabIcon from '../../assets/icons/selectedreceivetabicon.sv
 import SelectedInspectTabIcon from '../../assets/icons/selectedinspecttabicon.svg';
 import SelectedPutAwayTabIcon from '../../assets/icons/selectedputawaytabicon.svg';
 import ReceiveAddIcon from '../../assets/icons/receiveaddicon.svg';
+import PendingInspectionIcon from '../../assets/icons/pendinginspectionicon.svg';
+import PassedInspectionIcon from '../../assets/icons/passedinspectionicon.svg';
+import PhotoUploadIcon from '../../assets/icons/photouploadicon.svg';
+import PhotoCaptureIcon from '../../assets/icons/photocaptureicon.svg';
+import DeleteAttachmentIcon from '../../assets/icons/deleteattachmenticon.svg';
+import InspectTickIcon from '../../assets/icons/inspecttickicon.svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -44,48 +56,16 @@ const clampToLimit = (qty, limit) => {
   if (!Number.isFinite(q) || q <= 0) return 0;
   return Math.min(q, lim);
 };
- const MOCK_LOCATORS = [
-  {
-    id: 'LOC0001',
-    name: 'FGI 1',
-    code: 'LOC0001',
-    subInventoryId: 'SUB0001',
-    description:
-      'Lorem ipsum dolor sit amet.',
-  },
-  {
-    id: 'LOC0002',
-    name: 'FGI 2',
-    code: 'LOC0002',
-    subInventoryId: 'SUB0002',
-    description:
-      'Lorem ipsum dolor sit amet.',
-  },
-  {
-    id: 'LOC0003',
-    name: 'FGI 3',
-    code: 'LOC0003',
-    subInventoryId: 'SUB0003',
-    description:
-      'Lorem ipsum dolor sit amet.',
-  },
-  {
-    id: 'LOC0004',
-    name: 'FGI 4',
-    code: 'LOC0004',
-    subInventoryId: 'SUB0004',
-    description:
-      'Lorem ipsum dolor sit amet.',
-  },
-  {
-    id: 'LOC0005',
-    name: 'FGI 5',
-    code: 'LOC0005',
-    subInventoryId: 'SUB0005',
-    description:
-      'Lorem ipsum dolor sit amet.',
-  },
+
+const INSPECTION_STATUS_OPTIONS = [
+  { id: 'Above Average', name: 'Above Average' },
+  { id: 'Average', name: 'Average' },
+  { id: 'Below Average', name: 'Below Average' },
+  { id: 'Excellent', name: 'Excellent' },
+  { id: 'Reject and Notify', name: 'Reject and Notify' },
+  { id: 'Unacceptable', name: 'Unacceptable' },
 ];
+
 const Rec_ViewItemDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -135,9 +115,15 @@ const Rec_ViewItemDetailsScreen = () => {
   const [edited, setEdited] = useState({});
   const [locatorDataMap, setLocatorDataMap] = useState({});
   const [lotRowsMap, setLotRowsMap] = useState({});
-  const [LpnListData,setLPNoption] = useState([]);
+  const [LpnListData, setLPNoption] = useState([]);
   const [serialRowsMap, setSerialRowsMap] = useState({});
   const [lotserialRowsMap, setSerialLotRowsMap] = useState({});
+  const [inspectionEdited, setInspectionEdited] = useState({});
+  const [lotModalVisible, setLotModalVisible] = useState(false);
+  const [serialModalVisible, setSerialModalVisible] = useState(false);
+  const [lotserialModalVisible, setLotSerialModalVisible] = useState(false);
+  const [inspectSerialModalVisible, setInspectSerialModalVisible] = useState(false);
+
   const listRef = useRef(null);
   const isProgrammaticScroll = useRef(false);
 
@@ -191,7 +177,21 @@ const Rec_ViewItemDetailsScreen = () => {
     return Array.isArray(fromLocal) ? fromLocal : [];
   }, [current, currentStoreLine, serialRowsMap]);
 
-  const serialCount = currentSerialLines.length;
+  const currentSavedSerials = useMemo(() => {
+    const src = currentSerialLines;
+    if (!Array.isArray(src)) return [];
+    return src
+      .map(s => {
+        if (typeof s === 'string') return s.trim();
+        if (s && typeof s === 'object') {
+          return String(s.serialNo ?? s.serial ?? '').trim();
+        }
+        return '';
+      })
+      .filter(Boolean);
+  }, [currentSerialLines]);
+
+  const serialCount = currentSavedSerials.length;
   const hasSerials = serialCount > 0;
 
   const serialMode = useMemo(() => {
@@ -215,6 +215,27 @@ const Rec_ViewItemDetailsScreen = () => {
       };
     }
     setEdited(next);
+  }, [allItems, receiveItems, readOnly]);
+
+  useEffect(() => {
+    if (readOnly) return;
+    const next = {};
+    for (const it of allItems) {
+      const fromStore = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(it.id))
+        : undefined;
+      const insp = fromStore?.inspectionData || {};
+      const photos = Array.isArray(insp.attachments) ? insp.attachments : [];
+      const serials = Array.isArray(insp.serials) ? insp.serials : [];
+      next[it.id] = {
+        inspectionQty: Number(insp.qty ?? 0),
+        inspectionStatus: insp.status || fromStore?.inspectionStatus || '',
+        inspectionNotes: fromStore?.inspectionNotes || insp.notes || '',
+        inspectionPhotos: photos,
+        inspectionSerials: serials,
+      };
+    }
+    setInspectionEdited(next);
   }, [allItems, receiveItems, readOnly]);
 
   useEffect(() => {
@@ -244,26 +265,15 @@ const Rec_ViewItemDetailsScreen = () => {
     }
   }, [allItems, edited, readOnly, OrgData, getLocatorFromCache, setLocatorInCache]);
 
-  useEffect(async() => {
+  useEffect(async () => {
     const Lpndata = await LPNList();
-    const LpndataList = Lpndata.map(d => ({ id: d.lpn_id, name: d.lpn_num, enabled: d.lpn_enabled }));
-    // const LpnList = LpndataList.find(o => o.enabled);
+    const LpndataList = Lpndata.map(d => ({
+      id: d.lpn_id,
+      name: d.lpn_num,
+      enabled: d.lpn_enabled,
+    }));
     setLPNoption(LpndataList);
-    console.log(LpndataList,"LpnlistLpnlist");
-  },[]);
-
-  // const lpnOptions = useMemo(() => {
-  //   const set = new Map();
-  //   LpnList.forEach(r => {
-  //     if (r.lpn) {
-  //       const key = String(r.lpn);
-  //       if (!set.has(key)) {
-  //         set.set(key, { id: key, name: key });
-  //       }
-  //     }
-  //   });
-  //   return Array.from(set.values());
-  // }, [LpnList]);
+  }, []);
 
   const scrollToIndex = useCallback(
     i => {
@@ -311,16 +321,106 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const handleQtyChange = (itemId, item, newQty) => {
     if (readOnly) return;
-    const clamped = clampToLimit(newQty, Number(item.max_open_qty ?? item.openQty ?? 0));
+    const clamped = clampToLimit(
+      newQty,
+      Number(item.max_open_qty ?? item.openQty ?? 0),
+    );
     setEdited(prev => ({
       ...prev,
       [itemId]: { ...(prev[itemId] ?? {}), receivingQty: clamped },
     }));
   };
 
-  const [lotModalVisible, setLotModalVisible] = useState(false);
-  const [serialModalVisible, setSerialModalVisible] = useState(false);
-  const [lotserialModalVisible, setLotSerialModalVisible] = useState(false);
+  const handleInspectionQtyChange = (itemId, limit, newQty) => {
+    if (readOnly) return;
+    const clamped = clampToLimit(newQty, limit);
+    setInspectionEdited(prev => {
+      const prevLine = prev[itemId] || {};
+      return {
+        ...prev,
+        [itemId]: { ...prevLine, inspectionQty: clamped },
+      };
+    });
+  };
+
+  const handleInspectionStatusChange = (itemId, status) => {
+    setInspectionEdited(prev => {
+      const prevLine = prev[itemId] || {};
+      return {
+        ...prev,
+        [itemId]: { ...prevLine, inspectionStatus: status },
+      };
+    });
+  };
+
+  const handleInspectionNotesChange = (itemId, text) => {
+    setInspectionEdited(prev => {
+      const prevLine = prev[itemId] || {};
+      return {
+        ...prev,
+        [itemId]: { ...prevLine, inspectionNotes: text },
+      };
+    });
+  };
+
+  const handleAddPhotoUris = (itemId, uris) => {
+    if (!Array.isArray(uris) || !uris.length) return;
+    setInspectionEdited(prev => {
+      const prevLine = prev[itemId] || {};
+      const existing = Array.isArray(prevLine.inspectionPhotos)
+        ? prevLine.inspectionPhotos
+        : [];
+      return {
+        ...prev,
+        [itemId]: {
+          ...prevLine,
+          inspectionPhotos: [...existing, ...uris],
+        },
+      };
+    });
+    Toast.show({ type: 'success', text1: 'Image Attached' });
+  };
+
+  const handleAddPhotoFromGallery = async () => {
+    if (!current) return;
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 0,
+    });
+    if (result.didCancel || result.errorCode) return;
+    const uris = (result.assets || [])
+      .map(a => a.uri)
+      .filter(u => typeof u === 'string');
+    handleAddPhotoUris(current.id, uris);
+  };
+
+  const handleAddPhotoFromCamera = async () => {
+    if (!current) return;
+    const result = await launchCamera({
+      mediaType: 'photo',
+    });
+    if (result.didCancel || result.errorCode) return;
+    const uris = (result.assets || [])
+      .map(a => a.uri)
+      .filter(u => typeof u === 'string');
+    handleAddPhotoUris(current.id, uris);
+  };
+
+  const handleRemovePhoto = (itemId, uri) => {
+    setInspectionEdited(prev => {
+      const prevLine = prev[itemId] || {};
+      const existing = Array.isArray(prevLine.inspectionPhotos)
+        ? prevLine.inspectionPhotos
+        : [];
+      return {
+        ...prev,
+        [itemId]: {
+          ...prevLine,
+          inspectionPhotos: existing.filter(x => x !== uri),
+        },
+      };
+    });
+  };
 
   const persistPatches = () => {
     const patches = [];
@@ -382,7 +482,6 @@ const Rec_ViewItemDetailsScreen = () => {
       ...prev,
       [current.id]: safeLots,
     }));
-    console.log(safeLots,"safeLotssafeLots");
 
     setLotModalVisible(false);
   };
@@ -451,7 +550,7 @@ const Rec_ViewItemDetailsScreen = () => {
     setLotSerialModalVisible(false);
   };
 
-  const isSubmitEnabled = useMemo(() => {
+  const isReceiveSubmitEnabled = useMemo(() => {
     if (readOnly) return false;
     return allItems.some(it => {
       const st = edited[it.id];
@@ -465,7 +564,7 @@ const Rec_ViewItemDetailsScreen = () => {
   }, [edited, allItems, readOnly]);
 
   const handleSaveAll = () => {
-    if (!isSubmitEnabled) return;
+    if (!isReceiveSubmitEnabled) return;
     persistPatches();
     if (returnTo) navigation.navigate(returnTo, { listType });
     else navigation.goBack();
@@ -479,10 +578,20 @@ const Rec_ViewItemDetailsScreen = () => {
     ? Number(currentEdited.receivingQty ?? current.receivingQty ?? 0)
     : 0;
 
+  const currentInspection = current ? inspectionEdited[current.id] ?? {} : {};
+  const inspectionQty = current ? Number(currentInspection.inspectionQty ?? 0) : 0;
+  const inspectionStatusValue = currentInspection.inspectionStatus || '';
+  const inspectionNotes = currentInspection.inspectionNotes || '';
+  const inspectionPhotos = Array.isArray(currentInspection.inspectionPhotos)
+    ? currentInspection.inspectionPhotos
+    : [];
+  const inspectionSerials = Array.isArray(currentInspection.inspectionSerials)
+    ? currentInspection.inspectionSerials
+    : [];
+
   const itemType = current?.itemType || 'Lot';
 
   const itemPills = (() => {
-    console.log(itemType,"itemPillsitemPillsitemPillsitemPillsitemPills")
     const showLot = itemType === 'Lot';
     const showSerial = itemType === 'Serial';
     const showLotSerial = itemType === 'Lot+Serial';
@@ -490,6 +599,92 @@ const Rec_ViewItemDetailsScreen = () => {
   })();
 
   const lineLabel = `Line${index + 1}`;
+
+  const baseInspectionStatus = (currentStoreLine?.inspectionStatus || '').toLowerCase();
+  const storeInspectionSerials = Array.isArray(
+    currentStoreLine?.inspectionData?.serials,
+  )
+    ? currentStoreLine.inspectionData.serials
+    : [];
+  const hasAnyInspectionSerials =
+    inspectionSerials.length > 0 || storeInspectionSerials.length > 0;
+  const isInspectionPassed =
+    baseInspectionStatus === 'passed' ||
+    (hasAnyInspectionSerials && inspectionQty > 0);
+
+  const isInspectSubmitEnabled = useMemo(() => {
+    if (readOnly || !current) return false;
+    const qty = Number(inspectionQty || 0);
+    const statusSelected = !!inspectionStatusValue;
+    const serials = inspectionSerials;
+    if (!qty || qty <= 0) return false;
+    if (!statusSelected) return false;
+    if (!Array.isArray(serials) || !serials.length) return false;
+    if (qty > currentQty) return false;
+    if (serials.length !== qty) return false;
+    return true;
+  }, [
+    readOnly,
+    current,
+    inspectionQty,
+    inspectionStatusValue,
+    inspectionSerials,
+    currentQty,
+  ]);
+
+  const handleSaveInspect = () => {
+    if (!current || !isInspectSubmitEnabled) return;
+    const qty = Number(inspectionQty || 0);
+    const status = inspectionStatusValue || '';
+    const notes = inspectionNotes || '';
+    const photos = inspectionPhotos;
+    const serials = inspectionSerials;
+    const passedQty = qty;
+    const failedQty = 0;
+    const holdQty = 0;
+    const inspectionStatusLabel = 'Passed';
+
+    mergePatchIntoReceiveItems({
+      id: String(current.id),
+      inspectionStatus: inspectionStatusLabel,
+      inspectionData: {
+        qty,
+        status,
+        notes,
+        attachments: photos,
+        serials,
+      },
+      passedQty,
+      failedQty,
+      holdQty,
+      inspectionNotes: notes,
+    });
+
+    if (returnTo) navigation.navigate(returnTo, { listType });
+    else navigation.goBack();
+  };
+
+  const handleOpenInspectSerialModal = () => {
+    if (!current || readOnly) return;
+    if (!inspectionQty || inspectionQty <= 0) return;
+    if (!inspectionStatusValue) return;
+    setInspectSerialModalVisible(true);
+  };
+
+  const inspectAddSerialEnabled =
+    !readOnly &&
+    currentQty > 0 &&
+    inspectionQty > 0 &&
+    inspectionQty <= currentQty &&
+    !!inspectionStatusValue;
+
+  const addSerialHasSelection = Array.isArray(inspectionSerials)
+    ? inspectionSerials.length > 0
+    : false;
+
+  const inspectStatusCardBg = isInspectionPassed ? '#EEFDF8' : '#FFF8EC';
+  const inspectStatusCardBorder = isInspectionPassed ? '#73B386' : '#F06000';
+  const inspectStatusCardTextColor = isInspectionPassed ? '#168035' : '#F06000';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -712,6 +907,210 @@ const Rec_ViewItemDetailsScreen = () => {
                 <Text style={styles.uomText}>{current.uom}</Text>
               </View>
             )}
+
+            {activeTab === 'Inspect' && current && itemType === 'Serial' && (
+              <View style={styles.inspectContainer}>
+                <View
+                  style={[
+                    styles.inspectInfoCard,
+                    {
+                      backgroundColor: inspectStatusCardBg,
+                      borderColor: inspectStatusCardBorder,
+                    },
+                  ]}
+                >
+                  <View style={styles.inspectInfoIconWrap}>
+                    {isInspectionPassed ? (
+                      <PassedInspectionIcon width={24} height={24} />
+                    ) : (
+                      <PendingInspectionIcon width={24} height={24} />
+                    )}
+                  </View>
+                  <View style={styles.inspectInfoMiddle}>
+                    <Text
+                      style={[
+                        styles.inspectInfoLabel,
+                        { color: inspectStatusCardTextColor },
+                      ]}
+                    >
+                      Inspection Status
+                    </Text>
+                    <View style={styles.inspectStatusPill}>
+                      <Text
+                        style={[
+                          styles.inspectStatusPillText,
+                          isInspectionPassed
+                            ? styles.inspectStatusPillTextPassed
+                            : styles.inspectStatusPillTextPending,
+                        ]}
+                      >
+                        {isInspectionPassed ? 'Passed' : 'Pending'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text
+                    style={[
+                      styles.inspectInfoRightText,
+                      { color: inspectStatusCardTextColor },
+                    ]}
+                  >
+                    Serial Controlled
+                  </Text>
+                </View>
+
+                <View style={styles.inspectRecQtyRow}>
+                  <Text style={styles.inspectRecQtyLabel}>Receiving Qty</Text>
+                  <Text style={styles.inspectRecQtyValue}>
+                    {currentQty}{' '}
+                    <Text style={styles.inspectRecQtyValueUnit}>Qty</Text>
+                  </Text>
+                </View>
+
+                <View style={styles.inspectQtySection}>
+                  <Text style={styles.inspectQtyLabel}>Inspection Qty</Text>
+                  <View style={styles.inspectQtyInputWrapper}>
+                    <Rec_CustomNumericInput
+                      key={`inspqty-${String(current.id)}`}
+                      value={inspectionQty}
+                      bgColor="#5D768B"
+                      borderColor="#5D768B"
+                      textColor="#FFFFFF"                      
+                      height={ms(50)}
+                      setValue={v => {
+                        const raw =
+                          typeof v === 'function' ? v(inspectionQty) : v;
+                        handleInspectionQtyChange(current.id, currentQty, raw);
+                      }}
+                      max={currentQty}
+                      min={0}
+                      step={1}
+                      width="100%"                      
+                      isSelected
+                      disabledinput={currentQty === 0}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inspectStatusSection}>
+                  <Text style={styles.mandLabel}>Select Status</Text>
+                  <Rec_DropDown
+                    value={inspectionStatusValue}
+                    onChange={val =>
+                      handleInspectionStatusChange(current.id, val)
+                    }
+                    items={INSPECTION_STATUS_OPTIONS}
+                    placeholder="Select Status"
+                    disabled={readOnly || currentQty === 0}
+                    width="100%"
+                    height={32}
+                  />
+                </View>
+
+                <View style={styles.inspectNotesSection}>
+                  <Text style={styles.mandLabel}>Inspection Notes</Text>
+                  <View style={styles.notesInputWrapper}>
+                    <TextInput
+                      value={inspectionNotes}
+                      onChangeText={txt =>
+                        handleInspectionNotesChange(current.id, txt)
+                      }
+                      placeholder="Maximum 100 characters"
+                      placeholderTextColor="#9CA3AF"
+                      maxLength={100}
+                      multiline
+                      style={styles.notesInput}
+                    />
+                    <Text style={styles.notesCounter}>
+                      {inspectionNotes.length}/100
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.photosSection}>
+                  <Text style={styles.mandLabel}>Photos</Text>
+                  <View style={styles.photoButtonsRow}>
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      activeOpacity={0.85}
+                      onPress={handleAddPhotoFromGallery}
+                    >
+                      <PhotoUploadIcon width={20} height={20} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.photoButton}
+                      activeOpacity={0.85}
+                      onPress={handleAddPhotoFromCamera}
+                    >
+                      <PhotoCaptureIcon width={20} height={20} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {inspectionPhotos.length > 0 && (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.photoThumbList}
+                    >
+                      {inspectionPhotos.map(uri => (
+                        <View key={uri} style={styles.photoThumbWrapper}>
+                          <Image
+                            source={{ uri }}
+                            style={styles.photoThumb}
+                            resizeMode="cover"
+                          />
+                          <TouchableOpacity
+                            style={styles.photoDeleteBtn}
+                            onPress={() => handleRemovePhoto(current.id, uri)}
+                            activeOpacity={0.8}
+                          >
+                            <DeleteAttachmentIcon width={16} height={16} />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+
+                <View style={styles.inspectSerialButtonRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.inspectSerialBtn,
+                      addSerialHasSelection &&
+                        styles.inspectSerialBtnAddedBackground,
+                      !inspectAddSerialEnabled && styles.inspectSerialBtnDisabled,
+                    ]}
+                    activeOpacity={0.9}
+                    disabled={!inspectAddSerialEnabled}
+                    onPress={handleOpenInspectSerialModal}
+                  >
+                    {addSerialHasSelection && (
+                      <View style={styles.inspectSerialTickWrap}>
+                        <InspectTickIcon width={16} height={16} />
+                      </View>
+                    )}
+                    <Text
+                      style={[
+                        styles.inspectSerialBtnText,
+                        addSerialHasSelection &&
+                          styles.inspectSerialBtnTextAdded,
+                      ]}
+                    >
+                      {addSerialHasSelection ? 'Serial Added' : 'Add Serial'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {activeTab === 'Inspect' && current && itemType !== 'Serial' && (
+              <View style={styles.inspectWipContainer}>
+                <Text style={styles.inspectWipText}>
+                  {itemType === 'Lot'
+                    ? 'Inspect - Lot flow (WIP)'
+                    : 'Inspect - Lot + Serial flow (WIP)'}
+                </Text>
+              </View>
+            )}
           </View>
 
           {activeTab === 'Receive' && current && (
@@ -810,7 +1209,11 @@ const Rec_ViewItemDetailsScreen = () => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openSerialModal}
-                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty ==0}
+                      disabled={
+                        readOnly ||
+                        Number(current.openQty ?? 0) === 0 ||
+                        currentQty == 0
+                      }
                     >
                       {hasSerials ? (
                         <View style={styles.addLotGreen}>
@@ -874,9 +1277,25 @@ const Rec_ViewItemDetailsScreen = () => {
           leftLabel="Cancel"
           rightLabel="Save"
           onLeftPress={handleCancelNav}
-          onRightPress={isSubmitEnabled ? handleSaveAll : undefined}
+          onRightPress={
+            activeTab === 'Receive'
+              ? isReceiveSubmitEnabled
+                ? handleSaveAll
+                : undefined
+              : activeTab === 'Inspect'
+              ? isInspectSubmitEnabled
+                ? handleSaveInspect
+                : undefined
+              : undefined
+          }
           leftEnabled
-          rightEnabled={isSubmitEnabled}
+          rightEnabled={
+            activeTab === 'Receive'
+              ? isReceiveSubmitEnabled
+              : activeTab === 'Inspect'
+              ? isInspectSubmitEnabled
+              : false
+          }
         />
       )}
 
@@ -914,6 +1333,31 @@ const Rec_ViewItemDetailsScreen = () => {
             lineQty={currentQty}
             lineLabel={lineLabel}
             initialLots={currentLotSerialLines}
+          />
+
+          <Rec_InspectSerialModalPopup
+            visible={inspectSerialModalVisible}
+            onClose={() => setInspectSerialModalVisible(false)}
+            inspectionQty={inspectionQty}
+            savedSerials={currentSavedSerials}
+            initialSelectedSerials={
+              inspectionSerials.length > 0
+                ? inspectionSerials
+                : inspectionQty === currentQty
+                ? currentSavedSerials.slice(0, inspectionQty)
+                : []
+            }
+            requireValidationAgainstSaved={inspectionQty < currentQty}
+            onConfirm={serials => {
+              setInspectionEdited(prev => {
+                const prevLine = prev[current.id] || {};
+                return {
+                  ...prev,
+                  [current.id]: { ...prevLine, inspectionSerials: serials },
+                };
+              });
+              setInspectSerialModalVisible(false);
+            }}
           />
         </>
       )}
@@ -1139,6 +1583,206 @@ const styles = StyleSheet.create({
     fontSize: ms(11),
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+
+  inspectContainer: {
+    marginTop: ms(16),
+  },
+  inspectInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: ms(10),
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(10),
+    borderWidth: 1,
+  },
+  inspectInfoIconWrap: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(16),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: ms(10),
+  },
+  inspectInfoMiddle: { flex: 1 },
+  inspectInfoLabel: {
+    fontSize: ms(12),
+    fontWeight: '700',
+    marginBottom: ms(4),
+  },
+  inspectStatusPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(4),
+    borderRadius: ms(20),
+    backgroundColor: '#FCDFCC',
+  },
+  inspectStatusPillText: {
+    fontSize: ms(10),
+    fontWeight: '600',
+  },
+  inspectStatusPillTextPending: { color: '#F06000' },
+  inspectStatusPillTextPassed: { color: '#FFFFFF' },
+  inspectInfoRightText: {
+    fontSize: ms(12),
+    fontWeight: '600',
+  },
+
+  inspectRecQtyRow: {
+    marginTop: ms(12),
+    borderRadius: ms(10),
+    backgroundColor: '#ECF1F7',
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(10),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  inspectRecQtyLabel: {
+    fontSize: ms(12),
+    fontWeight: '600',
+    color: '#033EFF',
+  },
+  inspectRecQtyValue: {
+    fontSize: ms(12),
+    fontWeight: '700',
+    color: '#033EFF',
+  },
+  inspectRecQtyValueUnit: {
+    fontSize: ms(12),
+    fontWeight: '700',
+    color: '#033EFF',
+  },
+
+  inspectQtySection: {
+    marginTop: ms(16),
+  },
+  inspectQtyLabel: {
+    fontSize: ms(12),
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: ms(6),
+  },
+  inspectQtyInputWrapper: {
+    borderRadius: ms(10),
+    overflow: 'hidden',
+  },
+
+  inspectStatusSection: {
+    marginTop: ms(14),
+  },
+
+  inspectNotesSection: {
+    marginTop: ms(14),
+  },
+  notesInputWrapper: {
+    borderRadius: ms(10),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: ms(10),
+    paddingTop: ms(8),
+    paddingBottom: ms(4),
+    backgroundColor: '#FFFFFF',
+  },
+  notesInput: {
+    minHeight: ms(72),
+    fontSize: ms(12),
+    color: '#111827',
+    textAlignVertical: 'top',
+  },
+  notesCounter: {
+    fontSize: ms(10),
+    color: '#9CA3AF',
+    alignSelf: 'flex-end',
+    marginTop: ms(4),
+  },
+
+  photosSection: {
+    marginTop: ms(16),
+  },
+  photoButtonsRow: {
+    flexDirection: 'row',
+    marginTop: ms(6),
+    gap: ms(8),
+  },
+  photoButton: {
+    flex: 1,
+    height: ms(44),
+    borderRadius: ms(10),
+    backgroundColor: '#ECF1F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoThumbList: {
+    marginTop: ms(10),
+  },
+  photoThumbWrapper: {
+    width: ms(56),
+    height: ms(56),
+    borderRadius: ms(10),
+    marginRight: ms(8),
+    overflow: 'hidden',
+  },
+  photoThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  photoDeleteBtn: {
+    position: 'absolute',
+    right: ms(2),
+    top: ms(2),
+    width: ms(18),
+    height: ms(18),
+    borderRadius: ms(9),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  inspectSerialButtonRow: {
+    marginTop: ms(16),
+  },
+  inspectSerialBtn: {
+    height: ms(35),
+    borderRadius: ms(8),
+    borderWidth: 1,
+    borderColor: '#5D768B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    backgroundColor: '#FFFFFF',
+  },
+  inspectSerialBtnAddedBackground: {
+    backgroundColor: '#5D768B',
+  },
+  inspectSerialBtnDisabled: {
+    opacity: 0.5,
+  },
+  inspectSerialTickWrap: {
+    marginRight: ms(6),
+  },
+  inspectSerialBtnText: {
+    fontSize: ms(12),
+    fontWeight: '600',
+    color: '#5D768B',
+  },
+  inspectSerialBtnTextAdded: {
+    color: '#FFFFFF',
+  },
+
+  inspectWipContainer: {
+    marginTop: ms(18),
+    paddingVertical: ms(16),
+    paddingHorizontal: ms(12),
+    borderRadius: ms(10),
+    backgroundColor: '#ECF1F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inspectWipText: {
+    fontSize: ms(12),
+    color: '#4B5563',
+    fontWeight: '600',
   },
 });
 

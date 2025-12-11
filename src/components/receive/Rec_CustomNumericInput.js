@@ -10,7 +10,7 @@ const Rec_CustomNumericInput = ({
   min = 0,
   step = 1,
   width = 100,
-  height = 40,
+  height = 80,
   isSelected = true,
   disabledinput = true,
   onLimit,

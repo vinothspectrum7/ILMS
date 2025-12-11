@@ -70,15 +70,22 @@ export const useReceivingStore = create((set, get) => ({
               typeof patch.lotTotalQty === 'number'
                 ? patch.lotTotalQty
                 : it.lotTotalQty,
-                 inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
+            serialLines:
+              patch.serialLines !== undefined
+                ? patch.serialLines
+                : it.serialLines,
+            serialTotalQty:
+              typeof patch.serialTotalQty === 'number'
+                ? patch.serialTotalQty
+                : it.serialTotalQty,
+            serialMode: patch.serialMode ?? it.serialMode,
+            inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
             putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
-
-             inspectionData: patch.inspectionData ?? it.inspectionData,
-          passedQty: patch.passedQty ?? it.passedQty,
-          failedQty: patch.failedQty ?? it.failedQty,
-          holdQty: patch.holdQty ?? it.holdQty,
-          inspectionNotes: patch.inspectionNotes ?? it.inspectionNotes,
-        
+            inspectionData: patch.inspectionData ?? it.inspectionData,
+            passedQty: patch.passedQty ?? it.passedQty,
+            failedQty: patch.failedQty ?? it.failedQty,
+            holdQty: patch.holdQty ?? it.holdQty,
+            inspectionNotes: patch.inspectionNotes ?? it.inspectionNotes,
           }
         : it,
     );
@@ -102,15 +109,22 @@ export const useReceivingStore = create((set, get) => ({
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
+            serialLines:
+              patch.serialLines !== undefined
+                ? patch.serialLines
+                : it.serialLines,
+            serialTotalQty:
+              typeof patch.serialTotalQty === 'number'
+                ? patch.serialTotalQty
+                : it.serialTotalQty,
+            serialMode: patch.serialMode ?? it.serialMode,
             inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
             putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
-
-             inspectionData: patch.inspectionData ?? it.inspectionData,
-          passedQty: patch.passedQty ?? it.passedQty,
-          failedQty: patch.failedQty ?? it.failedQty,
-          holdQty: patch.holdQty ?? it.holdQty,
-          inspectionNotes: patch.inspectionNotes ?? it.inspectionNotes,
-        
+            inspectionData: patch.inspectionData ?? it.inspectionData,
+            passedQty: patch.passedQty ?? it.passedQty,
+            failedQty: patch.failedQty ?? it.failedQty,
+            holdQty: patch.holdQty ?? it.holdQty,
+            inspectionNotes: patch.inspectionNotes ?? it.inspectionNotes,
           }
         : it,
     );
