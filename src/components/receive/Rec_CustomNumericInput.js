@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -14,16 +14,10 @@ const Rec_CustomNumericInput = ({
   isSelected = true,
   disabledinput = true,
   onLimit,
-  bgColor,       // optional override for background color
-  borderColor,   // optional override for border color
-  textColor,     // optional override for text color
+  bgColor,
+  borderColor,
+  textColor,
 }) => {
-  const [touched, setTouched] = useState(false);
-
-  const markTouched = () => {
-    if (!touched) setTouched(true);
-  };
-
   const safeValue = clamp(Number(value ?? 0) || 0, Number(min) || 0, Number(max) || 0);
   const canDec = safeValue > min;
   const canInc = safeValue < max;
@@ -42,7 +36,6 @@ const Rec_CustomNumericInput = ({
       onLimit?.();
       return;
     }
-    markTouched();
     const next = clamp(safeValue - step, min, max);
     setValue(next);
   };
@@ -52,39 +45,43 @@ const Rec_CustomNumericInput = ({
       onLimit?.();
       return;
     }
-    markTouched();
     const next = clamp(safeValue + step, min, max);
     setValue(next);
   };
 
   const handleManualInput = text => {
-    markTouched();
     const numeric = parseInt(String(text).replace(/[^0-9]/g, ''), 10);
     apply(isNaN(numeric) ? 0 : numeric);
   };
 
-  const showFilled = isSelected && safeValue > 0;
-
+  const showFilled = !disabledinput && isSelected && safeValue > 0;
   const baseStateStyles = disabledinput
     ? styles.disabledvalue
     : showFilled
     ? styles.touched
     : styles.untouched;
 
-  const activeTextColor = disabledinput ? '#595A5C' : showFilled ? '#FFFFFF' : '#5D768B';
-  const appliedTextColor = textColor || activeTextColor;
+  const activeTextColor = disabledinput
+    ? '#595A5C'
+    : showFilled
+    ? '#FFFFFF'
+    : '#5D768B';
+
+  const useOverrides = showFilled && !disabledinput;
+
+  const appliedTextColor = useOverrides && textColor ? textColor : activeTextColor;
 
   const containerBorderStyle = [
     baseStateStyles.border,
-    borderColor && { borderColor },
+    useOverrides && borderColor && { borderColor },
   ];
 
   const containerBgStyle = [
     baseStateStyles.bg,
-    bgColor && { backgroundColor: bgColor },
+    useOverrides && bgColor && { backgroundColor: bgColor },
   ];
 
-  const innerBgStyle = containerBgStyle; // use same bg for buttons & input
+  const innerBgStyle = containerBgStyle;
 
   return (
     <View
@@ -149,7 +146,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   button: {
@@ -171,11 +168,11 @@ const styles = StyleSheet.create({
   },
   untouched: {
     bg: { backgroundColor: '#FFFFFF' },
-    border: { borderWidth: 1, borderColor: '#00000040' },
+    border: { borderWidth: 1, borderColor: '#5D768B' },
   },
   touched: {
     bg: { backgroundColor: '#5D768B' },
-    border: { borderWidth: 1, borderColor: '#FFFFFF' },
+    border: { borderWidth: 1, borderColor: '#5D768B' },
   },
   disabledvalue: {
     bg: { backgroundColor: '#EFEFF0' },

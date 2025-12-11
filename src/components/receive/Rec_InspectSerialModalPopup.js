@@ -20,9 +20,9 @@ import {
 import BarcodeIcon from '../../assets/icons/barcodeicon.svg';
 import SerialDeleteIcon from '../../assets/icons/serialdeleteicon.svg';
 import ErrorIcon from '../../assets/icons/error.svg';
-import LotSerialItemIcon from '../../assets/icons/lotserialitem.svg';
 import BarcodeScanner from '../../screens/BarCodeScanner';
 import SingleFooterBtnComponent from '../inventory/Inv_SingleFooterBtnComponent';
+import LotSerialAddIcon from '../../assets/icons/lotserialaddicon.svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -54,48 +54,71 @@ export default function Rec_InspectSerialModalPopup({
   const [rows, setRows] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [scannerVisible, setScannerVisible] = useState(false);
+  const [invalidIds, setInvalidIds] = useState([]);
   const scanTargetRef = useRef({ rowId: null, addNew: false });
 
-  const clearError = useCallback(() => setErrorMsg(''), []);
+  const clearError = useCallback(() => {
+    setErrorMsg('');
+    setInvalidIds([]);
+  }, []);
 
   const savedSerialsNormalized = useMemo(
     () => normalizeSerialArray(savedSerials),
     [savedSerials],
   );
 
+  const qty = Number(inspectionQty || 0);
+
+  const isFullInspection =
+    qty > 0 && qty === savedSerialsNormalized.length && savedSerialsNormalized.length > 0;
+
   const canAddRow = useMemo(
-    () => rows.length < Number(inspectionQty || 0),
-    [rows.length, inspectionQty],
+    () => qty > 0 && rows.length < qty,
+    [rows.length, qty],
   );
 
   useEffect(() => {
     if (!visible) return;
 
-    const qty = Number(inspectionQty || 0);
     const baseInitial = normalizeSerialArray(initialSelectedSerials);
-    let startList = baseInitial;
+    let nextRows = [];
 
-    if (!startList.length && qty > 0 && savedSerialsNormalized.length) {
-      startList = savedSerialsNormalized.slice(0, qty);
-    }
-
-    let nextRows;
-    if (!startList.length) {
-      nextRows = [{ id: makeId(), entry: 1, serial: '' }];
-    } else {
-      const takeCount = qty > 0 ? Math.min(qty, startList.length) : startList.length;
-      nextRows = startList.slice(0, takeCount).map((s, i) => ({
+    if (baseInitial.length) {
+      const takeCount = qty > 0 ? Math.min(qty, baseInitial.length) : baseInitial.length;
+      nextRows = baseInitial.slice(0, takeCount).map((s, i) => ({
         id: makeId(),
         entry: i + 1,
         serial: s,
+        editable: true,
+        isScanned: false,
       }));
+    } else if (isFullInspection) {
+      const takeCount = Math.min(qty, savedSerialsNormalized.length);
+      nextRows = savedSerialsNormalized.slice(0, takeCount).map((s, i) => ({
+        id: makeId(),
+        entry: i + 1,
+        serial: s,
+        editable: false,
+        isScanned: true,
+      }));
+    } else if (qty > 0) {
+      nextRows = [
+        {
+          id: makeId(),
+          entry: 1,
+          serial: '',
+          editable: true,
+          isScanned: false,
+        },
+      ];
     }
 
     setRows(nextRows);
     setErrorMsg('');
+    setInvalidIds([]);
     scanTargetRef.current = { rowId: null, addNew: false };
     setScannerVisible(false);
-  }, [visible, inspectionQty, initialSelectedSerials, savedSerialsNormalized]);
+  }, [visible, qty, initialSelectedSerials, savedSerialsNormalized, isFullInspection]);
 
   const computeDupIds = useCallback(list => {
     const map = new Map();
@@ -136,12 +159,18 @@ export default function Rec_InspectSerialModalPopup({
     [clearError],
   );
 
-  const addRow = useCallback(() => {
+  const addManualRow = useCallback(() => {
     clearError();
     if (!canAddRow) return;
     setRows(prev => [
       ...prev,
-      { id: makeId(), entry: prev.length + 1, serial: '' },
+      {
+        id: makeId(),
+        entry: prev.length + 1,
+        serial: '',
+        editable: true,
+        isScanned: false,
+      },
     ]);
   }, [clearError, canAddRow]);
 
@@ -164,7 +193,13 @@ export default function Rec_InspectSerialModalPopup({
         if (!canAddRow) return;
         setRows(prev => [
           ...prev,
-          { id: makeId(), entry: prev.length + 1, serial: v },
+          {
+            id: makeId(),
+            entry: prev.length + 1,
+            serial: v,
+            editable: false,
+            isScanned: true,
+          },
         ]);
       } else {
         setRows(prev =>
@@ -179,60 +214,67 @@ export default function Rec_InspectSerialModalPopup({
   );
 
   const validateAndGetSerials = useCallback(() => {
-    const qty = Number(inspectionQty || 0);
+    const result = { ok: false, msg: '', serials: [], invalidIds: [] };
+
     if (!qty || qty <= 0) {
-      return { ok: false, msg: 'Invalid inspection quantity' };
+      result.msg = 'Invalid inspection quantity';
+      return result;
     }
 
-    if (!rows.length || rows.length > qty) {
-      return {
-        ok: false,
-        msg: `Please ensure ${qty} serials are entered`,
-      };
+    if (!rows.length) {
+      result.msg = 'Add Serial to inspect';
+      return result;
     }
 
     const serials = rows.map(r => (r.serial || '').trim());
+
     if (serials.some(s => !s)) {
-      return { ok: false, msg: 'Please fill all serial numbers' };
+      result.msg = 'Add Serial to inspect';
+      return result;
     }
 
     if (rows.length !== qty) {
-      return {
-        ok: false,
-        msg: `Please ensure ${qty} serials are entered`,
-      };
+      result.msg = 'Add Serial to inspect';
+      return result;
     }
 
-    if (computeDupIds(rows).size > 0) {
-      return {
-        ok: false,
-        msg: 'Same Serial No cannot be repeated',
-      };
+    const dupSet = computeDupIds(rows);
+    if (dupSet.size > 0) {
+      result.msg = 'Same Serial No cannot be repeated';
+      result.invalidIds = Array.from(dupSet);
+      return result;
     }
 
-    if (requireValidationAgainstSaved) {
-      const set = new Set(savedSerialsNormalized);
-      const invalid = serials.find(s => !set.has(s));
-      if (invalid) {
-        return { ok: false, msg: 'Added Serial is invalid' };
+    const savedSet = new Set(savedSerialsNormalized);
+    const invalids = [];
+    rows.forEach(r => {
+      const v = (r.serial || '').trim();
+      if (v && !savedSet.has(v)) {
+        invalids.push(r.id);
       }
+    });
+
+    if (invalids.length > 0) {
+      result.msg = 'Invalid Serial added';
+      result.invalidIds = invalids;
+      return result;
     }
 
-    return { ok: true, msg: '', serials };
-  }, [
-    inspectionQty,
-    rows,
-    computeDupIds,
-    requireValidationAgainstSaved,
-    savedSerialsNormalized,
-  ]);
+    result.ok = true;
+    result.serials = serials;
+    return result;
+  }, [qty, rows, computeDupIds, savedSerialsNormalized]);
 
   const handleConfirm = useCallback(() => {
+    setInvalidIds([]);
     const v = validateAndGetSerials();
     if (!v.ok) {
       setErrorMsg(v.msg);
+      setInvalidIds(v.invalidIds || []);
       return;
     }
+    setErrorMsg('');
+    setInvalidIds([]);
     if (onConfirm) onConfirm(v.serials);
   }, [validateAndGetSerials, onConfirm]);
 
@@ -268,7 +310,7 @@ export default function Rec_InspectSerialModalPopup({
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.headerBar}>
-              <View style={styles.headerLeft}>                
+              <View style={styles.headerLeft}>
                 <Text style={styles.headerTitle}>Serial</Text>
               </View>
               <TouchableOpacity
@@ -320,7 +362,20 @@ export default function Rec_InspectSerialModalPopup({
               </TouchableOpacity>
 
               <View style={styles.tableHeader}>
-                <Text style={styles.tableHeaderTxt}>Serial Numbers</Text>
+                <View style={styles.tableHeaderInner}>
+                  <Text style={styles.tableHeaderTxt}>Serial Numbers</Text>
+                  <TouchableOpacity
+                    onPress={addManualRow}
+                    activeOpacity={0.85}
+                    disabled={!canAddRow}
+                    style={[
+                      styles.headerAddIconBtn,
+                      !canAddRow && styles.headerAddIconDisabled,
+                    ]}
+                  >
+                    <LotSerialAddIcon width={rs(18)} height={rs(18)} />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={styles.colsHeader}>
@@ -329,51 +384,46 @@ export default function Rec_InspectSerialModalPopup({
                 <Text style={styles.colDel} />
               </View>
 
-              {rows.map(r => (
-                <View key={r.id} style={styles.rowWrap}>
-                  <Text style={styles.rowEntryText}>#{r.entry}</Text>
-                  <View style={styles.inputWrap}>
-                    <View
-                      style={[
-                        styles.inputBox,
-                        dupIds.has(r.id) && styles.inputBoxError,
-                      ]}
-                    >
-                      <TextInput
-                        value={r.serial}
-                        onChangeText={txt => setRowSerial(r.id, txt)}
-                        placeholder="Enter Serial"
-                        placeholderTextColor="#91A3B3"
-                        style={styles.serialInput}
-                      />
+              {rows.map(r => {
+                const isInvalid =
+                  dupIds.has(r.id) || invalidIds.includes(r.id);
+                return (
+                  <View key={r.id} style={styles.rowWrap}>
+                    <Text style={styles.rowEntryText}>#{r.entry}</Text>
+                    <View style={styles.inputWrap}>
+                      <View
+                        style={[
+                          styles.inputBox,
+                          isInvalid && styles.inputBoxError,
+                        ]}
+                      >
+                        <TextInput
+                          value={r.serial}
+                          onChangeText={txt => setRowSerial(r.id, txt)}
+                          placeholder="Enter Serial"
+                          placeholderTextColor="#91A3B3"
+                          style={styles.serialInput}
+                          editable={r.editable}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => openScannerForRow(r.id, false)}
+                        activeOpacity={0.85}
+                        style={styles.scanBtn}
+                      >
+                        <BarcodeIcon width={rs(18)} height={rs(18)} />
+                      </TouchableOpacity>
                     </View>
                     <TouchableOpacity
-                      onPress={() => openScannerForRow(r.id, false)}
+                      onPress={() => deleteRow(r.id)}
                       activeOpacity={0.85}
-                      style={styles.scanBtn}
+                      style={styles.deleteBtn}
                     >
-                      <BarcodeIcon width={rs(18)} height={rs(18)} />
+                      <SerialDeleteIcon width={rs(18)} height={rs(18)} />
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => deleteRow(r.id)}
-                    activeOpacity={0.85}
-                    style={styles.deleteBtn}
-                  >
-                    <SerialDeleteIcon width={rs(18)} height={rs(18)} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-
-              {canAddRow && (
-                <TouchableOpacity
-                  style={styles.addRowBtn}
-                  onPress={addRow}
-                  activeOpacity={0.9}
-                >
-                  <Text style={styles.addRowText}>Add Row</Text>
-                </TouchableOpacity>
-              )}
+                );
+              })}
             </ScrollView>
 
             <View style={styles.footer}>
@@ -502,10 +552,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: rs(12),
     marginTop: rs(4),
   },
+  tableHeaderInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
   tableHeaderTxt: {
     fontSize: rs(13),
     color: '#1F2D3D',
     fontWeight: '700',
+  },
+  headerAddIconBtn: {
+    width: rs(28),
+    height: rs(28),
+    borderRadius: rs(14),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerAddIconDisabled: {
+    opacity: 0.4,
   },
   colsHeader: {
     flexDirection: 'row',
@@ -590,20 +656,6 @@ const styles = StyleSheet.create({
     height: rs(36),
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  addRowBtn: {
-    marginTop: rs(4),
-    alignSelf: 'flex-start',
-    paddingHorizontal: rs(12),
-    paddingVertical: rs(6),
-    borderRadius: rs(16),
-    borderWidth: 1,
-    borderColor: '#5D768B',
-  },
-  addRowText: {
-    fontSize: rs(12),
-    fontWeight: '600',
-    color: '#5D768B',
   },
   footer: {
     paddingHorizontal: rs(16),
