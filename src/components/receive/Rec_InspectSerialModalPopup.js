@@ -268,8 +268,7 @@ export default function Rec_InspectSerialModalPopup({
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.headerBar}>
-              <View style={styles.headerLeft}>
-                <LotSerialItemIcon width={rs(20)} height={rs(20)} />
+              <View style={styles.headerLeft}>                
                 <Text style={styles.headerTitle}>Serial</Text>
               </View>
               <TouchableOpacity
