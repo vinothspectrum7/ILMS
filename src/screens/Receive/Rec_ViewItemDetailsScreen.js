@@ -7,8 +7,9 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
+  BackHandler,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
@@ -217,18 +218,31 @@ const Rec_ViewItemDetailsScreen = () => {
     setEdited(next);
   }, [allItems, receiveItems, readOnly]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        navigation.navigate('NewReceiveScreen');
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [navigation])
+  );
+
   useEffect(() => {
     if (!readOnly && Array.isArray(allItems)) {
       allItems.forEach(async it => {
         const sub_id =
           edited[it.id]?.subInventory ?? it.subInventory ?? OrgData?.selectedinventory;
+          console.log(sub_id?.id,"sub_idsub_idsub_idsub_idsub_idsub_idsub_idsub_idsub_idsub_idsub_id")
         if (!sub_id) return;
-        const cached = getLocatorFromCache(sub_id);
+        const cached = getLocatorFromCache(sub_id?.id);
+        console.log(cached,"setLocatorDataMapsetLocatorDataMapsetLocatorDataMap")
         if (cached) {
           setLocatorDataMap(prev => ({ ...prev, [it.id]: cached }));
         } else {
           try {
-            const locdata = await GetLocatorsData(sub_id);
+            const locdata = await GetLocatorsData(sub_id?.id);
             if (Array.isArray(locdata) && locdata.length) {
               const mapped = locdata.map(d => ({
                 id: d.locator_id,
@@ -236,21 +250,35 @@ const Rec_ViewItemDetailsScreen = () => {
                 enabled: d.locator_enabled,
               }));
               setLocatorDataMap(prev => ({ ...prev, [it.id]: mapped }));
-              setLocatorInCache(sub_id, mapped);
+              setLocatorInCache(sub_id?.id, mapped);
             }
-          } catch {}
+          } catch {
+
+          }
         }
       });
     }
   }, [allItems, edited, readOnly, OrgData, getLocatorFromCache, setLocatorInCache]);
 
-  useEffect(async() => {
-    const Lpndata = await LPNList();
-    const LpndataList = Lpndata.map(d => ({ id: d.lpn_id, name: d.lpn_num, enabled: d.lpn_enabled }));
-    // const LpnList = LpndataList.find(o => o.enabled);
-    setLPNoption(LpndataList);
-    console.log(LpndataList,"LpnlistLpnlist");
-  },[]);
+useEffect(() => {
+  async function fetchLPN() {
+    try {
+      const Lpndata = await LPNList();
+      const LpndataList = Lpndata.map(d => ({
+        id: d.lpn_id,
+        name: d.lpn_num,
+        enabled: d.lpn_enabled
+      }));
+      setLPNoption(LpndataList);
+      console.log(LpndataList, "LpnlistLpnlist");
+    } catch (err) {
+      console.log("LPN fetch error", err);
+    }
+  }
+
+  fetchLPN();
+}, []);
+
 
   // const lpnOptions = useMemo(() => {
   //   const set = new Map();
@@ -480,6 +508,7 @@ const Rec_ViewItemDetailsScreen = () => {
     : 0;
 
   const itemType = current?.itemType || 'Lot';
+  console.log(currentEdited,"currentEdited");
 
   const itemPills = (() => {
     console.log(itemType,"itemPillsitemPillsitemPillsitemPillsitemPills")
