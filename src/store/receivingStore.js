@@ -56,36 +56,34 @@ export const useReceivingStore = create((set, get) => ({
     const next = get().receiveItems.map(it =>
       String(it.id) === String(patch.id)
         ? {
-            ...it,
-            qtyToReceive:
-              typeof patch.receivingQty === 'number'
-                ? clampToOpen(patch.receivingQty, it.max_open_qty)
-                : it.qtyToReceive,
-            lpn: patch.lpn ?? it.lpn,
-            subInventory: patch.subInventory ?? it.subInventory,
-            locator: patch.locator ?? it.locator,
-            imageUri: patch.imageUri ?? it.imageUri,
-            lotLines: patch.lotLines ?? it.lotLines,
-            lotTotalQty:
-              typeof patch.lotTotalQty === 'number'
-                ? patch.lotTotalQty
-                : it.lotTotalQty,
-                 inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
-            putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
+          ...it,
+          qtyToReceive:
+            typeof patch.receivingQty === 'number'
+              ? clampToOpen(patch.receivingQty, it.max_open_qty)
+              : it.qtyToReceive,
+          lpn: patch.lpn ?? it.lpn,
+          subInventory: patch.subInventory ?? it.subInventory,
+          locator: patch.locator ?? it.locator,
+          imageUri: patch.imageUri ?? it.imageUri,
+          lotLines: patch.lotLines ?? it.lotLines,
+          lotTotalQty:
+            typeof patch.lotTotalQty === 'number'
+              ? patch.lotTotalQty
+              : it.lotTotalQty,
 
-             inspectionData: patch.inspectionData ?? it.inspectionData,
+          inspections: patch.inspections ?? it.inspections,
+          inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
+          inspectionData: patch.inspectionData ?? it.inspectionData,
           passedQty: patch.passedQty ?? it.passedQty,
           failedQty: patch.failedQty ?? it.failedQty,
           holdQty: patch.holdQty ?? it.holdQty,
           inspectionNotes: patch.inspectionNotes ?? it.inspectionNotes,
-        
-          }
+        }
         : it,
     );
 
     set({ receiveItems: next });
   },
-
   summaryItems: [],
   initSummaryItems: items => set({ summaryItems: items }),
   mergePatchIntoSummaryItems: patch => {
@@ -94,24 +92,24 @@ export const useReceivingStore = create((set, get) => ({
     const next = get().summaryItems.map(it =>
       String(it.id) === String(patch.id)
         ? {
-            ...it,
-            qtyToReceive:
-              typeof patch.receivingQty === 'number'
-                ? clampToOpen(patch.receivingQty, it.openQty)
-                : it.qtyToReceive,
-            lpn: patch.lpn ?? it.lpn,
-            subInventory: patch.subInventory ?? it.subInventory,
-            locator: patch.locator ?? it.locator,
-            inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
-            putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
+          ...it,
+          qtyToReceive:
+            typeof patch.receivingQty === 'number'
+              ? clampToOpen(patch.receivingQty, it.openQty)
+              : it.qtyToReceive,
+          lpn: patch.lpn ?? it.lpn,
+          subInventory: patch.subInventory ?? it.subInventory,
+          locator: patch.locator ?? it.locator,
 
-             inspectionData: patch.inspectionData ?? it.inspectionData,
+          inspections: patch.inspections ?? it.inspections,
+          inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
+
+          inspectionData: patch.inspectionData ?? it.inspectionData,
           passedQty: patch.passedQty ?? it.passedQty,
           failedQty: patch.failedQty ?? it.failedQty,
           holdQty: patch.holdQty ?? it.holdQty,
           inspectionNotes: patch.inspectionNotes ?? it.inspectionNotes,
-        
-          }
+        }
         : it,
     );
 
