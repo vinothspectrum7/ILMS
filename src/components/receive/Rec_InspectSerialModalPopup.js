@@ -58,33 +58,39 @@ export default function Rec_InspectSerialModalPopup({
 
   const clearError = useCallback(() => setErrorMsg(''), []);
 
-  const canAddRow = useMemo(
-    () => rows.length < inspectionQty,
-    [rows.length, inspectionQty],
-  );
-
   const savedSerialsNormalized = useMemo(
     () => normalizeSerialArray(savedSerials),
     [savedSerials],
   );
 
+  const canAddRow = useMemo(
+    () => rows.length < Number(inspectionQty || 0),
+    [rows.length, inspectionQty],
+  );
+
   useEffect(() => {
     if (!visible) return;
+
+    const qty = Number(inspectionQty || 0);
     const baseInitial = normalizeSerialArray(initialSelectedSerials);
     let startList = baseInitial;
-    if (!startList.length && inspectionQty > 0 && savedSerialsNormalized.length) {
-      startList = savedSerialsNormalized.slice(0, inspectionQty);
+
+    if (!startList.length && qty > 0 && savedSerialsNormalized.length) {
+      startList = savedSerialsNormalized.slice(0, qty);
     }
+
     let nextRows;
     if (!startList.length) {
       nextRows = [{ id: makeId(), entry: 1, serial: '' }];
     } else {
-      nextRows = startList.slice(0, inspectionQty || startList.length).map((s, i) => ({
+      const takeCount = qty > 0 ? Math.min(qty, startList.length) : startList.length;
+      nextRows = startList.slice(0, takeCount).map((s, i) => ({
         id: makeId(),
         entry: i + 1,
         serial: s,
       }));
     }
+
     setRows(nextRows);
     setErrorMsg('');
     scanTargetRef.current = { rowId: null, addNew: false };
@@ -108,21 +114,27 @@ export default function Rec_InspectSerialModalPopup({
 
   const dupIds = useMemo(() => computeDupIds(rows), [rows, computeDupIds]);
 
-  const setRowSerial = useCallback((rowId, value) => {
-    clearError();
-    setRows(prev =>
-      prev.map(r => (r.id === rowId ? { ...r, serial: value } : r)),
-    );
-  }, [clearError]);
+  const setRowSerial = useCallback(
+    (rowId, value) => {
+      clearError();
+      setRows(prev =>
+        prev.map(r => (r.id === rowId ? { ...r, serial: value } : r)),
+      );
+    },
+    [clearError],
+  );
 
-  const deleteRow = useCallback(rowId => {
-    clearError();
-    setRows(prev =>
-      prev
-        .filter(r => r.id !== rowId)
-        .map((r, idx) => ({ ...r, entry: idx + 1 })),
-    );
-  }, [clearError]);
+  const deleteRow = useCallback(
+    rowId => {
+      clearError();
+      setRows(prev =>
+        prev
+          .filter(r => r.id !== rowId)
+          .map((r, idx) => ({ ...r, entry: idx + 1 })),
+      );
+    },
+    [clearError],
+  );
 
   const addRow = useCallback(() => {
     clearError();
@@ -150,13 +162,10 @@ export default function Rec_InspectSerialModalPopup({
       const target = scanTargetRef.current;
       if (target.addNew) {
         if (!canAddRow) return;
-        setRows(prev => {
-          const next = [
-            ...prev,
-            { id: makeId(), entry: prev.length + 1, serial: v },
-          ];
-          return next;
-        });
+        setRows(prev => [
+          ...prev,
+          { id: makeId(), entry: prev.length + 1, serial: v },
+        ]);
       } else {
         setRows(prev =>
           prev.map(r =>
@@ -174,37 +183,41 @@ export default function Rec_InspectSerialModalPopup({
     if (!qty || qty <= 0) {
       return { ok: false, msg: 'Invalid inspection quantity' };
     }
+
     if (!rows.length || rows.length > qty) {
       return {
         ok: false,
         msg: `Please ensure ${qty} serials are entered`,
       };
     }
+
     const serials = rows.map(r => (r.serial || '').trim());
     if (serials.some(s => !s)) {
       return { ok: false, msg: 'Please fill all serial numbers' };
     }
+
     if (rows.length !== qty) {
       return {
         ok: false,
         msg: `Please ensure ${qty} serials are entered`,
       };
     }
+
     if (computeDupIds(rows).size > 0) {
       return {
         ok: false,
         msg: 'Same Serial No cannot be repeated',
       };
     }
+
     if (requireValidationAgainstSaved) {
-      const set = new Set(
-        normalizeSerialArray(savedSerialsNormalized),
-      );
+      const set = new Set(savedSerialsNormalized);
       const invalid = serials.find(s => !set.has(s));
       if (invalid) {
         return { ok: false, msg: 'Added Serial is invalid' };
       }
     }
+
     return { ok: true, msg: '', serials };
   }, [
     inspectionQty,
@@ -251,7 +264,7 @@ export default function Rec_InspectSerialModalPopup({
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <KeyboardAvoidingView
-            style={{ flex: 1 }}
+            style={styles.kav}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             <View style={styles.headerBar}>
@@ -277,7 +290,7 @@ export default function Rec_InspectSerialModalPopup({
 
             <ScrollView
               style={styles.scroll}
-              contentContainerStyle={{ paddingBottom: rs(16) }}
+              contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
             >
               <TouchableOpacity
@@ -392,6 +405,9 @@ const styles = StyleSheet.create({
     borderRadius: rs(12),
     overflow: 'hidden',
   },
+  kav: {
+    maxHeight: '100%',
+  },
   headerBar: {
     height: rs(44),
     paddingHorizontal: rs(16),
@@ -438,9 +454,11 @@ const styles = StyleSheet.create({
     marginLeft: rs(6),
   },
   scroll: {
-    flex: 1,
     paddingHorizontal: rs(16),
     paddingTop: rs(12),
+  },
+  scrollContent: {
+    paddingBottom: rs(16),
   },
   addTouchWrap: {
     height: rs(46),
