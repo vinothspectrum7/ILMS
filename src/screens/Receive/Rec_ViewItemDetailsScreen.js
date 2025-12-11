@@ -226,7 +226,7 @@ const Rec_ViewItemDetailsScreen = () => {
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [navigation])
+    }, [navigation]),
   );
 
   useEffect(() => {
@@ -255,10 +255,8 @@ const Rec_ViewItemDetailsScreen = () => {
       allItems.forEach(async it => {
         const sub_id =
           edited[it.id]?.subInventory ?? it.subInventory ?? OrgData?.selectedinventory;
-          console.log(sub_id?.id,"sub_idsub_idsub_idsub_idsub_idsub_idsub_idsub_idsub_idsub_idsub_id")
         if (!sub_id) return;
         const cached = getLocatorFromCache(sub_id?.id);
-        console.log(cached,"setLocatorDataMapsetLocatorDataMapsetLocatorDataMap")
         if (cached) {
           setLocatorDataMap(prev => ({ ...prev, [it.id]: cached }));
         } else {
@@ -273,46 +271,29 @@ const Rec_ViewItemDetailsScreen = () => {
               setLocatorDataMap(prev => ({ ...prev, [it.id]: mapped }));
               setLocatorInCache(sub_id?.id, mapped);
             }
-          } catch {
-
-          }
+          } catch {}
         }
       });
     }
   }, [allItems, edited, readOnly, OrgData, getLocatorFromCache, setLocatorInCache]);
 
-useEffect(() => {
-  async function fetchLPN() {
-    try {
-      const Lpndata = await LPNList();
-      const LpndataList = Lpndata.map(d => ({
-        id: d.lpn_id,
-        name: d.lpn_num,
-        enabled: d.lpn_enabled
-      }));
-      setLPNoption(LpndataList);
-      console.log(LpndataList, "LpnlistLpnlist");
-    } catch (err) {
-      console.log("LPN fetch error", err);
+  useEffect(() => {
+    async function fetchLPN() {
+      try {
+        const Lpndata = await LPNList();
+        const LpndataList = Lpndata.map(d => ({
+          id: d.lpn_id,
+          name: d.lpn_num,
+          enabled: d.lpn_enabled,
+        }));
+        setLPNoption(LpndataList);
+      } catch (err) {
+        console.log('LPN fetch error', err);
+      }
     }
-  }
 
-  fetchLPN();
-}, []);
-
-
-  // const lpnOptions = useMemo(() => {
-  //   const set = new Map();
-  //   LpnList.forEach(r => {
-  //     if (r.lpn) {
-  //       const key = String(r.lpn);
-  //       if (!set.has(key)) {
-  //         set.set(key, { id: key, name: key });
-  //       }
-  //     }
-  //   });
-  //   return Array.from(set.values());
-  // }, [LpnList]);
+    fetchLPN();
+  }, []);
 
   const scrollToIndex = useCallback(
     i => {
@@ -629,7 +610,6 @@ useEffect(() => {
     : [];
 
   const itemType = current?.itemType || 'Lot';
-  console.log(currentEdited,"currentEdited");
 
   const itemPills = (() => {
     const showLot = itemType === 'Lot';
@@ -652,6 +632,10 @@ useEffect(() => {
     baseInspectionStatus === 'passed' ||
     (hasAnyInspectionSerials && inspectionQty > 0);
 
+  const savedSerialsCount = currentSavedSerials.length;
+  const inspectionMax =
+    current && savedSerialsCount > 0 ? Math.min(currentQty, savedSerialsCount) : 0;
+
   const isInspectSubmitEnabled = useMemo(() => {
     if (readOnly || !current) return false;
     const qty = Number(inspectionQty || 0);
@@ -661,6 +645,7 @@ useEffect(() => {
     if (!statusSelected) return false;
     if (!Array.isArray(serials) || !serials.length) return false;
     if (qty > currentQty) return false;
+    if (qty > savedSerialsCount) return false;
     if (serials.length !== qty) return false;
     return true;
   }, [
@@ -670,6 +655,7 @@ useEffect(() => {
     inspectionStatusValue,
     inspectionSerials,
     currentQty,
+    savedSerialsCount,
   ]);
 
   const handleSaveInspect = () => {
@@ -715,8 +701,9 @@ useEffect(() => {
     !readOnly &&
     currentQty > 0 &&
     inspectionQty > 0 &&
-    inspectionQty <= currentQty &&
-    !!inspectionStatusValue;
+    inspectionQty <= inspectionMax &&
+    !!inspectionStatusValue &&
+    savedSerialsCount > 0;
 
   const addSerialHasSelection = Array.isArray(inspectionSerials)
     ? inspectionSerials.length > 0
@@ -725,6 +712,7 @@ useEffect(() => {
   const inspectStatusCardBg = isInspectionPassed ? '#EEFDF8' : '#FFF8EC';
   const inspectStatusCardBorder = isInspectionPassed ? '#73B386' : '#F06000';
   const inspectStatusCardTextColor = isInspectionPassed ? '#168035' : '#F06000';
+  const inspectStatusPillBg = isInspectionPassed ? '#168035' : '#FCDFCC';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -866,43 +854,45 @@ useEffect(() => {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.itemInfoBox}>
-              <View style={styles.itemInfoRow}>
-                <View style={styles.itemIconWrap}>
-                  <ReceiveItemBoxIcon width={40} height={40} />
-                </View>
-                <View style={styles.itemTextCol}>
-                  <Text style={styles.itemName} numberOfLines={1}>
-                    {current?.itemName || 'Item Name'}
-                  </Text>
-                  <Text style={styles.itemCode} numberOfLines={1}>
-                    {current?.itemid || 'Item Code'}
-                  </Text>
-                </View>
-                <View style={styles.itemPillsCol}>
-                  {itemPills.showLot && (
-                    <View style={styles.pillLot}>
-                      <Text style={styles.pillLotText}>Lot</Text>
-                    </View>
-                  )}
-                  {itemPills.showSerial && (
-                    <View style={styles.pillSerial}>
-                      <Text style={styles.pillSerialText}>Serial</Text>
-                    </View>
-                  )}
-                  {itemPills.showLotSerial && (
-                    <View style={styles.pilllotserial}>
+            {activeTab === 'Receive' && (
+              <View style={styles.itemInfoBox}>
+                <View style={styles.itemInfoRow}>
+                  <View style={styles.itemIconWrap}>
+                    <ReceiveItemBoxIcon width={40} height={40} />
+                  </View>
+                  <View style={styles.itemTextCol}>
+                    <Text style={styles.itemName} numberOfLines={1}>
+                      {current?.itemName || 'Item Name'}
+                    </Text>
+                    <Text style={styles.itemCode} numberOfLines={1}>
+                      {current?.itemid || 'Item Code'}
+                    </Text>
+                  </View>
+                  <View style={styles.itemPillsCol}>
+                    {itemPills.showLot && (
                       <View style={styles.pillLot}>
                         <Text style={styles.pillLotText}>Lot</Text>
                       </View>
+                    )}
+                    {itemPills.showSerial && (
                       <View style={styles.pillSerial}>
                         <Text style={styles.pillSerialText}>Serial</Text>
                       </View>
-                    </View>
-                  )}
+                    )}
+                    {itemPills.showLotSerial && (
+                      <View style={styles.pilllotserial}>
+                        <View style={styles.pillLot}>
+                          <Text style={styles.pillLotText}>Lot</Text>
+                        </View>
+                        <View style={styles.pillSerial}>
+                          <Text style={styles.pillSerialText}>Serial</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
-            </View>
+            )}
 
             {activeTab === 'Receive' && current && (
               <View style={styles.section}>
@@ -975,7 +965,12 @@ useEffect(() => {
                     >
                       Inspection Status
                     </Text>
-                    <View style={styles.inspectStatusPill}>
+                    <View
+                      style={[
+                        styles.inspectStatusPill,
+                        { backgroundColor: inspectStatusPillBg },
+                      ]}
+                    >
                       <Text
                         style={[
                           styles.inspectStatusPillText,
@@ -1013,20 +1008,20 @@ useEffect(() => {
                       key={`inspqty-${String(current.id)}`}
                       value={inspectionQty}
                       bgColor="#5D768B"
-                      borderColor="#5D768B"
-                      textColor="#FFFFFF"                      
+                      borderColor="#5D768B"
+                      textColor="#FFFFFF"
                       height={ms(50)}
                       setValue={v => {
                         const raw =
                           typeof v === 'function' ? v(inspectionQty) : v;
-                        handleInspectionQtyChange(current.id, currentQty, raw);
+                        handleInspectionQtyChange(current.id, inspectionMax, raw);
                       }}
-                      max={currentQty}
+                      max={inspectionMax}
                       min={0}
                       step={1}
-                      width="100%"                      
+                      width="100%"
                       isSelected
-                      disabledinput={currentQty === 0}
+                      disabledinput={currentQty === 0 || inspectionMax === 0}
                     />
                   </View>
                 </View>
@@ -1040,7 +1035,7 @@ useEffect(() => {
                     }
                     items={INSPECTION_STATUS_OPTIONS}
                     placeholder="Select Status"
-                    disabled={readOnly || currentQty === 0}
+                    disabled={readOnly || currentQty === 0 || inspectionMax === 0}
                     width="100%"
                     height={32}
                   />
@@ -1151,6 +1146,12 @@ useEffect(() => {
                 </Text>
               </View>
             )}
+
+            {activeTab === 'PutAway' && (
+              <View style={styles.putAwayContainer}>
+                <Text style={styles.putAwayText}>Nothing to Show</Text>
+              </View>
+            )}
           </View>
 
           {activeTab === 'Receive' && current && (
@@ -1252,7 +1253,7 @@ useEffect(() => {
                       disabled={
                         readOnly ||
                         Number(current.openQty ?? 0) === 0 ||
-                        currentQty == 0
+                        currentQty === 0
                       }
                     >
                       {hasSerials ? (
@@ -1655,7 +1656,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: ms(10),
     paddingVertical: ms(4),
     borderRadius: ms(20),
-    backgroundColor: '#FCDFCC',
   },
   inspectStatusPillText: {
     fontSize: ms(10),
@@ -1823,6 +1823,22 @@ const styles = StyleSheet.create({
     fontSize: ms(12),
     color: '#4B5563',
     fontWeight: '600',
+  },
+
+  putAwayContainer: {
+    marginTop: ms(18),
+    paddingVertical: ms(30),
+    paddingHorizontal: ms(12),
+    borderRadius: ms(10),
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  putAwayText: {
+    fontSize: ms(13),
+    color: '#6B7280',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 
