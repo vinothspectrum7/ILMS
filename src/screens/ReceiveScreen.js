@@ -31,7 +31,8 @@ const computePercent = (received, ordered) => {
   const r = Number(received ?? 0);
   const o = Number(ordered ?? 0);
   if (!Number.isFinite(o) || o <= 0) return 0;
-  return clampPct((r / o) * 100);
+  const pct = (r / o) * 100;
+  return clampPct(Number(pct.toFixed(2)));  // Round to 2 decimals
 };
 const getStatusColor = (status) => {
   const s = String(status || '').toUpperCase();
@@ -43,7 +44,7 @@ const getStatusColor = (status) => {
 const getProgressColor = (percent) => {
   const p = Number(percent || 0);
   if (p >= 100) return '#168035';
-  if (p > 0) return '#F06000';
+  if (p > 0) return '#033EFF';
   return '#ECF1F7';
 };
 const toBackendStatus = (label) => {
@@ -55,8 +56,8 @@ const toBackendStatus = (label) => {
 };
 
 const formatDate = (input) => {
-  const monthShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const out = (y, m, d) => `${String(d).padStart(2,'0')} ${monthShort[m]} ${y}`;
+  const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const out = (y, m, d) => `${String(d).padStart(2, '0')} ${monthShort[m]} ${y}`;
   if (input == null) return dash;
   const n = Date.parse(String(input).trim());
   if (!Number.isNaN(n)) {
@@ -443,7 +444,7 @@ const ReceiveScreen = () => {
   useFocusEffect(
     React.useCallback(() => {
       resetReceiving();
-      return () => {};
+      return () => { };
     }, [resetReceiving])
   );
 
@@ -714,6 +715,89 @@ const ReceiveScreen = () => {
     );
 
     return (
+      <>
+            <View style={styles.iconCluster}>
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity
+            onPress={() => {
+              setMenuOpen((v) => !v);
+              setSortMenuOpen(false);
+            }}
+            style={[styles.chip, isFilterActive && styles.chipActive]}
+            activeOpacity={0.8}
+          >
+            {isFilterActive && <View style={styles.chipInner} />}
+            <BackFilterIcon width={24} height={24} fill="#233E55" />
+            <Text style={styles.sortText}>Filter</Text>
+          </TouchableOpacity>
+
+          {menuOpen && (
+            <View style={styles.menuAnchored}>
+              {(activeKey === 'poir' || activeKey === 'asn' ? FILTERS_PO_ASN : FILTERS_RX_IC).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  style={[
+                    styles.menuItem,
+                    (activeKey === 'poir' || activeKey === 'asn')
+                      ? activeFilter === toBackendStatus(f) && styles.menuItemActive
+                      : (String(f).toLowerCase() === 'all'
+                        ? activeFilter == null
+                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
+                  ]}
+                  onPress={() => handlePick(f)}
+                >
+                  <Text
+                    style={[
+                      styles.menuText,
+                      (activeKey === 'poir' || activeKey === 'asn')
+                        ? activeFilter === toBackendStatus(f) && styles.menuTextActive
+                        : (String(f).toLowerCase() === 'all'
+                          ? activeFilter == null
+                          : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                    ]}
+                  >
+                    {pretty(f)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity
+            onPress={toggleSortMenu}
+            style={styles.dropdownHalf}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.sortText}>Sort</Text>
+            <SortDropdownIcon width={24} height={24} fill="#233E55" />
+          </TouchableOpacity>
+
+          {sortMenuOpen && (
+            <View style={styles.menuAnchoredfilter}>
+              {getSortOptionsForTab(activeKey).map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.menuItem,
+                    sortField === opt.key && styles.menuItemActive
+                  ]}
+                  onPress={() => selectSortOption(opt.key)}
+                >
+                  <Text
+                    style={[
+                      styles.menuText,
+                      sortField === opt.key && styles.menuTextActive
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
       <FlatList
         data={ICList}
         keyExtractor={keyExtractor}
@@ -731,68 +815,252 @@ const ReceiveScreen = () => {
         maxToRenderPerBatch={8}
         updateCellsBatchingPeriod={50}
       />
+      </>
     );
   };
 
   const POList = () => (
-    <FlatList
-      data={POData}
-      keyExtractor={(item) => String(item.id)}
-      ListEmptyComponent={() => (
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>No data found</Text>
+    <>
+      <View style={styles.iconCluster}>
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity
+            onPress={() => {
+              setMenuOpen((v) => !v);
+              setSortMenuOpen(false);
+            }}
+            style={[styles.chip, isFilterActive && styles.chipActive]}
+            activeOpacity={0.8}
+          >
+            {isFilterActive && <View style={styles.chipInner} />}
+            <BackFilterIcon width={24} height={24} fill="#233E55" />
+            <Text style={styles.sortText}>Filter</Text>
+          </TouchableOpacity>
+
+          {menuOpen && (
+            <View style={styles.menuAnchored}>
+              {(activeKey === 'poir' || activeKey === 'asn' ? FILTERS_PO_ASN : FILTERS_RX_IC).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  style={[
+                    styles.menuItem,
+                    (activeKey === 'poir' || activeKey === 'asn')
+                      ? activeFilter === toBackendStatus(f) && styles.menuItemActive
+                      : (String(f).toLowerCase() === 'all'
+                        ? activeFilter == null
+                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
+                  ]}
+                  onPress={() => handlePick(f)}
+                >
+                  <Text
+                    style={[
+                      styles.menuText,
+                      (activeKey === 'poir' || activeKey === 'asn')
+                        ? activeFilter === toBackendStatus(f) && styles.menuTextActive
+                        : (String(f).toLowerCase() === 'all'
+                          ? activeFilter == null
+                          : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                    ]}
+                  >
+                    {pretty(f)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
-      )}
-      contentContainerStyle={{ paddingBottom: 80 }}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('NewReceiveScreen', { selectedPO: item, fromScan: false, scannedPoNumber: null })}
-          activeOpacity={0.9}
-        >
-          <View style={styles.card}>
-            <View style={styles.toprow}>
-              <View style={styles.topcardLeft}>
-                <Text style={styles.labelText}>Purchase Order</Text>
-                <Text style={styles.valueText}>{item.po_number}</Text>
-              </View>
-              <View style={styles.topcardRight}>
-                <Text style={styles.labelText}>Supplier</Text>
-                <Text style={styles.valueText}>
-                  {item.supplier_name?.length > 20 ? item.supplier_name.substring(0, 20) + '...' : item.supplier_name}
-                </Text>
-              </View>
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity
+            onPress={toggleSortMenu}
+            style={styles.dropdownHalf}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.sortText}>Sort</Text>
+            <SortDropdownIcon width={24} height={24} fill="#233E55" />
+          </TouchableOpacity>
+
+          {sortMenuOpen && (
+            <View style={styles.menuAnchoredfilter}>
+              {getSortOptionsForTab(activeKey).map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.menuItem,
+                    sortField === opt.key && styles.menuItemActive
+                  ]}
+                  onPress={() => selectSortOption(opt.key)}
+                >
+                  <Text
+                    style={[
+                      styles.menuText,
+                      sortField === opt.key && styles.menuTextActive
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <Text style={styles.labelText}>PO Status</Text>
-                <Text style={[styles.valueText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
-              </View>
-              <View style={styles.bottomcardRight}>
-                <Text style={styles.labelText}>Order Date</Text>
-                <Text style={styles.valueText}>{formatDate(item.order_date)}</Text>
-              </View>
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <Text style={styles.subLabel}>Received</Text>
-              </View>
-              <View className="styles.bottomcardRight" />
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <View style={styles.progressWrapper}>
-                  <View style={[styles.progressBarleft, { width: `${item.received}%`, backgroundColor: getProgressColor(item.received) }]} />
+          )}
+        </View>
+      </View>
+      <FlatList
+        data={POData}
+        keyExtractor={(item) => String(item.id)}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyText}>No data found</Text>
+          </View>
+        )}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('NewReceiveScreen', { selectedPO: item, fromScan: false, scannedPoNumber: null })}
+            activeOpacity={0.9}
+          >
+            <View style={styles.card}>
+              <View style={styles.toprow}>
+                <View style={styles.topcardLeft}>
+                  <Text style={styles.labelText}>Purchase Order</Text>
+                  <Text style={styles.valueText}>{item.po_number}</Text>
+                </View>
+                <View style={styles.topcardRight}>
+                  <Text style={styles.labelText}>Supplier</Text>
+                  <Text style={styles.valueText}>
+                    {item.supplier_name?.length > 20 ? item.supplier_name.substring(0, 20) + '...' : item.supplier_name}
+                  </Text>
                 </View>
               </View>
-              <View style={styles.bottomcardRight} />
+              <View style={styles.bottomrow}>
+                <View style={styles.bottomcardLeft}>
+                  <Text style={styles.labelText}>PO Status</Text>
+                  <View style={styles.statusCard}>
+                    <View style={styles.dot} />
+                    <Text style={styles.receivestatusText}>{item.status}</Text>
+                  </View>
+                  {/* <Text style={[styles.valueText, { color: getStatusColor(item.status) }]}>{item.status}</Text> */}
+                </View>
+                <View style={styles.bottomcardRight}>
+                  <Text style={styles.labelText}>Order Date</Text>
+                  <Text style={styles.valueText}>{formatDate(item.order_date)}</Text>
+                </View>
+              </View>
+              <View style={styles.bottomrow}>
+                <View style={styles.bottomcardLeft}>
+                  <Text style={styles.labelText}>Receiving Status</Text>
+                </View>
+                <View className="styles.bottomcardRight" />
+              </View>
+              <View style={styles.bottomrow}>
+                <View style={styles.bottomcardLeft}>
+                  <View style={styles.progresscard}>
+                    <View style={styles.progressLabel}>
+                      <View style={{ flex: 1, flexDirection: 'row', marginBottom: scale(5) }}>
+                        <Text style={[styles.progressText, { color: getProgressColor(item.received), marginRight: 5 }]}>Inspection Pending
+                        </Text>
+                        <View style={[styles.bardot, { backgroundColor: getProgressColor(item.received) }]} />
+                        <Text style={[styles.progressText, { color: getProgressColor(item.received) }]}>Lines</Text>
+                      </View>
+                      {/* <View style={styles.dot} /> */}
+                      <Text style={[styles.progresspercentage, { color: getProgressColor(item.received) }]}>{item.received}%</Text>
+                    </View>
+                    <View style={styles.progressWrapper}>
+                      <View style={[styles.progressBarleft, { width: `${item.received}%`, backgroundColor: getProgressColor(item.received) }]} />
+                    </View>
+                  </View>
+                </View>
+                {/* <View style={styles.bottomcardRight} /> */}
+              </View>
             </View>
-          </View>
-        </TouchableOpacity>
-      )}
-    />
+          </TouchableOpacity>
+        )}
+      />
+    </>
   );
 
   const ASNList = () => (
+    <>
+          <View style={styles.iconCluster}>
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity
+            onPress={() => {
+              setMenuOpen((v) => !v);
+              setSortMenuOpen(false);
+            }}
+            style={[styles.chip, isFilterActive && styles.chipActive]}
+            activeOpacity={0.8}
+          >
+            {isFilterActive && <View style={styles.chipInner} />}
+            <BackFilterIcon width={24} height={24} fill="#233E55" />
+            <Text style={styles.sortText}>Filter</Text>
+          </TouchableOpacity>
+
+          {menuOpen && (
+            <View style={styles.menuAnchored}>
+              {(activeKey === 'poir' || activeKey === 'asn' ? FILTERS_PO_ASN : FILTERS_RX_IC).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  style={[
+                    styles.menuItem,
+                    (activeKey === 'poir' || activeKey === 'asn')
+                      ? activeFilter === toBackendStatus(f) && styles.menuItemActive
+                      : (String(f).toLowerCase() === 'all'
+                        ? activeFilter == null
+                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
+                  ]}
+                  onPress={() => handlePick(f)}
+                >
+                  <Text
+                    style={[
+                      styles.menuText,
+                      (activeKey === 'poir' || activeKey === 'asn')
+                        ? activeFilter === toBackendStatus(f) && styles.menuTextActive
+                        : (String(f).toLowerCase() === 'all'
+                          ? activeFilter == null
+                          : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                    ]}
+                  >
+                    {pretty(f)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity
+            onPress={toggleSortMenu}
+            style={styles.dropdownHalf}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.sortText}>Sort</Text>
+            <SortDropdownIcon width={24} height={24} fill="#233E55" />
+          </TouchableOpacity>
+
+          {sortMenuOpen && (
+            <View style={styles.menuAnchoredfilter}>
+              {getSortOptionsForTab(activeKey).map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.menuItem,
+                    sortField === opt.key && styles.menuItemActive
+                  ]}
+                  onPress={() => selectSortOption(opt.key)}
+                >
+                  <Text
+                    style={[
+                      styles.menuText,
+                      sortField === opt.key && styles.menuTextActive
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
     <FlatList
       data={AsnData}
       keyExtractor={(item) => String(item.asn_id || item.id)}
@@ -828,27 +1096,123 @@ const ReceiveScreen = () => {
                 <Text style={styles.valueText}>{formatDate(item.shipped_date)}</Text>
               </View>
             </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <Text style={styles.subLabel}>Received</Text>
-              </View>
-              <View style={styles.bottomcardRight} />
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <View style={styles.progressWrapper}>
-                  <View style={[styles.progressBarleft, { width: `${item.receivedPct || 0}%`, backgroundColor: getProgressColor(item.receivedPct) }]} />
+              <View style={styles.bottomrow}>
+                <View style={styles.bottomcardLeft}>
+                  <Text style={styles.labelText}>Receiving Status</Text>
                 </View>
+                <View className="styles.bottomcardRight" />
               </View>
-              <View style={styles.bottomcardRight} />
-            </View>
+              <View style={styles.bottomrow}>
+                <View style={styles.bottomcardLeft}>
+                  <View style={styles.progresscard}>
+                    <View style={styles.progressLabel}>
+                      <View style={{ flex: 1, flexDirection: 'row', marginBottom: scale(5) }}>
+                        <Text style={[styles.progressText, { color: getProgressColor(item.receivedPct), marginRight: 5 }]}>Inspection Pending
+                        </Text>
+                        <View style={[styles.bardot, { backgroundColor: getProgressColor(item.receivedPct) }]} />
+                        <Text style={[styles.progressText, { color: getProgressColor(item.receivedPct) }]}>Lines</Text>
+                      </View>
+                      {/* <View style={styles.dot} /> */}
+                      <Text style={[styles.progresspercentage, { color: getProgressColor(item.receivedPct) }]}>{item.receivedPct}%</Text>
+                    </View>
+                    <View style={styles.progressWrapper}>
+                      <View style={[styles.progressBarleft, { width: `${item.receivedPct}%`, backgroundColor: getProgressColor(item.receivedPct) }]} />
+                    </View>
+                  </View>
+                </View>
+                {/* <View style={styles.bottomcardRight} /> */}
+              </View>
           </View>
         </TouchableOpacity>
       )}
     />
+    </>
   );
 
   const ReceivedList = () => (
+    <>
+          <View style={styles.iconCluster}>
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity
+            onPress={() => {
+              setMenuOpen((v) => !v);
+              setSortMenuOpen(false);
+            }}
+            style={[styles.chip, isFilterActive && styles.chipActive]}
+            activeOpacity={0.8}
+          >
+            {isFilterActive && <View style={styles.chipInner} />}
+            <BackFilterIcon width={24} height={24} fill="#233E55" />
+            <Text style={styles.sortText}>Filter</Text>
+          </TouchableOpacity>
+
+          {menuOpen && (
+            <View style={styles.menuAnchored}>
+              {(activeKey === 'poir' || activeKey === 'asn' ? FILTERS_PO_ASN : FILTERS_RX_IC).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  style={[
+                    styles.menuItem,
+                    (activeKey === 'poir' || activeKey === 'asn')
+                      ? activeFilter === toBackendStatus(f) && styles.menuItemActive
+                      : (String(f).toLowerCase() === 'all'
+                        ? activeFilter == null
+                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
+                  ]}
+                  onPress={() => handlePick(f)}
+                >
+                  <Text
+                    style={[
+                      styles.menuText,
+                      (activeKey === 'poir' || activeKey === 'asn')
+                        ? activeFilter === toBackendStatus(f) && styles.menuTextActive
+                        : (String(f).toLowerCase() === 'all'
+                          ? activeFilter == null
+                          : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                    ]}
+                  >
+                    {pretty(f)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity
+            onPress={toggleSortMenu}
+            style={styles.dropdownHalf}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.sortText}>Sort</Text>
+            <SortDropdownIcon width={24} height={24} fill="#233E55" />
+          </TouchableOpacity>
+
+          {sortMenuOpen && (
+            <View style={styles.menuAnchoredfilter}>
+              {getSortOptionsForTab(activeKey).map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.menuItem,
+                    sortField === opt.key && styles.menuItemActive
+                  ]}
+                  onPress={() => selectSortOption(opt.key)}
+                >
+                  <Text
+                    style={[
+                      styles.menuText,
+                      sortField === opt.key && styles.menuTextActive
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+      </View>
     <FlatList
       data={ReceivedData}
       keyExtractor={(item) => String(item.id)}
@@ -903,6 +1267,7 @@ const ReceiveScreen = () => {
         );
       }}
     />
+    </>
   );
 
   const renderScene = {
@@ -1004,102 +1369,13 @@ const ReceiveScreen = () => {
                     <TabBar
                       {...props}
                       indicatorStyle={{ backgroundColor: '#233E55', height: 3, bottom: -1 }}
-                      style={{ backgroundColor: '#fff', elevation: 0 }}
+                      style={{ backgroundColor: '#F7F9FB', elevation: 0 }}
                       scrollEnabled
-                      tabStyle={{ width: 'auto', paddingHorizontal: 10 }}
+                      tabStyle={{ width: 100, paddingHorizontal: 10 }}
                       activeColor="#233E55"
                       inactiveColor="#9D9FA3"
                       renderLabel={({ route, focused, color }) => <Text style={{ color, fontWeight: focused ? 'bold' : 'normal', fontSize: 12 }}>{route.title}</Text>}
                     />
-                  </View>
-
-                  <View style={styles.iconCluster}>
-                    <View style={styles.sharedSortTile}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          const opts = getSortOptionsForTab(activeKey);
-                          if (sortField && !opts.some((o) => o.key === sortField)) {
-                            setSortField(null);
-                            restoreBaseline();
-                          }
-                          handleSort();
-                        }}
-                        style={styles.sortHalf}
-                        activeOpacity={0.8}
-                      >
-                        <SortIcon width={24} height={24} fill="#233E55" />
-                      </TouchableOpacity>
-
-                      <View style={styles.sortDivider} />
-
-                      <View style={{ position: 'relative' }}>
-                        <TouchableOpacity onPress={toggleSortMenu} style={styles.dropdownHalf} activeOpacity={0.8}>
-                          <View style={styles.dropdownInnerWhite} />
-                          <SortDropdownIcon width={24} height={24} fill="#233E55" />
-                        </TouchableOpacity>
-
-                        {sortMenuOpen && (
-                          <View style={styles.menuAnchored}>
-                            {getSortOptionsForTab(activeKey).map((opt) => (
-                              <TouchableOpacity
-                                key={opt.key}
-                                style={[styles.menuItem, sortField === opt.key && styles.menuItemActive]}
-                                onPress={() => selectSortOption(opt.key)}
-                                activeOpacity={0.9}
-                              >
-                                <Text style={[styles.menuText, sortField === opt.key && styles.menuTextActive]}>{opt.label}</Text>
-                              </TouchableOpacity>
-                            ))}
-                          </View>
-                        )}
-                      </View>
-                    </View>
-
-                    <View style={{ position: 'relative' }}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setMenuOpen((v) => !v);
-                          setSortMenuOpen(false);
-                        }}
-                        style={[styles.chip, isFilterActive && styles.chipActive]}
-                        activeOpacity={0.8}
-                      >
-                        {isFilterActive && <View style={styles.chipInner} />}
-                        <BackFilterIcon width={24} height={24} fill="#233E55" />
-                      </TouchableOpacity>
-
-                      {menuOpen && (
-                        <View style={styles.menuAnchored}>
-                          {(activeKey === 'poir' || activeKey === 'asn' ? FILTERS_PO_ASN : FILTERS_RX_IC).map((f) => (
-                            <TouchableOpacity
-                              key={f}
-                              style={[
-                                styles.menuItem,
-                                (activeKey === 'poir' || activeKey === 'asn')
-                                  ? activeFilter === toBackendStatus(f) && styles.menuItemActive
-                                  : (String(f).toLowerCase() === 'all'
-                                      ? activeFilter == null
-                                      : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
-                              ]}
-                              onPress={() => handlePick(f)}
-                            >
-                              <Text
-                                style={[
-                                  styles.menuText,
-                                  (activeKey === 'poir' || activeKey === 'asn')
-                                    ? activeFilter === toBackendStatus(f) && styles.menuTextActive
-                                    : (String(f).toLowerCase() === 'all'
-                                        ? activeFilter == null
-                                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
-                                ]}
-                              >
-                                {pretty(f)}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-                    </View>
                   </View>
                 </View>
               )}
@@ -1116,33 +1392,37 @@ const ReceiveScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#F7F9FB' },
   loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  statusText: { marginTop: 12, color: '#333', fontSize: 14 },
+  statusText: { marginTop: 12, color: '#333', fontSize: 12 },
   inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eee', margin: 12, paddingHorizontal: 10, borderRadius: 8, justifyContent: 'space-between' },
   input: { flex: 1, height: 40, fontSize: 14, color: '#333' },
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   emptyText: { fontSize: 16, color: 'gray' },
 
-  card: { justifyContent: 'space-between', backgroundColor: '#FBFBFB', marginHorizontal: 12, marginVertical: 6, borderRadius: 12, padding: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
+  card: { justifyContent: 'space-between', backgroundColor: '#FFFFFF', marginHorizontal: 12, marginVertical: 6, borderRadius: 12, padding: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, },
+  progresscard: { backgroundColor: '#D7E8FE', borderRadius: 10, padding: 12, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
   cardInsideSwipe: { marginHorizontal: 0, marginVertical: 0, borderRadius: 0 },
+  progressLabel: { flex: 2, flexDirection: 'row' },
 
   toprow: { flex: 1, flexDirection: 'row', marginBottom: scale(5) },
-  bottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: scale(5) },
-  topcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), paddingBottom: scale(6), minWidth: 0 },
-  topcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), paddingBottom: scale(6), minWidth: 0 },
-  bottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
-  bottomcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), minWidth: 0 },
+  bottomrow: { flex: 1, flexDirection: 'row', marginBottom: scale(5) },
+  topcardLeft: { flex: 1, flexDirection: 'column', paddingRight: scale(6), paddingBottom: scale(10), minWidth: 0 },
+  topcardRight: { flex: 1, flexDirection: 'column', paddingLeft: scale(6), paddingBottom: scale(10), minWidth: 0 },
+  bottomcardLeft: { flex: 1, flexDirection: 'column', paddingRight: scale(6), minWidth: 0 },
+  bottomcardRight: { flex: 1, flexDirection: 'column', paddingLeft: scale(6), minWidth: 0 },
   newbottomrow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: scale(10) },
   newbottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
   newbottomcardRight: { flex: 1, justifyContent: 'flex-end', minWidth: 0 },
   newlabelText: { fontSize: ms(8), color: '#666666', flex: 1, marginRight: scale(6) },
   viewMoreBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end' },
   viewMoreText: { fontSize: ms(10), marginRight: ms(6), color: '#033EFF', textDecorationLine: 'underline', textDecorationColor: '#033EFF', fontWeight: '500' },
-  labelText: { fontSize: 12, color: '#595A5C', flex: 1, fontFamily: 'Mulish' },
-  valueText: { fontFamily: 'Mulish', fontSize: 12, fontWeight: '700', color: '#242424', flex: 1, textAlign: 'left' },
+  labelText: { fontSize: 12, color: '#9D9FA3', flex: 1, fontFamily: 'Mulish', marginBottom: scale(2), fontWeight: 600 },
+  progressText: { fontSize: 12, marginBottom: scale(2), fontWeight: 700, letterSpacing: 0.5 },
+  progresspercentage: { fontSize: 12, flex: 1, marginBottom: scale(2), fontWeight: 700, letterSpacing: 0.5, textAlign: 'right' },
+  valueText: { fontFamily: 'Mulish', fontSize: 12, fontWeight: '700', color: '#595A5C', flex: 1, textAlign: 'left' },
   subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
-  progressWrapper: { backgroundColor: '#ECF1F7', borderRadius: 20, height: 12, width: '75%', justifyContent: 'center', elevation: 4, marginTop: 4, marginBottom: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  progressWrapper: { backgroundColor: '#ECF1F7', borderRadius: 20, height: 12, width: '100%', justifyContent: 'center', elevation: 4, marginTop: 4, marginBottom: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
   progressBarleft: { height: 8, borderRadius: 20, marginHorizontal: 0 },
 
   incompleteRowContainer: { marginHorizontal: 12, marginVertical: 6, borderRadius: 12, backgroundColor: '#FFFFFF', overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
@@ -1151,23 +1431,82 @@ const styles = StyleSheet.create({
   actionButton: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 10 },
 
   tabBarRow: { flexDirection: 'row', zIndex: 999, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#7392AA', marginBottom: 10 },
-  iconCluster: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 12 },
+  iconCluster: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'space-between', marginVertical: 6, padding: 12 },
 
   sharedSortTile: { flexDirection: 'row', alignItems: 'center', height: 32, borderRadius: 8, backgroundColor: '#ECF1F7', borderWidth: 1, borderColor: '#D6E3ED' },
   sortHalf: { width: 24, height: 32, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   sortDivider: { width: 1 },
-  dropdownHalf: { width: 26, height: 32, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  dropdownInnerWhite: { position: 'absolute', width: 24, height: 24, borderRadius: 6, backgroundColor: '#FFFFFF' },
+  dropdownHalf: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 6,
+    paddingHorizontal: 8,   // add space inside
+    height: 32,
+    backgroundColor: '#FFFFFF',  // give bg here (instead of absolute view)
+    borderWidth: 1,
+    borderColor: '#D9E4EE',
+  },
 
-  chip: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#EAF1F6', borderWidth: 1, borderColor: '#D6E3ED', alignItems: 'center', justifyContent: 'center' },
+  dropdownInnerWhite: { position: 'absolute', borderRadius: 6, backgroundColor: '#FFFFFF' },
+
+  chip: { width: 82, height: 32, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D6E3ED', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   chipActive: { backgroundColor: '#E6F0FA' },
-  chipInner: { position: 'absolute', width: 15, height: 19, borderRadius: 4, backgroundColor: '#FFFFFF' },
+  chipInner: { position: 'absolute', height: 19, borderRadius: 4, backgroundColor: '#FFFFFF' },
 
-  menuAnchored: { position: 'absolute', top: 36, right: 0, backgroundColor: '#FFFFFF', borderRadius: 16, paddingVertical: 6, minWidth: 240, shadowColor: '#000000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, zIndex: 999, elevation: 10, overflow: 'visible' },
+  menuAnchored: { position: 'absolute', top: 36, left: 0, backgroundColor: '#FFFFFF', borderRadius: 16, paddingVertical: 6, minWidth: 240, shadowColor: '#000000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 10, overflow: 'visible', zIndex: 90000 },
+  menuAnchoredfilter: { position: 'absolute', top: 36, right: 0, backgroundColor: '#FFFFFF', borderRadius: 16, paddingVertical: 6, minWidth: 240, shadowColor: '#000000', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12, elevation: 10, overflow: 'visible', zIndex: 90000 },
   menuItem: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10 },
   menuItemActive: { backgroundColor: '#E6F0FA' },
   menuText: { fontSize: 16, color: '#111' },
   menuTextActive: { fontWeight: '600' },
+  statusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECF1F7', // soft light blue
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+    width: '40%',
+    marginBottom: scale(5)
+  },
+
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 5,
+    backgroundColor: '#7392AA', // blue dot
+    marginRight: 8,
+  },
+
+  receivestatusText: {
+    fontSize: 12,
+    color: '#7392AA',
+    fontWeight: '600',
+  },
+  bardot: {
+    width: 8,
+    height: 8,
+    borderRadius: 5,
+    // backgroundColor: '#7392AA', // blue dot
+    marginRight: 5,
+    marginLeft: 5,
+    // alignItems:'center',
+    // justifyContent:'center',
+    marginTop: 5
+  },
+
+  receivestatusbarText: {
+    fontSize: 12,
+    color: '#7392AA',
+    fontWeight: '600',
+  },
+  sortText: {
+    color: '#233E55',
+    fontSize: 14,
+    marginRight: 6,  // space between text & icon
+    fontWeight: '500',
+  },
+
 });
 
 export default ReceiveScreen;
