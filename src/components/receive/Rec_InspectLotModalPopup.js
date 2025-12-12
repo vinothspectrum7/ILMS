@@ -152,7 +152,7 @@ export default function Rec_InspectLotModalPopup({
                 min={0}
                 max={lot?.qty || 0}
                 step={1}
-                width={339}
+                width={330}
                 height={42}
                 isSelected={true}
                 disabledinput={false}
@@ -220,12 +220,12 @@ export default function Rec_InspectLotModalPopup({
                       ))}
                     </ScrollView>
 
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                       onPress={handleViewAll}
                       style={styles.viewAllButton}
                     >
                       <Text style={styles.viewAllText}>View All</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                   </View>
                 )}
               </View>
@@ -422,6 +422,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#F3F4F6',
+    marginTop:10,
   },
   image: {
     width: '100%',
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     position: 'absolute',
-    top: -5,
+    top: 0,
     right: -5,
     backgroundColor: '#DA1E28',
     width: 20,
