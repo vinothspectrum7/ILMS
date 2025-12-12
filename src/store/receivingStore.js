@@ -79,6 +79,7 @@ export const useReceivingStore = create((set, get) => ({
                 ? patch.serialTotalQty
                 : it.serialTotalQty,
             serialMode: patch.serialMode ?? it.serialMode,
+            inspections: patch.inspections ?? it.inspections,
             inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
             putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
             inspectionData: patch.inspectionData ?? it.inspectionData,
@@ -118,6 +119,7 @@ export const useReceivingStore = create((set, get) => ({
                 ? patch.serialTotalQty
                 : it.serialTotalQty,
             serialMode: patch.serialMode ?? it.serialMode,
+            inspections: patch.inspections ?? it.inspections,
             inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
             putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
             inspectionData: patch.inspectionData ?? it.inspectionData,
