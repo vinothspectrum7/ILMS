@@ -215,13 +215,28 @@ const Rec_ViewItemDetailsScreen = () => {
   const [selectedLot, setSelectedLot] = useState(null);
   const [selectedLotIndex, setSelectedLotIndex] = useState(0);
 
-  const openInspectModal = (lot, lotIdx) => {
-    setSelectedLot(lot);
-    setSelectedLotIndex(lotIdx);
-    setInspectModalVisible(true);
-  };
-
   const [inspectionDataMap, setInspectionDataMap] = useState({});
+  const [selectedLotInitialInspection, setSelectedLotInitialInspection] = useState(null);
+
+  const openInspectModal = useCallback(
+    (lot, lotIdx) => {
+      setSelectedLot(lot);
+      setSelectedLotIndex(lotIdx);
+      const itemId = current?.id;
+      const key = itemId != null ? `${itemId}-${lotIdx}` : '';
+      const fromMap = key ? inspectionDataMap[key] : null;
+      let fromStore = null;
+
+      if (!fromMap && currentStoreLine?.inspections && Array.isArray(currentStoreLine.inspections)) {
+        fromStore =
+          currentStoreLine.inspections.find(i => Number(i?.lotIndex) === Number(lotIdx)) || null;
+      }
+
+      setSelectedLotInitialInspection(fromMap || fromStore || null);
+      setInspectModalVisible(true);
+    },
+    [current?.id, inspectionDataMap, currentStoreLine],
+  );
 
   const handleInspectionComplete = inspectionData => {
     const lotKey = `${current?.id}-${inspectionData.lotIndex}`;
@@ -1841,6 +1856,7 @@ const Rec_ViewItemDetailsScreen = () => {
         itemName={current?.itemName}
         itemCode={current?.itemid}
         onComplete={handleInspectionComplete}
+        initialInspectionData={selectedLotInitialInspection}
       />
     </SafeAreaView>
   );

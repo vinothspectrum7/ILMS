@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,34 @@ import {
   TextInput,
   ScrollView,
   Image,
-  Pressable,
+  Dimensions,
+  Platform,
 } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import Toast from 'react-native-toast-message';
 import CloseIcon from '../../assets/icons/close.svg';
-import UploadIcon from '../../assets/icons/upload.svg';
-import CameraIcon from '../../assets/icons/camera.svg';
-import CustomNumericInput from '../../components/CustomNumericInput';
+import PhotoUploadIcon from '../../assets/icons/photouploadicon.svg';
+import PhotoCaptureIcon from '../../assets/icons/photocaptureicon.svg';
+import DeleteAttachmentIcon from '../../assets/icons/deleteattachmenticon.svg';
+import ErrorIcon from '../../assets/icons/error.svg';
+import Rec_CustomNumericInput from '../../components/receive/Rec_CustomNumericInput';
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
+
+const toUriList = imgs => {
+  if (!Array.isArray(imgs)) return [];
+  return imgs
+    .map(x => {
+      if (typeof x === 'string') return x;
+      if (x && typeof x === 'object') return String(x.uri || '');
+      return '';
+    })
+    .filter(Boolean);
+};
 
 export default function Rec_InspectLotModalPopup({
   visible,
@@ -26,149 +45,226 @@ export default function Rec_InspectLotModalPopup({
   itemName = '',
   itemCode = '',
   onComplete,
+  initialInspectionData = null,
 }) {
+  const lotQty = useMemo(() => Number(lot?.qty || 0), [lot]);
+
   const [inspectQty, setInspectQty] = useState(0);
   const [status, setStatus] = useState(null);
   const [notes, setNotes] = useState('');
   const [images, setImages] = useState([]);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const statusList = [
-    { id: 1, name: 'Above Average' },
-    { id: 2, name: 'Average' },
-    { id: 3, name: 'Below Average' },
-    { id: 4, name: 'Excellent' },
-    { id: 5, name: 'Reject and Notify' },
-    { id: 6, name: 'Unacceptable' },
-  ];
+  const statusList = useMemo(
+    () => [
+      { id: 1, name: 'Above Average' },
+      { id: 2, name: 'Average' },
+      { id: 3, name: 'Below Average' },
+      { id: 4, name: 'Excellent' },
+      { id: 5, name: 'Reject and Notify' },
+      { id: 6, name: 'Unacceptable' },
+    ],
+    [],
+  );
 
-  const handleUpload = () => {
-    launchImageLibrary(
-      {
-        mediaType: "photo",
-        quality: 0.8,
-        selectionLimit: 1
-      },
-      (response) => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.errorCode) {
-          console.log('ImagePicker Error: ', response.errorMessage);
-        } else if (response.assets && response.assets.length > 0) {
-          const uri = response.assets[0].uri;
-          if (uri) {
-            setImages([...images, uri]);
-          }
-        }
+  const clearError = useCallback(() => setErrorMsg(''), []);
+
+  const addUris = useCallback(
+    uris => {
+      const list = (uris || []).map(String).filter(Boolean);
+      if (!list.length) return;
+      setImages(prev => {
+        const existing = new Set((prev || []).map(x => String(x)));
+        const next = [...(prev || [])];
+        list.forEach(u => {
+          if (!existing.has(u)) next.push(u);
+        });
+        return next;
+      });
+      Toast.show({ type: 'success', text1: 'Image Attached' });
+    },
+    [],
+  );
+
+  const handleUpload = useCallback(async () => {
+    clearError();
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.85,
+      selectionLimit: 0,
+    });
+    if (result?.didCancel || result?.errorCode) return;
+    const uris = (result?.assets || []).map(a => a?.uri).filter(Boolean);
+    addUris(uris);
+  }, [addUris, clearError]);
+
+  const handleCamera = useCallback(async () => {
+    clearError();
+    const result = await launchCamera({
+      mediaType: 'photo',
+      quality: 0.85,
+      saveToPhotos: true,
+    });
+    if (result?.didCancel || result?.errorCode) return;
+    const uris = (result?.assets || []).map(a => a?.uri).filter(Boolean);
+    addUris(uris);
+  }, [addUris, clearError]);
+
+  const handleRemoveImage = useCallback(
+    uri => {
+      clearError();
+      setImages(prev => (prev || []).filter(x => x !== uri));
+    },
+    [clearError],
+  );
+
+  const resolveStatusValue = useCallback(
+    preStatus => {
+      if (!preStatus) return null;
+      if (typeof preStatus === 'string') {
+        const found = statusList.find(s => String(s.name) === String(preStatus));
+        return found || null;
       }
-    );
-  };
-
-  const handleCamera = () => {
-    launchCamera(
-      {
-        mediaType: "photo",
-        quality: 0.8,
-        saveToPhotos: true
-      },
-      (response) => {
-        if (response.didCancel) {
-          console.log('User cancelled camera');
-        } else if (response.errorCode) {
-          console.log('Camera Error: ', response.errorMessage);
-        } else if (response.assets && response.assets.length > 0) {
-          const uri = response.assets[0].uri;
-          if (uri) {
-            setImages([...images, uri]);
-          }
-        }
+      if (typeof preStatus === 'object' && preStatus?.name) {
+        const found = statusList.find(s => String(s.name) === String(preStatus.name));
+        return found || preStatus;
       }
-    );
-  };
+      return null;
+    },
+    [statusList],
+  );
 
-  const handleRemoveImage = (index) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
+  useEffect(() => {
+    if (!visible) return;
 
-  const handleViewAll = () => {
-    console.log("View all photos:", images);
-  };
+    const pre = initialInspectionData || null;
+    const preQty = Number(pre?.inspectQty ?? pre?.qty ?? 0);
+    const preNotes = String(pre?.notes ?? '');
+    const preImgs = toUriList(pre?.images ?? pre?.attachments);
 
-  const handleConfirmInspect = () => {
+    setInspectQty(preQty > 0 ? preQty : lotQty > 0 ? lotQty : 0);
+    setStatus(resolveStatusValue(pre?.status));
+    setNotes(preNotes);
+    setImages(preImgs);
+    setErrorMsg('');
+  }, [visible, initialInspectionData, lotQty, lotIndex, lot, resolveStatusValue]);
+
+  const validate = useCallback(() => {
+    const q = Number(inspectQty || 0);
+    if (lotQty > 0 && q < lotQty) return 'Add all saved Lot Qty to Confirm Inspect';
+    if (!status) return 'Select Status to Confirm Inspect';
+    return '';
+  }, [inspectQty, lotQty, status]);
+
+  const handleConfirmInspect = useCallback(() => {
+    const msg = validate();
+    if (msg) {
+      setErrorMsg(msg);
+      return;
+    }
+
     const inspectionData = {
-      inspectQty,
+      inspectQty: Number(inspectQty || 0),
       status,
       notes,
       images,
       lotDetails: lot,
-      lotIndex: lotIndex,
+      lotIndex,
       itemName,
       itemCode,
     };
 
-    console.log('Sending inspection data to parent:', inspectionData);
-
-    if (onComplete) {
-      onComplete(inspectionData);
-    }
-
+    if (onComplete) onComplete(inspectionData);
     onClose();
-  };
+  }, [
+    validate,
+    inspectQty,
+    status,
+    notes,
+    images,
+    lot,
+    lotIndex,
+    itemName,
+    itemCode,
+    onComplete,
+    onClose,
+  ]);
 
-  const isInspectionComplete = inspectQty > 0 && status !== null;
+  const isInspectionComplete = Number(inspectQty || 0) > 0 && !!status;
 
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.modalContainer}>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Inspection</Text>
-              <TouchableOpacity onPress={onClose}>
-                <CloseIcon width={20} height={20} />
+              <TouchableOpacity onPress={onClose} activeOpacity={0.85}>
+                <CloseIcon width={rs(18)} height={rs(18)} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.lotCard}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.lotId}>{lot?.lotNumber || 'N/A'}</Text>
-                <View style={styles.row}>
-                  <Text style={styles.smallText}>Mfg: {lot?.mfgDate || '-'}</Text>
-                  <Text style={styles.smallText}>Exp: {lot?.expDate || '-'}</Text>
-                </View>
+            {!!errorMsg && (
+              <View style={styles.errorBanner}>
+                <ErrorIcon width={rs(16)} height={rs(16)} />
+                <Text style={styles.errorText}>{errorMsg}</Text>
               </View>
-              <View style={styles.qtyBox}>
-                <Text style={styles.qtyLabel}>Qty</Text>
-                <Text style={styles.qtyValue}>{lot?.qty || 0}</Text>
-              </View>
-            </View>
+            )}
 
             <View style={styles.body}>
-              <Text style={styles.sectionTitle}>Inspection Qty</Text>
-              <CustomNumericInput
-                value={inspectQty}
-                setValue={setInspectQty}
-                min={0}
-                max={lot?.qty || 0}
-                step={1}
-                width={330}
-                height={42}
-                isSelected={true}
-                disabledinput={false}
-              />
+              <View style={styles.lotCard}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.lotId}>{lot?.lotNumber || 'N/A'}</Text>
+                  <View style={styles.lotRow}>
+                    <Text style={styles.smallText}>Mfg: {lot?.mfgDate || '-'}</Text>
+                    <Text style={styles.smallText}>Exp: {lot?.expDate || '-'}</Text>
+                  </View>
+                </View>
+                <View style={styles.qtyBox}>
+                  <Text style={styles.qtyLabel}>Qty</Text>
+                  <Text style={styles.qtyValue}>{lotQty}</Text>
+                </View>
+              </View>
 
-              <View style={styles.dropdownContainer}>
+              <View style={styles.sectionBlock}>
+                <Text style={styles.sectionTitle}>Inspection Qty</Text>
+                <Rec_CustomNumericInput
+                  value={inspectQty}
+                  setValue={v => {
+                    clearError();
+                    const raw = typeof v === 'function' ? v(inspectQty) : v;
+                    setInspectQty(Number(raw || 0));
+                  }}
+                  min={0}
+                  max={lotQty}
+                  step={1}
+                  width="100%"
+                  height={rs(42)}
+                  isSelected={true}
+                  disabledinput={false}
+                />
+              </View>
+
+              <View style={styles.sectionBlock}>
                 <Rec_DropDown
                   label=""
                   placeholder="Select Status"
                   value={status}
-                  onChange={setStatus}
+                  onChange={val => {
+                    clearError();
+                    setStatus(val);
+                  }}
                   items={statusList}
                 />
               </View>
 
-              <View style={styles.notesBox}>
+              <View style={styles.sectionBlock}>
                 <View style={styles.outerNotesBox}>
                   <Text style={styles.outerLabel}>Inspection Notes</Text>
                   <View style={styles.innerNotesBox}>
@@ -178,7 +274,10 @@ export default function Rec_InspectLotModalPopup({
                       maxLength={100}
                       multiline
                       value={notes}
-                      onChangeText={setNotes}
+                      onChangeText={t => {
+                        clearError();
+                        setNotes(t);
+                      }}
                       placeholderTextColor="#A0A0A0"
                       textAlignVertical="top"
                     />
@@ -187,62 +286,61 @@ export default function Rec_InspectLotModalPopup({
                 </View>
               </View>
 
-              <View style={styles.photosOuterBox}>
+              <View style={styles.sectionBlock}>
                 <Text style={styles.photosLabel}>Photos</Text>
-                <View style={[styles.photosInnerBox, { marginBottom: images.length > 0 ? 16 : 0 }]}>
-                  <TouchableOpacity style={styles.photoBtnLeft} onPress={handleUpload}>
-                    <UploadIcon width={20} height={20} />
+
+                <View style={styles.photoButtonsWrap}>
+                  <TouchableOpacity
+                    style={styles.photoBtn}
+                    onPress={handleUpload}
+                    activeOpacity={0.85}
+                  >
+                    <PhotoUploadIcon width={rs(20)} height={rs(20)} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.photoBtnRight} onPress={handleCamera}>
-                    <CameraIcon width={20} height={20} />
+
+                  <TouchableOpacity
+                    style={[styles.photoBtn, { marginLeft: rs(10) }]}
+                    onPress={handleCamera}
+                    activeOpacity={0.85}
+                  >
+                    <PhotoCaptureIcon width={rs(20)} height={rs(20)} />
                   </TouchableOpacity>
                 </View>
 
                 {images.length > 0 && (
-                  <View style={{ marginTop: 12, marginBottom: 20 }}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {images.map((img, index) => (
-                        <View key={index} style={{ marginRight: 8, position: 'relative' }}>
-                          <View style={styles.imageContainer}>
-                            <Image
-                              source={{ uri: img }}
-                              style={styles.image}
-                              resizeMode="cover"
-                            />
-                          </View>
-                          <Pressable
-                            onPress={() => handleRemoveImage(index)}
-                            style={styles.removeButton}
-                          >
-                            <Text style={styles.removeButtonText}>×</Text>
-                          </Pressable>
-                        </View>
-                      ))}
-                    </ScrollView>
-
-                    {/* <TouchableOpacity
-                      onPress={handleViewAll}
-                      style={styles.viewAllButton}
-                    >
-                      <Text style={styles.viewAllText}>View All</Text>
-                    </TouchableOpacity> */}
-                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.imagesScroll}
+                    contentContainerStyle={styles.imagesScrollContent}
+                  >
+                    {images.map(uri => (
+                      <View key={uri} style={styles.thumbWrap}>
+                        <Image source={{ uri }} style={styles.thumbImg} resizeMode="cover" />
+                        <TouchableOpacity
+                          style={styles.thumbDeleteBtn}
+                          onPress={() => handleRemoveImage(uri)}
+                          activeOpacity={0.85}
+                        >
+                          <DeleteAttachmentIcon width={rs(16)} height={rs(16)} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
                 )}
               </View>
 
+              <View style={styles.footerWrap}>
+                <SingleFooterBtnComponent
+                  label="Confirm Inspect"
+                  onPress={handleConfirmInspect}
+                  enabled={isInspectionComplete}
+                  containerStyle={{ marginBottom: 0 }}
+                  buttonStyle={{ width: '100%', marginStart: 0 }}
+                  labelStyle={{ fontSize: 14 }}
+                />
+              </View>
             </View>
-
-            <View style={{ paddingHorizontal: 20, paddingVertical: 12 }}>
-              <SingleFooterBtnComponent
-                label="Confirm Inspection"
-                onPress={handleConfirmInspect}
-                enabled={isInspectionComplete}
-                containerStyle={{ marginBottom: 0 }}
-                buttonStyle={{ width: '100%', marginStart: 0 }}
-                labelStyle={{ fontSize: 14 }}
-              />
-            </View>
-
           </View>
         </ScrollView>
       </View>
@@ -262,197 +360,192 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: rs(20),
   },
   modalContainer: {
-    width: 372,
+    width: Math.min(rs(360), SCREEN_WIDTH * 0.92),
     backgroundColor: '#FFFFFF',
-    borderRadius: 4,
+    borderRadius: rs(8),
     overflow: 'hidden',
   },
-
   header: {
-    width: 372,
-    height: 56.34,
+    height: rs(56),
     backgroundColor: '#ECF1F7',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
+    paddingHorizontal: rs(16),
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: rs(16),
     fontWeight: '600',
     color: '#111827',
   },
-
+  errorBanner: {
+    marginTop: rs(10),
+    marginHorizontal: rs(16),
+    borderRadius: rs(8),
+    backgroundColor: '#FDE3E3',
+    paddingVertical: rs(8),
+    paddingHorizontal: rs(10),
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: rs(12),
+    fontWeight: '600',
+    marginLeft: rs(6),
+    flex: 1,
+  },
+  body: {
+    paddingHorizontal: rs(16),
+    paddingTop: rs(14),
+    paddingBottom: rs(16),
+  },
   lotCard: {
-    width: 340,
-    height: 54,
+    width: '100%',
+    minHeight: rs(54),
     backgroundColor: '#4F6577',
-    borderRadius: 4,
-    alignSelf: 'center',
-    marginTop: 20,
-    paddingHorizontal: 12,
+    borderRadius: rs(6),
+    paddingHorizontal: rs(12),
+    paddingVertical: rs(10),
     flexDirection: 'row',
     alignItems: 'center',
   },
   lotId: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: rs(13),
     fontWeight: '600',
   },
-  row: {
+  lotRow: {
     flexDirection: 'row',
-    gap: 18,
+    marginTop: rs(2),
   },
   smallText: {
     color: '#DCE3EA',
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: rs(11),
+    marginRight: rs(18),
   },
   qtyBox: {
     alignItems: 'flex-end',
   },
   qtyLabel: {
     color: '#DCE3EA',
-    fontSize: 11,
+    fontSize: rs(11),
   },
   qtyValue: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: rs(16),
     fontWeight: '700',
   },
-
-  body: {
-    padding: 20,
+  sectionBlock: {
+    width: '100%',
+    marginTop: rs(16),
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: rs(16),
     fontWeight: '600',
-    marginBottom: 10,
+    marginBottom: rs(10),
     color: '#111827',
-  },
-  dropdownContainer: {
-    marginTop: 20,
-  },
-
-  notesBox: {
-    marginTop: 20,
   },
   outerNotesBox: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 4,
-    padding: 16,
+    borderRadius: rs(6),
+    padding: rs(14),
     backgroundColor: '#FFFFFF',
+    width: '100%',
   },
   outerLabel: {
-    fontSize: 14,
+    fontSize: rs(14),
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 12,
+    marginBottom: rs(12),
   },
   innerNotesBox: {
-    width: 306,
-    height: 65,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
+    width: '100%',
+    height: rs(90),
+    borderRadius: rs(10),
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#D9E4EE',
     position: 'relative',
+    overflow: 'hidden',
   },
   innerNotesInput: {
-    fontSize: 12,
+    fontSize: rs(12),
     color: '#111827',
-    padding: 8,
+    padding: rs(10),
     height: '100%',
     textAlignVertical: 'top',
   },
   charCount: {
     position: 'absolute',
-    bottom: 8,
-    right: 12,
-    fontSize: 10,
+    bottom: rs(8),
+    right: rs(12),
+    fontSize: rs(10),
     color: '#9CA3AF',
   },
-
-  photosOuterBox: {
-    marginTop: 24,
-    borderWidth: 0,
-    borderRadius: 4,
-    padding: 0,
-    backgroundColor: 'transparent',
-  },
   photosLabel: {
-    fontSize: 14,
+    fontSize: rs(14),
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 16,
+    marginBottom: rs(12),
   },
-  photosInnerBox: {
+  photoButtonsWrap: {
+    width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
-  photoBtnLeft: {
+  photoBtn: {
     flex: 1,
-    height: 35,
+    height: rs(44),
     backgroundColor: '#ECF1F7',
-    borderRadius: 4,
+    borderRadius: rs(10),
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
-    borderWidth: 0,
   },
-  photoBtnRight: {
-    flex: 1,
-    height: 35,
-    backgroundColor: '#ECF1F7',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-    borderWidth: 0,
+  imagesScroll: {
+    marginTop: rs(12),
   },
-  imageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
+  imagesScrollContent: {
+    paddingBottom: rs(4),
+  },
+  thumbWrap: {
+    width: rs(62),
+    height: rs(62),
+    borderRadius: rs(8),
     overflow: 'hidden',
     backgroundColor: '#F3F4F6',
-    marginTop:10,
+    marginRight: rs(10),
+    ...Platform.select({
+      android: { elevation: 1 },
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 2 },
+      },
+    }),
   },
-  image: {
+  thumbImg: {
     width: '100%',
     height: '100%',
   },
-  removeButton: {
+  thumbDeleteBtn: {
     position: 'absolute',
-    top: 0,
-    right: -5,
-    backgroundColor: '#DA1E28',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
+    right: rs(-2),
+    top: rs(-2),
+    width: rs(22),
+    height: rs(22),
+    borderRadius: rs(11),
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    justifyContent: 'center',
   },
-  removeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 10,
-  },
-  viewAllButton: {
-    marginTop: 8,
-  },
-  viewAllText: {
-    color: '#033EFF',
-    fontWeight: '700',
-    fontSize: 12,
+  footerWrap: {
+    width: '100%',
+    marginTop: rs(18),
   },
 });
