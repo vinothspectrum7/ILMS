@@ -71,6 +71,8 @@ const INSPECTION_STATUS_OPTIONS = [
   { id: 'Unacceptable', name: 'Unacceptable' },
 ];
 
+const normalizeLotKey = v => String(v ?? '').trim().toLowerCase();
+
 const Rec_ViewItemDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -95,10 +97,7 @@ const Rec_ViewItemDetailsScreen = () => {
       const stored = Array.isArray(receiveItems)
         ? receiveItems.find(r => String(r.id) === String(it.id))
         : undefined;
-      const receivingQty = Number(stored?.qtyToReceive ?? it.receivingQty ?? 0);
-      const inspectionStatus = stored?.inspectionStatus ||
-        it.inspectionStatus ||
-        'Pending';
+      const inspectionStatus = stored?.inspectionStatus || it.inspectionStatus || 'Pending';
       return {
         ...it,
         receivingQty: Number(stored?.qtyToReceive ?? it.receivingQty ?? 0),
@@ -110,7 +109,7 @@ const Rec_ViewItemDetailsScreen = () => {
         itemType: it.itemType || it.itemtype || 'Lot',
         orderQty: Number(it.orderQty ?? it.orderedQty ?? 0),
         inspections: stored?.inspections || [],
-        inspectionStatus: inspectionStatus,
+        inspectionStatus,
       };
     });
   }, [baseItems, receiveItems]);
@@ -215,16 +214,16 @@ const Rec_ViewItemDetailsScreen = () => {
   const [inspectModalVisible, setInspectModalVisible] = useState(false);
   const [selectedLot, setSelectedLot] = useState(null);
   const [selectedLotIndex, setSelectedLotIndex] = useState(0);
-  const openInspectModal = (lot, index) => {
+
+  const openInspectModal = (lot, lotIdx) => {
     setSelectedLot(lot);
-    setSelectedLotIndex(index);
+    setSelectedLotIndex(lotIdx);
     setInspectModalVisible(true);
   };
-  const [inspectionDataMap, setInspectionDataMap] = useState({});
-  const handleInspectionComplete = (inspectionData) => {
-    console.log('Inspection completed:', inspectionData);
-    console.log('Actual status from modal:', inspectionData.status);
 
+  const [inspectionDataMap, setInspectionDataMap] = useState({});
+
+  const handleInspectionComplete = inspectionData => {
     const lotKey = `${current?.id}-${inspectionData.lotIndex}`;
 
     setInspectionDataMap(prev => ({
@@ -232,7 +231,7 @@ const Rec_ViewItemDetailsScreen = () => {
       [lotKey]: {
         ...inspectionData,
         inspectionDate: new Date().toISOString(),
-      }
+      },
     }));
 
     if (current) {
@@ -243,8 +242,9 @@ const Rec_ViewItemDetailsScreen = () => {
       const existingInspections = stored?.inspections || [];
 
       const existingIndex = existingInspections.findIndex(
-        insp => insp.lotIndex === inspectionData.lotIndex
+        insp => insp.lotIndex === inspectionData.lotIndex,
       );
+
       let updatedInspections;
       if (existingIndex >= 0) {
         updatedInspections = [...existingInspections];
@@ -258,30 +258,30 @@ const Rec_ViewItemDetailsScreen = () => {
           {
             ...inspectionData,
             inspectionDate: new Date().toISOString(),
-          }
+          },
         ];
       }
 
-
-      const hasRejected = updatedInspections.some(insp =>
-        insp.status?.name === 'Reject and Notify' ||
-        insp.status?.name === 'Unacceptable'
+      const hasRejected = updatedInspections.some(
+        insp =>
+          insp.status?.name === 'Reject and Notify' ||
+          insp.status?.name === 'Unacceptable',
       );
 
-      const hasPassed = updatedInspections.some(insp =>
-        insp.status?.name === 'Above Average' ||
-        insp.status?.name === 'Average' ||
-        insp.status?.name === 'Excellent' ||
-        insp.status?.name === 'Passed'
+      const hasPassed = updatedInspections.some(
+        insp =>
+          insp.status?.name === 'Above Average' ||
+          insp.status?.name === 'Average' ||
+          insp.status?.name === 'Excellent' ||
+          insp.status?.name === 'Passed',
       );
 
-      const inspectionStatus = hasRejected ? 'Rejected' :
-        hasPassed ? 'Passed' : 'Pending';
+      const inspectionStatus = hasRejected ? 'Rejected' : hasPassed ? 'Passed' : 'Pending';
 
       mergePatchIntoReceiveItems({
         id: String(current.id),
         inspections: updatedInspections,
-        inspectionStatus: inspectionStatus,
+        inspectionStatus,
       });
     }
   };
@@ -673,37 +673,42 @@ const Rec_ViewItemDetailsScreen = () => {
     persistPatches();
 
     allItems.forEach(item => {
-
       const itemInspections = Object.keys(inspectionDataMap)
         .filter(key => key.startsWith(`${item.id}-`))
         .map(key => inspectionDataMap[key]);
 
       if (itemInspections.length > 0) {
-
-        const hasRejected = itemInspections.some(insp =>
-          insp.status?.name === 'Reject and Notify' ||
-          insp.status?.name === 'Unacceptable'
+        const hasRejected = itemInspections.some(
+          insp =>
+            insp.status?.name === 'Reject and Notify' ||
+            insp.status?.name === 'Unacceptable',
         );
 
-        const hasPassed = itemInspections.some(insp =>
-          insp.status?.name === 'Above Average' ||
-          insp.status?.name === 'Average' ||
-          insp.status?.name === 'Excellent' ||
-          insp.status?.name === 'Passed'
+        const hasPassed = itemInspections.some(
+          insp =>
+            insp.status?.name === 'Above Average' ||
+            insp.status?.name === 'Average' ||
+            insp.status?.name === 'Excellent' ||
+            insp.status?.name === 'Passed',
         );
 
-        const inspectionStatus = hasRejected ? 'Rejected' :
-          hasPassed ? 'Passed' : 'Pending';
+        const inspectionStatus = hasRejected ? 'Rejected' : hasPassed ? 'Passed' : 'Pending';
 
         mergePatchIntoReceiveItems({
           id: String(item.id),
           inspections: itemInspections,
-          inspectionStatus: inspectionStatus,
+          inspectionStatus,
           lastInspectionDate: itemInspections[itemInspections.length - 1]?.inspectionDate,
         });
       }
     });
 
+    if (returnTo) navigation.navigate(returnTo, { listType });
+    else navigation.goBack();
+  };
+
+  const handleSaveInspectLot = () => {
+    if (!current) return;
     if (returnTo) navigation.navigate(returnTo, { listType });
     else navigation.goBack();
   };
@@ -747,7 +752,7 @@ const Rec_ViewItemDetailsScreen = () => {
         : null;
 
       if (stored?.inspections && Array.isArray(stored.inspections)) {
-        stored.inspections.forEach((inspection, index) => {
+        stored.inspections.forEach(inspection => {
           if (inspection.lotIndex !== undefined) {
             const key = `${item.id}-${inspection.lotIndex}`;
             savedInspections[key] = inspection;
@@ -852,6 +857,73 @@ const Rec_ViewItemDetailsScreen = () => {
   const inspectStatusCardBorder = isInspectionPassed ? '#73B386' : '#F06000';
   const inspectStatusCardTextColor = isInspectionPassed ? '#168035' : '#F06000';
   const inspectStatusPillBg = isInspectionPassed ? '#168035' : '#FCDFCC';
+
+  const allSavedLotsInspected = useMemo(() => {
+    if (!current) return false;
+    if (!hasLots) return false;
+    return currentLotLines.every((_, idx) => {
+      const key = `${current.id}-${idx}`;
+      return !!inspectionDataMap[key];
+    });
+  }, [current, hasLots, currentLotLines, inspectionDataMap]);
+
+  const isInspectLotSubmitEnabled = useMemo(() => {
+    if (readOnly || !current) return false;
+    if (!hasLots) return false;
+    return allSavedLotsInspected;
+  }, [readOnly, current, hasLots, allSavedLotsInspected]);
+
+  const lotInspectCardPassed = allSavedLotsInspected;
+  const lotInspectCardBg = lotInspectCardPassed ? '#EEFDF8' : '#FFF8EC';
+  const lotInspectCardBorder = lotInspectCardPassed ? '#73B386' : '#F06000';
+  const lotInspectCardTextColor = lotInspectCardPassed ? '#168035' : '#F06000';
+  const lotInspectPillBg = lotInspectCardPassed ? '#168035' : '#FCDFCC';
+
+  const handleScanAndOpenLotInspect = scannedValue => {
+    if (!current) return;
+    const code = normalizeLotKey(scannedValue);
+    if (!code) {
+      Toast.show({ type: 'error', text1: 'Invalid Lot' });
+      return;
+    }
+    const idx = currentLotLines.findIndex(l => normalizeLotKey(l?.lotNumber) === code);
+    if (idx < 0) {
+      Toast.show({ type: 'error', text1: 'Lot not found' });
+      return;
+    }
+    const lot = currentLotLines[idx];
+    setTimeout(() => {
+      openInspectModal(lot, idx);
+    }, 250);
+  };
+
+  const rightPress =
+    activeTab === 'Receive'
+      ? isReceiveSubmitEnabled
+        ? handleSaveAll
+        : undefined
+      : activeTab === 'Inspect'
+      ? itemType === 'Serial'
+        ? isInspectSubmitEnabled
+          ? handleSaveInspect
+          : undefined
+        : itemType === 'Lot'
+        ? isInspectLotSubmitEnabled
+          ? handleSaveInspectLot
+          : undefined
+        : undefined
+      : undefined;
+
+  const rightEnabled =
+    activeTab === 'Receive'
+      ? isReceiveSubmitEnabled
+      : activeTab === 'Inspect'
+      ? itemType === 'Serial'
+        ? isInspectSubmitEnabled
+        : itemType === 'Lot'
+        ? isInspectLotSubmitEnabled
+        : false
+      : false;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1151,8 +1223,7 @@ const Rec_ViewItemDetailsScreen = () => {
                       textColor="#FFFFFF"
                       height={ms(50)}
                       setValue={v => {
-                        const raw =
-                          typeof v === 'function' ? v(inspectionQty) : v;
+                        const raw = typeof v === 'function' ? v(inspectionQty) : v;
                         handleInspectionQtyChange(current.id, inspectionMax, raw);
                       }}
                       max={inspectionMax}
@@ -1169,9 +1240,7 @@ const Rec_ViewItemDetailsScreen = () => {
                   <Text style={styles.mandLabel}>Select Status</Text>
                   <Rec_DropDown
                     value={inspectionStatusValue}
-                    onChange={val =>
-                      handleInspectionStatusChange(current.id, val)
-                    }
+                    onChange={val => handleInspectionStatusChange(current.id, val)}
                     items={INSPECTION_STATUS_OPTIONS}
                     placeholder="Select Status"
                     disabled={readOnly || currentQty === 0 || inspectionMax === 0}
@@ -1185,9 +1254,7 @@ const Rec_ViewItemDetailsScreen = () => {
                   <View style={styles.notesInputWrapper}>
                     <TextInput
                       value={inspectionNotes}
-                      onChangeText={txt =>
-                        handleInspectionNotesChange(current.id, txt)
-                      }
+                      onChangeText={txt => handleInspectionNotesChange(current.id, txt)}
                       placeholder="Maximum 100 characters"
                       placeholderTextColor="#9CA3AF"
                       maxLength={100}
@@ -1227,11 +1294,7 @@ const Rec_ViewItemDetailsScreen = () => {
                     >
                       {inspectionPhotos.map(uri => (
                         <View key={uri} style={styles.photoThumbWrapper}>
-                          <Image
-                            source={{ uri }}
-                            style={styles.photoThumb}
-                            resizeMode="cover"
-                          />
+                          <Image source={{ uri }} style={styles.photoThumb} resizeMode="cover" />
                           <TouchableOpacity
                             style={styles.photoDeleteBtn}
                             onPress={() => handleRemovePhoto(current.id, uri)}
@@ -1249,8 +1312,7 @@ const Rec_ViewItemDetailsScreen = () => {
                   <TouchableOpacity
                     style={[
                       styles.inspectSerialBtn,
-                      addSerialHasSelection &&
-                        styles.inspectSerialBtnAddedBackground,
+                      addSerialHasSelection && styles.inspectSerialBtnAddedBackground,
                       !inspectAddSerialEnabled && styles.inspectSerialBtnDisabled,
                     ]}
                     activeOpacity={0.9}
@@ -1265,8 +1327,7 @@ const Rec_ViewItemDetailsScreen = () => {
                     <Text
                       style={[
                         styles.inspectSerialBtnText,
-                        addSerialHasSelection &&
-                          styles.inspectSerialBtnTextAdded,
+                        addSerialHasSelection && styles.inspectSerialBtnTextAdded,
                       ]}
                     >
                       {addSerialHasSelection ? 'Serial Added' : 'Add Serial'}
@@ -1280,86 +1341,58 @@ const Rec_ViewItemDetailsScreen = () => {
               <View style={styles.section}>
                 <View
                   style={[
+                    styles.inspectInfoCard,
                     {
-                      width: '100%',
-                      borderRadius: 4,
-                      borderWidth: 1,
-                      padding: 10,
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 18,
+                      backgroundColor: lotInspectCardBg,
+                      borderColor: lotInspectCardBorder,
+                      marginTop: ms(6),
                     },
-                    Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
-                      ? {
-                        borderColor: '#73B386',
-                        backgroundColor: '#EEFDF8',
-                      }
-                      : {
-                        borderColor: '#F06000',
-                        backgroundColor: '#FFF7EC',
-                      }
                   ]}
                 >
-                  <View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <InspectTabIcon width={16} height={16} style={{ marginRight: 6 }} />
-                      <Text
-                        style={[
-                          { fontSize: 14, fontWeight: '500' },
-                          Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
-                            ? { color: '#168035' }
-                            : { color: '#F06000' }
-                        ]}
-                      >
-                        Inspection Status
-                      </Text>
-                    </View>
+                  <View style={styles.inspectInfoIconWrap}>
+                    {lotInspectCardPassed ? (
+                      <PassedInspectionIcon width={24} height={24} />
+                    ) : (
+                      <PendingInspectionIcon width={24} height={24} />
+                    )}
+                  </View>
+
+                  <View style={styles.inspectInfoMiddle}>
+                    <Text
+                      style={[
+                        styles.inspectInfoLabel,
+                        { color: lotInspectCardTextColor },
+                      ]}
+                    >
+                      Inspection Status
+                    </Text>
 
                     <View
-                      style={{
-                        marginTop: 6,
-                        alignSelf: 'flex-start',
-                        marginLeft: 15,
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
-                        borderRadius: 8,
-                        backgroundColor: Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
-                          ? '#73B386'
-                          : '#FCDFCC',
-                      }}
+                      style={[
+                        styles.inspectStatusPill,
+                        { backgroundColor: lotInspectPillBg },
+                      ]}
                     >
                       <Text
-                        style={{
-                          color: Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
-                            ? '#FFFFFF'
-                            : '#F06000',
-                          fontSize: 10,
-                          fontWeight: '700',
-                        }}
+                        style={[
+                          styles.inspectStatusPillText,
+                          lotInspectCardPassed
+                            ? styles.inspectStatusPillTextPassed
+                            : styles.inspectStatusPillTextPending,
+                        ]}
                       >
-                        {Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
-                          ? 'Passed'
-                          : 'Pending'}
+                        {lotInspectCardPassed ? 'Passed' : 'Pending'}
                       </Text>
                     </View>
                   </View>
 
                   <Text
                     style={[
-                      { fontSize: 14, fontWeight: '600' },
-                      Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
-                        ? { color: '#168035' }
-                        : { color: '#F06000' }
+                      styles.inspectInfoRightText,
+                      { color: lotInspectCardTextColor },
                     ]}
                   >
-                    {current?.itemType === 'Lot'
-                      ? 'Lot Controlled'
-                      : current?.itemType === 'Serial'
-                        ? 'Serial Controlled'
-                        : current?.itemType === 'Lot+Serial'
-                          ? 'Lot+Serial Controlled'
-                          : 'Standard'}
+                    Lot Controlled
                   </Text>
                 </View>
 
@@ -1378,6 +1411,7 @@ const Rec_ViewItemDetailsScreen = () => {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       marginBottom: 18,
+                      marginTop: 18,
                     }}
                   >
                     <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
@@ -1392,11 +1426,10 @@ const Rec_ViewItemDetailsScreen = () => {
                     {currentLotLines.map((lot, idx) => {
                       const inspectionData = inspectionDataMap[`${current.id}-${idx}`];
                       const isInspected = !!inspectionData;
-
                       const statusName = inspectionData?.status?.name || 'Pending';
 
-                      const getStatusStyle = (statusName) => {
-                        switch (statusName) {
+                      const getStatusStyle = statusNameArg => {
+                        switch (statusNameArg) {
                           case 'Above Average':
                             return { bg: '#EEFDF8', text: '#168035' };
                           case 'Average':
@@ -1476,6 +1509,7 @@ const Rec_ViewItemDetailsScreen = () => {
                                 </Text>
                               </Text>
                             </View>
+
                             <TouchableOpacity
                               onPress={() => openInspectModal(lot, idx)}
                               style={{
@@ -1500,6 +1534,7 @@ const Rec_ViewItemDetailsScreen = () => {
                               </Text>
                             </TouchableOpacity>
                           </View>
+
                           {isInspected && (
                             <View style={{ marginTop: 6 }}>
                               <View
@@ -1528,7 +1563,6 @@ const Rec_ViewItemDetailsScreen = () => {
                     })}
                   </View>
                 )}
-
               </View>
             )}
 
@@ -1645,11 +1679,7 @@ const Rec_ViewItemDetailsScreen = () => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openSerialModal}
-                      disabled={
-                        readOnly ||
-                        Number(current.openQty ?? 0) === 0 ||
-                        currentQty === 0
-                      }
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty === 0}
                     >
                       {hasSerials ? (
                         <View style={styles.addLotGreen}>
@@ -1713,25 +1743,9 @@ const Rec_ViewItemDetailsScreen = () => {
           leftLabel="Cancel"
           rightLabel="Save"
           onLeftPress={handleCancelNav}
-          onRightPress={
-            activeTab === 'Receive'
-              ? isReceiveSubmitEnabled
-                ? handleSaveAll
-                : undefined
-              : activeTab === 'Inspect'
-              ? isInspectSubmitEnabled
-                ? handleSaveInspect
-                : undefined
-              : undefined
-          }
+          onRightPress={rightPress}
           leftEnabled
-          rightEnabled={
-            activeTab === 'Receive'
-              ? isReceiveSubmitEnabled
-              : activeTab === 'Inspect'
-              ? isInspectSubmitEnabled
-              : false
-          }
+          rightEnabled={rightEnabled}
         />
       )}
 
@@ -1777,10 +1791,10 @@ const Rec_ViewItemDetailsScreen = () => {
             onRequestClose={() => setShowScanner(false)}
           >
             <BarcodeScanner
-              onScan={(value) => {
-                console.log('Scanned lot:', value);
+              onScan={value => {
                 setScannedLot(value);
                 setShowScanner(false);
+                handleScanAndOpenLotInspect(value);
               }}
               onClose={() => setShowScanner(false)}
             />
@@ -1821,7 +1835,8 @@ const Rec_ViewItemDetailsScreen = () => {
           setTimeout(() => {
             setSelectedLot(null);
           }, 300);
-        }} lot={selectedLot}
+        }}
+        lot={selectedLot}
         lotIndex={selectedLotIndex}
         itemName={current?.itemName}
         itemCode={current?.itemid}
