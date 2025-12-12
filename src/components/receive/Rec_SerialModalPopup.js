@@ -584,27 +584,27 @@ const styles = StyleSheet.create({
   modeBar: {
     marginTop: rs(12),
     marginHorizontal: rs(16),
-    borderRadius: rs(10),
-    paddingVertical: rs(8),
+    borderRadius: rs(8),
+    paddingVertical: rs(6),
     paddingHorizontal: rs(10),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  modeLeftText: { color: '#1F2D3D', fontSize: rs(12), fontWeight: '700' },
+  modeLeftText: { color: '#FFFFFF', fontSize: rs(12), fontWeight: '700' },
   modeTabs: { flexDirection: 'row', gap: rs(8) },
 
   modeTabBtn: {
     paddingVertical: rs(6),
-    paddingHorizontal: rs(16),
-    borderRadius: rs(8),
+    paddingHorizontal: rs(25),
+    borderRadius: rs(4),
     borderWidth: 1,
   },
   modeTabBtnActive: { backgroundColor: '#5D768B', borderColor: '#5D768B' },
-  modeTabBtnInactive: { backgroundColor: '#FFFFFF', borderColor: '#5D768B' },
+  modeTabBtnInactive: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
   modeTabTxt: { fontSize: rs(12), fontWeight: '700' },
   modeTabTxtActive: { color: '#FFFFFF' },
-  modeTabTxtInactive: { color: '#5D768B' },
+  modeTabTxtInactive: { color: '#595A5C' },
 
   scroll: { flex: 1, paddingHorizontal: rs(16), paddingTop: rs(12) },
 
@@ -654,12 +654,12 @@ const styles = StyleSheet.create({
   spinnerBtns: { width: rs(34), borderLeftWidth: 1, borderLeftColor: '#D7DEE6' },
   spinnerBtn: { height: rs(20), alignItems: 'center', justifyContent: 'center' },
 
-  helperText: { marginTop: rs(10), fontSize: rs(12), color: '#6B7C8B', fontWeight: '700' },
+  helperText: { marginTop: rs(10), fontSize: rs(12), color: '#595A5C', fontWeight: '700' },
 
   generateBtn: {
     marginTop: rs(12),
-    height: rs(46),
-    borderRadius: rs(12),
+    height: rs(40),
+    borderRadius: rs(4),
     backgroundColor: '#5D768B',
     alignItems: 'center',
     justifyContent: 'center',
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
   generateTxt: { color: '#FFFFFF', fontSize: rs(14), fontWeight: '700' },
 
   tableHeader: {
-    backgroundColor: '#EEF3FF',
+    backgroundColor: '#D9E4EE',
     height: rs(40),
     borderTopLeftRadius: rs(10),
     borderTopRightRadius: rs(10),
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: rs(12),
     marginTop: rs(12),
   },
-  tableHeaderTxt: { fontSize: rs(13), color: '#1F2D3D', fontWeight: '700' },
+  tableHeaderTxt: { fontSize: rs(12), color: '#242424', fontWeight: '600' },
 
   colsHeader: {
     flexDirection: 'row',
@@ -686,14 +686,14 @@ const styles = StyleSheet.create({
     paddingTop: rs(12),
     paddingBottom: rs(6),
   },
-  colEntry: { width: rs(60), fontSize: rs(11), color: '#6B7C8B', fontWeight: '600' },
-  colSerial: { flex: 1, fontSize: rs(11), color: '#6B7C8B', fontWeight: '600' },
+  colEntry: { width: rs(60), fontSize: rs(11), color: '#5D768B', fontWeight: '600' },
+  colSerial: { flex: 1, fontSize: rs(11), color: '#5D768B', fontWeight: '600' },
   colDel: { width: rs(36) },
 
   rowWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: rs(10),
+    paddingVertical: rs(8),
     paddingHorizontal: rs(6),
     borderRadius: rs(10),
     backgroundColor: '#D9E4EE',

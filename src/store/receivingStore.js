@@ -93,7 +93,6 @@ export const useReceivingStore = create((set, get) => ({
 
     set({ receiveItems: next });
   },
-
   summaryItems: [],
   initSummaryItems: items => set({ summaryItems: items }),
   mergePatchIntoSummaryItems: patch => {

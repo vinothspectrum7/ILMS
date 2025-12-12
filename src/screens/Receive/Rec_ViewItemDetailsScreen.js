@@ -371,7 +371,7 @@ const Rec_ViewItemDetailsScreen = () => {
               setLocatorDataMap(prev => ({ ...prev, [it.id]: mapped }));
               setLocatorInCache(sub_id?.id, mapped);
             }
-          } catch {}
+          } catch { }
         }
       });
     }
@@ -585,11 +585,11 @@ const Rec_ViewItemDetailsScreen = () => {
     if (!current) return;
     const safeLots = Array.isArray(lots)
       ? lots.map(l => ({
-          lotNumber: String(l.lotNumber || ''),
-          mfgDate: String(l.mfgDate || ''),
-          expDate: String(l.expDate || ''),
-          qty: Number(l.qty) || 0,
-        }))
+        lotNumber: String(l.lotNumber || ''),
+        mfgDate: String(l.mfgDate || ''),
+        expDate: String(l.expDate || ''),
+        qty: Number(l.qty) || 0,
+      }))
       : [];
 
     mergePatchIntoReceiveItems({
@@ -632,15 +632,15 @@ const Rec_ViewItemDetailsScreen = () => {
 
     const safeLots = Array.isArray(lots)
       ? lots.map(l => ({
-          lotNumber: String(l.lotNumber || ''),
-          mfgDate: String(l.mfgDate || ''),
-          expDate: String(l.expDate || ''),
-          qty: Number(l.qty) || 0,
-          serialMode: l.serialMode ?? null,
-          serials: Array.isArray(l.serials)
-            ? l.serials.map(s => String(s || '').trim()).filter(Boolean)
-            : [],
-        }))
+        lotNumber: String(l.lotNumber || ''),
+        mfgDate: String(l.mfgDate || ''),
+        expDate: String(l.expDate || ''),
+        qty: Number(l.qty) || 0,
+        serialMode: l.serialMode ?? null,
+        serials: Array.isArray(l.serials)
+          ? l.serials.map(s => String(s || '').trim()).filter(Boolean)
+          : [],
+      }))
       : [];
 
     const flatSerials = safeLots.flatMap(l => l.serials || []);
@@ -683,6 +683,12 @@ const Rec_ViewItemDetailsScreen = () => {
     });
   }, [edited, allItems, readOnly]);
 
+  // const handleSaveAll = () => {
+  //   if (!isSubmitEnabled) return;
+  //   persistPatches();
+  //   if (returnTo) navigation.navigate(returnTo, { listType });
+  //   else navigation.goBack();
+  // };
   const handleSaveAll = () => {
     if (!isReceiveSubmitEnabled) return;
     persistPatches();
@@ -727,7 +733,6 @@ const Rec_ViewItemDetailsScreen = () => {
     if (returnTo) navigation.navigate(returnTo, { listType });
     else navigation.goBack();
   };
-
   const titleContext = current?.poNumber ? String(current.poNumber) : 'Receiving';
 
   const currentEdited = current ? edited[current.id] ?? {} : {};
@@ -872,6 +877,26 @@ const Rec_ViewItemDetailsScreen = () => {
   const inspectStatusCardBorder = isInspectionPassed ? '#73B386' : '#F06000';
   const inspectStatusCardTextColor = isInspectionPassed ? '#168035' : '#F06000';
   const inspectStatusPillBg = isInspectionPassed ? '#168035' : '#FCDFCC';
+  useEffect(() => {
+    const savedInspections = {};
+
+    allItems.forEach(item => {
+      const stored = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(item.id))
+        : null;
+
+      if (stored?.inspections && Array.isArray(stored.inspections)) {
+        stored.inspections.forEach((inspection, index) => {
+          if (inspection.lotIndex !== undefined) {
+            const key = `${item.id}-${inspection.lotIndex}`;
+            savedInspections[key] = inspection;
+          }
+        });
+      }
+    });
+
+    setInspectionDataMap(savedInspections);
+  }, [allItems, receiveItems]);
 
   const allSavedLotsInspected = useMemo(() => {
     if (!current) return false;
@@ -1080,7 +1105,7 @@ const Rec_ViewItemDetailsScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {activeTab === 'Receive' && (
+            {activeTab === 'Receive' && current && (
               <View style={styles.itemInfoBox}>
                 <View style={styles.itemInfoRow}>
                   <View style={styles.itemIconWrap}>
@@ -1119,15 +1144,14 @@ const Rec_ViewItemDetailsScreen = () => {
                 </View>
               </View>
             )}
-
             {activeTab === 'Receive' && current && (
               <View style={styles.section}>
                 <View style={styles.sectionHeaderRow}>
-                  <ReceiveQtyIcon width={18} height={18} />
+                  <ReceiveQtyIcon width={19} height={19} />
                   <Text style={styles.sectionTitle}>Quantity Overview</Text>
                 </View>
 
-                <View style={styles.row}>
+                <View style={[styles.row,{borderBottomWidth:0.5,borderBottomColor:'#CCCED2'}]}>
                   <Text style={styles.label}>Order Quantity</Text>
                   <Text style={styles.orderQtyText}>
                     {current.orderQty}{' '}
@@ -1594,6 +1618,261 @@ const Rec_ViewItemDetailsScreen = () => {
             {activeTab === 'PutAway' && (
               <View style={styles.putAwayContainer}>
                 <Text style={styles.putAwayText}>Nothing to Show</Text>
+                </View>
+                )}
+            {activeTab === 'Inspect' && current && (
+              <View style={styles.section}>
+                <View
+                  style={[
+                    {
+                      width: '100%',
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      padding: 10,
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 18,
+                    },
+                    Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
+                      ? {
+                        borderColor: '#73B386',
+                        backgroundColor: '#EEFDF8',
+                      }
+                      : {
+                        borderColor: '#F06000',
+                        backgroundColor: '#FFF7EC',
+                      }
+                  ]}
+                >
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <InspectTabIcon width={16} height={16} style={{ marginRight: 6 }} />
+                      <Text
+                        style={[
+                          { fontSize: 14, fontWeight: '500' },
+                          Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
+                            ? { color: '#168035' }
+                            : { color: '#F06000' }
+                        ]}
+                      >
+                        Inspection Status
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        marginTop: 6,
+                        alignSelf: 'flex-start',
+                        marginLeft: 15,
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 8,
+                        backgroundColor: Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
+                          ? '#73B386'
+                          : '#FCDFCC',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
+                            ? '#FFFFFF'
+                            : '#F06000',
+                          fontSize: 10,
+                          fontWeight: '700',
+                        }}
+                      >
+                        {Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
+                          ? 'Passed'
+                          : 'Pending'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text
+                    style={[
+                      { fontSize: 14, fontWeight: '600' },
+                      Object.keys(inspectionDataMap).some(key => key.startsWith(`${current.id}-`))
+                        ? { color: '#168035' }
+                        : { color: '#F06000' }
+                    ]}
+                  >
+                    {current?.itemType === 'Lot'
+                      ? 'Lot Controlled'
+                      : current?.itemType === 'Serial'
+                        ? 'Serial Controlled'
+                        : current?.itemType === 'Lot+Serial'
+                          ? 'Lot+Serial Controlled'
+                          : 'Standard'}
+                  </Text>
+                </View>
+
+                {current?.itemType === 'Lot' && (
+                  <TouchableOpacity
+                    onPress={() => setShowScanner(true)}
+                    activeOpacity={0.7}
+                    style={{
+                      width: '100%',
+                      height: 38,
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      borderColor: '#CCCED2',
+                      paddingHorizontal: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 18,
+                    }}
+                  >
+                    <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
+                      {scannedLot || 'Scan Lot'}
+                    </Text>
+                    <Barcodescanner width={18} height={18} />
+                  </TouchableOpacity>
+                )}
+
+                {current?.itemType === 'Lot' && hasLots && currentLotLines && (
+                  <View>
+                    {currentLotLines.map((lot, idx) => {
+                      const inspectionData = inspectionDataMap[`${current.id}-${idx}`];
+                      const isInspected = !!inspectionData;
+
+                      const statusName = inspectionData?.status?.name || 'Pending';
+
+                      const getStatusStyle = (statusName) => {
+                        switch (statusName) {
+                          case 'Above Average':
+                            return { bg: '#EEFDF8', text: '#168035' };
+                          case 'Average':
+                            return { bg: '#FFFBEA', text: '#C78C00' };
+                          case 'Below Average':
+                            return { bg: '#FFF8EC', text: '#F06000' };
+                          case 'Excellent':
+                            return { bg: '#EAF2FF', text: '#033EFF' };
+                          case 'Reject and Notify':
+                            return { bg: '#FFECEC', text: '#D32F2F' };
+                          case 'Unacceptable':
+                            return { bg: '#FDE2E2', text: '#991B1B' };
+                          default:
+                            return { bg: '#F3F4F6', text: '#374151' };
+                        }
+                      };
+
+                      const statusStyle = getStatusStyle(statusName);
+
+                      return (
+                        <View
+                          key={`lot-${idx}`}
+                          style={{
+                            width: '100%',
+                            minHeight: 74,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: '#ECF1F7',
+                            backgroundColor: '#FFFFFF',
+                            padding: 10,
+                            marginBottom: 8,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: 'Mulish',
+                              fontSize: 12,
+                              fontWeight: '600',
+                              color: '#233E55',
+                              marginBottom: 6,
+                            }}
+                          >
+                            {lot.lotNumber || `LOT ${idx + 1}`}
+                          </Text>
+
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <View style={{ flexDirection: 'row' }}>
+                              <Text
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: '600',
+                                  color: '#9D9FA3',
+                                }}
+                              >
+                                Mfg:{' '}
+                                <Text style={{ color: '#111827' }}>
+                                  {lot.mfgDate || '-'}
+                                </Text>
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: '600',
+                                  color: '#9D9FA3',
+                                  marginLeft: 8,
+                                }}
+                              >
+                                Exp:{' '}
+                                <Text style={{ color: '#111827' }}>
+                                  {lot.expDate || '-'}
+                                </Text>
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => openInspectModal(lot, idx)}
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 4,
+                                borderRadius: 6,
+                                borderWidth: 0,
+                                borderColor: isInspected ? '#16803C' : '#033EFF',
+                                backgroundColor: isInspected ? '#E7F7ED' : '#D7E8FE',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: '700',
+                                  color: isInspected ? '#16803C' : '#033EFF',
+                                }}
+                              >
+                                {isInspected ? 'Inspected' : 'Inspect'}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                          {isInspected && (
+                            <View style={{ marginTop: 6 }}>
+                              <View
+                                style={{
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 3,
+                                  borderRadius: 12,
+                                  backgroundColor: statusStyle.bg,
+                                  alignSelf: 'flex-start',
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: '700',
+                                    color: statusStyle.text,
+                                  }}
+                                >
+                                  Status: {statusName}
+                                </Text>
+                              </View>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+
               </View>
             )}
           </View>
@@ -1664,7 +1943,7 @@ const Rec_ViewItemDetailsScreen = () => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openLotModal}
-                      disabled={readOnly || Number(current.openQty ?? 0) === 0}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty==0}
                     >
                       {hasLots ? (
                         <View style={styles.addLotGreen}>
@@ -1724,7 +2003,7 @@ const Rec_ViewItemDetailsScreen = () => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openLotSerialModal}
-                      disabled={readOnly || Number(current.openQty ?? 0) === 0}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty==0}
                     >
                       {hasLotSerials ? (
                         <View style={styles.addLotGreen}>
@@ -1839,6 +2118,20 @@ const Rec_ViewItemDetailsScreen = () => {
               setInspectSerialModalVisible(false);
             }}
           />
+          <Modal
+            visible={showScanner}
+            animationType="slide"
+            onRequestClose={() => setShowScanner(false)}
+          >
+            <BarcodeScanner
+              onScan={(value) => {
+                console.log('Scanned lot:', value);
+                setScannedLot(value);
+                setShowScanner(false);
+              }}
+              onClose={() => setShowScanner(false)}
+            />
+          </Modal>
         </>
       )}
 
@@ -1980,7 +2273,7 @@ const styles = StyleSheet.create({
     minWidth: ms(48),
     paddingHorizontal: ms(8),
     paddingVertical: ms(3),
-    borderRadius: ms(12),
+    borderRadius: ms(4),
     backgroundColor: '#D9E4EE',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1990,7 +2283,7 @@ const styles = StyleSheet.create({
     minWidth: ms(48),
     paddingHorizontal: ms(8),
     paddingVertical: ms(3),
-    borderRadius: ms(12),
+    borderRadius: ms(4),
     backgroundColor: '#9CC6F6',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2002,18 +2295,19 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: ms(8) },
   sectionTitle: {
     marginLeft: ms(6),
-    fontSize: ms(13),
+    fontSize: ms(14),
     fontWeight: '700',
-    color: '#111827',
+    color: '#242424',
+    fontFamily:'Mulish'
   },
 
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: ms(6),
+    paddingVertical: ms(8),
     justifyContent: 'space-between',
   },
-  label: { fontSize: ms(11), color: '#6C6C6C' },
+  label: { fontSize: ms(12), color: '#595A5C' },
   orderQtyText: { fontSize: ms(13), fontWeight: '700', color: '#111827' },
   orderQtyUom: { fontSize: ms(11), fontWeight: '600', color: '#6B7280' },
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
@@ -2053,15 +2347,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: ms(12),
-    paddingVertical: ms(8),
-    borderRadius: ms(18),
+    paddingVertical: ms(10),
+    borderRadius: ms(8),
     alignSelf: 'stretch',
-    justifyContent: 'center',
+    // justifyContent: 'center',
   },
   addLotText: {
     marginLeft: ms(6),
-    fontSize: ms(11),
-    fontWeight: '700',
+    fontSize: ms(14),
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 
