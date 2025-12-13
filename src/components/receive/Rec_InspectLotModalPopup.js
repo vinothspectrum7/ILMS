@@ -142,7 +142,7 @@ export default function Rec_InspectLotModalPopup({
     const preNotes = String(pre?.notes ?? '');
     const preImgs = toUriList(pre?.images ?? pre?.attachments);
 
-    setInspectQty(preQty > 0 ? preQty : lotQty > 0 ? lotQty : 0);
+    setInspectQty(preQty > 0 ? preQty : 0);
     setStatus(resolveStatusValue(pre?.status));
     setNotes(preNotes);
     setImages(preImgs);
