@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,19 @@ const toUriList = imgs => {
     .filter(Boolean);
 };
 
+const normalizeSerialArray = list => {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map(s => {
+      if (typeof s === 'string') return s.trim();
+      if (s && typeof s === 'object') {
+        return String(s.serialNo ?? s.serial ?? '').trim();
+      }
+      return '';
+    })
+    .filter(Boolean);
+};
+
 export default function Rec_InspectLotSerialModalPopup({
   visible,
   onClose,
@@ -58,6 +71,8 @@ export default function Rec_InspectLotSerialModalPopup({
   const [images, setImages] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const didInitRef = useRef(false);
+
   const statusList = useMemo(
     () => [
       { id: 1, name: 'Above Average' },
@@ -72,22 +87,21 @@ export default function Rec_InspectLotSerialModalPopup({
 
   const clearError = useCallback(() => setErrorMsg(''), []);
 
-  const addUris = useCallback(
-    uris => {
-      const list = (uris || []).map(String).filter(Boolean);
-      if (!list.length) return;
-      setImages(prev => {
-        const existing = new Set((prev || []).map(x => String(x)));
-        const next = [...(prev || [])];
-        list.forEach(u => {
-          if (!existing.has(u)) next.push(u);
-        });
-        return next;
+  const addUris = useCallback(uris => {
+    const list = (uris || []).map(String).filter(Boolean);
+    if (!list.length) return;
+
+    setImages(prev => {
+      const existing = new Set((prev || []).map(x => String(x)));
+      const next = [...(prev || [])];
+      list.forEach(u => {
+        if (!existing.has(u)) next.push(u);
       });
-      Toast.show({ type: 'success', text1: 'Image Attached' });
-    },
-    [],
-  );
+      return next;
+    });
+
+    Toast.show({ type: 'success', text1: 'Image Attached' });
+  }, []);
 
   const handleUpload = useCallback(async () => {
     clearError();
@@ -138,7 +152,14 @@ export default function Rec_InspectLotSerialModalPopup({
   );
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      didInitRef.current = false;
+      setErrorMsg('');
+      return;
+    }
+
+    if (didInitRef.current) return;
+    didInitRef.current = true;
 
     const pre = initialInspectionData || null;
     const preQty = Number(pre?.inspectQty ?? pre?.qty ?? 0);
@@ -150,14 +171,7 @@ export default function Rec_InspectLotSerialModalPopup({
     setNotes(preNotes);
     setImages(preImgs);
     setErrorMsg('');
-  }, [visible, initialInspectionData, lotQty, lotIndex, lot, resolveStatusValue]);
-
-  const validate = useCallback(() => {
-    const q = Number(inspectQty || 0);
-    if (lotQty > 0 && q < lotQty) return 'Add all saved Lot Qty to Confirm Inspect';
-    if (!status) return 'Select Status to Confirm Inspect';
-    return '';
-  }, [inspectQty, lotQty, status]);
+  }, [visible, initialInspectionData, resolveStatusValue]);
 
   const canConfirm = useMemo(() => {
     const qtyOk = lotQty > 0 && Number(inspectQty) === lotQty;
@@ -165,18 +179,18 @@ export default function Rec_InspectLotSerialModalPopup({
     return qtyOk && statusOk && !!hasSerialInspection;
   }, [inspectQty, lotQty, status, hasSerialInspection]);
 
-  const handleConfirm = () => {
-    setError('');
+  const handleConfirm = useCallback(() => {
+    clearError();
 
     if (!canConfirm) {
-      setError('Complete Qty, Status and Serial Inspection');
+      setErrorMsg('Complete Qty, Status and Serial Inspection');
       return;
     }
 
     const serials = normalizeSerialArray(initialInspectionData?.serials);
 
     if (serials.length !== lotQty) {
-      setError('Complete Qty, Status and Serial Inspection');
+      setErrorMsg('Complete Qty, Status and Serial Inspection');
       return;
     }
 
@@ -195,7 +209,7 @@ export default function Rec_InspectLotSerialModalPopup({
     }
 
     if (onClose) onClose();
-  };
+  }, [canConfirm, clearError, images, initialInspectionData, lot, lotIndex, lotQty, notes, onClose, onComplete, status]);
 
   if (!visible) return null;
 
@@ -295,11 +309,7 @@ export default function Rec_InspectLotSerialModalPopup({
                 <Text style={styles.photosLabel}>Photos</Text>
 
                 <View style={styles.photoButtonsWrap}>
-                  <TouchableOpacity
-                    style={styles.photoBtn}
-                    onPress={handleUpload}
-                    activeOpacity={0.85}
-                  >
+                  <TouchableOpacity style={styles.photoBtn} onPress={handleUpload} activeOpacity={0.85}>
                     <PhotoUploadIcon width={rs(20)} height={rs(20)} />
                   </TouchableOpacity>
 
@@ -333,23 +343,20 @@ export default function Rec_InspectLotSerialModalPopup({
                     ))}
                   </ScrollView>
                 )}
-              </View> 
-
-              
+              </View>
 
               <View style={styles.footerWrap}>
-
                 <TouchableOpacity
-              style={[styles.addSerialBtn, hasSerialInspection && styles.serialAdded]}
-              activeOpacity={0.9}
-              onPress={onAddSerial}
-            >
-              {hasSerialInspection && <InspectTickIcon width={16} height={16} />}
-              <Text style={[styles.addSerialText, hasSerialInspection && styles.addedText]}>
-                {hasSerialInspection ? 'Serial Added' : 'Add Serial'}
-              </Text>
-            </TouchableOpacity> 
-            
+                  style={[styles.addSerialBtn, hasSerialInspection && styles.serialAdded]}
+                  activeOpacity={0.9}
+                  onPress={onAddSerial}
+                >
+                  {hasSerialInspection && <InspectTickIcon width={16} height={16} />}
+                  <Text style={[styles.addSerialText, hasSerialInspection && styles.addedText]}>
+                    {hasSerialInspection ? 'Serial Added' : 'Add Serial'}
+                  </Text>
+                </TouchableOpacity>
+
                 <SingleFooterBtnComponent
                   label="Confirm Inspect"
                   onPress={handleConfirm}
@@ -368,13 +375,8 @@ export default function Rec_InspectLotSerialModalPopup({
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  scrollContainer: {
-    flex: 1,
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  scrollContainer: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -395,11 +397,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: rs(16),
   },
-  headerTitle: {
-    fontSize: rs(16),
-    fontWeight: '600',
-    color: '#111827',
-  },
+  headerTitle: { fontSize: rs(16), fontWeight: '600', color: '#111827' },
   errorBanner: {
     marginTop: rs(10),
     marginHorizontal: rs(16),
@@ -410,18 +408,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  errorText: {
-    color: '#D32F2F',
-    fontSize: rs(12),
-    fontWeight: '600',
-    marginLeft: rs(6),
-    flex: 1,
-  },
-  body: {
-    paddingHorizontal: rs(16),
-    paddingTop: rs(14),
-    paddingBottom: rs(16),
-  },
+  errorText: { color: '#D32F2F', fontSize: rs(12), fontWeight: '600', marginLeft: rs(6), flex: 1 },
+  body: { paddingHorizontal: rs(16), paddingTop: rs(14), paddingBottom: rs(16) },
   lotCard: {
     width: '100%',
     minHeight: rs(54),
@@ -432,42 +420,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  lotId: {
-    color: '#FFFFFF',
-    fontSize: rs(13),
-    fontWeight: '600',
-  },
-  lotRow: {
-    flexDirection: 'row',
-    marginTop: rs(2),
-  },
-  smallText: {
-    color: '#DCE3EA',
-    fontSize: rs(11),
-    marginRight: rs(18),
-  },
-  qtyBox: {
-    alignItems: 'flex-end',
-  },
-  qtyLabel: {
-    color: '#DCE3EA',
-    fontSize: rs(11),
-  },
-  qtyValue: {
-    color: '#FFFFFF',
-    fontSize: rs(16),
-    fontWeight: '700',
-  },
-  sectionBlock: {
-    width: '100%',
-    marginTop: rs(16),
-  },
-  sectionTitle: {
-    fontSize: rs(16),
-    fontWeight: '600',
-    marginBottom: rs(10),
-    color: '#111827',
-  },
+  lotId: { color: '#FFFFFF', fontSize: rs(13), fontWeight: '600' },
+  lotRow: { flexDirection: 'row', marginTop: rs(2) },
+  smallText: { color: '#DCE3EA', fontSize: rs(11), marginRight: rs(18) },
+  qtyBox: { alignItems: 'flex-end' },
+  qtyLabel: { color: '#DCE3EA', fontSize: rs(11) },
+  qtyValue: { color: '#FFFFFF', fontSize: rs(16), fontWeight: '700' },
+  sectionBlock: { width: '100%', marginTop: rs(16) },
+  sectionTitle: { fontSize: rs(16), fontWeight: '600', marginBottom: rs(10), color: '#111827' },
   outerNotesBox: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -476,12 +436,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     width: '100%',
   },
-  outerLabel: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: rs(12),
-  },
+  outerLabel: { fontSize: rs(14), fontWeight: '600', color: '#111827', marginBottom: rs(12) },
   innerNotesBox: {
     width: '100%',
     height: rs(90),
@@ -492,46 +447,13 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  innerNotesInput: {
-    fontSize: rs(12),
-    color: '#111827',
-    padding: rs(10),
-    height: '100%',
-    textAlignVertical: 'top',
-  },
-  charCount: {
-    position: 'absolute',
-    bottom: rs(8),
-    right: rs(12),
-    fontSize: rs(10),
-    color: '#9CA3AF',
-  },
-  photosLabel: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: rs(12),
-  },
-  photoButtonsWrap: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  photoBtn: {
-    flex: 1,
-    height: rs(44),
-    backgroundColor: '#ECF1F7',
-    borderRadius: rs(10),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imagesScroll: {
-    marginTop: rs(12),
-  },
-  imagesScrollContent: {
-    paddingBottom: rs(4),
-  },
+  innerNotesInput: { fontSize: rs(12), color: '#111827', padding: rs(10), height: '100%', textAlignVertical: 'top' },
+  charCount: { position: 'absolute', bottom: rs(8), right: rs(12), fontSize: rs(10), color: '#9CA3AF' },
+  photosLabel: { fontSize: rs(14), fontWeight: '600', color: '#111827', marginBottom: rs(12) },
+  photoButtonsWrap: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
+  photoBtn: { flex: 1, height: rs(44), backgroundColor: '#ECF1F7', borderRadius: rs(10), justifyContent: 'center', alignItems: 'center' },
+  imagesScroll: { marginTop: rs(12) },
+  imagesScrollContent: { paddingBottom: rs(4) },
   thumbWrap: {
     width: rs(62),
     height: rs(62),
@@ -541,32 +463,12 @@ const styles = StyleSheet.create({
     marginRight: rs(10),
     ...Platform.select({
       android: { elevation: 1 },
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 3,
-        shadowOffset: { width: 0, height: 2 },
-      },
+      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
     }),
   },
-  thumbImg: {
-    width: '100%',
-    height: '100%',
-  },
-  thumbDeleteBtn: {
-    position: 'absolute',
-    right: rs(-2),
-    top: rs(-2),
-    width: rs(22),
-    height: rs(22),
-    borderRadius: rs(11),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  footerWrap: {
-    width: '100%',
-    marginTop: rs(18),
-  },
+  thumbImg: { width: '100%', height: '100%' },
+  thumbDeleteBtn: { position: 'absolute', right: rs(-2), top: rs(-2), width: rs(22), height: rs(22), borderRadius: rs(11), alignItems: 'center', justifyContent: 'center' },
+  footerWrap: { width: '100%', marginTop: rs(18) },
   addSerialBtn: {
     borderWidth: 1,
     borderColor: '#5D768B',
@@ -580,10 +482,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
-  serialAdded: {
-    backgroundColor: '#D0E6D7',
-    borderColor: '#73B386',
-  },
+  serialAdded: { backgroundColor: '#D0E6D7', borderColor: '#73B386' },
   addSerialText: { color: '#5D768B', fontWeight: '700', fontSize: 12 },
   addedText: { color: '#168035' },
 });
