@@ -21,6 +21,7 @@ import ErrorIcon from '../../assets/icons/error.svg';
 import Rec_CustomNumericInput from '../../components/receive/Rec_CustomNumericInput';
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
+import InspectTickIcon from '../../assets/icons/inspectlotserialtickicon.svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -46,6 +47,8 @@ export default function Rec_InspectLotSerialModalPopup({
   itemCode = '',
   onComplete,
   initialInspectionData = null,
+  onAddSerial,
+  hasSerialInspection,
 }) {
   const lotQty = useMemo(() => Number(lot?.qty || 0), [lot]);
 
@@ -156,41 +159,43 @@ export default function Rec_InspectLotSerialModalPopup({
     return '';
   }, [inspectQty, lotQty, status]);
 
-  const handleConfirmInspect = useCallback(() => {
-    const msg = validate();
-    if (msg) {
-      setErrorMsg(msg);
+  const canConfirm = useMemo(() => {
+    const qtyOk = lotQty > 0 && Number(inspectQty) === lotQty;
+    const statusOk = !!status;
+    return qtyOk && statusOk && !!hasSerialInspection;
+  }, [inspectQty, lotQty, status, hasSerialInspection]);
+
+  const handleConfirm = () => {
+    setError('');
+
+    if (!canConfirm) {
+      setError('Complete Qty, Status and Serial Inspection');
       return;
     }
 
-    const inspectionData = {
-      inspectQty: Number(inspectQty || 0),
-      status,
-      notes,
-      images,
-      lotDetails: lot,
-      lotIndex,
-      itemName,
-      itemCode,
-    };
+    const serials = normalizeSerialArray(initialInspectionData?.serials);
 
-    if (onComplete) onComplete(inspectionData);
-    onClose();
-  }, [
-    validate,
-    inspectQty,
-    status,
-    notes,
-    images,
-    lot,
-    lotIndex,
-    itemName,
-    itemCode,
-    onComplete,
-    onClose,
-  ]);
+    if (serials.length !== lotQty) {
+      setError('Complete Qty, Status and Serial Inspection');
+      return;
+    }
 
-  const isInspectionComplete = Number(inspectQty || 0) > 0 && !!status;
+    if (onComplete) {
+      onComplete({
+        inspectQty: lotQty,
+        qty: lotQty,
+        status,
+        notes,
+        images,
+        attachments: images,
+        serials,
+        lotIndex,
+        lotDetails: lot,
+      });
+    }
+
+    if (onClose) onClose();
+  };
 
   if (!visible) return null;
 
@@ -328,13 +333,27 @@ export default function Rec_InspectLotSerialModalPopup({
                     ))}
                   </ScrollView>
                 )}
-              </View>
+              </View> 
+
+              
 
               <View style={styles.footerWrap}>
+
+                <TouchableOpacity
+              style={[styles.addSerialBtn, hasSerialInspection && styles.serialAdded]}
+              activeOpacity={0.9}
+              onPress={onAddSerial}
+            >
+              {hasSerialInspection && <InspectTickIcon width={16} height={16} />}
+              <Text style={[styles.addSerialText, hasSerialInspection && styles.addedText]}>
+                {hasSerialInspection ? 'Serial Added' : 'Add Serial'}
+              </Text>
+            </TouchableOpacity> 
+            
                 <SingleFooterBtnComponent
                   label="Confirm Inspect"
-                  onPress={handleConfirmInspect}
-                  enabled={isInspectionComplete}
+                  onPress={handleConfirm}
+                  enabled={canConfirm}
                   containerStyle={{ marginBottom: 0 }}
                   buttonStyle={{ width: '100%', marginStart: 0 }}
                   labelStyle={{ fontSize: 14 }}
@@ -548,4 +567,23 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: rs(18),
   },
+  addSerialBtn: {
+    borderWidth: 1,
+    borderColor: '#5D768B',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 12,
+    marginTop: 6,
+    marginBottom: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  serialAdded: {
+    backgroundColor: '#D0E6D7',
+    borderColor: '#73B386',
+  },
+  addSerialText: { color: '#5D768B', fontWeight: '700', fontSize: 12 },
+  addedText: { color: '#168035' },
 });
