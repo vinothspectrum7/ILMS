@@ -49,6 +49,8 @@ import Rec_InspectLotModalPopup from '../../components/receive/Rec_InspectLotMod
 import Barcodescanner from '../../assets/icons/barcodescanner.svg';
 import BarcodeScanner from '../../screens/BarCodeScanner';
 import Rec_InspectLotSerialModalPopup from '../../components/receive/Rec_InspectLotSerialModalPopup';
+import Rec_PutAwayLotModalPopup from '../../components/receive/Rec_PutAwayLotModalPopup';
+
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -218,6 +220,13 @@ const Rec_ViewItemDetailsScreen = () => {
   const [selectedLot, setSelectedLot] = useState(null);
   const [selectedLotIndex, setSelectedLotIndex] = useState(0); 
 
+  const [putAwayModalVisible, setPutAwayModalVisible] = useState(false);
+  const [selectedPutAwayLot, setSelectedPutAwayLot] = useState(null);
+  const [selectedPutAwayLotIndex, setSelectedPutAwayLotIndex] = useState(0);
+  const [putAwayDataMap, setPutAwayDataMap] = useState({});
+  const [scannedPutAwayLot, setScannedPutAwayLot] = useState('');
+
+
   const [inspectLotSerialModalVisible, setInspectLotSerialModalVisible] = useState(false);
   const [selectedLotSerial, setSelectedLotSerial] = useState(null);
   const [selectedLotSerialIndex, setSelectedLotSerialIndex] = useState(0);
@@ -250,6 +259,87 @@ const Rec_ViewItemDetailsScreen = () => {
     },
     [current?.id, inspectionDataMap, currentStoreLine],
   );
+
+  const openPutAwayModal = useCallback(
+  (lot, lotIdx) => {
+    setSelectedPutAwayLot(lot);
+    setSelectedPutAwayLotIndex(lotIdx);
+
+    const itemId = current?.id;
+    const key = itemId != null ? `${itemId}-${lotIdx}` : '';
+    const fromMap = key ? putAwayDataMap[key] : null;
+
+    let fromStore = null;
+    if (!fromMap) {
+      const lots = Array.isArray(currentStoreLine?.putAwayLots) ? currentStoreLine.putAwayLots : [];
+      fromStore = lots.find(x => Number(x?.lotIndex) === Number(lotIdx)) || null;
+    }
+
+    setPutAwayModalVisible(true);
+  },
+  [current?.id, putAwayDataMap, currentStoreLine],
+);
+
+const handleScanAndOpenPutAwayLot = scannedValue => {
+  if (!current) return;
+  const code = normalizeLotKey(scannedValue);
+  if (!code) {
+    Toast.show({ type: 'error', text1: 'Invalid Lot' });
+    return;
+  }
+  const idx = currentLotLines.findIndex(l => normalizeLotKey(l?.lotNumber) === code);
+  if (idx < 0) {
+    Toast.show({ type: 'error', text1: 'Lot not found' });
+    return;
+  }
+  const lot = currentLotLines[idx];
+  setTimeout(() => {
+    openPutAwayModal(lot, idx);
+  }, 250);
+};
+
+const handlePutAwayComplete = putAwayData => {
+  const lotKey = `${current?.id}-${putAwayData.lotIndex}`;
+
+  setPutAwayDataMap(prev => ({
+    ...prev,
+    [lotKey]: {
+      ...putAwayData,
+      putAwayDate: new Date().toISOString(),
+    },
+  }));
+
+  if (!current) return;
+
+  const stored = Array.isArray(receiveItems)
+    ? receiveItems.find(r => String(r.id) === String(current.id))
+    : null;
+
+  const existing = Array.isArray(stored?.putAwayLots) ? stored.putAwayLots : [];
+  const idx = existing.findIndex(x => Number(x?.lotIndex) === Number(putAwayData.lotIndex));
+
+  let updated;
+  const row = { ...putAwayData, putAwayDate: new Date().toISOString() };
+
+  if (idx >= 0) {
+    updated = [...existing];
+    updated[idx] = row;
+  } else {
+    updated = [...existing, row];
+  }
+
+  const allCompleted =
+    Array.isArray(currentLotLines) &&
+    currentLotLines.length > 0 &&
+    currentLotLines.every((_, i) => updated.some(x => Number(x?.lotIndex) === Number(i)));
+
+  mergePatchIntoReceiveItems({
+    id: String(current.id),
+    putAwayLots: updated,
+    putAwayStatus: allCompleted ? 'Passed' : 'Pending',
+  });
+};
+
 
   const openInspectLotSerialModal = useCallback(
   (lot, lotIdx) => {
@@ -903,6 +993,28 @@ const openInspectLotSerialSerialModal = useCallback(() => {
     setInspectionDataMap(savedInspections);
   }, [allItems, receiveItems]);
 
+
+  useEffect(() => {
+  const saved = {};
+
+  allItems.forEach(item => {
+    const stored = Array.isArray(receiveItems)
+      ? receiveItems.find(r => String(r.id) === String(item.id))
+      : null;
+
+    const lots = Array.isArray(stored?.putAwayLots) ? stored.putAwayLots : [];
+    lots.forEach(pa => {
+      if (pa?.lotIndex !== undefined && pa?.lotIndex !== null) {
+        const key = `${item.id}-${pa.lotIndex}`;
+        saved[key] = pa;
+      }
+    });
+  });
+
+  setPutAwayDataMap(saved);
+}, [allItems, receiveItems]);
+
+
   const baseInspectionStatus = (currentStoreLine?.inspectionStatus || '').toLowerCase();
   const storeInspectionSerials = Array.isArray(
     currentStoreLine?.inspectionData?.serials,
@@ -1177,7 +1289,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                   colors={
                     activeTab === 'Receive'
                       ? ['#233E55', '#5D768B']
-                      : ['#E5E7EB', '#D1D5DB']
+                      : ['#F3F4F6', '#E5E7EB']
                   }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -2013,11 +2125,184 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
 )}
 
 
-            {activeTab === 'PutAway' && (
-              <View style={styles.putAwayContainer}>
-                <Text style={styles.putAwayText}>Nothing to Show</Text>
-                </View>
-                )}            
+            {activeTab === 'PutAway' && current && itemType === 'Lot' && (
+  <View style={styles.section}>
+    {(() => {
+      const allSavedLotsPutAwayCompleted =
+        currentLotLines.length > 0 &&
+        currentLotLines.every((_, idx) => !!putAwayDataMap[`${current.id}-${idx}`]);
+
+      const cardPassed = allSavedLotsPutAwayCompleted;
+      const cardBg = cardPassed ? '#EEFDF8' : '#FFF8EC';
+      const cardBorder = cardPassed ? '#73B386' : '#F06000';
+      const cardText = cardPassed ? '#168035' : '#F06000';
+      const pillBg = cardPassed ? '#168035' : '#FCDFCC';
+
+      return (
+        <>
+          <View
+            style={[
+              styles.inspectInfoCard,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorder,
+                marginTop: ms(6),
+              },
+            ]}
+          >
+            <View style={styles.inspectInfoIconWrap}>
+              {cardPassed ? (
+                <PassedInspectionIcon width={24} height={24} />
+              ) : (
+                <PendingInspectionIcon width={24} height={24} />
+              )}
+            </View>
+
+            <View style={styles.inspectInfoMiddle}>
+              <Text style={[styles.inspectInfoLabel, { color: cardText }]}>
+                Put Away Status
+              </Text>
+
+              <View style={[styles.inspectStatusPill, { backgroundColor: pillBg }]}>
+                <Text
+                  style={[
+                    styles.inspectStatusPillText,
+                    cardPassed
+                      ? styles.inspectStatusPillTextPassed
+                      : styles.inspectStatusPillTextPending,
+                  ]}
+                >
+                  {cardPassed ? 'Passed' : 'Pending'}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={[styles.inspectInfoRightText, { color: cardText }]}>
+              Lot Controlled
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setShowScanner(true)}
+            activeOpacity={0.7}
+            style={{
+              width: '100%',
+              height: 38,
+              borderRadius: 4,
+              borderWidth: 1,
+              borderColor: '#CCCED2',
+              paddingHorizontal: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 18,
+              marginTop: 18,
+            }}
+          >
+            <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
+              {scannedPutAwayLot || 'Scan Lot'}
+            </Text>
+            <Barcodescanner width={18} height={18} />
+          </TouchableOpacity>
+
+          {hasLots && currentLotLines && (
+            <View>
+              {currentLotLines.map((lot, idx) => {
+                const putAwayData = putAwayDataMap[`${current.id}-${idx}`];
+                const isCompleted = !!putAwayData;
+
+                return (
+                  <View
+                    key={`putaway-lot-${idx}`}
+                    style={{
+                      width: '100%',
+                      minHeight: 74,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: '#ECF1F7',
+                      backgroundColor: '#FFFFFF',
+                      padding: 10,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: 'Mulish',
+                        fontSize: 12,
+                        fontWeight: '600',
+                        color: '#233E55',
+                        marginBottom: 6,
+                      }}
+                    >
+                      {lot.lotNumber || `LOT ${idx + 1}`}
+                    </Text>
+
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row' }}>
+                        <Text style={{ fontSize: 9, fontWeight: '600', color: '#9D9FA3' }}>
+                          Mfg:{' '}
+                          <Text style={{ color: '#111827' }}>{lot.mfgDate || '-'}</Text>
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 9,
+                            fontWeight: '600',
+                            color: '#9D9FA3',
+                            marginLeft: 8,
+                          }}
+                        >
+                          Exp:{' '}
+                          <Text style={{ color: '#111827' }}>{lot.expDate || '-'}</Text>
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={() => openPutAwayModal(lot, idx)}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          borderRadius: 6,
+                          borderWidth: 0,
+                          borderColor: isCompleted ? '#16803C' : '#033EFF',
+                          backgroundColor: isCompleted ? '#E7F7ED' : '#D7E8FE',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: '700',
+                            color: isCompleted ? '#16803C' : '#033EFF',
+                          }}
+                        >
+                          {isCompleted ? 'Completed' : 'Put Away'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </>
+      );
+    })()}
+  </View>
+)}
+
+{activeTab === 'PutAway' && (!current || itemType !== 'Lot') && (
+  <View style={styles.putAwayContainer}>
+    <Text style={styles.putAwayText}>Nothing to Show</Text>
+  </View>
+)}
+            
           </View>
 
           {activeTab === 'Receive' && current && (
@@ -2229,16 +2514,25 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
           >
             <BarcodeScanner
               onScan={value => {
-                if(current&&itemType == 'Lot+Serial'){
-                setscannedLotSerial(value);
-                setShowScanner(false);
-                handleScanAndOpenLotandSerialInspect(value);
-                }else{
+                if (current && activeTab === 'PutAway' && itemType === 'Lot') {
+                  setScannedPutAwayLot(value);
+                  setShowScanner(false);
+                  handleScanAndOpenPutAwayLot(value);
+                  return;
+                }
+
+                if (current && itemType === 'Lot+Serial') {
+                  setscannedLotSerial(value);
+                  setShowScanner(false);
+                  handleScanAndOpenLotandSerialInspect(value);
+                  return;
+                }
+
                 setScannedLot(value);
                 setShowScanner(false);
                 handleScanAndOpenLotInspect(value);
-                }
               }}
+
               onClose={() => setShowScanner(false)}
             />
           </Modal>
@@ -2286,6 +2580,42 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
         onComplete={handleInspectionComplete}
         initialInspectionData={selectedLotInitialInspection}
       />
+
+      <Rec_PutAwayLotModalPopup
+        key={`putaway-${current?.id}-${selectedPutAwayLotIndex}`}
+        visible={putAwayModalVisible}
+        onClose={() => {
+          setPutAwayModalVisible(false);
+          setTimeout(() => {
+            setSelectedPutAwayLot(null);
+          }, 300);
+        }}
+        lot={selectedPutAwayLot}
+        lotIndex={selectedPutAwayLotIndex}
+        itemName={current?.itemName}
+        itemCode={current?.itemid}
+        uom={current?.uom || ''}
+        inventoryItems={InventoryList}
+        defaultSubInventory={edited[current?.id]?.subInventory || current?.subInventory || OrgData?.selectedinventory}
+        defaultLocator={edited[current?.id]?.locator || current?.locator || ''}
+        lineReceivingQty={Number(edited[current?.id]?.receivingQty ?? current?.receivingQty ?? 0)}
+        fetchLocators={async subInvId => {
+          const locdata = await GetLocatorsData(subInvId);
+          return Array.isArray(locdata)
+            ? locdata.map(d => ({
+                id: d.locator_id,
+                name: d.locator_name,
+                enabled: d.locator_enabled,
+              }))
+            : [];
+        }}
+        initialPutAwayData={(() => {
+          const key = current?.id != null ? `${current.id}-${selectedPutAwayLotIndex}` : '';
+          return key ? putAwayDataMap[key] : null;
+        })()}
+        onComplete={handlePutAwayComplete}
+      />
+
 
       <Rec_InspectLotSerialModalPopup
         key={`inspect-ls-${current?.id}-${selectedLotSerialIndex}`}
@@ -2487,10 +2817,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabBtnActive: {
-    shadowColor: '#000000',
-    shadowOpacity: 0.52,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
   tabText: { fontSize: ms(11), marginLeft: ms(4) },

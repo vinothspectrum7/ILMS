@@ -5,18 +5,12 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  TextInput,
   ScrollView,
-  Image,
   Dimensions,
   Platform,
 } from 'react-native';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Toast from 'react-native-toast-message';
 import CloseIcon from '../../assets/icons/close.svg';
-import PhotoUploadIcon from '../../assets/icons/photouploadicon.svg';
-import PhotoCaptureIcon from '../../assets/icons/photocaptureicon.svg';
-import DeleteAttachmentIcon from '../../assets/icons/deleteattachmenticon.svg';
 import ErrorIcon from '../../assets/icons/error.svg';
 import Rec_CustomNumericInput from '../../components/receive/Rec_CustomNumericInput';
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
@@ -26,15 +20,25 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
 
-const toUriList = imgs => {
-  if (!Array.isArray(imgs)) return [];
-  return imgs
-    .map(x => {
-      if (typeof x === 'string') return x;
-      if (x && typeof x === 'object') return String(x.uri || '');
-      return '';
-    })
-    .filter(Boolean);
+const asName = v => {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object') return String(v.name ?? '');
+  return '';
+};
+
+const asId = v => {
+  if (!v) return '';
+  if (typeof v === 'string' || typeof v === 'number') return String(v);
+  if (typeof v === 'object') return String(v.id ?? '');
+  return '';
+};
+
+const findItem = (items, value) => {
+  const id = asId(value);
+  if (!id) return null;
+  const arr = Array.isArray(items) ? items : [];
+  return arr.find(x => String(x?.id) === id) || null;
 };
 
 export default function Rec_PutAwayLotModalPopup({
@@ -44,153 +48,161 @@ export default function Rec_PutAwayLotModalPopup({
   lotIndex,
   itemName = '',
   itemCode = '',
+  uom = '',
+  inventoryItems = [],
+  defaultSubInventory = null,
+  defaultLocator = null,
+  fetchLocators,
+  lineReceivingQty = 0,
+  initialPutAwayData = null,
   onComplete,
-  initialInspectionData = null,
 }) {
   const lotQty = useMemo(() => Number(lot?.qty || 0), [lot]);
 
-  const [inspectQty, setInspectQty] = useState(0);
-  const [status, setStatus] = useState(null);
-  const [notes, setNotes] = useState('');
-  const [images, setImages] = useState([]);
+  const [subInv, setSubInv] = useState(null);
+  const [locator, setLocator] = useState(null);
+  const [locatorItems, setLocatorItems] = useState([]);
+  const [putAwayQty, setPutAwayQty] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
-
-  const statusList = useMemo(
-    () => [
-      { id: 1, name: 'Above Average' },
-      { id: 2, name: 'Average' },
-      { id: 3, name: 'Below Average' },
-      { id: 4, name: 'Excellent' },
-      { id: 5, name: 'Reject and Notify' },
-      { id: 6, name: 'Unacceptable' },
-    ],
-    [],
-  );
 
   const clearError = useCallback(() => setErrorMsg(''), []);
 
-  const addUris = useCallback(
-    uris => {
-      const list = (uris || []).map(String).filter(Boolean);
-      if (!list.length) return;
-      setImages(prev => {
-        const existing = new Set((prev || []).map(x => String(x)));
-        const next = [...(prev || [])];
-        list.forEach(u => {
-          if (!existing.has(u)) next.push(u);
-        });
-        return next;
-      });
-      Toast.show({ type: 'success', text1: 'Image Attached' });
-    },
-    [],
-  );
-
-  const handleUpload = useCallback(async () => {
-    clearError();
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      quality: 0.85,
-      selectionLimit: 0,
-    });
-    if (result?.didCancel || result?.errorCode) return;
-    const uris = (result?.assets || []).map(a => a?.uri).filter(Boolean);
-    addUris(uris);
-  }, [addUris, clearError]);
-
-  const handleCamera = useCallback(async () => {
-    clearError();
-    const result = await launchCamera({
-      mediaType: 'photo',
-      quality: 0.85,
-      saveToPhotos: true,
-    });
-    if (result?.didCancel || result?.errorCode) return;
-    const uris = (result?.assets || []).map(a => a?.uri).filter(Boolean);
-    addUris(uris);
-  }, [addUris, clearError]);
-
-  const handleRemoveImage = useCallback(
-    uri => {
-      clearError();
-      setImages(prev => (prev || []).filter(x => x !== uri));
-    },
-    [clearError],
-  );
-
-  const resolveStatusValue = useCallback(
-    preStatus => {
-      if (!preStatus) return null;
-      if (typeof preStatus === 'string') {
-        const found = statusList.find(s => String(s.name) === String(preStatus));
-        return found || null;
+  const loadLocators = useCallback(
+    async subInvValue => {
+      const sub = findItem(inventoryItems, subInvValue) || subInvValue;
+      const subId = asId(sub);
+      if (!subId) {
+        setLocatorItems([]);
+        return [];
       }
-      if (typeof preStatus === 'object' && preStatus?.name) {
-        const found = statusList.find(s => String(s.name) === String(preStatus.name));
-        return found || preStatus;
+
+      try {
+        if (typeof fetchLocators !== 'function') {
+          setLocatorItems([]);
+          return [];
+        }
+
+        const list = await fetchLocators(subId);
+        const mapped = Array.isArray(list)
+          ? list.map(d => ({
+              id: d?.id ?? d?.locator_id,
+              name: d?.name ?? d?.locator_name,
+              enabled: d?.enabled ?? d?.locator_enabled,
+            }))
+          : [];
+
+        setLocatorItems(mapped);
+        return mapped;
+      } catch {
+        setLocatorItems([]);
+        return [];
       }
-      return null;
     },
-    [statusList],
+    [fetchLocators, inventoryItems],
   );
 
   useEffect(() => {
     if (!visible) return;
 
-    const pre = initialInspectionData || null;
-    const preQty = Number(pre?.inspectQty ?? pre?.qty ?? 0);
-    const preNotes = String(pre?.notes ?? '');
-    const preImgs = toUriList(pre?.images ?? pre?.attachments);
+    const pre = initialPutAwayData || null;
 
-    setInspectQty(preQty > 0 ? preQty : 0);
-    setStatus(resolveStatusValue(pre?.status));
-    setNotes(preNotes);
-    setImages(preImgs);
+    const preSubInv =
+      pre?.subInventory ??
+      pre?.fromSubInventory ??
+      defaultSubInventory ??
+      null;
+
+    const preLocator =
+      pre?.locator ??
+      pre?.targetLocator ??
+      defaultLocator ??
+      null;
+
+    const preQtyRaw = Number(pre?.putAwayQty ?? pre?.qty ?? lotQty ?? 0);
+    const preQty = Number.isFinite(preQtyRaw) && preQtyRaw > 0 ? preQtyRaw : lotQty;
+
+    setSubInv(preSubInv || null);
+    setLocator(preLocator || null);
+    setPutAwayQty(lotQty > 0 ? preQty : 0);
     setErrorMsg('');
-  }, [visible, initialInspectionData, lotQty, lotIndex, lot, resolveStatusValue]);
+
+    (async () => {
+      const list = await loadLocators(preSubInv || null);
+
+      if (preLocator) {
+        const ok =
+          !!findItem(list, preLocator) ||
+          !!findItem(list, { id: asId(preLocator) });
+
+        if (!ok) setLocator(null);
+      }
+    })();
+  }, [visible, initialPutAwayData, defaultSubInventory, defaultLocator, lotQty, loadLocators]);
 
   const validate = useCallback(() => {
-    const q = Number(inspectQty || 0);
-    if (lotQty > 0 && q < lotQty) return 'Add all saved Lot Qty to Confirm Inspect';
-    if (!status) return 'Select Status to Confirm Inspect';
-    return '';
-  }, [inspectQty, lotQty, status]);
+    const q = Number(putAwayQty || 0);
+    const lotQ = Number(lotQty || 0);
+    const lineQ = Number(lineReceivingQty || 0);
 
-  const handleConfirmInspect = useCallback(() => {
+    if (!subInv) return 'Select Sub Inventory to Confirm Put Away';
+    if (!locator) return 'Select Target Locator to Confirm Put Away';
+
+    if (!q || q <= 0) return 'Enter Put Away Qty to Confirm Put Away';
+
+    if (lotQ > 0 && q !== lotQ) return 'Put Away Qty should be equal to Lot Qty';
+    if (lineQ > 0 && q > lineQ) return 'Put Away Qty should not be greater than Receiving Qty';
+
+    return '';
+  }, [subInv, locator, putAwayQty, lotQty, lineReceivingQty]);
+
+  const handleConfirmPutAway = useCallback(() => {
     const msg = validate();
     if (msg) {
       setErrorMsg(msg);
       return;
     }
 
-    const inspectionData = {
-      inspectQty: Number(inspectQty || 0),
-      status,
-      notes,
-      images,
+    const subObj = findItem(inventoryItems, subInv) || subInv;
+    const locObj = findItem(locatorItems, locator) || locator;
+
+    const payload = {
+      putAwayQty: Number(putAwayQty || 0),
+      subInventory: subObj,
+      targetLocator: locObj,
       lotDetails: lot,
       lotIndex,
       itemName,
       itemCode,
+      uom,
+      putAwayDate: new Date().toISOString(),
     };
 
-    if (onComplete) onComplete(inspectionData);
+    if (onComplete) onComplete(payload);
+    Toast.show({ type: 'success', text1: 'Put Away Saved' });
     onClose();
   }, [
     validate,
-    inspectQty,
-    status,
-    notes,
-    images,
+    inventoryItems,
+    locatorItems,
+    subInv,
+    locator,
+    putAwayQty,
     lot,
     lotIndex,
     itemName,
     itemCode,
+    uom,
     onComplete,
     onClose,
   ]);
 
-  const isInspectionComplete = Number(inspectQty || 0) > 0 && !!status;
+  const isReady =
+    !!subInv &&
+    !!locator &&
+    Number(putAwayQty || 0) > 0;
+
+  const subName = useMemo(() => asName(findItem(inventoryItems, subInv) || subInv), [inventoryItems, subInv]);
+  const locName = useMemo(() => asName(findItem(locatorItems, locator) || locator), [locatorItems, locator]);
 
   if (!visible) return null;
 
@@ -233,13 +245,43 @@ export default function Rec_PutAwayLotModalPopup({
               </View>
 
               <View style={styles.sectionBlock}>
-                <Text style={styles.sectionTitle}>Inspection Qty</Text>
+                <Text style={styles.mandLabel}>Sub-Inventory*</Text>
+                <Rec_DropDown
+                  label=""
+                  placeholder="Select Sub Inventory"
+                  value={subInv}
+                  onChange={async val => {
+                    clearError();
+                    setSubInv(val);
+                    setLocator(null);
+                    await loadLocators(val);
+                  }}
+                  items={inventoryItems}
+                />
+              </View>
+
+              <View style={styles.sectionBlock}>
+                <Text style={styles.mandLabel}>Target Locator*</Text>
+                <Rec_DropDown
+                  label=""
+                  placeholder="Select Target Locator"
+                  value={locator}
+                  onChange={val => {
+                    clearError();
+                    setLocator(val);
+                  }}
+                  items={locatorItems}
+                />
+              </View>
+
+              <View style={styles.sectionBlock}>
+                <Text style={styles.sectionTitle}>Put-Away Qty</Text>
                 <Rec_CustomNumericInput
-                  value={inspectQty}
+                  value={putAwayQty}
                   setValue={v => {
                     clearError();
-                    const raw = typeof v === 'function' ? v(inspectQty) : v;
-                    setInspectQty(Number(raw || 0));
+                    const raw = typeof v === 'function' ? v(putAwayQty) : v;
+                    setPutAwayQty(Number(raw || 0));
                   }}
                   min={0}
                   max={lotQty}
@@ -251,90 +293,51 @@ export default function Rec_PutAwayLotModalPopup({
                 />
               </View>
 
-              <View style={styles.sectionBlock}>
-                <Rec_DropDown
-                  label=""
-                  placeholder="Select Status"
-                  value={status}
-                  onChange={val => {
-                    clearError();
-                    setStatus(val);
-                  }}
-                  items={statusList}
-                />
-              </View>
+              {isReady && (
+                <View style={styles.sectionBlock}>
+                  <View style={styles.summaryWrap}>
+                    <View style={styles.summaryHeader}>
+                      <Text style={styles.summaryHeaderText}>Summary</Text>
+                    </View>
 
-              <View style={styles.sectionBlock}>
-                <View style={styles.outerNotesBox}>
-                  <Text style={styles.outerLabel}>Inspection Notes</Text>
-                  <View style={styles.innerNotesBox}>
-                    <TextInput
-                      style={styles.innerNotesInput}
-                      placeholder="Maximum 100 characters"
-                      maxLength={100}
-                      multiline
-                      value={notes}
-                      onChangeText={t => {
-                        clearError();
-                        setNotes(t);
-                      }}
-                      placeholderTextColor="#A0A0A0"
-                      textAlignVertical="top"
-                    />
-                    <Text style={styles.charCount}>{notes.length}/100</Text>
+                    <View style={styles.summaryBody}>
+                      <View style={styles.summaryCol}>
+                        <Text style={styles.sumLabel}>Item</Text>
+                        <Text style={styles.sumValue} numberOfLines={1}>
+                          {itemName || '-'}
+                        </Text>
+
+                        <View style={{ height: rs(14) }} />
+
+                        <Text style={styles.sumLabel}>From</Text>
+                        <Text style={styles.sumValue} numberOfLines={1}>
+                          {subName || '-'}
+                        </Text>
+                      </View>
+
+                      <View style={styles.summaryCol}>
+                        <Text style={styles.sumLabel}>Quantity</Text>
+                        <Text style={styles.sumValue} numberOfLines={1}>
+                          {Number(putAwayQty || 0)}{uom ? ` ${uom}` : ''}
+                        </Text>
+
+                        <View style={{ height: rs(14) }} />
+
+                        <Text style={styles.sumLabel}>To</Text>
+                        <Text style={styles.sumValue} numberOfLines={2}>
+                          {locName || '-'}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 </View>
-              </View>
-
-              <View style={styles.sectionBlock}>
-                <Text style={styles.photosLabel}>Photos</Text>
-
-                <View style={styles.photoButtonsWrap}>
-                  <TouchableOpacity
-                    style={styles.photoBtn}
-                    onPress={handleUpload}
-                    activeOpacity={0.85}
-                  >
-                    <PhotoUploadIcon width={rs(20)} height={rs(20)} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.photoBtn, { marginLeft: rs(10) }]}
-                    onPress={handleCamera}
-                    activeOpacity={0.85}
-                  >
-                    <PhotoCaptureIcon width={rs(20)} height={rs(20)} />
-                  </TouchableOpacity>
-                </View>
-
-                {images.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.imagesScroll}
-                    contentContainerStyle={styles.imagesScrollContent}
-                  >
-                    {images.map(uri => (
-                      <View key={uri} style={styles.thumbWrap}>
-                        <Image source={{ uri }} style={styles.thumbImg} resizeMode="cover" />
-                        <TouchableOpacity
-                          style={styles.thumbDeleteBtn}
-                          onPress={() => handleRemoveImage(uri)}
-                          activeOpacity={0.85}
-                        >
-                          <DeleteAttachmentIcon width={rs(16)} height={rs(16)} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </ScrollView>
-                )}
-              </View>
+              )}
 
               <View style={styles.footerWrap}>
                 <SingleFooterBtnComponent
-                  label="Confirm Inspect"
-                  onPress={handleConfirmInspect}
-                  enabled={isInspectionComplete}
+                  label="Confirm Put Away"
+                  onPress={handleConfirmPutAway}
+                  enabled={isReady}
                   containerStyle={{ marginBottom: 0 }}
                   buttonStyle={{ width: '100%', marginStart: 0 }}
                   labelStyle={{ fontSize: 14 }}
@@ -443,106 +446,56 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: rs(16),
   },
+  mandLabel: {
+    fontSize: rs(11),
+    color: '#6C6C6C',
+    marginBottom: rs(6),
+    fontWeight: '600',
+  },
   sectionTitle: {
     fontSize: rs(16),
     fontWeight: '600',
     marginBottom: rs(10),
     color: '#111827',
   },
-  outerNotesBox: {
+  summaryWrap: {
+    width: '100%',
+    borderRadius: rs(10),
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: rs(6),
-    padding: rs(14),
     backgroundColor: '#FFFFFF',
-    width: '100%',
   },
-  outerLabel: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: rs(12),
+  summaryHeader: {
+    height: rs(36),
+    backgroundColor: '#5D768B',
+    justifyContent: 'center',
+    paddingHorizontal: rs(14),
   },
-  innerNotesBox: {
-    width: '100%',
-    height: rs(90),
-    borderRadius: rs(10),
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D9E4EE',
-    position: 'relative',
-    overflow: 'hidden',
+  summaryHeaderText: {
+    color: '#FFFFFF',
+    fontSize: rs(13),
+    fontWeight: '700',
+    textAlign: 'left',
   },
-  innerNotesInput: {
-    fontSize: rs(12),
-    color: '#111827',
-    padding: rs(10),
-    height: '100%',
-    textAlignVertical: 'top',
-  },
-  charCount: {
-    position: 'absolute',
-    bottom: rs(8),
-    right: rs(12),
-    fontSize: rs(10),
-    color: '#9CA3AF',
-  },
-  photosLabel: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: rs(12),
-  },
-  photoButtonsWrap: {
-    width: '100%',
+  summaryBody: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    paddingHorizontal: rs(14),
+    paddingVertical: rs(14),
   },
-  photoBtn: {
+  summaryCol: {
     flex: 1,
-    height: rs(44),
-    backgroundColor: '#ECF1F7',
-    borderRadius: rs(10),
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  imagesScroll: {
-    marginTop: rs(12),
+  sumLabel: {
+    color: '#595A5C',
+    fontSize: rs(11),
+    fontWeight: '600',
+    marginBottom: rs(6),
   },
-  imagesScrollContent: {
-    paddingBottom: rs(4),
-  },
-  thumbWrap: {
-    width: rs(62),
-    height: rs(62),
-    borderRadius: rs(8),
-    overflow: 'hidden',
-    backgroundColor: '#F3F4F6',
-    marginRight: rs(10),
-    ...Platform.select({
-      android: { elevation: 1 },
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 3,
-        shadowOffset: { width: 0, height: 2 },
-      },
-    }),
-  },
-  thumbImg: {
-    width: '100%',
-    height: '100%',
-  },
-  thumbDeleteBtn: {
-    position: 'absolute',
-    right: rs(-2),
-    top: rs(-2),
-    width: rs(22),
-    height: rs(22),
-    borderRadius: rs(11),
-    alignItems: 'center',
-    justifyContent: 'center',
+  sumValue: {
+    color: '#111827',
+    fontSize: rs(13),
+    fontWeight: '700',
   },
   footerWrap: {
     width: '100%',
