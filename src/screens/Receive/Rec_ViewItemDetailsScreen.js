@@ -108,7 +108,7 @@ const Rec_ViewItemDetailsScreen = () => {
         locator: stored?.locator ?? it.locator ?? '',
         imageUri: stored?.imageUri ?? it.imageUri ?? null,
         max_open_qty: Number(it.max_open_qty ?? stored?.max_open_qty ?? it.openQty ?? 0),
-        itemType: it.itemType || it.itemtype || 'Lot',
+        itemType: it.itemType || it.itemtype || null,
         orderQty: Number(it.orderQty ?? it.orderedQty ?? 0),
         inspections: stored?.inspections || [],
         inspectionStatus,
@@ -213,6 +213,7 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const [showScanner, setShowScanner] = useState(false);
   const [scannedLot, setScannedLot] = useState('');
+  const [scannedLotSerial, setscannedLotSerial] = useState('');
   const [inspectModalVisible, setInspectModalVisible] = useState(false);
   const [selectedLot, setSelectedLot] = useState(null);
   const [selectedLotIndex, setSelectedLotIndex] = useState(0); 
@@ -869,13 +870,14 @@ const openInspectLotSerialSerialModal = useCallback(() => {
     ? currentInspection.inspectionSerials
     : [];
 
-  const itemType = current?.itemType || 'Lot';
+  const itemType = current?.itemType || null;
 
   const itemPills = (() => {
     const showLot = itemType === 'Lot';
     const showSerial = itemType === 'Serial';
     const showLotSerial = itemType === 'Lot+Serial';
-    return { showLot, showSerial, showLotSerial };
+    const showreceive = itemType === null;
+    return { showLot, showSerial, showLotSerial,showreceive };
   })();
 
   const lineLabel = `Line${index + 1}`;
@@ -1070,6 +1072,24 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
     }, 250);
   };
 
+  const handleScanAndOpenLotandSerialInspect = scannedValue => {
+    if (!current) return;
+    const code = normalizeLotKey(scannedValue);
+    if (!code) {
+      Toast.show({ type: 'error', text1: 'Invalid Lot' });
+      return;
+    }
+    const idx = currentLotSerialLines.findIndex(l => normalizeLotKey(l?.lotNumber) === code);
+    if (idx < 0) {
+      Toast.show({ type: 'error', text1: 'Lot not found' });
+      return;
+    }
+    const lot = currentLotSerialLines[idx];
+    setTimeout(() => {
+      openInspectLotSerialModal(lot, idx);
+    }, 250);
+  };
+
   const rightPress =
     activeTab === 'Receive'
       ? isReceiveSubmitEnabled
@@ -1185,12 +1205,13 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                 style={styles.tabWrapper}
                 activeOpacity={0.9}
                 onPress={() => setActiveTab('Inspect')}
+                disabled={itemPills?.showreceive}
               >
                 <LinearGradient
                   colors={
                     activeTab === 'Inspect'
                       ? ['#233E55', '#5D768B']
-                      : ['#F3F4F6', '#E5E7EB']
+                      :itemPills?.showreceive?['#c1c3c6ff','#b7b9bdff']: ['#F3F4F6', '#E5E7EB']
                   }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -1217,12 +1238,13 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                 style={styles.tabWrapper}
                 activeOpacity={0.9}
                 onPress={() => setActiveTab('PutAway')}
+                disabled={itemPills?.showreceive}
               >
                 <LinearGradient
                   colors={
                     activeTab === 'PutAway'
                       ? ['#233E55', '#5D768B']
-                      : ['#F3F4F6', '#E5E7EB']
+                      :itemPills?.showreceive?['#c1c3c6ff','#b7b9bdff']: ['#F3F4F6', '#E5E7EB']
                   }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -1278,6 +1300,13 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                         </View>
                         <View style={styles.pillSerial}>
                           <Text style={styles.pillSerialText}>Serial</Text>
+                        </View>
+                      </View>
+                    )}
+                    {itemPills.showreceive && (
+                      <View style={styles.pilllotserial}>
+                        <View style={styles.pillLot}>
+                          <Text style={styles.pillLotText}>Receive</Text>
                         </View>
                       </View>
                     )}
@@ -1814,7 +1843,30 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
         Lot + Serial Controlled
       </Text>
     </View>
-
+                {/* {current?.itemType === 'Lot' && ( */}
+                  <TouchableOpacity
+                    onPress={() => setShowScanner(true)}
+                    activeOpacity={0.7}
+                    style={{
+                      width: '100%',
+                      height: 38,
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      borderColor: '#CCCED2',
+                      paddingHorizontal: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 18,
+                      marginTop: 18,
+                    }}
+                  >
+                    <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
+                      {scannedLotSerial || 'Scan Lot'}
+                    </Text>
+                    <Barcodescanner width={18} height={18} />
+                  </TouchableOpacity>
+                {/* )} */}
     {hasLotSerials && currentLotSerialLines && (
       <View style={{ marginTop: ms(14) }}>
         {currentLotSerialLines.map((lot, idx) => {
@@ -2177,9 +2229,15 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
           >
             <BarcodeScanner
               onScan={value => {
+                if(current&&itemType == 'Lot+Serial'){
+                setscannedLotSerial(value);
+                setShowScanner(false);
+                handleScanAndOpenLotandSerialInspect(value);
+                }else{
                 setScannedLot(value);
                 setShowScanner(false);
                 handleScanAndOpenLotInspect(value);
+                }
               }}
               onClose={() => setShowScanner(false)}
             />
@@ -2430,10 +2488,10 @@ const styles = StyleSheet.create({
   },
   tabBtnActive: {
     shadowColor: '#000000',
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.52,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    elevation: 6,
   },
   tabText: { fontSize: ms(11), marginLeft: ms(4) },
   tabTextActive: { color: '#FFFFFF', fontWeight: '700' },
