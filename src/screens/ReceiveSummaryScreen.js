@@ -203,12 +203,13 @@ const ReceiveSummaryScreen = () => {
   );
 
   const mapConfirmData = data => {
+    console.log(data,"mapconfirmdata");
     return data.map(backend => ({
       po_id: currentPO,
       po_line_id: backend?.po_line_id,
       item_id: backend?.item_id,
       org_id: backend?.org_id,
-      sub_inv_id: backend?.subInventory,
+      sub_inv_id: backend?.subInventory?.id,
       locator_id: backend.locator ? backend?.locator : null,
       lot_number: '',
       expiry_date: formatToday(),

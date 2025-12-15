@@ -381,7 +381,7 @@ export default function Rec_LotModalPopup({
                             min={0}
                             max={lotMax}
                             disabledinput={false}
-                            width={rs(90)}
+                            width={rs(100)}
                             height={rs(40)}
                           />
                         </View>
@@ -397,6 +397,7 @@ export default function Rec_LotModalPopup({
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
                   onChange={handleDateChange}
+                  themeVariant="light"
                 />
               )}
             </ScrollView>
@@ -552,8 +553,8 @@ const styles = StyleSheet.create({
   generateText: { color: '#145DA0', fontSize: rs(12), fontWeight: '600' },
 
   row2: { flexDirection: 'row', marginTop: rs(4) },
-  col: { flex: 1, marginRight: rs(8) },
-  colQty: { width: rs(90), marginStart: rs(10) },
+  col: { flex: 1, marginRight: rs(10) },
+  colQty: { width: rs(100), marginStart: rs(1) },
 
   dateRow: { width: '100%', position: 'relative' },
   dateInput: {

@@ -108,7 +108,7 @@ const Rec_ViewItemDetailsScreen = () => {
         locator: stored?.locator ?? it.locator ?? '',
         imageUri: stored?.imageUri ?? it.imageUri ?? null,
         max_open_qty: Number(it.max_open_qty ?? stored?.max_open_qty ?? it.openQty ?? 0),
-        itemType: it.itemType || it.itemtype || 'Lot',
+        itemType: it.itemType || it.itemtype || null,
         orderQty: Number(it.orderQty ?? it.orderedQty ?? 0),
         inspections: stored?.inspections || [],
         inspectionStatus,
@@ -213,6 +213,7 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const [showScanner, setShowScanner] = useState(false);
   const [scannedLot, setScannedLot] = useState('');
+  const [scannedLotSerial, setscannedLotSerial] = useState('');
   const [inspectModalVisible, setInspectModalVisible] = useState(false);
   const [selectedLot, setSelectedLot] = useState(null);
   const [selectedLotIndex, setSelectedLotIndex] = useState(0); 
@@ -869,13 +870,14 @@ const openInspectLotSerialSerialModal = useCallback(() => {
     ? currentInspection.inspectionSerials
     : [];
 
-  const itemType = current?.itemType || 'Lot';
+  const itemType = current?.itemType || null;
 
   const itemPills = (() => {
     const showLot = itemType === 'Lot';
     const showSerial = itemType === 'Serial';
     const showLotSerial = itemType === 'Lot+Serial';
-    return { showLot, showSerial, showLotSerial };
+    const showreceive = itemType === null;
+    return { showLot, showSerial, showLotSerial,showreceive };
   })();
 
   const lineLabel = `Line${index + 1}`;
@@ -1070,6 +1072,24 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
     }, 250);
   };
 
+  const handleScanAndOpenLotandSerialInspect = scannedValue => {
+    if (!current) return;
+    const code = normalizeLotKey(scannedValue);
+    if (!code) {
+      Toast.show({ type: 'error', text1: 'Invalid Lot' });
+      return;
+    }
+    const idx = currentLotSerialLines.findIndex(l => normalizeLotKey(l?.lotNumber) === code);
+    if (idx < 0) {
+      Toast.show({ type: 'error', text1: 'Lot not found' });
+      return;
+    }
+    const lot = currentLotSerialLines[idx];
+    setTimeout(() => {
+      openInspectLotSerialModal(lot, idx);
+    }, 250);
+  };
+
   const rightPress =
     activeTab === 'Receive'
       ? isReceiveSubmitEnabled
@@ -1185,12 +1205,13 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                 style={styles.tabWrapper}
                 activeOpacity={0.9}
                 onPress={() => setActiveTab('Inspect')}
+                disabled={itemPills?.showreceive}
               >
                 <LinearGradient
                   colors={
                     activeTab === 'Inspect'
                       ? ['#233E55', '#5D768B']
-                      : ['#F3F4F6', '#E5E7EB']
+                      :itemPills?.showreceive?['#c1c3c6ff','#b7b9bdff']: ['#F3F4F6', '#E5E7EB']
                   }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -1217,12 +1238,13 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                 style={styles.tabWrapper}
                 activeOpacity={0.9}
                 onPress={() => setActiveTab('PutAway')}
+                disabled={itemPills?.showreceive}
               >
                 <LinearGradient
                   colors={
                     activeTab === 'PutAway'
                       ? ['#233E55', '#5D768B']
-                      : ['#F3F4F6', '#E5E7EB']
+                      :itemPills?.showreceive?['#c1c3c6ff','#b7b9bdff']: ['#F3F4F6', '#E5E7EB']
                   }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -1278,6 +1300,13 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                         </View>
                         <View style={styles.pillSerial}>
                           <Text style={styles.pillSerialText}>Serial</Text>
+                        </View>
+                      </View>
+                    )}
+                    {itemPills.showreceive && (
+                      <View style={styles.pilllotserial}>
+                        <View style={styles.pillLot}>
+                          <Text style={styles.pillLotText}>Receive</Text>
                         </View>
                       </View>
                     )}
@@ -1757,208 +1786,231 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
             )}
 
             {activeTab === 'Inspect' && current && itemType === 'Lot+Serial' && (
-              <View style={styles.section}>
-                <View
-                  style={[
-                    styles.inspectInfoCard,
-                    {
-                      backgroundColor: allSavedLotSerialLotsInspected ? '#EEFDF8' : '#FFF8EC',
-                      borderColor: allSavedLotSerialLotsInspected ? '#73B386' : '#F06000',
-                      marginTop: ms(6),
-                    },
-                  ]}
-                >
-                  <View style={styles.inspectInfoIconWrap}>
-                    {allSavedLotSerialLotsInspected ? (
-                      <PassedInspectionIcon width={24} height={24} />
-                    ) : (
-                      <PendingInspectionIcon width={24} height={24} />
-                    )}
-                  </View>
+  <View style={styles.section}>
+    <View
+      style={[
+        styles.inspectInfoCard,
+        {
+          backgroundColor: allSavedLotSerialLotsInspected ? '#EEFDF8' : '#FFF8EC',
+          borderColor: allSavedLotSerialLotsInspected ? '#73B386' : '#F06000',
+          marginTop: ms(6),
+        },
+      ]}
+    >
+      <View style={styles.inspectInfoIconWrap}>
+        {allSavedLotSerialLotsInspected ? (
+          <PassedInspectionIcon width={24} height={24} />
+        ) : (
+          <PendingInspectionIcon width={24} height={24} />
+        )}
+      </View>
 
-                  <View style={styles.inspectInfoMiddle}>
-                    <Text
-                      style={[
-                        styles.inspectInfoLabel,
-                        { color: allSavedLotSerialLotsInspected ? '#168035' : '#F06000' },
-                      ]}
-                    >
-                      Inspection Status
-                    </Text>
+      <View style={styles.inspectInfoMiddle}>
+        <Text
+          style={[
+            styles.inspectInfoLabel,
+            { color: allSavedLotSerialLotsInspected ? '#168035' : '#F06000' },
+          ]}
+        >
+          Inspection Status
+        </Text>
 
-                    <View
-                      style={[
-                        styles.inspectStatusPill,
-                        { backgroundColor: allSavedLotSerialLotsInspected ? '#168035' : '#FCDFCC' },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.inspectStatusPillText,
-                          allSavedLotSerialLotsInspected
-                            ? styles.inspectStatusPillTextPassed
-                            : styles.inspectStatusPillTextPending,
-                        ]}
-                      >
-                        {allSavedLotSerialLotsInspected ? 'Passed' : 'Pending'}
-                      </Text>
-                    </View>
-                  </View>
+        <View
+          style={[
+            styles.inspectStatusPill,
+            { backgroundColor: allSavedLotSerialLotsInspected ? '#168035' : '#FCDFCC' },
+          ]}
+        >
+          <Text
+            style={[
+              styles.inspectStatusPillText,
+              allSavedLotSerialLotsInspected
+                ? styles.inspectStatusPillTextPassed
+                : styles.inspectStatusPillTextPending,
+            ]}
+          >
+            {allSavedLotSerialLotsInspected ? 'Passed' : 'Pending'}
+          </Text>
+        </View>
+      </View>
 
-                  <Text
-                    style={[
-                      styles.inspectInfoRightText,
-                      { color: allSavedLotSerialLotsInspected ? '#168035' : '#F06000' },
-                    ]}
+      <Text
+        style={[
+          styles.inspectInfoRightText,
+          { color: allSavedLotSerialLotsInspected ? '#168035' : '#F06000' },
+        ]}
+      >
+        Lot + Serial Controlled
+      </Text>
+    </View>
+                {/* {current?.itemType === 'Lot' && ( */}
+                  <TouchableOpacity
+                    onPress={() => setShowScanner(true)}
+                    activeOpacity={0.7}
+                    style={{
+                      width: '100%',
+                      height: 38,
+                      borderRadius: 4,
+                      borderWidth: 1,
+                      borderColor: '#CCCED2',
+                      paddingHorizontal: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 18,
+                      marginTop: 18,
+                    }}
                   >
-                    Lot + Serial Controlled
+                    <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
+                      {scannedLotSerial || 'Scan Lot'}
+                    </Text>
+                    <Barcodescanner width={18} height={18} />
+                  </TouchableOpacity>
+                {/* )} */}
+    {hasLotSerials && currentLotSerialLines && (
+      <View style={{ marginTop: ms(14) }}>
+        {currentLotSerialLines.map((lot, idx) => {
+          const inspectionData = inspectionDataMap[`${current.id}-${idx}`];
+          const isInspected = !!inspectionData;
+          const statusName = inspectionData?.status?.name || 'Pending';
+
+          const getStatusStyle = statusNameArg => {
+            switch (statusNameArg) {
+              case 'Above Average':
+                return { bg: '#EEFDF8', text: '#168035' };
+              case 'Average':
+                return { bg: '#FFFBEA', text: '#C78C00' };
+              case 'Below Average':
+                return { bg: '#FFF8EC', text: '#F06000' };
+              case 'Excellent':
+                return { bg: '#EAF2FF', text: '#033EFF' };
+              case 'Reject and Notify':
+                return { bg: '#FFECEC', text: '#D32F2F' };
+              case 'Unacceptable':
+                return { bg: '#FDE2E2', text: '#991B1B' };
+              default:
+                return { bg: '#F3F4F6', text: '#374151' };
+            }
+          };
+
+          const statusStyle = getStatusStyle(statusName);
+
+          return (
+            <View
+              key={`lotserial-${idx}`}
+              style={{
+                width: '100%',
+                minHeight: 74,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#ECF1F7',
+                backgroundColor: '#FFFFFF',
+                padding: 10,
+                marginBottom: 8,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: 'Mulish',
+                  fontSize: 12,
+                  fontWeight: '600',
+                  color: '#233E55',
+                  marginBottom: 6,
+                }}
+              >
+                {lot.lotNumber || `LOT ${idx + 1}`}
+              </Text>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <View style={{ flexDirection: 'row' }}>
+                  <Text
+                    style={{
+                      fontSize: 9,
+                      fontWeight: '600',
+                      color: '#9D9FA3',
+                    }}
+                  >
+                    Mfg:{' '}
+                    <Text style={{ color: '#111827' }}>
+                      {lot.mfgDate || '-'}
+                    </Text>
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 9,
+                      fontWeight: '600',
+                      color: '#9D9FA3',
+                      marginLeft: 8,
+                    }}
+                  >
+                    Exp:{' '}
+                    <Text style={{ color: '#111827' }}>
+                      {lot.expDate || '-'}
+                    </Text>
                   </Text>
                 </View>
 
-                {hasLotSerials && currentLotSerialLines && (
-                  <View style={{ marginTop: ms(14) }}>
-                    {currentLotSerialLines.map((lot, idx) => {
-                      const inspectionData = inspectionDataMap[`${current.id}-${idx}`];
-                      const isInspected = !!inspectionData;
-                      const statusName = inspectionData?.status?.name || 'Pending';
-
-                      const getStatusStyle = statusNameArg => {
-                        switch (statusNameArg) {
-                          case 'Above Average':
-                            return { bg: '#EEFDF8', text: '#168035' };
-                          case 'Average':
-                            return { bg: '#FFFBEA', text: '#C78C00' };
-                          case 'Below Average':
-                            return { bg: '#FFF8EC', text: '#F06000' };
-                          case 'Excellent':
-                            return { bg: '#EAF2FF', text: '#033EFF' };
-                          case 'Reject and Notify':
-                            return { bg: '#FFECEC', text: '#D32F2F' };
-                          case 'Unacceptable':
-                            return { bg: '#FDE2E2', text: '#991B1B' };
-                          default:
-                            return { bg: '#F3F4F6', text: '#374151' };
-                        }
-                      };
-
-                      const statusStyle = getStatusStyle(statusName);
-
-                      return (
-                        <View
-                          key={`lotserial-${idx}`}
-                          style={{
-                            width: '100%',
-                            minHeight: 74,
-                            borderRadius: 8,
-                            borderWidth: 1,
-                            borderColor: '#ECF1F7',
-                            backgroundColor: '#FFFFFF',
-                            padding: 10,
-                            marginBottom: 8,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontFamily: 'Mulish',
-                              fontSize: 12,
-                              fontWeight: '600',
-                              color: '#233E55',
-                              marginBottom: 6,
-                            }}
-                          >
-                            {lot.lotNumber || `LOT ${idx + 1}`}
-                          </Text>
-
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                            }}
-                          >
-                            <View style={{ flexDirection: 'row' }}>
-                              <Text
-                                style={{
-                                  fontSize: 9,
-                                  fontWeight: '600',
-                                  color: '#9D9FA3',
-                                }}
-                              >
-                                Mfg:{' '}
-                                <Text style={{ color: '#111827' }}>
-                                  {lot.mfgDate || '-'}
-                                </Text>
-                              </Text>
-                              <Text
-                                style={{
-                                  fontSize: 9,
-                                  fontWeight: '600',
-                                  color: '#9D9FA3',
-                                  marginLeft: 8,
-                                }}
-                              >
-                                Exp:{' '}
-                                <Text style={{ color: '#111827' }}>
-                                  {lot.expDate || '-'}
-                                </Text>
-                              </Text>
-                            </View>
-
-                            <TouchableOpacity
-                              onPress={() => openInspectLotSerialModal(lot, idx)}
-                              style={{
-                                paddingHorizontal: 10,
-                                paddingVertical: 4,
-                                borderRadius: 6,
-                                borderWidth: 0,
-                                borderColor: isInspected ? '#16803C' : '#033EFF',
-                                backgroundColor: isInspected ? '#E7F7ED' : '#D7E8FE',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  fontSize: 12,
-                                  fontWeight: '700',
-                                  color: isInspected ? '#16803C' : '#033EFF',
-                                }}
-                              >
-                                {isInspected ? 'Inspected' : 'Inspect'}
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-
-                          {isInspected && (
-                            <View style={{ marginTop: 6 }}>
-                              <View
-                                style={{
-                                  paddingHorizontal: 12,
-                                  paddingVertical: 3,
-                                  borderRadius: 12,
-                                  backgroundColor: statusStyle.bg,
-                                  alignSelf: 'flex-start',
-                                }}
-                              >
-                                <Text
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: '700',
-                                    color: statusStyle.text,
-                                  }}
-                                >
-                                  Status: {statusName}
-                                </Text>
-                              </View>
-                            </View>
-                          )}
-                        </View>
-                      );
-                    })}
-                  </View>
-                )}
+                <TouchableOpacity
+                  onPress={() => openInspectLotSerialModal(lot, idx)}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    borderWidth: 0,
+                    borderColor: isInspected ? '#16803C' : '#033EFF',
+                    backgroundColor: isInspected ? '#E7F7ED' : '#D7E8FE',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: '700',
+                      color: isInspected ? '#16803C' : '#033EFF',
+                    }}
+                  >
+                    {isInspected ? 'Inspected' : 'Inspect'}
+                  </Text>
+                </TouchableOpacity>
               </View>
-            )}
+
+              {isInspected && (
+                <View style={{ marginTop: 6 }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 3,
+                      borderRadius: 12,
+                      backgroundColor: statusStyle.bg,
+                      alignSelf: 'flex-start',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: '700',
+                        color: statusStyle.text,
+                      }}
+                    >
+                      Status: {statusName}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    )}
+  </View>
+)}
 
 
             {activeTab === 'PutAway' && (
@@ -2177,9 +2229,15 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
           >
             <BarcodeScanner
               onScan={value => {
+                if(current&&itemType == 'Lot+Serial'){
+                setscannedLotSerial(value);
+                setShowScanner(false);
+                handleScanAndOpenLotandSerialInspect(value);
+                }else{
                 setScannedLot(value);
                 setShowScanner(false);
                 handleScanAndOpenLotInspect(value);
+                }
               }}
               onClose={() => setShowScanner(false)}
             />
@@ -2430,10 +2488,10 @@ const styles = StyleSheet.create({
   },
   tabBtnActive: {
     shadowColor: '#000000',
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.52,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    elevation: 6,
   },
   tabText: { fontSize: ms(11), marginLeft: ms(4) },
   tabTextActive: { color: '#FFFFFF', fontWeight: '700' },
