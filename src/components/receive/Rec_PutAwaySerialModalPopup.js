@@ -45,7 +45,7 @@ const normalizeSerialArray = list => {
 export default function Rec_PutAwaySerialModalPopup({
   visible,
   onClose,
-  inspectionQty = 0,
+  putawayQty = 0,
   savedSerials = [],
   initialSelectedSerials = [],
   onConfirm,
@@ -67,9 +67,9 @@ export default function Rec_PutAwaySerialModalPopup({
     [savedSerials],
   );
 
-  const qty = Number(inspectionQty || 0);
+  const qty = Number(putawayQty || 0);
 
-  const isFullInspection =
+  const isFullPutAway =
     qty > 0 && qty === savedSerialsNormalized.length && savedSerialsNormalized.length > 0;
 
   const canAddRow = useMemo(
@@ -92,7 +92,7 @@ export default function Rec_PutAwaySerialModalPopup({
         editable: true,
         isScanned: false,
       }));
-    } else if (isFullInspection) {
+    } else if (isFullPutAway) {
       const takeCount = Math.min(qty, savedSerialsNormalized.length);
       nextRows = savedSerialsNormalized.slice(0, takeCount).map((s, i) => ({
         id: makeId(),
@@ -118,7 +118,7 @@ export default function Rec_PutAwaySerialModalPopup({
     setInvalidIds([]);
     scanTargetRef.current = { rowId: null, addNew: false };
     setScannerVisible(false);
-  }, [visible, qty, initialSelectedSerials, savedSerialsNormalized, isFullInspection]);
+  }, [visible, qty, initialSelectedSerials, savedSerialsNormalized, isFullPutAway]);
 
   const computeDupIds = useCallback(list => {
     const map = new Map();
@@ -217,24 +217,24 @@ export default function Rec_PutAwaySerialModalPopup({
     const result = { ok: false, msg: '', serials: [], invalidIds: [] };
 
     if (!qty || qty <= 0) {
-      result.msg = 'Invalid inspection quantity';
+      result.msg = 'Invalid putaway quantity';
       return result;
     }
 
     if (!rows.length) {
-      result.msg = 'Add Serial to inspect';
+      result.msg = 'Add Serial to Put Away';
       return result;
     }
 
     const serials = rows.map(r => (r.serial || '').trim());
 
     if (serials.some(s => !s)) {
-      result.msg = 'Add Serial to inspect';
+      result.msg = 'Add Serial to Put Away';
       return result;
     }
 
     if (rows.length !== qty) {
-      result.msg = 'Add Serial to inspect';
+      result.msg = 'Add Serial to Put Away';
       return result;
     }
 
