@@ -275,7 +275,7 @@ export default function Rec_PutAwayLotModalPopup({
               </View>
 
               <View style={styles.sectionBlock}>
-                <Text style={styles.sectionTitle}>Put-Away Qty</Text>
+                <Text style={styles.mandLabel}>Put-Away Qty</Text>
                 <Rec_CustomNumericInput
                   value={putAwayQty}
                   setValue={v => {
