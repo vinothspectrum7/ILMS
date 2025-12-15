@@ -94,6 +94,7 @@ export const useReceivingStore = create((set, get) => ({
             putAwayLots: patch.putAwayLots ?? it.putAwayLots,
             putAwaySerials: patch.putAwaySerials ?? it.putAwaySerials,
             putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
+            lastPutAwayDate: patch.lastPutAwayDate ?? it.lastPutAwayDate,
           }
         : it,
     );
@@ -140,6 +141,7 @@ export const useReceivingStore = create((set, get) => ({
             putAwayLots: patch.putAwayLots ?? it.putAwayLots,
             putAwaySerials: patch.putAwaySerials ?? it.putAwaySerials,
             putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
+            lastPutAwayDate: patch.lastPutAwayDate ?? it.lastPutAwayDate,
           }
         : it,
     );

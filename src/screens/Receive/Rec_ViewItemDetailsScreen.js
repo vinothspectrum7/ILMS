@@ -41,6 +41,8 @@ import SelectedPutAwayTabIcon from '../../assets/icons/selectedputawaytabicon.sv
 import ReceiveAddIcon from '../../assets/icons/receiveaddicon.svg';
 import PendingInspectionIcon from '../../assets/icons/pendinginspectionicon.svg';
 import PassedInspectionIcon from '../../assets/icons/passedinspectionicon.svg';
+import PendingPutAwayIcon from '../../assets/icons/pendingputawayicon.svg';
+import PassedPutAwayIcon from '../../assets/icons/passedputawayicon.svg';
 import PhotoUploadIcon from '../../assets/icons/photouploadicon.svg';
 import PhotoCaptureIcon from '../../assets/icons/photocaptureicon.svg';
 import DeleteAttachmentIcon from '../../assets/icons/deleteattachmenticon.svg';
@@ -941,6 +943,29 @@ const openInspectLotSerialSerialModal = useCallback(() => {
     if (returnTo) navigation.navigate(returnTo, { listType });
     else navigation.goBack();
   };
+
+    const handleSavePutAway = useCallback(() => {
+    if (!current) return;
+
+    const stored = Array.isArray(receiveItems)
+      ? receiveItems.find(r => String(r.id) === String(current.id))
+      : null;
+
+    const putAwayLots = stored?.putAwayLots ?? [];
+    const putAwayStatus = stored?.putAwayStatus ?? 'Passed';
+
+    mergePatchIntoReceiveItems({
+      id: String(current.id),
+      putAwayLots,
+      putAwayStatus,
+      lastPutAwayDate: new Date().toISOString(),
+    });
+
+    if (returnTo) navigation.navigate(returnTo, { listType });
+    else navigation.goBack();
+  }, [current, receiveItems, mergePatchIntoReceiveItems, returnTo, navigation, listType]);
+
+
   const titleContext = current?.poNumber ? String(current.poNumber) : 'Receiving';
 
   const currentEdited = current ? edited[current.id] ?? {} : {};
@@ -1138,6 +1163,25 @@ const openInspectLotSerialSerialModal = useCallback(() => {
     });
   }, [current, hasLots, currentLotLines, inspectionDataMap]);
 
+    const allSavedLotsPutAwayCompleted = useMemo(() => {
+    if (!current) return false;
+    if (!hasLots) return false;
+
+    const stored = Array.isArray(receiveItems)
+      ? receiveItems.find(r => String(r.id) === String(current.id))
+      : null;
+
+    const putAwayLots = Array.isArray(stored?.putAwayLots) ? stored.putAwayLots : [];
+
+    return currentLotLines.every((_, idx) => {
+      const row = putAwayLots.find(x => Number(x?.lotIndex) === Number(idx));
+      const qty = Number(row?.putAwayQty ?? 0);
+      const lotQty = Number(currentLotLines[idx]?.qty ?? 0);
+      return lotQty > 0 && qty === lotQty;
+    });
+  }, [current, hasLots, currentLotLines, receiveItems]);
+
+
   const allSavedLotSerialLotsInspected = useMemo(() => {
   if (!current) return false;
   if (!hasLotSerials) return false;
@@ -1202,7 +1246,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
     }, 250);
   };
 
-  const rightPress =
+    const rightPress =
     activeTab === 'Receive'
       ? isReceiveSubmitEnabled
         ? handleSaveAll
@@ -1221,10 +1265,17 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
           ? handleSaveInspectLot
           : undefined
         : undefined
+      : activeTab === 'PutAway'
+      ? itemType === 'Lot'
+        ? allSavedLotsPutAwayCompleted
+          ? handleSavePutAway
+          : undefined
+        : undefined
       : undefined;
 
 
-  const rightEnabled =
+
+    const rightEnabled =
     activeTab === 'Receive'
       ? isReceiveSubmitEnabled
       : activeTab === 'Inspect'
@@ -1235,7 +1286,12 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
         : itemType === 'Lot+Serial'
         ? isInspectLotSerialSubmitEnabled
         : false
+      : activeTab === 'PutAway'
+      ? itemType === 'Lot'
+        ? allSavedLotsPutAwayCompleted
+        : false
       : false;
+
 
 
   return (
@@ -2152,9 +2208,9 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
           >
             <View style={styles.inspectInfoIconWrap}>
               {cardPassed ? (
-                <PassedInspectionIcon width={24} height={24} />
+                <PassedPutAwayIcon width={24} height={24} />
               ) : (
-                <PendingInspectionIcon width={24} height={24} />
+                <PendingPutAwayIcon width={24} height={24} />
               )}
             </View>
 
@@ -2216,7 +2272,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                     key={`putaway-lot-${idx}`}
                     style={{
                       width: '100%',
-                      minHeight: 74,
+                      minHeight: 64,
                       borderRadius: 8,
                       borderWidth: 1,
                       borderColor: '#ECF1F7',
@@ -2229,7 +2285,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                       style={{
                         fontFamily: 'Mulish',
                         fontSize: 12,
-                        fontWeight: '600',
+                        fontWeight: '800',
                         color: '#233E55',
                         marginBottom: 6,
                       }}
