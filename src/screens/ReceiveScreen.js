@@ -33,7 +33,7 @@ const computePercent = (received, ordered) => {
   const o = Number(ordered ?? 0);
   if (!Number.isFinite(o) || o <= 0) return 0;
   const pct = (r / o) * 100;
-  return clampPct(Number(pct.toFixed(2)));  // Round to 2 decimals
+  return clampPct(Math.ceil(pct)); // round UP to whole number
 };
 const getStatusColor = (status) => {
   const s = String(status || '').toUpperCase();
@@ -44,16 +44,34 @@ const getStatusColor = (status) => {
 };
 const getProgressColor = (percent) => {
   const p = Number(percent || 0);
-  if (p >= 100) return '#168035';
-  if (p > 0) return '#033EFF';
-  return '#ECF1F7';
+  if(p>0 && p<=25) return '#DA1E28';
+  if(p>25 && p<=60) return '#F06000';
+  if (p > 60 && p<=90) return '#033EFF';
+  if (p >90) return '#168035';
+  if(p==0) return '#DA1E28';
 };
-const getPOProgressColor = (percent) => {
+const getProgressCardColor = (percent) => {
   const p = Number(percent || 0);
-  if (p >= 100) return '#168035';
-  if (p > 0) return '#F06000';
-  return '#F06000';
+  if(p>0 && p<=25) return '#FFF5F4';
+  if(p>25 && p<=60) return '#FFF9F4';
+  if (p > 60 && p<=90) return '#F4F9FF';
+  if (p >90) return '#F0FDF4';
+  if(p==0) return '#FFF5F4';
 };
+const getProgressWrapperColor = (percent) => {
+  const p = Number(percent || 0);
+  if(p>0 && p<=25) return '#FCDFCC';
+  if(p>25 && p<=60) return '#FCDFCC';
+  if (p > 60 && p<=90) return '#D9E4EE';
+  if (p >90) return '#D0E6D7';
+  if(p==0) return '#FCDFCC';
+};
+// const getPOProgressColor = (percent) => {
+//   const p = Number(percent || 0);
+//   if (p >= 100) return '#168035';
+//   if (p > 0) return '#F06000';
+//   return '#F06000';
+// };
 const toBackendStatus = (label) => {
   const v = String(label || '').toLowerCase();
   if (v === 'open') return 'OPEN';
@@ -959,19 +977,19 @@ const ReceiveScreen = () => {
               </View>
               <View style={styles.bottomrow}>
                 <View style={styles.bottomcardLeft}>
-                  <View style={styles.poprogresscard}>
+                  <View style={[styles.progresscard,{backgroundColor: getProgressCardColor(item.received)}]}>
                     <View style={styles.progressLabel}>
                       <View style={{ flex: 1, flexDirection: 'row', marginBottom: scale(5) }}>
-                        <Text style={[styles.progressText, { color: getPOProgressColor(item.received), marginRight: 5 }]}>Inspection Pending
+                        <Text style={[styles.progressText, { color: getProgressColor(item.received), marginRight: 5 }]}>Outstanding Lines
                         </Text>
-                        <View style={[styles.bardot, { backgroundColor: getPOProgressColor(item.received) }]} />
-                        <Text style={[styles.progressText, { color: getPOProgressColor(item.received) }]}>Lines</Text>
+                        {/* <View style={[styles.bardot, { backgroundColor: getProgressColor(item.received) }]} />
+                        <Text style={[styles.progressText, { color: getProgressColor(item.received) }]}>Lines</Text> */}
                       </View>
                       {/* <View style={styles.dot} /> */}
-                      <Text style={[styles.progresspercentage, { color: getPOProgressColor(item.received) }]}>{item.received}%</Text>
+                      <Text style={[styles.progresspercentage, { color: getProgressColor(item.received) }]}>{item.received}%</Text>
                     </View>
-                    <View style={styles.poprogressWrapper}>
-                      <View style={[styles.progressBarleft, { width: `${item.received}%`, backgroundColor: getPOProgressColor(item.received) }]} />
+                    <View style={[styles.progressWrapper,{backgroundColor: getProgressWrapperColor(item.received)}]}>
+                      <View style={[styles.progressBarleft, { width: `${item.received}%`, backgroundColor: getProgressColor(item.received) }]} />
                     </View>
                   </View>
                 </View>
@@ -1115,10 +1133,10 @@ const ReceiveScreen = () => {
               </View>
               <View style={styles.bottomrow}>
                 <View style={styles.bottomcardLeft}>
-                  <View style={styles.progresscard}>
+                  <View style={[styles.progresscard,{backgroundColor: getProgressCardColor(item.received)}]}>
                     <View style={styles.progressLabel}>
                       <View style={{ flex: 1, flexDirection: 'row', marginBottom: scale(5) }}>
-                        <Text style={[styles.progressText, { color: getProgressColor(item.receivedPct), marginRight: 5 }]}>Put-Away Pending
+                        <Text style={[styles.progressText, { color: getProgressColor(item.receivedPct), marginRight: 5 }]}>Receiving Pending
                         </Text>
                         <View style={[styles.bardot, { backgroundColor: getProgressColor(item.receivedPct) }]} />
                         <Text style={[styles.progressText, { color: getProgressColor(item.receivedPct) }]}>3 Lines</Text>
@@ -1126,7 +1144,7 @@ const ReceiveScreen = () => {
                       {/* <View style={styles.dot} /> */}
                       <Text style={[styles.progresspercentage, { color: getProgressColor(item.receivedPct) }]}>{item.receivedPct}%</Text>
                     </View>
-                    <View style={styles.progressWrapper}>
+                    <View style={[styles.progressWrapper,{backgroundColor: getProgressWrapperColor(item.received)}]}>
                       <View style={[styles.progressBarleft, { width: `${item.receivedPct}%`, backgroundColor: getProgressColor(item.receivedPct) }]} />
                     </View>
                   </View>
@@ -1421,7 +1439,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, color: 'gray' },
 
   card: { justifyContent: 'space-between', backgroundColor: '#FFFFFF', marginHorizontal: 12, marginVertical: 6, borderRadius: 12, padding: 12,borderWidth:1,borderColor:'#D9E4EE', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, },
-  progresscard: { backgroundColor: '#F4F9FF', borderRadius: 10, padding: 12 },
+  progresscard: { borderRadius: 10, padding: 12 },
   poprogresscard: {backgroundColor:'#FFF7ED',borderRadius: 10, padding: 12 },
   cardInsideSwipe: { marginHorizontal: 0, marginVertical: 0, borderRadius: 0 },
   progressLabel: { flex: 2, flexDirection: 'row' },
@@ -1444,8 +1462,8 @@ const styles = StyleSheet.create({
   valueText: { fontFamily: 'Mulish', fontSize: 12, fontWeight: '700', color: '#595A5C', flex: 1, textAlign: 'left' },
   orderdatevalueText: { fontFamily: 'Mulish', fontSize: 12, fontWeight: '700', color: '#595A5C', flex: 1, textAlign: 'left',marginTop:-15 },
   subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
-  progressWrapper: { backgroundColor: '#D9E4EE', borderRadius: 20, height: 10, width: '100%', justifyContent: 'center',  marginTop: 4, marginBottom: 6, },
-  poprogressWrapper: { backgroundColor: '#FCDFCC', borderRadius: 20, height: 10, width: '100%', justifyContent: 'center',  marginTop: 4, marginBottom: 6, },
+  progressWrapper: { borderRadius: 20, height: 10, width: '100%', justifyContent: 'center',  marginTop: 4, marginBottom: 6, },
+  poprogressWrapper: { backgroundColor: 'green', borderRadius: 20, height: 10, width: '100%', justifyContent: 'center',  marginTop: 4, marginBottom: 6, },
   progressBarleft: { height: 8, borderRadius: 2, marginHorizontal: 0 },
 
   incompleteRowContainer: { marginHorizontal: 12, marginVertical: 6, borderRadius: 12, backgroundColor: '#FFFFFF', overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
