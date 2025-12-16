@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -49,7 +43,7 @@ export default function Rec_PutAwaySerialModalPopup({
   savedSerials = [],
   initialSelectedSerials = [],
   onConfirm,
-  requireValidationAgainstSaved = false,
+  requireValidationAgainstSaved = true,
 }) {
   const [rows, setRows] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
@@ -70,12 +64,11 @@ export default function Rec_PutAwaySerialModalPopup({
   const qty = Number(putawayQty || 0);
 
   const isFullPutAway =
-    qty > 0 && qty === savedSerialsNormalized.length && savedSerialsNormalized.length > 0;
+    qty > 0 &&
+    qty === savedSerialsNormalized.length &&
+    savedSerialsNormalized.length > 0;
 
-  const canAddRow = useMemo(
-    () => qty > 0 && rows.length < qty,
-    [rows.length, qty],
-  );
+  const canAddRow = useMemo(() => qty > 0 && rows.length < qty, [rows.length, qty]);
 
   useEffect(() => {
     if (!visible) return;
@@ -140,9 +133,7 @@ export default function Rec_PutAwaySerialModalPopup({
   const setRowSerial = useCallback(
     (rowId, value) => {
       clearError();
-      setRows(prev =>
-        prev.map(r => (r.id === rowId ? { ...r, serial: value } : r)),
-      );
+      setRows(prev => prev.map(r => (r.id === rowId ? { ...r, serial: value } : r)));
     },
     [clearError],
   );
@@ -189,6 +180,7 @@ export default function Rec_PutAwaySerialModalPopup({
       setScannerVisible(false);
       if (!v) return;
       const target = scanTargetRef.current;
+
       if (target.addNew) {
         if (!canAddRow) return;
         setRows(prev => [
@@ -203,11 +195,10 @@ export default function Rec_PutAwaySerialModalPopup({
         ]);
       } else {
         setRows(prev =>
-          prev.map(r =>
-            r.id === target.rowId ? { ...r, serial: v } : r,
-          ),
+          prev.map(r => (r.id === target.rowId ? { ...r, serial: v } : r)),
         );
       }
+
       scanTargetRef.current = { rowId: null, addNew: false };
     },
     [canAddRow],
@@ -245,25 +236,25 @@ export default function Rec_PutAwaySerialModalPopup({
       return result;
     }
 
-    const savedSet = new Set(savedSerialsNormalized);
-    const invalids = [];
-    rows.forEach(r => {
-      const v = (r.serial || '').trim();
-      if (v && !savedSet.has(v)) {
-        invalids.push(r.id);
-      }
-    });
+    if (requireValidationAgainstSaved) {
+      const savedSet = new Set(savedSerialsNormalized);
+      const invalids = [];
+      rows.forEach(r => {
+        const v = (r.serial || '').trim();
+        if (v && !savedSet.has(v)) invalids.push(r.id);
+      });
 
-    if (invalids.length > 0) {
-      result.msg = 'Invalid Serial added';
-      result.invalidIds = invalids;
-      return result;
+      if (invalids.length > 0) {
+        result.msg = 'Invalid Serial added';
+        result.invalidIds = invalids;
+        return result;
+      }
     }
 
     result.ok = true;
     result.serials = serials;
     return result;
-  }, [qty, rows, computeDupIds, savedSerialsNormalized]);
+  }, [qty, rows, computeDupIds, savedSerialsNormalized, requireValidationAgainstSaved]);
 
   const handleConfirm = useCallback(() => {
     setInvalidIds([]);
@@ -338,10 +329,7 @@ export default function Rec_PutAwaySerialModalPopup({
                 activeOpacity={0.9}
                 disabled={!canAddRow}
                 onPress={() => openScannerForRow(null, true)}
-                style={[
-                  styles.addTouchWrap,
-                  !canAddRow && styles.addTouchDisabled,
-                ]}
+                style={[styles.addTouchWrap, !canAddRow && styles.addTouchDisabled]}
               >
                 <Text
                   style={[
@@ -385,18 +373,12 @@ export default function Rec_PutAwaySerialModalPopup({
               </View>
 
               {rows.map(r => {
-                const isInvalid =
-                  dupIds.has(r.id) || invalidIds.includes(r.id);
+                const isInvalid = dupIds.has(r.id) || invalidIds.includes(r.id);
                 return (
                   <View key={r.id} style={styles.rowWrap}>
                     <Text style={styles.rowEntryText}>#{r.entry}</Text>
                     <View style={styles.inputWrap}>
-                      <View
-                        style={[
-                          styles.inputBox,
-                          isInvalid && styles.inputBoxError,
-                        ]}
-                      >
+                      <View style={[styles.inputBox, isInvalid && styles.inputBoxError]}>
                         <TextInput
                           value={r.serial}
                           onChangeText={txt => setRowSerial(r.id, txt)}

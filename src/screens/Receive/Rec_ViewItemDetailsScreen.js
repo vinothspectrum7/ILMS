@@ -52,6 +52,8 @@ import Barcodescanner from '../../assets/icons/barcodescanner.svg';
 import BarcodeScanner from '../../screens/BarCodeScanner';
 import Rec_InspectLotSerialModalPopup from '../../components/receive/Rec_InspectLotSerialModalPopup';
 import Rec_PutAwayLotModalPopup from '../../components/receive/Rec_PutAwayLotModalPopup';
+import Rec_PutAwaySerialModalPopup from '../../components/receive/Rec_PutAwaySerialModalPopup';
+
 
 
 
@@ -138,6 +140,11 @@ const Rec_ViewItemDetailsScreen = () => {
   const [serialModalVisible, setSerialModalVisible] = useState(false);
   const [lotserialModalVisible, setLotSerialModalVisible] = useState(false);
   const [inspectSerialModalVisible, setInspectSerialModalVisible] = useState(false);
+
+  const [putAwaySerialModalVisible, setPutAwaySerialModalVisible] = useState(false);
+  const [putAwaySelectedSerialsMap, setPutAwaySelectedSerialsMap] = useState({});
+  const [putAwayEditedMap, setPutAwayEditedMap] = useState({});
+
 
   const listRef = useRef(null);
   const isProgrammaticScroll = useRef(false);
@@ -528,6 +535,35 @@ const openInspectLotSerialSerialModal = useCallback(() => {
     setEdited(next);
   }, [allItems, receiveItems, readOnly]);
 
+  useEffect(() => {
+    if (readOnly) return;
+
+    const next = {};
+    for (const it of allItems) {
+      const fromStore = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(it.id))
+        : undefined;
+
+      next[it.id] = {
+        subInventory:
+          fromStore?.putAwaySubInventory ??
+          fromStore?.subInventory ??
+          it.subInventory ??
+          OrgData?.selectedinventory ??
+          '',
+        locator:
+          fromStore?.putAwayLocator ??
+          fromStore?.locator ??
+          it.locator ??
+          '',
+        putAwayQty: Number(fromStore?.putAwayQty ?? 0),
+      };
+    }
+
+    setPutAwayEditedMap(next);
+  }, [allItems, receiveItems, readOnly, OrgData]);
+
+
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
@@ -641,6 +677,30 @@ const openInspectLotSerialSerialModal = useCallback(() => {
       [itemId]: { ...(prev[itemId] ?? {}), locator: locatorId },
     }));
   };
+
+  const handlePutAwaySubInvChange = (itemId, subInvId) => {
+    setPutAwayEditedMap(prev => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] ?? {}), subInventory: subInvId, locator: '' },
+    }));
+  };
+
+  const handlePutAwayLocatorChange = (itemId, locatorId) => {
+    setPutAwayEditedMap(prev => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] ?? {}), locator: locatorId },
+    }));
+  };
+
+  const handlePutAwayQtyChange = (itemId, limit, newQty) => {
+    if (readOnly) return;
+    const clamped = clampToLimit(newQty, limit);
+    setPutAwayEditedMap(prev => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] ?? {}), putAwayQty: clamped },
+    }));
+  };
+
 
   const handleLpnChange = (itemId, lpnId) => {
     setEdited(prev => ({
@@ -951,19 +1011,54 @@ const openInspectLotSerialSerialModal = useCallback(() => {
       ? receiveItems.find(r => String(r.id) === String(current.id))
       : null;
 
-    const putAwayLots = stored?.putAwayLots ?? [];
-    const putAwayStatus = stored?.putAwayStatus ?? 'Passed';
+    const putAwayLots = Array.isArray(stored?.putAwayLots) ? stored.putAwayLots : [];
+
+    const local = putAwayEditedMap[current.id] ?? {};
+    const localPutAwaySubInv = local.subInventory ?? '';
+    const localPutAwayLocator = local.locator ?? '';
+    const localPutAwayQty = Number(local.putAwayQty ?? 0);
+
+    const localPutAwaySerials = Array.isArray(putAwaySelectedSerialsMap[current.id])
+      ? putAwaySelectedSerialsMap[current.id]
+      : [];
+
+    const isSerialPassed =
+      itemType === 'Serial' &&
+      localPutAwayQty > 0 &&
+      localPutAwaySerials.length === localPutAwayQty;
+
+    const computedPutAwayStatus =
+      itemType === 'Serial'
+        ? isSerialPassed
+          ? 'Passed'
+          : 'Pending'
+        : stored?.putAwayStatus ?? 'Pending';
 
     mergePatchIntoReceiveItems({
       id: String(current.id),
       putAwayLots,
-      putAwayStatus,
+      putAwaySubInventory: localPutAwaySubInv,
+      putAwayLocator: localPutAwayLocator,
+      putAwayQty: localPutAwayQty,
+      putAwaySerials: localPutAwaySerials,
+      putAwayStatus: computedPutAwayStatus,
       lastPutAwayDate: new Date().toISOString(),
     });
 
     if (returnTo) navigation.navigate(returnTo, { listType });
     else navigation.goBack();
-  }, [current, receiveItems, mergePatchIntoReceiveItems, returnTo, navigation, listType]);
+  }, [
+    current,
+    itemType,
+    receiveItems,
+    putAwayEditedMap,
+    putAwaySelectedSerialsMap,
+    mergePatchIntoReceiveItems,
+    returnTo,
+    navigation,
+    listType,
+  ]);
+
 
 
   const titleContext = current?.poNumber ? String(current.poNumber) : 'Receiving';
@@ -986,6 +1081,43 @@ const openInspectLotSerialSerialModal = useCallback(() => {
     : [];
 
   const itemType = current?.itemType || null;
+
+  const currentPutAwayEdited = current ? putAwayEditedMap[current.id] ?? {} : {};
+  const putAwaySubInventory = currentPutAwayEdited.subInventory ?? '';
+  const putAwayLocator = currentPutAwayEdited.locator ?? '';
+  const putAwayQty = Number(currentPutAwayEdited.putAwayQty ?? 0);
+
+  const putAwayMax =
+    current && savedSerialsCount > 0 ? Math.min(currentQty, savedSerialsCount) : 0;
+
+  const putAwaySelectedSerials = current
+    ? Array.isArray(putAwaySelectedSerialsMap[current.id])
+      ? putAwaySelectedSerialsMap[current.id]
+      : []
+    : [];
+
+  const putAwayHasSerialSelection = putAwaySelectedSerials.length > 0;
+
+  const isPutAwaySerialPassed =
+    putAwayQty > 0 && putAwaySelectedSerials.length === putAwayQty;
+
+  const putAwaySerialStatusCardBg = isPutAwaySerialPassed ? '#EEFDF8' : '#FFF8EC';
+  const putAwaySerialStatusCardBorder = isPutAwaySerialPassed ? '#73B386' : '#F06000';
+  const putAwaySerialStatusCardTextColor = isPutAwaySerialPassed ? '#168035' : '#F06000';
+  const putAwaySerialStatusPillBg = isPutAwaySerialPassed ? '#168035' : '#FCDFCC';
+
+  const putAwaySerialAddEnabled =
+    !readOnly &&
+    !!current &&
+    currentQty > 0 &&
+    !!putAwaySubInventory &&
+    !!putAwayLocator &&
+    putAwayQty > 0 &&
+    putAwayQty <= putAwayMax;
+
+  const shouldShowPutAwaySummary =
+    !!putAwaySubInventory && !!putAwayLocator && putAwayQty > 0;
+
 
   const itemPills = (() => {
     const showLot = itemType === 'Lot';
@@ -1270,8 +1402,13 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
         ? allSavedLotsPutAwayCompleted
           ? handleSavePutAway
           : undefined
+        : itemType === 'Serial'
+        ? isPutAwaySerialPassed
+          ? handleSavePutAway
+          : undefined
         : undefined
       : undefined;
+
 
 
 
@@ -1289,8 +1426,11 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
       : activeTab === 'PutAway'
       ? itemType === 'Lot'
         ? allSavedLotsPutAwayCompleted
+        : itemType === 'Serial'
+        ? isPutAwaySerialPassed
         : false
       : false;
+
 
 
 
@@ -2353,11 +2493,221 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
   </View>
 )}
 
-{activeTab === 'PutAway' && (!current || itemType !== 'Lot') && (
-  <View style={styles.putAwayContainer}>
-    <Text style={styles.putAwayText}>Nothing to Show</Text>
-  </View>
-)}
+            {activeTab === 'PutAway' && current && itemType === 'Serial' && (
+              <View style={styles.inspectContainer}>
+                <View
+                  style={[
+                    styles.inspectInfoCard,
+                    {
+                      backgroundColor: putAwaySerialStatusCardBg,
+                      borderColor: putAwaySerialStatusCardBorder,
+                    },
+                  ]}
+                >
+                  <View style={styles.inspectInfoIconWrap}>
+                    {isPutAwaySerialPassed ? (
+                      <PassedPutAwayIcon width={24} height={24} />
+                    ) : (
+                      <PendingPutAwayIcon width={24} height={24} />
+                    )}
+                  </View>
+
+                  <View style={styles.inspectInfoMiddle}>
+                    <Text
+                      style={[
+                        styles.inspectInfoLabel,
+                        { color: putAwaySerialStatusCardTextColor },
+                      ]}
+                    >
+                      Put Away Status
+                    </Text>
+
+                    <View
+                      style={[
+                        styles.inspectStatusPill,
+                        { backgroundColor: putAwaySerialStatusPillBg },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.inspectStatusPillText,
+                          isPutAwaySerialPassed
+                            ? styles.inspectStatusPillTextPassed
+                            : styles.inspectStatusPillTextPending,
+                        ]}
+                      >
+                        {isPutAwaySerialPassed ? 'Passed' : 'Pending'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.inspectInfoRightText,
+                      { color: putAwaySerialStatusCardTextColor },
+                    ]}
+                  >
+                    Serial Controlled
+                  </Text>
+                </View>
+
+                <View style={styles.inspectRecQtyRow}>
+                  <Text style={styles.inspectRecQtyLabel}>Receiving Qty</Text>
+                  <Text style={styles.inspectRecQtyValue}>
+                    {currentQty}{' '}
+                    <Text style={styles.inspectRecQtyValueUnit}>Qty</Text>
+                  </Text>
+                </View>
+
+                <View style={styles.inspectStatusSection}>
+                  <Text style={styles.mandLabel}>Sub Inventory*</Text>
+                  <Rec_DropDown
+                    value={putAwaySubInventory}
+                    onChange={val => handlePutAwaySubInvChange(current.id, val)}
+                    items={InventoryList}
+                    placeholder="Select Sub Inventory"
+                    disabled={readOnly || currentQty === 0}
+                    width="100%"
+                    height={32}
+                  />
+                </View>
+
+                <View style={styles.inspectStatusSection}>
+                  <Text style={styles.mandLabel}>Target Locator*</Text>
+                  <Rec_DropDown
+                    value={putAwayLocator}
+                    onChange={val => handlePutAwayLocatorChange(current.id, val)}
+                    items={locatorDataMap[current.id] ?? []}
+                    placeholder="Select Target Locator"
+                    disabled={readOnly || currentQty === 0 || !putAwaySubInventory}
+                    width="100%"
+                    height={32}
+                  />
+                </View>
+
+                <View style={styles.inspectQtySection}>
+                  <Text style={styles.inspectQtyLabel}>Put Away Qty</Text>
+                  <View style={styles.inspectQtyInputWrapper}>
+                    <Rec_CustomNumericInput
+                      key={`putawayqty-${String(current.id)}`}
+                      value={putAwayQty}
+                      bgColor="#5D768B"
+                      borderColor="#5D768B"
+                      textColor="#FFFFFF"
+                      height={ms(50)}
+                      setValue={v => {
+                        const raw = typeof v === 'function' ? v(putAwayQty) : v;
+                        handlePutAwayQtyChange(current.id, putAwayMax, raw);
+                      }}
+                      max={putAwayMax}
+                      min={0}
+                      step={1}
+                      width="100%"
+                      isSelected
+                      disabledinput={currentQty === 0 || putAwayMax === 0}
+                    />
+                  </View>
+                </View>
+
+                {shouldShowPutAwaySummary && (
+                  <View style={{ marginTop: ms(16) }}>
+                    <View
+                      style={{
+                        height: ms(34),
+                        backgroundColor: '#5D768B',
+                        borderTopLeftRadius: ms(10),
+                        borderTopRightRadius: ms(10),
+                        justifyContent: 'center',
+                        paddingHorizontal: ms(12),
+                      }}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: ms(12) }}>
+                        Summary
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderBottomLeftRadius: ms(10),
+                        borderBottomRightRadius: ms(10),
+                        padding: ms(12),
+                        borderWidth: 1,
+                        borderColor: '#ECF1F7',
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#595A5C', fontSize: ms(11), fontWeight: '600' }}>
+                            Item
+                          </Text>
+                          <Text style={{ color: '#111827', fontSize: ms(12), fontWeight: '700', marginTop: ms(3) }}>
+                            {current?.itemName || '-'}
+                          </Text>
+
+                          <Text style={{ color: '#595A5C', fontSize: ms(11), fontWeight: '600', marginTop: ms(10) }}>
+                            From
+                          </Text>
+                          <Text style={{ color: '#111827', fontSize: ms(12), fontWeight: '700', marginTop: ms(3) }}>
+                            {(() => {
+                              const found = InventoryList?.find(x => String(x.id) === String(putAwaySubInventory));
+                              return found?.name || putAwaySubInventory || '-';
+                            })()}
+                          </Text>
+                        </View>
+
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#595A5C', fontSize: ms(11), fontWeight: '600' }}>
+                            Quantity
+                          </Text>
+                          <Text style={{ color: '#111827', fontSize: ms(12), fontWeight: '700', marginTop: ms(3) }}>
+                            {putAwayQty} {current?.uom || ''}
+                          </Text>
+
+                          <Text style={{ color: '#595A5C', fontSize: ms(11), fontWeight: '600', marginTop: ms(10) }}>
+                            To
+                          </Text>
+                          <Text style={{ color: '#111827', fontSize: ms(12), fontWeight: '700', marginTop: ms(3) }}>
+                            {(() => {
+                              const list = locatorDataMap[current.id] ?? [];
+                              const found = list.find(x => String(x.id) === String(putAwayLocator));
+                              return found?.name || putAwayLocator || '-';
+                            })()}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.inspectSerialButtonRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.inspectSerialBtn,
+                      putAwayHasSerialSelection && styles.inspectSerialBtnAddedBackground,
+                      !putAwaySerialAddEnabled && styles.inspectSerialBtnDisabled,
+                    ]}
+                    activeOpacity={0.9}
+                    disabled={!putAwaySerialAddEnabled}
+                    onPress={() => setPutAwaySerialModalVisible(true)}
+                  >
+                    {putAwayHasSerialSelection && (
+                      <View style={styles.inspectSerialTickWrap}>
+                        <InspectTickIcon width={16} height={16} />
+                      </View>
+                    )}
+                    <Text
+                      style={[
+                        styles.inspectSerialBtnText,
+                        putAwayHasSerialSelection && styles.inspectSerialBtnTextAdded,
+                      ]}
+                    >
+                      {putAwayHasSerialSelection ? 'Serial Added' : 'Add Serial'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
             
           </View>
 
@@ -2616,7 +2966,29 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
               });
               setInspectSerialModalVisible(false);
             }}
-          />          
+          />
+
+          <Rec_PutAwaySerialModalPopup
+            visible={putAwaySerialModalVisible}
+            onClose={() => setPutAwaySerialModalVisible(false)}
+            putawayQty={putAwayQty}
+            savedSerials={currentSavedSerials}
+            initialSelectedSerials={
+              current && Array.isArray(putAwaySelectedSerialsMap[current.id])
+                ? putAwaySelectedSerialsMap[current.id]
+                : []
+            }
+            requireValidationAgainstSaved={true}
+            onConfirm={serials => {
+              if (!current) return;
+              setPutAwaySelectedSerialsMap(prev => ({
+                ...prev,
+                [current.id]: serials,
+              }));
+              setPutAwaySerialModalVisible(false);
+            }}
+          />
+          
         </>
       )}
 
