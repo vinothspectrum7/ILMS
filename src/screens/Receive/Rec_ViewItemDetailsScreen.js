@@ -70,6 +70,16 @@ const clampToLimit = (qty, limit) => {
   return Math.min(q, lim);
 };
 
+const getId = v => {
+  if (v == null) return '';
+  if (typeof v === 'string' || typeof v === 'number') return String(v);
+  if (typeof v === 'object' && (v.id != null || v.locator_id != null)) {
+    return String(v.id ?? v.locator_id);
+  }
+  return '';
+};
+
+
 const INSPECTION_STATUS_OPTIONS = [
   { id: 'Above Average', name: 'Above Average' },
   { id: 'Average', name: 'Average' },
@@ -678,19 +688,22 @@ const openInspectLotSerialSerialModal = useCallback(() => {
     }));
   };
 
-  const handlePutAwaySubInvChange = (itemId, subInvId) => {
+  const handlePutAwaySubInvChange = (itemId, val) => {
+    const id = getId(val);
     setPutAwayEditedMap(prev => ({
       ...prev,
-      [itemId]: { ...(prev[itemId] ?? {}), subInventory: subInvId, locator: '' },
+      [itemId]: { ...(prev[itemId] ?? {}), subInventory: id, locator: '' },
     }));
   };
 
-  const handlePutAwayLocatorChange = (itemId, locatorId) => {
+  const handlePutAwayLocatorChange = (itemId, val) => {
+    const id = getId(val);
     setPutAwayEditedMap(prev => ({
       ...prev,
-      [itemId]: { ...(prev[itemId] ?? {}), locator: locatorId },
+      [itemId]: { ...(prev[itemId] ?? {}), locator: id },
     }));
   };
+
 
   const handlePutAwayQtyChange = (itemId, limit, newQty) => {
     if (readOnly) return;
@@ -1087,8 +1100,40 @@ const openInspectLotSerialSerialModal = useCallback(() => {
   const putAwayLocator = currentPutAwayEdited.locator ?? '';
   const putAwayQty = Number(currentPutAwayEdited.putAwayQty ?? 0);
 
+  const putAwaySavedSerialsCount = currentSavedSerials.length; // Saved Receive Serials Count (same source)
+
   const putAwayMax =
-    current && savedSerialsCount > 0 ? Math.min(currentQty, savedSerialsCount) : 0;
+    current && putAwaySavedSerialsCount > 0
+      ? Math.min(currentQty, putAwaySavedSerialsCount)
+      : 0;
+
+
+      useEffect(() => {
+        if (readOnly) return;
+        if (!current) return;
+        if (activeTab !== 'PutAway') return;
+        if (itemType !== 'Serial') return;
+
+        if (putAwayMax <= 0) return;
+
+        setPutAwayEditedMap(prev => {
+          const line = prev[current.id] ?? {};
+          const existingQty = Number(line.putAwayQty ?? 0);
+
+          // keep user's qty if already valid
+          if (existingQty > 0 && existingQty <= putAwayMax) return prev;
+
+          return {
+            ...prev,
+            [current.id]: {
+              ...line,
+              putAwayQty: putAwayMax,
+            },
+          };
+        });
+      }, [readOnly, current?.id, activeTab, itemType, putAwayMax]);
+
+
 
   const putAwaySelectedSerials = current
     ? Array.isArray(putAwaySelectedSerialsMap[current.id])
@@ -2651,7 +2696,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                           <Text style={{ color: '#111827', fontSize: ms(12), fontWeight: '700', marginTop: ms(3) }}>
                             {(() => {
                               const found = InventoryList?.find(x => String(x.id) === String(putAwaySubInventory));
-                              return found?.name || putAwaySubInventory || '-';
+                              return found?.name || '-';
                             })()}
                           </Text>
                         </View>
@@ -2671,7 +2716,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                             {(() => {
                               const list = locatorDataMap[current.id] ?? [];
                               const found = list.find(x => String(x.id) === String(putAwayLocator));
-                              return found?.name || putAwayLocator || '-';
+                              return found?.name || '-';
                             })()}
                           </Text>
                         </View>
