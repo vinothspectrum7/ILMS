@@ -630,7 +630,7 @@ const NewReceiveScreen = () => {
                 onPress={() => setShowScanner(true)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.scanText}>Scan your item</Text>
+                <Text style={styles.scanText}>Scan more item</Text>
                 <BarcodeScannerIcon width={20} height={20} fill="#7A7A7A" />
               </TouchableOpacity>
               <View style={styles.tableHeader}>
@@ -779,7 +779,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  scanText: { color: '#777' },
+  scanText: { color: '#242424' },
 });
 
 export default NewReceiveScreen;

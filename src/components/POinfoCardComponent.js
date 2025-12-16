@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Platform, ImageBackground } from 'react-native';
+// import CardBg from '../assets/icons/poinfobackimage.svg';
 
 const dash = '—';
 
@@ -23,8 +24,12 @@ const formatDate = () => {
   return `${dd} ${mmm} ${yyyy}`;
 };
   return (
-    <View style={styles.card}>
-      
+    <ImageBackground
+  source={require('../assets/icons/posinfobackimage.png')} // your image path
+  style={styles.card}
+  imageStyle={styles.cardBgImage} // for border radius
+>
+    {/* <View style={styles.card}> */}
         <View style={styles.toprow}>
           <View style={styles.topcardLeft}>
           <Text style={styles.labelText}>Purchase Receipt</Text>
@@ -37,15 +42,16 @@ const formatDate = () => {
         </View>
         <View style={styles.bottomrow}>
           <View style={styles.bottomcardLeft}>
-          <Text style={styles.labelText}>Purchase Order</Text>
+          <Text style={styles.labelText}>PO Number</Text>
           <Text style={styles.valueText}>{po}</Text>
           </View>
           <View style={styles.bottomcardRight}>
-          <Text style={styles.labelText}>Receipt Date</Text>
+          <Text style={styles.labelText}>Received Date</Text>
           <Text style={styles.valueText}>{formatDate()}</Text>
         </View>
       </View>
-    </View>
+    {/* </View> */}
+    </ImageBackground>
   );
 };
 
@@ -59,7 +65,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(12),
     padding: scale(12),
     ...Platform.select({
-      android: { elevation: 2 },
+      // android: { elevation: 2 },
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -68,6 +74,9 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  cardBgImage: {
+  borderRadius: 12,
+},
   topcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), paddingBottom: scale(6), minWidth: 0 },
   topcardRight: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingLeft: scale(6), paddingBottom: scale(6), minWidth: 0 },
   bottomcardLeft: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingRight: scale(6), minWidth: 0 },
@@ -85,20 +94,27 @@ const styles = StyleSheet.create({
   },
   labelText: {
     fontSize: ms(10),
-    color: '#666666',
+    color: '#233E55',
     flex: 1,
     marginRight: scale(6),
   },
   valueText: {
     fontSize: ms(10),
-    fontWeight: 'bold',
-    color: '#1C1C1C',
+    fontWeight: '700',
+    color: '#233E55',
     flex: 1,
     textAlign: 'left',
   },
   openText: { color: 'green' },
   subLabel: { fontSize: ms(10), color: '#666666', marginTop: scale(4), marginBottom: scale(2) },
   column: { flex: 1 },
+  svgBackground: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+},
 });
 
 export default POinfoCardComponent;

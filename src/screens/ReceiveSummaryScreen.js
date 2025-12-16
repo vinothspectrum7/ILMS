@@ -541,7 +541,7 @@ const ReceiveSummaryScreen = () => {
         />
 
         <View style={styles.itemcontainer}>
-          <Text style={styles.itemName}>Item Summary</Text>
+          <Text style={styles.itemName}>Items Summary</Text>
 
           <View style={styles.tableHeader}>
             <SummaryTabHdrComponent />

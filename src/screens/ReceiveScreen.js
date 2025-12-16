@@ -52,7 +52,7 @@ const getPOProgressColor = (percent) => {
   const p = Number(percent || 0);
   if (p >= 100) return '#168035';
   if (p > 0) return '#F06000';
-  return '#ECF1F7';
+  return '#F06000';
 };
 const toBackendStatus = (label) => {
   const v = String(label || '').toLowerCase();
@@ -1489,7 +1489,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 5,
     borderRadius: 8,
-    width: '40%',
+    width: '35%',
     marginBottom: scale(5)
   },
 

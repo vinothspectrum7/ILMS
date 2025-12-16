@@ -1,10 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions } from 'react-native';
+import Enterdetailsicon from '../assets/icons/enter_details.svg';
+import Viewdetailsicon from '../assets/icons/Viewdetailsicon.svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => Math.round(size + (scale(size) - size) * factor);
+const s = (n) => (SCREEN_WIDTH / BASE_WIDTH) * n;             // size scale
+const fs = (n, f = 0.35) => n + (s(n) - n) * f;      
 
 const ConfirmLineItemComponent = ({
   item,
@@ -90,50 +94,66 @@ const ConfirmLineItemComponent = ({
       { marginRight: isSwipe ? -20 : scale(15) } // ✅ per-item margin
     ]}>
       <View style={styles.rowContainer}>
-        <View style={styles.section2}>
-          <Text style={styles.itemName} numberOfLines={2} ellipsizeMode="tail">
-            {item.name}
-          </Text>
+    <View style={styles.content}>
 
-          <View style={styles.qtyBreakdownRow}>
-            <Text style={styles.metaText}>Ordered Qty: {item.orderedQty}</Text>
-            <View style={styles.vertDivider} />
+  <View style={styles.rowBetween}>
+    <Text style={styles.itemName}>{item.name}</Text>
+
+                <TextInput
+              style={styles.qtyInput}
+              editable={false}
+              value={displayQty}
+            />
+  </View>
+            <View style={styles.qtyRow}>
+              <Text style={styles.metaText}>Ordered Qty: {item.orderedQty}</Text>
+                      <View style={styles.vertDivider} />
             {showReceivedBreakdown && (
               <>
                 <Text style={styles.metaText}>Received Qty: {receivedQty}</Text>
                 <View style={styles.vertDivider} />
               </>
             )}
-            <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
-          </View>
+              {/* <View style={styles.vertDivider} /> */}
+          
+              <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
+          
+          
+              <Text style={styles.uomText}>{item.uom}</Text>
+            </View>
 
-          <TouchableOpacity onPress={onViewDetails} activeOpacity={0.7}>
+          {/* <TouchableOpacity onPress={onViewDetails} activeOpacity={0.7}>
             <Text style={styles.viewDetails}>View Details</Text>
-          </TouchableOpacity>
-        </View>
+          </TouchableOpacity> */}
+      <TouchableOpacity
+        style={[
+  styles.enterDetailsBox,
+  displayQty>0
+    ? { borderWidth:0,backgroundColor:'#ECF1F7' }
+    : { borderStyle: 'dashed', borderColor: '#D9E4EE' },
+]}
 
-        <View style={styles.section3}>
-          <View style={styles.qtyBox}>
-            <TextInput
-              style={styles.qtyInput}
-              editable={false}
-              value={displayQty}
-            />
-          </View>
-          <Text style={styles.uomText}>{qtyLabel}</Text>
-          <View style={styles.dateRowtop}>
-            <Text style={styles.dateLabel}>Promised Date: </Text>
-            <Text style={styles.dateValue} numberOfLines={1} ellipsizeMode="tail">
-              {formatDate(item.promisedDate)}
-            </Text>
-          </View>
-          <View style={styles.dateRowbottom}>
-            <Text style={styles.dateLabel}>Need By Date: </Text>
-            <Text style={styles.dateValue} numberOfLines={1} ellipsizeMode="tail">
-              {formatDate(item.needByDate)}
-            </Text>
-          </View>
+        onPress={onViewDetails}
+        activeOpacity={0.8}
+      >
+          {displayQty==0?(<View style={{flexDirection:'row'}}>
+            <Enterdetailsicon name="edit" height={14}  />
+        <Text style={styles.enterDetailsText}>Enter Details</Text>
+        </View>):(
+        <View style={{flexDirection:'row'}}>
+            <Viewdetailsicon name="view" height={14} width={14} style={{margin:1}}  />
+        <Text style={styles.enterDetailsText}>View Details</Text>
+        </View>)}
+        <View style={styles.datesRight}>
+          <Text style={styles.dateValue}>
+            Promised Date: {formatDate(item.promisedDate)}
+          </Text>
+          <Text style={styles.dateValue}>
+            Need By Date:   {formatDate(item.needByDate)}
+          </Text>
         </View>
+      </TouchableOpacity>
+      </View>
       </View>
     </View>
   );
@@ -141,16 +161,46 @@ const ConfirmLineItemComponent = ({
 
 const styles = StyleSheet.create({
   cardwrapper: {
-    paddingRight: scale(12),
+    // paddingRight: scale(12),
     paddingLeft: 0,
     marginRight: scale(15),
     marginLeft: scale(15),
-    height: scale(110),
+    height: scale(130),
     backgroundColor: '#FBFBFB',
     borderWidth: 1,
     borderColor: '#FBFBFB',
     borderRadius: scale(10),
+    elevation:3
   },
+    rowBetween: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+},
+  content: {
+    flex: 1,
+    padding: s(10),
+  },
+
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+
+  },
+
+  rightTop: {
+    alignItems: 'flex-end',
+  },
+qtyRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: s(4),
+  // paddingBottom:5,
+  // borderBottomWidth: 1,
+  // borderColor: '#BFD3FF',
+  // borderStyle: 'dashed',
+},
+
   rowContainer: { flexDirection: 'row', height: '100%' },
   section2: {
     flex: 1,
@@ -174,43 +224,71 @@ const styles = StyleSheet.create({
     color: '#111827',
     
   },
+    qtyBreakdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: s(4),
+  },
   qtyBox: {
     justifyContent: 'center',
     alignItems: 'center',
     height: ms(36),
   },
+    enterDetailsBox: {
+    marginTop: s(8),
+    padding: s(6),
+    borderWidth: 1,
+    // borderColor: '#D9E4EE',
+    // borderStyle: 'dashed',
+    borderRadius: s(6),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  enterDetailsText: {
+    fontSize: fs(11),
+    color: '#145DA0',
+    fontWeight: '500',
+    letterSpacing:0.1,
+    marginLeft:5
+  },
   qtyInput: {
-    width: Math.max(ms(64), SCREEN_WIDTH * 0.18),
+    // width: Math.max(ms(64), SCREEN_WIDTH * 0.18),
     height: ms(34),
     borderRadius: ms(6),
     fontSize: ms(14),
     textAlign: 'right',
     paddingVertical: 0,
-    paddingHorizontal: ms(10),
+    // paddingHorizontal: ms(10),
     borderColor: '#FFFFFF',
     fontWeight: 'bold',
     borderWidth: 1,
     color: '#000000',
+    // marginLeft:'auto'
   },
   uomText: {
     fontSize: ms(10),
     color: '#242424',
-    marginTop: ms(-6),
-    marginBottom: ms(10),
-    marginRight: ms(10),
+    marginTop: ms(-2),
+    paddingRight: s(4),
+    // marginBottom: ms(10),
+    // marginRight: ms(10),
+        marginLeft:'auto'
+
   },
-  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center' },
     vertDivider: {
       width: Math.max(StyleSheet.hairlineWidth, scale(1)),
       height: scale(18),
-      backgroundColor: '#DADADA',
+      backgroundColor: '#9D9FA3',
       marginHorizontal: scale(12),
       borderRadius: scale(0.5),
       opacity: 0.9,
     },
   metaText: {
     fontSize: ms(10),
-    color: '#6B7280',
+    color: '#595A5C',
+    // fontWeight:500
   },
   viewDetails: {
     
