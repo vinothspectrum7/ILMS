@@ -459,9 +459,9 @@ const fetchImageForItem = async (itemId) => {
                 </Text>
 
                 {/* Camera icon (opens picker for this item) */}
-                {/* <TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
+                {!readOnly &&<TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(item.id)}>
                   <CameraIcon width={25} height={25} />
-                </TouchableOpacity> */}
+                </TouchableOpacity>}
 
                 {/* Thumbnail area */}
                 <View style={styles.imageWrapper}>
@@ -748,8 +748,8 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     position: 'relative',
-    width: 70,
-    height: 70,
+    width: 50,
+    height: 50,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,

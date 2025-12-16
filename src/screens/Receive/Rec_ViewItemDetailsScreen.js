@@ -11,6 +11,9 @@ import {
   Image,
   BackHandler,
   Modal,
+  Alert,
+  Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -27,7 +30,7 @@ import Rec_LotSerialModalPopup from '../../components/receive/Rec_LotSerialModal
 import Rec_SerialModalPopup from '../../components/receive/Rec_SerialModalPopup';
 import Rec_InspectSerialModalPopup from '../../components/receive/Rec_InspectSerialModalPopup';
 import { useReceivingStore } from '../../store/receivingStore';
-import { GetLocatorsData, LPNList } from '../../api/ApiServices';
+import { GetItemImage, GetLocatorsData, LPNList } from '../../api/ApiServices';
 import ReceiveItemBoxIcon from '../../assets/icons/receiveitemboxicon.svg';
 import ReceiveQtyIcon from '../../assets/icons/receiveqtyicon.svg';
 import ReceiveLocationIcon from '../../assets/icons/receivelocationicon.svg';
@@ -53,6 +56,8 @@ import BarcodeScanner from '../../screens/BarCodeScanner';
 import Rec_InspectLotSerialModalPopup from '../../components/receive/Rec_InspectLotSerialModalPopup';
 import Rec_PutAwayLotModalPopup from '../../components/receive/Rec_PutAwayLotModalPopup';
 import Rec_PutAwaySerialModalPopup from '../../components/receive/Rec_PutAwaySerialModalPopup';
+import CameraIcon from '../../assets/icons/CameraIcon.svg';
+
 
 
 
@@ -258,6 +263,10 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const [inspectionDataMap, setInspectionDataMap] = useState({});
   const [selectedLotInitialInspection, setSelectedLotInitialInspection] = useState(null);
+    // preview modal state
+    const [previewVisible, setPreviewVisible] = useState(false);
+    const [previewUri, setPreviewUri] = useState(null);
+    const [imageMap, setImageMap] = useState({});
 
   const openInspectModal = useCallback(
     (lot, lotIdx) => {
@@ -1446,6 +1455,135 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
     }, 250);
   };
 
+const renderImageBox = (item) => {
+  const imgState = edited[item.itemid] ?? {
+    imageUri: item.imageUri,
+    loading: false,
+  };
+
+  if (imgState.loading) {
+    return <ActivityIndicator size="large" color="#007bff" />;
+  }
+
+  if (imgState.imageUri) {
+    return (
+      <TouchableOpacity
+        style={{ flex: 1, width: '100%', height: '100%' }}
+        onPress={() => {
+          setPreviewUri(imgState.imageUri);
+          setPreviewVisible(true);
+        }}
+      >
+        <Image
+          source={{ uri: imgState.imageUri }}
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="cover"
+        />
+      </TouchableOpacity>
+    );
+  }
+
+  return <Text style={{ fontSize: 10, color: '#999' }}>No Image</Text>;
+};
+
+
+
+useEffect(() => {
+  const currentItem = allItems[index];
+  if (!currentItem) return;
+
+  const editedItem = edited[currentItem.itemid];
+
+  // 🚫 If user already changed image, DO NOT fetch
+  if (editedItem?.source === 'local') return;
+
+  // ✅ Fetch only once
+  if (!editedItem?.imageUri && !editedItem?.loading) {
+    fetchImageForItem(currentItem.itemid);
+  }
+}, [index, allItems, edited]);
+
+    
+    
+const fetchImageForItem = async (itemId) => {
+  setEdited(prev => ({
+    ...prev,
+    [itemId]: {
+      ...(prev[itemId] ?? {}),
+      loading: true,
+    },
+  }));
+
+  try {
+    const resp = await GetItemImage(itemId);
+
+    setEdited(prev => ({
+      ...prev,
+      [itemId]: {
+        imageUri: resp?.base64_image ?? null,
+        loading: false,
+        source: 'api',
+      },
+    }));
+  } catch (err) {
+    setEdited(prev => ({
+      ...prev,
+      [itemId]: {
+        imageUri: null,
+        loading: false,
+        source: 'api',
+      },
+    }));
+  }
+};
+
+
+
+const handleImagePick = (itemId) => {
+  Alert.alert('Select Image', 'Choose an option', [
+    {
+      text: 'Camera',
+      onPress: () => {
+        launchCamera({ mediaType: 'photo', quality: 0.7 }, res => {
+          if (!res.didCancel && !res.errorCode) {
+            const uri = res.assets?.[0]?.uri;
+            setEdited(prev => ({
+              ...prev,
+              [itemId]: {
+                imageUri: uri,
+                loading: false,
+                source: 'local', // 🔑
+              },
+            }));
+          }
+        });
+      },
+    },
+    {
+      text: 'Gallery',
+      onPress: () => {
+        launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, res => {
+          if (!res.didCancel && !res.errorCode) {
+            const uri = res.assets?.[0]?.uri;
+            console.log(uri,itemId,"sdfghjhgfdsdfghjhgfdesdfgh")
+            setEdited(prev => ({
+              ...prev,
+              [itemId]: {
+                imageUri: uri,
+                loading: false,
+                source: 'local',
+              },
+            }));
+          }
+        });
+      },
+    },
+    { text: 'Cancel', style: 'cancel' },
+  ]);
+};
+
+
+
   const handleScanAndOpenLotandSerialInspect = scannedValue => {
     if (!current) return;
     const code = normalizeLotKey(scannedValue);
@@ -1666,7 +1804,13 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
               <View style={styles.itemInfoBox}>
                 <View style={styles.itemInfoRow}>
                   <View style={styles.itemIconWrap}>
-                    <ReceiveItemBoxIcon width={40} height={40} />
+                    {/* <ReceiveItemBoxIcon width={40} height={40} /> */}
+                      {!readOnly &&<TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(current.itemid)}>
+                        <CameraIcon width={25} height={25} />
+                      </TouchableOpacity>}
+                      <View style={styles.imageWrapper}>
+                        {renderImageBox(allItems[index])}
+                      </View>
                   </View>
                   <View style={styles.itemTextCol}>
                     <Text style={styles.itemName} numberOfLines={1}>
@@ -3245,7 +3389,29 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
           setInspectLotSerialSerialModalVisible(false);
         }}
       />
+      <Modal
+        visible={previewVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => { setPreviewVisible(false); setPreviewUri(null); }}
+      >
+        <SafeAreaView style={styles.fullScreenModal}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => { setPreviewVisible(false); setPreviewUri(null); }} style={styles.backBtn}>
+              <ChevronLeft size={24} color="#000" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Preview</Text>
+            <View style={{ width: 40 }} />
+          </View>
 
+          <View style={styles.modalBackground}> 
+            <Pressable style={styles.modalCloseArea} onPress={() => {setPreviewVisible(false);setPreviewUri(null)}} />
+            {previewUri ? (
+              <Image source={{ uri: previewUri }} style={styles.fullImage} resizeMode="contain" />
+            ) : null}
+          </View>
+        </SafeAreaView>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -3349,7 +3515,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: ms(10),
   },
-  itemTextCol: { flex: 1 },
+  itemTextCol: { flex: 1,marginLeft:5 },
   itemName: { fontSize: ms(13), fontWeight: '700', color: '#111827' },
   itemCode: { marginTop: ms(3), fontSize: ms(12), color: '#9D9FA3',fontWeight:700 },
   itemPillsCol: { alignItems: 'flex-end', justifyContent: 'center' },
@@ -3682,6 +3848,77 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+    imageWrapper: {
+    position: 'relative',
+    width: 60,
+    height: 60,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    // marginRight:5
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    zIndex: 5,
+    elevation: 2,
+  },
+    fullScreenModal: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ccc',
+  },
+  backBtn: {
+    padding: 6,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  imageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseArea: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  previewImage: {
+    width: '90%',
+    height: '70%',
+    resizeMode: 'contain',
+  },
+
 });
 
 export default Rec_ViewItemDetailsScreen;
