@@ -1,4 +1,3 @@
-// src/components/receive/Rec_SerialModalPopup.js
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
@@ -64,12 +63,15 @@ export default function Rec_SerialModalPopup({
 
   const [manualRows, setManualRows] = useState([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
 
+  const [addSerialText, setAddSerialText] = useState('');
+
   const [errorMsg, setErrorMsg] = useState('');
   const [scannerVisible, setScannerVisible] = useState(false);
-  const scanTargetRef = useRef({ rowId: null, fromTouchArea: false });
+  const scanTargetRef = useRef({ type: 'row', rowId: null });
   const clearError = useCallback(() => setErrorMsg(''), []);
 
   const activeRows = activeMode === 'ranges' ? rangesRows : manualRows;
+
   const setActiveRows = useCallback(
     updater => {
       if (activeMode === 'ranges') {
@@ -118,16 +120,26 @@ export default function Rec_SerialModalPopup({
     });
     return dups;
   }, []);
+
   const dupIds = useMemo(() => computeDupIds(activeRows), [activeRows, computeDupIds]);
 
   const canAddRow = useMemo(() => activeRows.length < qty, [activeRows.length, qty]);
   const showTouchArea = activeMode === 'ranges' ? rangesHasGenerated : true;
   const shouldShowFooter = activeMode === 'ranges' ? rangesHasGenerated : true;
 
+  const trimmedAddText = useMemo(() => String(addSerialText || '').trim(), [addSerialText]);
+
+  const canAddByTyping = useMemo(() => {
+    if (!showTouchArea) return false;
+    if (!canAddRow) return false;
+    return trimmedAddText.length > 0;
+  }, [showTouchArea, canAddRow, trimmedAddText]);
+
   const hydrateOnOpen = useCallback(() => {
     clearError();
-    scanTargetRef.current = { rowId: null, fromTouchArea: false };
+    scanTargetRef.current = { type: 'row', rowId: null };
     setScannerVisible(false);
+    setAddSerialText('');
     const mode = normalizeMode(initialMode);
     setActiveMode(mode);
     setPrefix('SN');
@@ -171,31 +183,45 @@ export default function Rec_SerialModalPopup({
   }, [visible, hydrateOnOpen]);
 
   const openScannerForRow = useCallback(
-    (rowId, fromTouchArea = false) => {
+    rowId => {
       clearError();
-      scanTargetRef.current = { rowId: rowId || null, fromTouchArea: !!fromTouchArea };
+      scanTargetRef.current = { type: 'row', rowId: rowId || null };
       setScannerVisible(true);
     },
     [clearError],
   );
+
+  const openScannerForAddBar = useCallback(() => {
+    clearError();
+    if (!showTouchArea || !canAddRow) return;
+    scanTargetRef.current = { type: 'addbar', rowId: null };
+    setScannerVisible(true);
+  }, [clearError, showTouchArea, canAddRow]);
 
   const handleSerialScanned = useCallback(
     codeString => {
       const v = String(codeString || '').trim();
       setScannerVisible(false);
       if (!v) return;
+
       const target = scanTargetRef.current;
-      setActiveRows(list => {
-        if (target.fromTouchArea) {
+
+      if (target.type === 'addbar') {
+        setActiveRows(list => {
           if (list.length >= qty) return list;
           list.push({ id: makeId(), entry: list.length + 1, serial: v, source: 'scan' });
           return list.slice(0, qty);
-        }
+        });
+        scanTargetRef.current = { type: 'row', rowId: null };
+        return;
+      }
+
+      setActiveRows(list => {
         const idx = list.findIndex(r => r.id === target.rowId);
         if (idx >= 0) list[idx] = { ...list[idx], serial: v, source: 'scan' };
         return list;
       });
-      scanTargetRef.current = { rowId: null, fromTouchArea: false };
+      scanTargetRef.current = { type: 'row', rowId: null };
     },
     [qty, setActiveRows],
   );
@@ -220,11 +246,13 @@ export default function Rec_SerialModalPopup({
     [clearError, setActiveRows],
   );
 
-  const addSerialRow = useCallback(() => {
+  const addRowFromTyping = useCallback(() => {
     clearError();
-    if (!canAddRow) return;
-    setActiveRows(list => [...list, { id: makeId(), entry: list.length + 1, serial: '', source: 'manual' }]);
-  }, [clearError, canAddRow, setActiveRows]);
+    if (!canAddByTyping) return;
+    const v = trimmedAddText;
+    setActiveRows(list => [...list, { id: makeId(), entry: list.length + 1, serial: v, source: 'added' }]);
+    setAddSerialText('');
+  }, [clearError, canAddByTyping, trimmedAddText, setActiveRows]);
 
   const onPressGenerate = useCallback(() => {
     clearError();
@@ -250,6 +278,7 @@ export default function Rec_SerialModalPopup({
     }));
     setRangesRows(generated);
     setRangesHasGenerated(true);
+    setAddSerialText('');
   }, [clearError, prefix, qty, startNumberValue]);
 
   const validateAndGetSerials = useCallback(() => {
@@ -269,6 +298,7 @@ export default function Rec_SerialModalPopup({
     }
     clearError();
     onSave?.(v.serials, activeMode);
+    setAddSerialText('');
     if (activeMode === 'ranges') {
       setManualRows([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
     } else {
@@ -281,8 +311,9 @@ export default function Rec_SerialModalPopup({
 
   const handleDeleteAll = useCallback(() => {
     clearError();
-    scanTargetRef.current = { rowId: null, fromTouchArea: false };
+    scanTargetRef.current = { type: 'row', rowId: null };
     setScannerVisible(false);
+    setAddSerialText('');
     if (activeMode === 'ranges') {
       setRangesRows([]);
       setRangesHasGenerated(false);
@@ -321,8 +352,9 @@ export default function Rec_SerialModalPopup({
       const nm = nextMode === 'manual' || nextMode === 'individual' ? 'manual' : 'ranges';
       if (nm === activeMode) return;
       clearError();
-      scanTargetRef.current = { rowId: null, fromTouchArea: false };
+      scanTargetRef.current = { type: 'row', rowId: null };
       setScannerVisible(false);
+      setAddSerialText('');
       if (nm === 'manual' && manualRows.length === 0) {
         setManualRows([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
       }
@@ -356,7 +388,12 @@ export default function Rec_SerialModalPopup({
               )}
 
               <View style={styles.topInfoWrapper}>
-                <LinearGradient colors={['#5D7688', '#233655']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.topInfo}>
+                <LinearGradient
+                  colors={['#5D7688', '#233655']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.topInfo}
+                >
                   <View style={styles.topLeft}>
                     <View style={styles.iconBox}>
                       <LotSerialItemIcon width={rs(32)} height={rs(32)} />
@@ -379,22 +416,47 @@ export default function Rec_SerialModalPopup({
                 </LinearGradient>
               </View>
 
-              <LinearGradient colors={['#89ADC9', '#B1CADE']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.modeBar}>
+              <LinearGradient
+                colors={['#89ADC9', '#B1CADE']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.modeBar}
+              >
                 <Text style={styles.modeLeftText}>Add Serial</Text>
                 <View style={styles.modeTabs}>
                   <TouchableOpacity
                     onPress={() => switchMode('ranges')}
                     activeOpacity={0.9}
-                    style={[styles.modeTabBtn, activeMode === 'ranges' ? styles.modeTabBtnActive : styles.modeTabBtnInactive]}
+                    style={[
+                      styles.modeTabBtn,
+                      activeMode === 'ranges' ? styles.modeTabBtnActive : styles.modeTabBtnInactive,
+                    ]}
                   >
-                    <Text style={[styles.modeTabTxt, activeMode === 'ranges' ? styles.modeTabTxtActive : styles.modeTabTxtInactive]}>Ranges</Text>
+                    <Text
+                      style={[
+                        styles.modeTabTxt,
+                        activeMode === 'ranges' ? styles.modeTabTxtActive : styles.modeTabTxtInactive,
+                      ]}
+                    >
+                      Ranges
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => switchMode('manual')}
                     activeOpacity={0.9}
-                    style={[styles.modeTabBtn, activeMode === 'manual' ? styles.modeTabBtnActive : styles.modeTabBtnInactive]}
+                    style={[
+                      styles.modeTabBtn,
+                      activeMode === 'manual' ? styles.modeTabBtnActive : styles.modeTabBtnInactive,
+                    ]}
                   >
-                    <Text style={[styles.modeTabTxt, activeMode === 'manual' ? styles.modeTabTxtActive : styles.modeTabTxtInactive]}>Manual</Text>
+                    <Text
+                      style={[
+                        styles.modeTabTxt,
+                        activeMode === 'manual' ? styles.modeTabTxtActive : styles.modeTabTxtInactive,
+                      ]}
+                    >
+                      Manual
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </LinearGradient>
@@ -402,8 +464,8 @@ export default function Rec_SerialModalPopup({
               <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: rs(18) }} keyboardShouldPersistTaps="handled">
                 {activeMode === 'ranges' && !rangesHasGenerated ? (
                   <View style={styles.sectionCard}>
+                    <Text style={styles.sectionTitle}>Auto Generate Serials</Text>
                     <View style={styles.autoBox}>
-                      <Text style={styles.sectionTitle}>Auto Generate Serials</Text>
                       <View style={styles.autoRow}>
                         <View style={styles.fieldBox}>
                           <Text style={styles.fieldLabel}>Prefix</Text>
@@ -432,10 +494,10 @@ export default function Rec_SerialModalPopup({
                             />
                             <View style={styles.spinnerBtns}>
                               <TouchableOpacity onPress={incStart} style={styles.spinnerBtn} activeOpacity={0.85}>
-                                <SerialUpIcon width={rs(12)} height={rs(12)} />
+                                <SerialUpIcon width={rs(16)} height={rs(16)} />
                               </TouchableOpacity>
                               <TouchableOpacity onPress={decStart} style={styles.spinnerBtn} activeOpacity={0.85}>
-                                <SerialDownIcon width={rs(12)} height={rs(12)} />
+                                <SerialDownIcon width={rs(16)} height={rs(16)} />
                               </TouchableOpacity>
                             </View>
                           </View>
@@ -449,17 +511,31 @@ export default function Rec_SerialModalPopup({
                   </View>
                 ) : (
                   <View style={styles.sectionCard}>
-                    <TouchableOpacity
-                      activeOpacity={0.9}
-                      disabled={!showTouchArea || !canAddRow}
-                      onPress={() => openScannerForRow(null, true)}
-                      style={[styles.addTouchWrap, (!showTouchArea || !canAddRow) && styles.addTouchDisabled]}
-                    >
-                      <Text style={[styles.addTouchText, (!showTouchArea || !canAddRow) && styles.addTouchTextDisabled]}>Add Serial Number</Text>
-                      <View style={[styles.addTouchScan, (!showTouchArea || !canAddRow) && styles.addTouchScanDisabled]}>
-                        <BarcodeIcon width={rs(20)} height={rs(20)} />
-                      </View>
-                    </TouchableOpacity>
+                    <View style={[styles.addTouchWrap, (!showTouchArea || !canAddRow) && styles.addTouchDisabled]}>
+                      <TextInput
+                        value={addSerialText}
+                        onChangeText={t => {
+                          clearError();
+                          setAddSerialText(t);
+                        }}
+                        placeholder="Add Serial Number"
+                        placeholderTextColor="#6B7C8B"
+                        style={styles.addTouchInput}
+                        editable={!!showTouchArea && !!canAddRow}
+                        autoCapitalize="characters"
+                      />
+                      <TouchableOpacity
+                        onPress={openScannerForAddBar}
+                        activeOpacity={0.85}
+                        disabled={!showTouchArea || !canAddRow}
+                        style={[
+                          styles.addTouchScan,
+                          (!showTouchArea || !canAddRow) && styles.addTouchScanDisabled,
+                        ]}
+                      >
+                        <BarcodeIcon width={rs(18)} height={rs(18)} />
+                      </TouchableOpacity>
+                    </View>
 
                     <View style={styles.tableHeader}>
                       <Text style={styles.tableHeaderTxt}>Serial Numbers</Text>
@@ -471,12 +547,18 @@ export default function Rec_SerialModalPopup({
                     </View>
 
                     {activeRows.map(r => {
-                      const locked = r.source === 'auto' || r.source === 'scan';
+                      const locked = r.source === 'auto' || r.source === 'scan' || r.source === 'added';
                       return (
                         <View key={r.id} style={styles.rowWrap}>
                           <Text style={styles.rowEntryText}>#{r.entry}</Text>
                           <View style={styles.inputWrap}>
-                            <View style={[styles.inputBox, locked && styles.inputBoxLocked, dupIds.has(r.id) && styles.inputBoxError]}>
+                            <View
+                              style={[
+                                styles.inputBox,
+                                locked && styles.inputBoxLocked,
+                                dupIds.has(r.id) && styles.inputBoxError,
+                              ]}
+                            >
                               <TextInput
                                 value={r.serial}
                                 onChangeText={txt => setRowSerial(r.id, txt)}
@@ -487,7 +569,7 @@ export default function Rec_SerialModalPopup({
                               />
                             </View>
                             <TouchableOpacity
-                              onPress={() => openScannerForRow(r.id, false)}
+                              onPress={() => openScannerForRow(r.id)}
                               activeOpacity={0.85}
                               disabled={locked}
                               style={[styles.scanBtn, locked && styles.scanBtnDisabled]}
@@ -514,12 +596,14 @@ export default function Rec_SerialModalPopup({
                     <Text style={styles.saveText}>Save</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.addBtn, !canAddRow && styles.addBtnDisabled]}
-                    disabled={!canAddRow}
-                    onPress={addSerialRow}
+                    style={[styles.addBtn, (!canAddByTyping || !canAddRow) && styles.addBtnDisabled]}
+                    disabled={!canAddByTyping || !canAddRow}
+                    onPress={addRowFromTyping}
                     activeOpacity={0.9}
                   >
-                    <Text style={[styles.addText, !canAddRow && styles.addTextDisabled]}>Add Serial</Text>
+                    <Text style={[styles.addText, (!canAddByTyping || !canAddRow) && styles.addTextDisabled]}>
+                      Add Serial
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -610,18 +694,18 @@ const styles = StyleSheet.create({
 
   sectionCard: {
     backgroundColor: '#FFFFFF',
-    // borderRadius: rs(10),
-    // borderWidth: 1,
-    // borderColor: '#E0E0E0',
+    borderRadius: rs(10),
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
     padding: rs(12),
   },
-  sectionTitle: { fontSize: rs(12), color: '#242424', fontWeight: '600',marginBottom:5 },
+  sectionTitle: { fontSize: rs(14), color: '#1F2D3D', fontWeight: '700' },
 
   autoBox: { backgroundColor: '#ECF1F7', borderRadius: rs(10), padding: rs(12) },
   autoRow: { flexDirection: 'row', gap: rs(10) },
 
   fieldBox: { flex: 1 },
-  fieldLabel: { fontSize: rs(10), color: '#5B6B79', fontWeight: '500', marginBottom: rs(6) },
+  fieldLabel: { fontSize: rs(12), color: '#5B6B79', fontWeight: '700', marginBottom: rs(6) },
   fieldInput: {
     borderWidth: 1,
     borderColor: '#D7DEE6',
@@ -665,7 +749,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
   },
-  generateTxt: { color: '#FFFFFF', fontSize: rs(12), fontWeight: '700' },
+  generateTxt: { color: '#FFFFFF', fontSize: rs(14), fontWeight: '700' },
 
   tableHeader: {
     backgroundColor: '#D9E4EE',
@@ -715,6 +799,7 @@ const styles = StyleSheet.create({
       ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
     }),
   },
+  inputBoxLocked: { backgroundColor: '#F6F8FA' },
   inputBoxError: { borderColor: '#D32F2F' },
   serialInput: {
     fontSize: rs(13),
@@ -722,15 +807,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     paddingRight: rs(40),
   },
+  serialInputLocked: { color: '#3B4B59' },
   scanBtn: { position: 'absolute', right: rs(10), top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  scanBtnDisabled: { opacity: 0.4 },
 
   deleteBtn: { width: rs(36), height: rs(36), alignItems: 'center', justifyContent: 'center' },
 
   addTouchWrap: {
     height: rs(46),
-    borderRadius: rs(8),
+    borderRadius: rs(10),
     borderWidth: 1,
-    borderColor: '#CCCED2',
+    borderColor: '#C9D6E1',
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -738,15 +825,21 @@ const styles = StyleSheet.create({
     marginBottom: rs(12),
   },
   addTouchDisabled: { opacity: 0.45 },
-  addTouchText: { fontSize: rs(12), color: '#242424', fontWeight: '600' },
-  addTouchTextDisabled: { color: '#6B7C8B' },
+  addTouchInput: {
+    flex: 1,
+    fontSize: rs(12),
+    color: '#1F2D3D',
+    fontWeight: '700',
+    paddingVertical: 0,
+    paddingRight: rs(10),
+  },
   addTouchScan: {
     width: rs(36),
     height: rs(36),
     borderRadius: rs(8),
     alignItems: 'center',
     justifyContent: 'center',
-    // backgroundColor: '#E9F0F7',
+    backgroundColor: '#E9F0F7',
   },
   addTouchScanDisabled: { backgroundColor: '#EFF4F8' },
 

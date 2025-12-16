@@ -99,9 +99,8 @@ const createEmptyLot = (idx, base = {}) => ({
   prefix: 'SN',
   startNumberText: '1',
   rangesHasGenerated:
-    base.serialMode === 'ranges' &&
-    Array.isArray(base.serials) &&
-    base.serials.length > 0,
+    base.serialMode === 'ranges' && Array.isArray(base.serials) && base.serials.length > 0,
+  addSerialText: '',
 });
 
 export default function Rec_LotSerialModalPopup({
@@ -120,7 +119,7 @@ export default function Rec_LotSerialModalPopup({
     kind: null,
     lotIdx: null,
     rowId: null,
-    fromTouchArea: false,
+    fromAddBar: false,
   });
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [datePickerDate, setDatePickerDate] = useState(new Date());
@@ -133,31 +132,24 @@ export default function Rec_LotSerialModalPopup({
   useEffect(() => {
     if (!visible) return;
     if (Array.isArray(initialLots) && initialLots.length > 0) {
-      const nextLots = initialLots.map((l, index) =>
-        createEmptyLot(Number.isFinite(l.idx) ? l.idx : index, l),
-      );
+      const nextLots = initialLots.map((l, index) => createEmptyLot(Number.isFinite(l.idx) ? l.idx : index, l));
       setLots(nextLots);
     } else {
       setLots([createEmptyLot(0)]);
     }
     setErrorMsg('');
     setScannerVisible(false);
-    setScanContext({ kind: null, lotIdx: null, rowId: null, fromTouchArea: false });
+    setScanContext({ kind: null, lotIdx: null, rowId: null, fromAddBar: false });
     setDatePickerVisible(false);
   }, [visible, initialLots]);
 
-  const totalQty = useMemo(
-    () => lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0),
-    [lots],
-  );
+  const totalQty = useMemo(() => lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0), [lots]);
 
   const remainingQty = Math.max(lineQty - totalQty, 0);
   const canAddMoreLots = remainingQty > 0;
 
   const updateLot = (idx, patch) => {
-    setLots(prev =>
-      prev.map(l => (l.idx === idx ? { ...l, ...patch } : l)),
-    );
+    setLots(prev => prev.map(l => (l.idx === idx ? { ...l, ...patch } : l)));
   };
 
   const updateLotSerials = (idx, updater) => {
@@ -165,10 +157,7 @@ export default function Rec_LotSerialModalPopup({
       prev.map(l => {
         if (l.idx !== idx) return l;
         const next = updater([...(l.serialRows || [])]);
-        return {
-          ...l,
-          serialRows: next.map((row, i) => ({ ...row, entry: i + 1 })),
-        };
+        return { ...l, serialRows: next.map((row, i) => ({ ...row, entry: i + 1 })) };
       }),
     );
   };
@@ -199,13 +188,13 @@ export default function Rec_LotSerialModalPopup({
 
   const openScannerForLot = idx => {
     clearError();
-    setScanContext({ kind: 'lot', lotIdx: idx, rowId: null, fromTouchArea: false });
+    setScanContext({ kind: 'lot', lotIdx: idx, rowId: null, fromAddBar: false });
     setScannerVisible(true);
   };
 
-  const openScannerForSerial = (lotIdx, rowId = null, fromTouchArea = false) => {
+  const openScannerForSerial = (lotIdx, rowId = null, fromAddBar = false) => {
     clearError();
-    setScanContext({ kind: 'serial', lotIdx, rowId, fromTouchArea });
+    setScanContext({ kind: 'serial', lotIdx, rowId, fromAddBar: !!fromAddBar });
     setScannerVisible(true);
   };
 
@@ -214,41 +203,31 @@ export default function Rec_LotSerialModalPopup({
     setScannerVisible(false);
     if (!scannedRaw) return;
     const ctx = scanContext;
+
     if (ctx.kind === 'lot') {
       updateLot(ctx.lotIdx, { lotNumber: scannedRaw });
       return;
     }
+
     if (ctx.kind === 'serial') {
-      setScanContext({
-        kind: null,
-        lotIdx: null,
-        rowId: null,
-        fromTouchArea: false,
-      });
+      setScanContext({ kind: null, lotIdx: null, rowId: null, fromAddBar: false });
       const lot = lots.find(l => l.idx === ctx.lotIdx);
       if (!lot) return;
+
       const lotQty = Number(lot.qty) || 0;
-      if (ctx.fromTouchArea) {
+
+      if (ctx.fromAddBar) {
         updateLotSerials(ctx.lotIdx, list => {
           if (list.length >= lotQty) return list;
-          return [
-            ...list,
-            {
-              id: makeId(),
-              entry: list.length + 1,
-              serial: scannedRaw,
-              source: 'scan',
-            },
-          ];
+          return [...list, { id: makeId(), entry: list.length + 1, serial: scannedRaw, source: 'scan' }];
         });
-        updateLot(ctx.lotIdx, { serialMode: 'manual', serialExpanded: true });
+        updateLot(ctx.lotIdx, { serialMode: lot.serialMode || 'manual', serialExpanded: true });
         return;
       }
+
       updateLotSerials(ctx.lotIdx, list => {
         const idx = list.findIndex(r => r.id === ctx.rowId);
-        if (idx >= 0) {
-          list[idx] = { ...list[idx], serial: scannedRaw, source: 'scan' };
-        }
+        if (idx >= 0) list[idx] = { ...list[idx], serial: scannedRaw, source: 'scan' };
         return list;
       });
       updateLot(ctx.lotIdx, { serialMode: lot.serialMode || 'manual', serialExpanded: true });
@@ -284,6 +263,7 @@ export default function Rec_LotSerialModalPopup({
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
     clearError();
+    updateLot(lotIdx, { addSerialText: '' });
 
     const lotQty = Number(lot.qty) || 0;
 
@@ -301,32 +281,18 @@ export default function Rec_LotSerialModalPopup({
 
     if (nm === 'manual') {
       if (lot.serialRows && lot.serialRows.length > 0) {
-        updateLot(lotIdx, {
-          serialMode: 'manual',
-          rangesHasGenerated: false,
-          serialExpanded: true,
-        });
+        updateLot(lotIdx, { serialMode: 'manual', rangesHasGenerated: false, serialExpanded: true });
         return;
       }
 
       if (lotQty <= 0) {
-        updateLot(lotIdx, {
-          serialMode: 'manual',
-          rangesHasGenerated: false,
-          serialExpanded: false,
-        });
+        updateLot(lotIdx, { serialMode: 'manual', rangesHasGenerated: false, serialExpanded: false });
         updateLotSerials(lotIdx, () => []);
         return;
       }
 
-      updateLot(lotIdx, {
-        serialMode: 'manual',
-        rangesHasGenerated: false,
-        serialExpanded: true,
-      });
-      updateLotSerials(lotIdx, () => [
-        { id: makeId(), entry: 1, serial: '', source: 'manual' },
-      ]);
+      updateLot(lotIdx, { serialMode: 'manual', rangesHasGenerated: false, serialExpanded: true });
+      updateLotSerials(lotIdx, () => [{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
     }
   };
 
@@ -344,7 +310,7 @@ export default function Rec_LotSerialModalPopup({
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
-    const base = Number(l.startNumberText || 0) || 0;
+    const base = Number(lot.startNumberText || 0) || 0;
     const next = Math.max(1, base + 1);
     updateLot(lotIdx, { startNumberText: String(next) });
   };
@@ -353,7 +319,7 @@ export default function Rec_LotSerialModalPopup({
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
-    const base = Number(l.startNumberText || 0) || 0;
+    const base = Number(lot.startNumberText || 0) || 0;
     const next = Math.max(1, base - 1);
     updateLot(lotIdx, { startNumberText: String(next) });
   };
@@ -384,25 +350,23 @@ export default function Rec_LotSerialModalPopup({
       source: 'auto',
     }));
     updateLotSerials(lotIdx, () => generated);
-    updateLot(lotIdx, {
-      serialMode: 'ranges',
-      rangesHasGenerated: true,
-      serialExpanded: true,
-    });
+    updateLot(lotIdx, { serialMode: 'ranges', rangesHasGenerated: true, serialExpanded: true, addSerialText: '' });
   };
 
-  const handleSerialAddRow = lotIdx => {
+  const handleSerialAddFromBar = lotIdx => {
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
-    const qty = Number(lot.qty) || 0;
-    const current = lot.serialRows || [];
-    if (current.length >= qty) return;
-    updateLotSerials(lotIdx, list => [
-      ...list,
-      { id: makeId(), entry: list.length + 1, serial: '', source: 'manual' },
-    ]);
-    updateLot(lotIdx, { serialMode: 'manual', serialExpanded: true });
+
+    const lotQty = Number(lot.qty) || 0;
+    const rows = lot.serialRows || [];
+    if (rows.length >= lotQty) return;
+
+    const v = String(lot.addSerialText || '').trim();
+    if (!v) return;
+
+    updateLotSerials(lotIdx, list => [...list, { id: makeId(), entry: list.length + 1, serial: v, source: 'manual' }]);
+    updateLot(lotIdx, { serialMode: lot.serialMode || 'manual', serialExpanded: true, addSerialText: '' });
   };
 
   const handleSerialDeleteRow = (lotIdx, rowId) => {
@@ -414,6 +378,9 @@ export default function Rec_LotSerialModalPopup({
     clearError();
     const lot = lots.find(l => l.idx === lotIdx);
     if (!lot) return;
+
+    updateLot(lotIdx, { addSerialText: '' });
+
     if (lot.serialMode === 'ranges' && lot.rangesHasGenerated) {
       updateLot(lotIdx, {
         serialMode: null,
@@ -425,20 +392,16 @@ export default function Rec_LotSerialModalPopup({
       updateLotSerials(lotIdx, () => []);
       return;
     }
+
     updateLotSerials(lotIdx, () => []);
-    updateLot(lotIdx, {
-      serialMode: null,
-      serialExpanded: false,
-    });
+    updateLot(lotIdx, { serialMode: null, serialExpanded: false });
   };
 
   const handleSerialChange = (lotIdx, rowId, value) => {
     clearError();
     updateLotSerials(lotIdx, list => {
       const idx = list.findIndex(r => r.id === rowId);
-      if (idx >= 0) {
-        list[idx] = { ...list[idx], serial: value };
-      }
+      if (idx >= 0) list[idx] = { ...list[idx], serial: value };
       return list;
     });
   };
@@ -483,25 +446,18 @@ export default function Rec_LotSerialModalPopup({
         return { ok: false, msg: `Please fill all Lot fields for Lot ${lotIdx}` };
       }
       const rows = lot.serialRows || [];
-      if (!rows.length) {
-        continue;
-      }
+      if (!rows.length) continue;
+
       const trimmed = rows.map(r => (r.serial || '').trim());
       if (trimmed.some(s => !s)) {
         return { ok: false, msg: `Please fill all serial numbers for Lot ${lotIdx}` };
       }
       if (trimmed.length !== Number(lot.qty) || trimmed.length === 0) {
-        return {
-          ok: false,
-          msg: `Serial count must be equal to Qty for Lot ${lotIdx}`,
-        };
+        return { ok: false, msg: `Serial count must be equal to Qty for Lot ${lotIdx}` };
       }
       const dupIds = computeDupIds(rows);
       if (dupIds.size > 0) {
-        return {
-          ok: false,
-          msg: `Same Serial No cannot be repeated within Lot ${lotIdx}`,
-        };
+        return { ok: false, msg: `Same Serial No cannot be repeated within Lot ${lotIdx}` };
       }
     }
     return { ok: true, msg: '' };
@@ -532,13 +488,17 @@ export default function Rec_LotSerialModalPopup({
   const renderSerialSection = lot => {
     const lotQty = Number(lot.qty) || 0;
     if (lotQty <= 0) return null;
+
     const rows = lot.serialRows || [];
     const dupIds = computeDupIds(rows);
     const hasSerials = rows.length > 0;
     const canAddRow = rows.length < lotQty;
-    const hasSerialModeForAddTouch =
-      lot.serialMode === 'manual' ||
-      (lot.serialMode === 'ranges' && lot.rangesHasGenerated);
+
+    const hasSerialModeForAddBar =
+      lot.serialMode === 'manual' || (lot.serialMode === 'ranges' && lot.rangesHasGenerated);
+
+    const trimmedBarText = String(lot.addSerialText || '').trim();
+    const canAddByTyping = !!hasSerialModeForAddBar && !!lot.serialExpanded && !!canAddRow && trimmedBarText.length > 0;
 
     const renderSerialTable = () => {
       if (!lot.serialExpanded || !hasSerials) return null;
@@ -551,38 +511,26 @@ export default function Rec_LotSerialModalPopup({
             </View>
             <View style={styles.serialHeaderActions}>
               <TouchableOpacity
-                onPress={() => handleSerialAddRow(lot.idx)}
-                disabled={!canAddRow}
-                style={[
-                  styles.serialHeaderIconBtn,
-                  !canAddRow && styles.serialHeaderIconDisabled,
-                ]}
+                onPress={() => handleSerialAddFromBar(lot.idx)}
+                disabled={!canAddByTyping}
+                style={[styles.serialHeaderIconBtn, !canAddByTyping && styles.serialHeaderIconDisabled]}
               >
                 <LotSerialAddIcon width={rs(18)} height={rs(18)} />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleSerialDeleteAll(lot.idx)}
-                style={styles.serialHeaderIconBtn}
-              >
+              <TouchableOpacity onPress={() => handleSerialDeleteAll(lot.idx)} style={styles.serialHeaderIconBtn}>
                 <LotSerialDeleteIcon width={rs(18)} height={rs(18)} />
               </TouchableOpacity>
             </View>
           </View>
 
           {rows.map(r => {
-            const locked = r.source === 'auto';
+            const locked = r.source === 'auto' || r.source === 'scan';
             const hasError = dupIds.has(r.id);
             return (
               <View key={r.id} style={styles.serialRow}>
                 <Text style={styles.serialEntryText}>{`#${r.entry}`}</Text>
                 <View style={styles.serialInputWrap}>
-                  <View
-                    style={[
-                      styles.serialInputBox,
-                      locked && styles.serialInputBoxLocked,
-                      hasError && styles.serialInputBoxError,
-                    ]}
-                  >
+                  <View style={[styles.serialInputBox, locked && styles.serialInputBoxLocked, hasError && styles.serialInputBoxError]}>
                     <TextInput
                       style={[styles.serialInput, locked && styles.serialInputLocked]}
                       value={r.serial}
@@ -600,10 +548,7 @@ export default function Rec_LotSerialModalPopup({
                     </TouchableOpacity>
                   </View>
                 </View>
-                <TouchableOpacity
-                  onPress={() => handleSerialDeleteRow(lot.idx, r.id)}
-                  style={styles.serialDeleteRowBtn}
-                >
+                <TouchableOpacity onPress={() => handleSerialDeleteRow(lot.idx, r.id)} style={styles.serialDeleteRowBtn}>
                   <SerialDeleteIcon width={rs(18)} height={rs(18)} />
                 </TouchableOpacity>
               </View>
@@ -643,18 +588,10 @@ export default function Rec_LotSerialModalPopup({
                     placeholderTextColor="#91A3B3"
                   />
                   <View style={styles.spinnerBtns}>
-                    <TouchableOpacity
-                      onPress={() => incStart(lot.idx)}
-                      style={styles.spinnerBtn}
-                      activeOpacity={0.85}
-                    >
+                    <TouchableOpacity onPress={() => incStart(lot.idx)} style={styles.spinnerBtn} activeOpacity={0.85}>
                       <SerialUpIcon width={rs(16)} height={rs(16)} />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => decStart(lot.idx)}
-                      style={styles.spinnerBtn}
-                      activeOpacity={0.85}
-                    >
+                    <TouchableOpacity onPress={() => decStart(lot.idx)} style={styles.spinnerBtn} activeOpacity={0.85}>
                       <SerialDownIcon width={rs(16)} height={rs(16)} />
                     </TouchableOpacity>
                   </View>
@@ -663,11 +600,7 @@ export default function Rec_LotSerialModalPopup({
             </View>
             <Text style={styles.helperText}>{buildHelperRangeText(lot)}</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => handleGenerateRanges(lot.idx)}
-            style={styles.generateBtn}
-            activeOpacity={0.9}
-          >
+          <TouchableOpacity onPress={() => handleGenerateRanges(lot.idx)} style={styles.generateBtn} activeOpacity={0.9}>
             <Text style={styles.generateText}>Generate</Text>
           </TouchableOpacity>
         </View>
@@ -677,11 +610,7 @@ export default function Rec_LotSerialModalPopup({
     const renderViewSerialsBar = () => {
       if (!hasSerials) return null;
       return (
-        <TouchableOpacity
-          onPress={() => toggleSerialExpand(lot.idx)}
-          style={styles.viewSerialsBar}
-          activeOpacity={0.9}
-        >
+        <TouchableOpacity onPress={() => toggleSerialExpand(lot.idx)} style={styles.viewSerialsBar} activeOpacity={0.9}>
           <Text style={styles.viewSerialsText}>View Serials</Text>
           {lot.serialExpanded ? (
             <LotSerialUpArrowIcon width={rs(18)} height={rs(18)} />
@@ -696,49 +625,24 @@ export default function Rec_LotSerialModalPopup({
       const showTabs = !hasSerials;
       if (!showTabs) return null;
       return (
-        <LinearGradient
-          colors={['#89ADC9', '#B1CADE']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.modeBar}
-        >
+        <LinearGradient colors={['#89ADC9', '#B1CADE']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.modeBar}>
           <Text style={styles.modeLeftText}>Add Serial</Text>
           <View style={styles.modeTabs}>
             <TouchableOpacity
               onPress={() => handleSwitchMode(lot.idx, 'ranges')}
               activeOpacity={0.9}
-              style={[
-                styles.modeTabBtn,
-                lot.serialMode === 'ranges' ? styles.modeTabBtnActive : styles.modeTabBtnInactive,
-              ]}
+              style={[styles.modeTabBtn, lot.serialMode === 'ranges' ? styles.modeTabBtnActive : styles.modeTabBtnInactive]}
             >
-              <Text
-                style={[
-                  styles.modeTabText,
-                  lot.serialMode === 'ranges'
-                    ? styles.modeTabTextActive
-                    : styles.modeTabTextInactive,
-                ]}
-              >
+              <Text style={[styles.modeTabText, lot.serialMode === 'ranges' ? styles.modeTabTextActive : styles.modeTabTextInactive]}>
                 Ranges
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => handleSwitchMode(lot.idx, 'manual')}
               activeOpacity={0.9}
-              style={[
-                styles.modeTabBtn,
-                lot.serialMode === 'manual' ? styles.modeTabBtnActive : styles.modeTabBtnInactive,
-              ]}
+              style={[styles.modeTabBtn, lot.serialMode === 'manual' ? styles.modeTabBtnActive : styles.modeTabBtnInactive]}
             >
-              <Text
-                style={[
-                  styles.modeTabText,
-                  lot.serialMode === 'manual'
-                    ? styles.modeTabTextActive
-                    : styles.modeTabTextInactive,
-                ]}
-              >
+              <Text style={[styles.modeTabText, lot.serialMode === 'manual' ? styles.modeTabTextActive : styles.modeTabTextInactive]}>
                 Manual
               </Text>
             </TouchableOpacity>
@@ -747,32 +651,33 @@ export default function Rec_LotSerialModalPopup({
       );
     };
 
-    const renderManualAddTouch = () => {
-      if (!hasSerialModeForAddTouch || !lot.serialExpanded) return null;
+    const renderAddSerialBar = () => {
+      const enabled = !!hasSerialModeForAddBar && !!lot.serialExpanded && !!canAddRow;
+      if (!hasSerialModeForAddBar || !lot.serialExpanded) return null;
+
       return (
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => openScannerForSerial(lot.idx, null, true)}
-          disabled={!canAddRow}
-          style={[styles.addTouchWrap, !canAddRow && styles.addTouchDisabled]}
-        >
-          <Text
-            style={[
-              styles.addTouchText,
-              !canAddRow && styles.addTouchTextDisabled,
-            ]}
-          >
-            Add Serial Number
-          </Text>
-          <View
-            style={[
-              styles.addTouchScan,
-              !canAddRow && styles.addTouchScanDisabled,
-            ]}
+        <View style={[styles.addTouchWrap, !enabled && styles.addTouchDisabled]}>
+          <TextInput
+            value={lot.addSerialText}
+            onChangeText={t => {
+              clearError();
+              updateLot(lot.idx, { addSerialText: t });
+            }}
+            placeholder="Add Serial Number"
+            placeholderTextColor="#6B7C8B"
+            style={styles.addTouchInput}
+            editable={enabled}
+            autoCapitalize="characters"
+          />
+          <TouchableOpacity
+            onPress={() => openScannerForSerial(lot.idx, null, true)}
+            activeOpacity={0.85}
+            disabled={!enabled}
+            style={[styles.addTouchScan, !enabled && styles.addTouchScanDisabled]}
           >
             <BarcodeIcon width={rs(18)} height={rs(18)} />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       );
     };
 
@@ -781,7 +686,7 @@ export default function Rec_LotSerialModalPopup({
         {renderAddSerialRow()}
         {renderAutoGenerateSection()}
         {renderViewSerialsBar()}
-        {renderManualAddTouch()}
+        {renderAddSerialBar()}
         {renderSerialTable()}
       </View>
     );
@@ -790,23 +695,13 @@ export default function Rec_LotSerialModalPopup({
   const qtySelectedActive = totalQty > 0;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       {scannerVisible ? (
         <BarcodeScanner
           onScan={handleBarcodeScanned}
           onClose={() => {
             setScannerVisible(false);
-            setScanContext({
-              kind: null,
-              lotIdx: null,
-              rowId: null,
-              fromTouchArea: false,
-            });
+            setScanContext({ kind: null, lotIdx: null, rowId: null, fromAddBar: false });
           }}
         />
       ) : (
@@ -816,10 +711,7 @@ export default function Rec_LotSerialModalPopup({
               <Text style={styles.headerTitle}>
                 {lineLabel ? `${lineLabel} - Lot + Serial Details` : 'Lot + Serial Details'}
               </Text>
-              <TouchableOpacity
-                onPress={onClose}
-                hitSlop={{ top: rs(10), bottom: rs(10), left: rs(10), right: rs(10) }}
-              >
+              <TouchableOpacity onPress={onClose} hitSlop={{ top: rs(10), bottom: rs(10), left: rs(10), right: rs(10) }}>
                 <CloseIcon width={rs(20)} height={rs(20)} />
               </TouchableOpacity>
             </View>
@@ -832,12 +724,7 @@ export default function Rec_LotSerialModalPopup({
             )}
 
             <View style={styles.topInfoWrapper}>
-              <LinearGradient
-                colors={['#5D7688', '#233655']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.topInfo}
-              >
+              <LinearGradient colors={['#5D7688', '#233655']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.topInfo}>
                 <View style={styles.topLeft}>
                   <View style={styles.iconBox}>
                     <LotSerialItemIcon width={rs(32)} height={rs(32)} />
@@ -852,14 +739,7 @@ export default function Rec_LotSerialModalPopup({
                 <View style={styles.qtyInfo}>
                   <Text style={styles.topQtyLabel}>Qty Selected</Text>
                   <Text style={styles.qtyValue}>
-                    <Text
-                      style={[
-                        styles.qtySelected,
-                        qtySelectedActive && styles.qtySelectedActive,
-                      ]}
-                    >
-                      {totalQty}
-                    </Text>
+                    <Text style={[styles.qtySelected, qtySelectedActive && styles.qtySelectedActive]}>{totalQty}</Text>
                     <Text style={styles.qtySlash}>/</Text>
                     <Text style={styles.qtyTotal}>{lineQty}</Text>
                   </Text>
@@ -867,11 +747,7 @@ export default function Rec_LotSerialModalPopup({
               </LinearGradient>
             </View>
 
-            <ScrollView
-              style={styles.scroll}
-              contentContainerStyle={{ paddingBottom: rs(100) }}
-              keyboardShouldPersistTaps="handled"
-            >
+            <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: rs(100) }} keyboardShouldPersistTaps="handled">
               {lots.map((lot, index) => {
                 const currentQty = Number(lot.qty) || 0;
                 const otherTotal = totalQty - currentQty;
@@ -884,12 +760,7 @@ export default function Rec_LotSerialModalPopup({
                         <Text style={styles.lotTitle}>{`Lot ${index + 1}`}</Text>
                         <TouchableOpacity
                           onPress={() => handleDeleteLot(lot.idx)}
-                          hitSlop={{
-                            top: rs(8),
-                            bottom: rs(8),
-                            left: rs(8),
-                            right: rs(8),
-                          }}
+                          hitSlop={{ top: rs(8), bottom: rs(8), left: rs(8), right: rs(8) }}
                         >
                           <View style={styles.lotDeleteIconWrapper}>
                             <LotSerialDeleteIcon width={rs(16)} height={rs(16)} />
@@ -912,12 +783,7 @@ export default function Rec_LotSerialModalPopup({
                           <TouchableOpacity
                             style={styles.barcodeBtn}
                             onPress={() => openScannerForLot(lot.idx)}
-                            hitSlop={{
-                              top: rs(10),
-                              bottom: rs(10),
-                              left: rs(10),
-                              right: rs(10),
-                            }}
+                            hitSlop={{ top: rs(10), bottom: rs(10), left: rs(10), right: rs(10) }}
                           >
                             <BarcodeScannerIcon width={rs(18)} height={rs(18)} />
                           </TouchableOpacity>
@@ -925,9 +791,7 @@ export default function Rec_LotSerialModalPopup({
 
                         <TouchableOpacity
                           style={styles.generateLotBtn}
-                          onPress={() =>
-                            updateLot(lot.idx, { lotNumber: generateLotNumber() })
-                          }
+                          onPress={() => updateLot(lot.idx, { lotNumber: generateLotNumber() })}
                           activeOpacity={0.85}
                         >
                           <Text style={styles.generateLotText}>Generate</Text>
@@ -946,12 +810,7 @@ export default function Rec_LotSerialModalPopup({
                               onChangeText={t => updateLot(lot.idx, { mfgDate: t })}
                               placeholder="DD/MM/YYYY"
                             />
-                            <TouchableOpacity
-                              style={styles.dateIconBtn}
-                              onPress={() =>
-                                openDatePicker(lot.idx, 'mfg', lot.mfgDate)
-                              }
-                            >
+                            <TouchableOpacity style={styles.dateIconBtn} onPress={() => openDatePicker(lot.idx, 'mfg', lot.mfgDate)}>
                               <CalendarIcon width={rs(16)} height={rs(16)} />
                             </TouchableOpacity>
                           </View>
@@ -968,12 +827,7 @@ export default function Rec_LotSerialModalPopup({
                               onChangeText={t => updateLot(lot.idx, { expDate: t })}
                               placeholder="DD/MM/YYYY"
                             />
-                            <TouchableOpacity
-                              style={styles.dateIconBtn}
-                              onPress={() =>
-                                openDatePicker(lot.idx, 'exp', lot.expDate)
-                              }
-                            >
+                            <TouchableOpacity style={styles.dateIconBtn} onPress={() => openDatePicker(lot.idx, 'exp', lot.expDate)}>
                               <CalendarIcon width={rs(16)} height={rs(16)} />
                             </TouchableOpacity>
                           </View>
@@ -1012,10 +866,7 @@ export default function Rec_LotSerialModalPopup({
             </ScrollView>
 
             <View style={styles.footerBar}>
-              <TouchableOpacity
-                style={styles.deleteAllBtn}
-                onPress={handleDeleteAllLots}
-              >
+              <TouchableOpacity style={styles.deleteAllBtn} onPress={handleDeleteAllLots}>
                 <Text style={styles.deleteAllText}>Delete</Text>
               </TouchableOpacity>
 
@@ -1028,14 +879,7 @@ export default function Rec_LotSerialModalPopup({
                 disabled={!canAddMoreLots}
                 onPress={handleAddLot}
               >
-                <Text
-                  style={[
-                    styles.addLotText,
-                    !canAddMoreLots && styles.addLotTextDisabled,
-                  ]}
-                >
-                  Add Lot
-                </Text>
+                <Text style={[styles.addLotText, !canAddMoreLots && styles.addLotTextDisabled]}>Add Lot</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1069,12 +913,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  errorText: {
-    color: '#D32F2F',
-    fontSize: rs(12),
-    fontWeight: '600',
-    marginLeft: rs(6),
-  },
+  errorText: { color: '#D32F2F', fontSize: rs(12), fontWeight: '600', marginLeft: rs(6) },
 
   topInfoWrapper: { marginTop: rs(8), marginHorizontal: rs(16) },
   topInfo: {
@@ -1086,22 +925,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   topLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  iconBox: {
-    width: rs(40),
-    height: rs(40),
-    borderRadius: rs(8),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: rs(10),
-  },
+  iconBox: { width: rs(40), height: rs(40), borderRadius: rs(8), alignItems: 'center', justifyContent: 'center', marginRight: rs(10) },
   itemTextBlock: { flex: 1 },
   itemLabel: { fontSize: rs(11), color: '#FFFFFF', opacity: 0.8 },
-  itemValue: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginTop: rs(2),
-  },
+  itemValue: { fontSize: rs(14), fontWeight: '600', color: '#FFFFFF', marginTop: rs(2) },
 
   qtyInfo: { alignItems: 'flex-end' },
   topQtyLabel: { fontSize: rs(11), color: '#FFFFFF', opacity: 0.8 },
@@ -1134,22 +961,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: rs(8),
   },
   lotTitle: { fontSize: rs(14), fontWeight: '600', color: '#333333' },
-  lotDeleteIconWrapper: {
-    width: rs(24),
-    height: rs(24),
-    borderRadius: rs(12),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  lotDeleteIconWrapper: { width: rs(24), height: rs(24), borderRadius: rs(12), alignItems: 'center', justifyContent: 'center' },
 
   fieldLabel: { fontSize: rs(12), color: '#555555', marginBottom: rs(6) },
   required: { color: '#E53935' },
 
-  lotNumberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: rs(12),
-  },
+  lotNumberRow: { flexDirection: 'row', alignItems: 'center', marginBottom: rs(12) },
   lotNumberInputWrap: { flex: 1, position: 'relative' },
   lotNumberInput: {
     width: '100%',
@@ -1163,15 +980,7 @@ const styles = StyleSheet.create({
     color: '#111827',
     backgroundColor: '#FFFFFF',
   },
-  barcodeBtn: {
-    position: 'absolute',
-    right: rs(10),
-    top: rs(11),
-    width: rs(22),
-    height: rs(22),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  barcodeBtn: { position: 'absolute', right: rs(10), top: rs(11), width: rs(22), height: rs(22), alignItems: 'center', justifyContent: 'center' },
   generateLotBtn: {
     marginLeft: rs(10),
     height: rs(44),
@@ -1274,12 +1083,7 @@ const styles = StyleSheet.create({
   },
   modeLeftText: { color: '#FFFFFF', fontSize: rs(12), fontWeight: '700' },
   modeTabs: { flexDirection: 'row', gap: rs(8) },
-  modeTabBtn: {
-    paddingVertical: rs(6),
-    paddingHorizontal: rs(16),
-    borderRadius: rs(8),
-    borderWidth: 1,
-  },
+  modeTabBtn: { paddingVertical: rs(6), paddingHorizontal: rs(16), borderRadius: rs(8), borderWidth: 1 },
   modeTabBtnActive: { backgroundColor: '#5D768B', borderColor: '#5D768B' },
   modeTabBtnInactive: { backgroundColor: '#FFFFFF', borderColor: '#5D768B' },
   modeTabText: { fontSize: rs(12), fontWeight: '700' },
@@ -1295,12 +1099,7 @@ const styles = StyleSheet.create({
     marginTop: rs(6),
   },
   sectionTitle: { fontSize: rs(14), color: '#1F2D3D', fontWeight: '700' },
-  autoBox: {
-    backgroundColor: '#ECF1F7',
-    borderRadius: rs(10),
-    padding: rs(12),
-    marginTop: rs(8),
-  },
+  autoBox: { backgroundColor: '#ECF1F7', borderRadius: rs(10), padding: rs(12), marginTop: rs(8) },
   autoRow: { flexDirection: 'row', gap: rs(10) },
   fieldBox: { flex: 1 },
   fieldInput: {
@@ -1314,44 +1113,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     backgroundColor: '#FFFFFF',
   },
-  spinnerBox: {
-    borderWidth: 1,
-    borderColor: '#D7DEE6',
-    borderRadius: rs(10),
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-  },
-  spinnerInput: {
-    flex: 1,
-    paddingHorizontal: rs(12),
-    paddingVertical: Platform.OS === 'ios' ? rs(12) : rs(8),
-    fontSize: rs(13),
-    color: '#1F2D3D',
-    fontWeight: '800',
-  },
-  spinnerBtns: {
-    width: rs(34),
-    borderLeftWidth: 1,
-    borderLeftColor: '#D7DEE6',
-  },
+  spinnerBox: { borderWidth: 1, borderColor: '#D7DEE6', borderRadius: rs(10), flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  spinnerInput: { flex: 1, paddingHorizontal: rs(12), paddingVertical: Platform.OS === 'ios' ? rs(12) : rs(8), fontSize: rs(13), color: '#1F2D3D', fontWeight: '800' },
+  spinnerBtns: { width: rs(34), borderLeftWidth: 1, borderLeftColor: '#D7DEE6' },
   spinnerBtn: { height: rs(20), alignItems: 'center', justifyContent: 'center' },
-  helperText: {
-    marginTop: rs(10),
-    fontSize: rs(12),
-    color: '#6B7C8B',
-    fontWeight: '700',
-  },
-  generateBtn: {
-    marginTop: rs(12),
-    height: rs(46),
-    borderRadius: rs(12),
-    backgroundColor: '#5D768B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
+  helperText: { marginTop: rs(10), fontSize: rs(12), color: '#6B7C8B', fontWeight: '700' },
+  generateBtn: { marginTop: rs(12), height: rs(46), borderRadius: rs(12), backgroundColor: '#5D768B', alignItems: 'center', justifyContent: 'center', width: '100%' },
   generateText: { color: '#FFFFFF', fontSize: rs(14), fontWeight: '700' },
 
   viewSerialsBar: {
@@ -1378,16 +1145,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: rs(12),
   },
   addTouchDisabled: { opacity: 0.5 },
-  addTouchText: { fontSize: rs(12), color: '#1F2D3D', fontWeight: '700' },
-  addTouchTextDisabled: { color: '#6B7C8B' },
-  addTouchScan: {
-    width: rs(36),
-    height: rs(36),
-    borderRadius: rs(8),
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E9F0F7',
-  },
+  addTouchInput: { flex: 1, fontSize: rs(12), color: '#1F2D3D', fontWeight: '700', paddingVertical: 0, paddingRight: rs(10) },
+  addTouchScan: { width: rs(36), height: rs(36), borderRadius: rs(8), alignItems: 'center', justifyContent: 'center', backgroundColor: '#E9F0F7' },
   addTouchScanDisabled: { backgroundColor: '#EFF4F8' },
 
   serialTableCard: {
@@ -1407,80 +1166,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: rs(8),
     paddingVertical: rs(6),
   },
-  serialHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  serialHeaderEntry: {
-    width: rs(60),
-    fontSize: rs(11),
-    color: '#233E55',
-    fontWeight: '600',
-  },
-  serialHeaderSerial: {
-    flex: 1,
-    fontSize: rs(11),
-    color: '#233E55',
-    fontWeight: '600',
-  },
-  serialHeaderActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  serialHeaderIconBtn: {
-    width: rs(30),
-    height: rs(30),
-    borderRadius: rs(15),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: rs(6),
-  },
+  serialHeaderLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  serialHeaderEntry: { width: rs(60), fontSize: rs(11), color: '#233E55', fontWeight: '600' },
+  serialHeaderSerial: { flex: 1, fontSize: rs(11), color: '#233E55', fontWeight: '600' },
+  serialHeaderActions: { flexDirection: 'row', alignItems: 'center' },
+  serialHeaderIconBtn: { width: rs(30), height: rs(30), borderRadius: rs(15), alignItems: 'center', justifyContent: 'center', marginLeft: rs(6) },
   serialHeaderIconDisabled: { opacity: 0.3 },
 
-  serialRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: rs(8),
-  },
-  serialEntryText: {
-    width: rs(60),
-    fontSize: rs(13),
-    fontWeight: '700',
-    color: '#3B4B59',
-  },
+  serialRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: rs(8) },
+  serialEntryText: { width: rs(60), fontSize: rs(13), fontWeight: '700', color: '#3B4B59' },
   serialInputWrap: { flex: 1, position: 'relative' },
-  serialInputBox: {
-    height: rs(40),
-    borderRadius: rs(8),
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D7DEE6',
-    paddingHorizontal: rs(12),
-    justifyContent: 'center',
-  },
+  serialInputBox: { height: rs(40), borderRadius: rs(8), backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D7DEE6', paddingHorizontal: rs(12), justifyContent: 'center' },
   serialInputBoxLocked: { backgroundColor: '#F3F5F7' },
   serialInputBoxError: { borderColor: '#D32F2F' },
-  serialInput: {
-    fontSize: rs(13),
-    color: '#000000',
-    fontWeight: '700',
-    paddingRight: rs(40),
-  },
+  serialInput: { fontSize: rs(13), color: '#000000', fontWeight: '700', paddingRight: rs(40) },
   serialInputLocked: { color: '#6B7C8B' },
-  serialScanBtn: {
-    position: 'absolute',
-    right: rs(10),
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  serialScanBtn: { position: 'absolute', right: rs(10), top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   serialScanDisabled: { opacity: 0.3 },
-  serialDeleteRowBtn: {
-    width: rs(36),
-    height: rs(36),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  serialDeleteRowBtn: { width: rs(36), height: rs(36), alignItems: 'center', justifyContent: 'center' },
 });
