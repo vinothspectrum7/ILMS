@@ -576,6 +576,26 @@ const openInspectLotSerialSerialModal = useCallback(() => {
 }, [allItems, receiveItems, readOnly, OrgData]);
 
 
+useEffect(() => {
+  if (readOnly) return;
+  if (!current) return;
+  if (current?.itemType !== 'Serial') return;
+
+  const storeSerials = Array.isArray(currentStoreLine?.putAwaySerials)
+    ? currentStoreLine.putAwaySerials
+    : [];
+
+  if (!storeSerials.length) return;
+
+  setPutAwaySelectedSerialsMap(prev => {
+    const existing = Array.isArray(prev[current.id]) ? prev[current.id] : [];
+    if (existing.length) return prev; // don’t override user’s current session selection
+    return { ...prev, [current.id]: storeSerials };
+  });
+}, [readOnly, current?.id, current?.itemType, currentStoreLine?.putAwaySerials]);
+
+
+
 
   useFocusEffect(
     React.useCallback(() => {
@@ -1034,14 +1054,22 @@ const openInspectLotSerialSerialModal = useCallback(() => {
     const localPutAwayLocator = local.locator ?? '';
     const localPutAwayQty = Number(local.putAwayQty ?? 0);
 
+    const storePutAwaySerials = Array.isArray(stored?.putAwaySerials)
+      ? stored.putAwaySerials
+      : [];
+
     const localPutAwaySerials = Array.isArray(putAwaySelectedSerialsMap[current.id])
       ? putAwaySelectedSerialsMap[current.id]
       : [];
 
+    const finalPutAwaySerials =
+      localPutAwaySerials.length > 0 ? localPutAwaySerials : storePutAwaySerials;
+
     const isSerialPassed =
       itemType === 'Serial' &&
       localPutAwayQty > 0 &&
-      localPutAwaySerials.length === localPutAwayQty;
+      finalPutAwaySerials.length === localPutAwayQty;
+
 
     const computedPutAwayStatus =
       itemType === 'Serial'
@@ -1056,7 +1084,7 @@ const openInspectLotSerialSerialModal = useCallback(() => {
       putAwaySubInventory: localPutAwaySubInv,
       putAwayLocator: localPutAwayLocator,
       putAwayQty: localPutAwayQty,
-      putAwaySerials: localPutAwaySerials,
+      putAwaySerials: finalPutAwaySerials,
       putAwayStatus: computedPutAwayStatus,
       lastPutAwayDate: new Date().toISOString(),
     });
@@ -1138,16 +1166,26 @@ const openInspectLotSerialSerialModal = useCallback(() => {
 
 
 
-  const putAwaySelectedSerials = current
+  const putAwaySelectedSerialsLocal = current
     ? Array.isArray(putAwaySelectedSerialsMap[current.id])
       ? putAwaySelectedSerialsMap[current.id]
       : []
     : [];
 
-  const putAwayHasSerialSelection = putAwaySelectedSerials.length > 0;
+  const putAwaySelectedSerialsStore = Array.isArray(currentStoreLine?.putAwaySerials)
+    ? currentStoreLine.putAwaySerials
+    : [];
+
+  const effectivePutAwaySerials =
+    putAwaySelectedSerialsLocal.length > 0
+      ? putAwaySelectedSerialsLocal
+      : putAwaySelectedSerialsStore;
+
+  const putAwayHasSerialSelection = effectivePutAwaySerials.length > 0;
 
   const isPutAwaySerialPassed =
-    putAwayQty > 0 && putAwaySelectedSerials.length === putAwayQty;
+    putAwayQty > 0 && effectivePutAwaySerials.length === putAwayQty;
+
 
   const putAwaySerialStatusCardBg = isPutAwaySerialPassed ? '#EEFDF8' : '#FFF8EC';
   const putAwaySerialStatusCardBorder = isPutAwaySerialPassed ? '#73B386' : '#F06000';
@@ -3021,11 +3059,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
             onClose={() => setPutAwaySerialModalVisible(false)}
             putawayQty={putAwayQty}
             savedSerials={currentSavedSerials}
-            initialSelectedSerials={
-              current && Array.isArray(putAwaySelectedSerialsMap[current.id])
-                ? putAwaySelectedSerialsMap[current.id]
-                : []
-            }
+            initialSelectedSerials={effectivePutAwaySerials}
             requireValidationAgainstSaved={true}
             onConfirm={serials => {
               if (!current) return;
