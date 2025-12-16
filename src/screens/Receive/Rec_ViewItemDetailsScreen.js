@@ -1578,9 +1578,9 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                   style={[styles.tabBtn, activeTab === 'Receive' && styles.tabBtnActive]}
                 >
                   {activeTab === 'Receive' ? (
-                    <SelectedReceiveTabIcon width={16} height={16} />
+                    <SelectedReceiveTabIcon width={18} height={18} />
                   ) : (
-                    <ReceiveTabIcon width={16} height={16} />
+                    <ReceiveTabIcon width={18} height={18} />
                   )}
                   <Text
                     style={[
@@ -1612,9 +1612,9 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                   style={[styles.tabBtn, activeTab === 'Inspect' && styles.tabBtnActive]}
                 >
                   {activeTab === 'Inspect' ? (
-                    <SelectedInspectTabIcon width={16} height={16} />
+                    <SelectedInspectTabIcon width={18} height={18} />
                   ) : (
-                    <InspectTabIcon width={16} height={16} />
+                    <InspectTabIcon width={18} height={18} />
                   )}
                   <Text
                     style={
@@ -1645,9 +1645,9 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                   style={[styles.tabBtn, activeTab === 'PutAway' && styles.tabBtnActive]}
                 >
                   {activeTab === 'PutAway' ? (
-                    <SelectedPutAwayTabIcon width={16} height={16} />
+                    <SelectedPutAwayTabIcon width={18} height={18} />
                   ) : (
-                    <PutAwayTabIcon width={16} height={16} />
+                    <PutAwayTabIcon width={18} height={18} />
                   )}
                   <Text
                     style={
@@ -1673,7 +1673,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                       {current?.itemName || 'Item Name'}
                     </Text>
                     <Text style={styles.itemCode} numberOfLines={1}>
-                      {current?.itemid || 'Item Code'}
+                      {current?.itemName || 'Item Code'}
                     </Text>
                   </View>
                   <View style={styles.itemPillsCol}>
@@ -2779,7 +2779,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                   >
                     {putAwayHasSerialSelection && (
                       <View style={styles.inspectSerialTickWrap}>
-                        <InspectTickIcon width={16} height={16} />
+                        <InspectTickIcon width={20} height={20} />
                       </View>
                     )}
                     <Text
@@ -2818,7 +2818,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                 </View>
 
                 <View style={styles.fieldBlockFull}>
-                  <Text style={styles.mandLabel}>LPN</Text>
+                  <Text style={styles.mandLabel}>LPN*</Text>
                   <Rec_DropDown
                     value={currentEdited.lpn}
                     onChange={id => handleLpnChange(current.id, id)}
@@ -2832,7 +2832,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
 
                 <View style={styles.subLocRow}>
                   <View style={styles.subCol}>
-                    <Text style={styles.mandLabel}>Sub Inventory</Text>
+                    <Text style={styles.mandLabel}>Sub Inventory*</Text>
                     <Rec_DropDown
                       value={currentEdited.subInventory}
                       onChange={id => handleSubInvChange(current.id, id)}
@@ -2844,7 +2844,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                     />
                   </View>
                   <View style={styles.locCol}>
-                    <Text style={styles.mandLabel}>Locator</Text>
+                    <Text style={styles.mandLabel}>Locator*</Text>
                     <Rec_DropDown
                       value={currentEdited.locator}
                       onChange={id => handleLocatorChange(current.id, id)}
@@ -2867,7 +2867,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                     >
                       {hasLots ? (
                         <View style={styles.addLotGreen}>
-                          <ReceiveAddIcon width={16} height={16} />
+                          <ReceiveAddIcon width={20} height={20} />
                           <Text style={styles.addLotGreenText}>
                             {`${lotsCount} Lots Added - ${currentQty} QTY`}
                           </Text>
@@ -2879,7 +2879,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                           end={{ x: 1, y: 0 }}
                           style={styles.addLotGrad}
                         >
-                          <ReceiveAddIcon width={16} height={16} />
+                          <ReceiveAddIcon width={20} height={20} />
                           <Text style={styles.addLotText}>Add Lot</Text>
                         </LinearGradient>
                       )}
@@ -2909,7 +2909,7 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
                           end={{ x: 1, y: 0 }}
                           style={styles.addLotGrad}
                         >
-                          <ReceiveAddIcon width={16} height={16} />
+                          <ReceiveAddIcon width={20} height={20} />
                           <Text style={styles.addLotText}>Add Serial</Text>
                         </LinearGradient>
                       )}
@@ -3338,7 +3338,7 @@ const styles = StyleSheet.create({
     borderRadius: ms(10),
     paddingVertical: ms(10),
     paddingHorizontal: ms(10),
-    elevation: 2,
+    elevation: 4,
   },
   itemInfoRow: { flexDirection: 'row', alignItems: 'center' },
   itemIconWrap: {
@@ -3351,7 +3351,7 @@ const styles = StyleSheet.create({
   },
   itemTextCol: { flex: 1 },
   itemName: { fontSize: ms(13), fontWeight: '700', color: '#111827' },
-  itemCode: { marginTop: ms(3), fontSize: ms(11), color: '#9D9FA3' },
+  itemCode: { marginTop: ms(3), fontSize: ms(12), color: '#9D9FA3',fontWeight:700 },
   itemPillsCol: { alignItems: 'flex-end', justifyContent: 'center' },
   pilllotserial: {
     minWidth: ms(50),
@@ -3381,7 +3381,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: ms(4),
   },
-  pillSerialText: { fontSize: ms(10), color: '#668694', fontWeight: '600' },
+  pillSerialText: { fontSize: ms(11), color: '#668694', fontWeight: '700' },
 
   section: { marginTop: ms(16) },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: ms(8) },
@@ -3400,12 +3400,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   label: { fontSize: ms(12), color: '#595A5C' },
-  orderQtyText: { fontSize: ms(13), fontWeight: '700', color: '#111827' },
-  orderQtyUom: { fontSize: ms(11), fontWeight: '600', color: '#6B7280' },
+  orderQtyText: { fontSize: ms(13), fontWeight: '700', color: '#242424' },
+  orderQtyUom: { fontSize: ms(11), fontWeight: '600', color: '#242424' },
   numericRight: { alignItems: 'flex-end', justifyContent: 'center' },
   uomText: {
     fontSize: ms(10),
-    color: '#595A5C',
+    color: '#242424',
     marginTop: ms(2),
     marginRight: ms(2),
     textAlign: 'right',
@@ -3418,16 +3418,16 @@ const styles = StyleSheet.create({
   },
   shipHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
   shipValue: {
-    fontSize: ms(12),
+    fontSize: ms(14),
     fontWeight: '700',
-    color: '#111827',
+    color: '#242424',
     marginLeft: ms(8),
     flexShrink: 1,
     textAlign: 'right',
   },
 
   fieldBlockFull: { marginTop: ms(10) },
-  mandLabel: { fontSize: ms(11), color: '#6C6C6C', marginBottom: ms(4) },
+  mandLabel: { fontSize: ms(12), color: '#595A5C', marginBottom: ms(4),fontWeight:400 },
 
   subLocRow: { flexDirection: 'row', marginTop: ms(12) },
   subCol: { flex: 1, marginRight: ms(6) },

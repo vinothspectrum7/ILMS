@@ -402,8 +402,8 @@ export default function Rec_SerialModalPopup({
               <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: rs(18) }} keyboardShouldPersistTaps="handled">
                 {activeMode === 'ranges' && !rangesHasGenerated ? (
                   <View style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>Auto Generate Serials</Text>
                     <View style={styles.autoBox}>
+                      <Text style={styles.sectionTitle}>Auto Generate Serials</Text>
                       <View style={styles.autoRow}>
                         <View style={styles.fieldBox}>
                           <Text style={styles.fieldLabel}>Prefix</Text>
@@ -432,10 +432,10 @@ export default function Rec_SerialModalPopup({
                             />
                             <View style={styles.spinnerBtns}>
                               <TouchableOpacity onPress={incStart} style={styles.spinnerBtn} activeOpacity={0.85}>
-                                <SerialUpIcon width={rs(16)} height={rs(16)} />
+                                <SerialUpIcon width={rs(12)} height={rs(12)} />
                               </TouchableOpacity>
                               <TouchableOpacity onPress={decStart} style={styles.spinnerBtn} activeOpacity={0.85}>
-                                <SerialDownIcon width={rs(16)} height={rs(16)} />
+                                <SerialDownIcon width={rs(12)} height={rs(12)} />
                               </TouchableOpacity>
                             </View>
                           </View>
@@ -457,7 +457,7 @@ export default function Rec_SerialModalPopup({
                     >
                       <Text style={[styles.addTouchText, (!showTouchArea || !canAddRow) && styles.addTouchTextDisabled]}>Add Serial Number</Text>
                       <View style={[styles.addTouchScan, (!showTouchArea || !canAddRow) && styles.addTouchScanDisabled]}>
-                        <BarcodeIcon width={rs(18)} height={rs(18)} />
+                        <BarcodeIcon width={rs(20)} height={rs(20)} />
                       </View>
                     </TouchableOpacity>
 
@@ -610,18 +610,18 @@ const styles = StyleSheet.create({
 
   sectionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: rs(10),
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    // borderRadius: rs(10),
+    // borderWidth: 1,
+    // borderColor: '#E0E0E0',
     padding: rs(12),
   },
-  sectionTitle: { fontSize: rs(14), color: '#1F2D3D', fontWeight: '700' },
+  sectionTitle: { fontSize: rs(12), color: '#242424', fontWeight: '600',marginBottom:5 },
 
   autoBox: { backgroundColor: '#ECF1F7', borderRadius: rs(10), padding: rs(12) },
   autoRow: { flexDirection: 'row', gap: rs(10) },
 
   fieldBox: { flex: 1 },
-  fieldLabel: { fontSize: rs(12), color: '#5B6B79', fontWeight: '700', marginBottom: rs(6) },
+  fieldLabel: { fontSize: rs(10), color: '#5B6B79', fontWeight: '500', marginBottom: rs(6) },
   fieldInput: {
     borderWidth: 1,
     borderColor: '#D7DEE6',
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
   },
-  generateTxt: { color: '#FFFFFF', fontSize: rs(14), fontWeight: '700' },
+  generateTxt: { color: '#FFFFFF', fontSize: rs(12), fontWeight: '700' },
 
   tableHeader: {
     backgroundColor: '#D9E4EE',
@@ -728,9 +728,9 @@ const styles = StyleSheet.create({
 
   addTouchWrap: {
     height: rs(46),
-    borderRadius: rs(10),
+    borderRadius: rs(8),
     borderWidth: 1,
-    borderColor: '#C9D6E1',
+    borderColor: '#CCCED2',
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -738,7 +738,7 @@ const styles = StyleSheet.create({
     marginBottom: rs(12),
   },
   addTouchDisabled: { opacity: 0.45 },
-  addTouchText: { fontSize: rs(12), color: '#1F2D3D', fontWeight: '700' },
+  addTouchText: { fontSize: rs(12), color: '#242424', fontWeight: '600' },
   addTouchTextDisabled: { color: '#6B7C8B' },
   addTouchScan: {
     width: rs(36),
@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
     borderRadius: rs(8),
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E9F0F7',
+    // backgroundColor: '#E9F0F7',
   },
   addTouchScanDisabled: { backgroundColor: '#EFF4F8' },
 

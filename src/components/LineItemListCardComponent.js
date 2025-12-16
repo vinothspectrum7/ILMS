@@ -115,12 +115,29 @@ const formatDate = (dateStr) => {
 
     {/* LEFT CHECKBOX */}
     <View style={styles.section1}>
-      <CheckBox
-        value={isSelected}
-        onValueChange={() => onCheckToggle(item)}
-        style={styles.checkbox}
-        disabled={item.openQty === 0}
-      />
+          <TouchableOpacity
+            style={RNStyleSheet.absoluteFill}
+            onPress={() => onCheckToggle(item)}
+            activeOpacity={0.8}
+            disabled={item.openQty==0}
+          />
+          <CheckBox
+            value={isSelected}
+            onValueChange={() => onCheckToggle(item)}
+            style={styles.checkbox}
+              tintColors={
+    item.openQty == 0
+      ? { true: '#9D9FA3', false: '#9D9FA3' } // disabled colors (greyed out)
+      : { true: '#233E55', false: '#666666' }  // normal colors
+  }
+
+            onCheckColor={Platform.OS === 'ios' ? '#FFFFFF' : undefined}
+            onFillColor={Platform.OS === 'ios' ? '#233E55' : undefined}
+            onTintColor={Platform.OS === 'ios' ? '#666666' : undefined}
+            boxType={Platform.OS === 'ios' ? 'square' : undefined}
+            lineWidth={Platform.OS === 'ios' ? 1.5 : undefined}
+            disabled={item.openQty==0}
+          />
     </View>
 
     {/* MAIN CONTENT */}
@@ -227,7 +244,7 @@ qtyRow: {
   },
 
   section1: {
-    width: s(36),
+    width: s(30),
     backgroundColor: '#ECF1F7',
     justifyContent: 'center',
     alignItems: 'center',
