@@ -50,6 +50,7 @@ export const useReceivingStore = create((set, get) => ({
 
   receiveItems: [],
   initReceiveItems: items => set({ receiveItems: items }),
+
   mergePatchIntoReceiveItems: patch => {
     if (!patch || !patch.id) return;
 
@@ -65,11 +66,13 @@ export const useReceivingStore = create((set, get) => ({
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
             imageUri: patch.imageUri ?? it.imageUri,
+
             lotLines: patch.lotLines ?? it.lotLines,
             lotTotalQty:
               typeof patch.lotTotalQty === 'number'
                 ? patch.lotTotalQty
                 : it.lotTotalQty,
+
             serialLines:
               patch.serialLines !== undefined
                 ? patch.serialLines
@@ -79,22 +82,29 @@ export const useReceivingStore = create((set, get) => ({
                 ? patch.serialTotalQty
                 : it.serialTotalQty,
             serialMode: patch.serialMode ?? it.serialMode,
+
             inspections: patch.inspections ?? it.inspections,
             inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
-            putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
             inspectionData: patch.inspectionData ?? it.inspectionData,
             passedQty: patch.passedQty ?? it.passedQty,
             failedQty: patch.failedQty ?? it.failedQty,
             holdQty: patch.holdQty ?? it.holdQty,
             inspectionNotes: patch.inspectionNotes ?? it.inspectionNotes,
+
+            putAwayLots: patch.putAwayLots ?? it.putAwayLots,
+            putAwaySerials: patch.putAwaySerials ?? it.putAwaySerials,
+            putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
+            lastPutAwayDate: patch.lastPutAwayDate ?? it.lastPutAwayDate,
           }
         : it,
     );
 
     set({ receiveItems: next });
   },
+
   summaryItems: [],
   initSummaryItems: items => set({ summaryItems: items }),
+
   mergePatchIntoSummaryItems: patch => {
     if (!patch || !patch.id) return;
 
@@ -109,6 +119,7 @@ export const useReceivingStore = create((set, get) => ({
             lpn: patch.lpn ?? it.lpn,
             subInventory: patch.subInventory ?? it.subInventory,
             locator: patch.locator ?? it.locator,
+
             serialLines:
               patch.serialLines !== undefined
                 ? patch.serialLines
@@ -118,14 +129,19 @@ export const useReceivingStore = create((set, get) => ({
                 ? patch.serialTotalQty
                 : it.serialTotalQty,
             serialMode: patch.serialMode ?? it.serialMode,
+
             inspections: patch.inspections ?? it.inspections,
             inspectionStatus: patch.inspectionStatus ?? it.inspectionStatus,
-            putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
             inspectionData: patch.inspectionData ?? it.inspectionData,
             passedQty: patch.passedQty ?? it.passedQty,
             failedQty: patch.failedQty ?? it.failedQty,
             holdQty: patch.holdQty ?? it.holdQty,
             inspectionNotes: patch.inspectionNotes ?? it.inspectionNotes,
+
+            putAwayLots: patch.putAwayLots ?? it.putAwayLots,
+            putAwaySerials: patch.putAwaySerials ?? it.putAwaySerials,
+            putAwayStatus: patch.putAwayStatus ?? it.putAwayStatus,
+            lastPutAwayDate: patch.lastPutAwayDate ?? it.lastPutAwayDate,
           }
         : it,
     );

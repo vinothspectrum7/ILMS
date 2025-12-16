@@ -19,6 +19,15 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
 
+const getItemId = it => {
+  if (!it) return '';
+  if (typeof it === 'string' || typeof it === 'number') return String(it);
+  if (typeof it === 'object') return String(it.id ?? it.locator_id ?? it.value ?? '');
+  return '';
+};
+
+const isPrimitive = v => typeof v === 'string' || typeof v === 'number';
+
 export default function Rec_DropDown({
   label,
   required = false,
@@ -40,37 +49,65 @@ export default function Rec_DropDown({
   const [cardHeight, setCardHeight] = useState(0);
   const anchorRef = useRef(null);
 
+  const resolvedSelectedItem = useMemo(() => {
+    if (!value) return null;
+    if (typeof value === 'object') return value;
+    if (isPrimitive(value)) {
+      const vid = String(value);
+      const found = (Array.isArray(items) ? items : []).find(it => String(getItemId(it)) === vid);
+      return found || null;
+    }
+    return null;
+  }, [value, items]);
+
   const selectedLabel = useMemo(() => {
     if (!value) return '';
-    if (displayValue) return displayValue(value);
-    return value.name || value.code || '';
-  }, [value, displayValue]);
+    if (displayValue) {
+      const input = resolvedSelectedItem ?? value;
+      const out = displayValue(input);
+      return out == null ? '' : String(out);
+    }
+
+    if (resolvedSelectedItem && typeof resolvedSelectedItem === 'object') {
+      const name = resolvedSelectedItem.name ?? resolvedSelectedItem.code ?? '';
+      return name ? String(name) : '';
+    }
+
+    if (isPrimitive(value)) {
+      const vid = String(value);
+      const found = (Array.isArray(items) ? items : []).find(it => String(getItemId(it)) === vid);
+      const name = found?.name ?? found?.code ?? '';
+      return name ? String(name) : '';
+    }
+
+    return '';
+  }, [value, displayValue, resolvedSelectedItem, items]);
 
   const filteredItems = useMemo(() => {
     const term = (search || '').toLowerCase().trim();
     if (!term) return items;
-    return items.filter(it =>
-      searchKeys.some(k => String(it[k] || '').toLowerCase().includes(term)),
+
+    return (Array.isArray(items) ? items : []).filter(it =>
+      (Array.isArray(searchKeys) ? searchKeys : ['name']).some(k =>
+        String(it?.[k] ?? '').toLowerCase().includes(term),
+      ),
     );
   }, [items, search, searchKeys]);
 
   const measureAnchor = () => {
     if (anchorRef.current && anchorRef.current.measureInWindow) {
       anchorRef.current.measureInWindow((x, y, width, height) => {
-        if (width && height) {
-          setAnchorLayout({ x, y, width, height });
-        }
+        if (width && height) setAnchorLayout({ x, y, width, height });
       });
     }
   };
 
   const openDropdown = () => {
     if (disabled) return;
+
     if (anchorRef.current && anchorRef.current.measureInWindow) {
       anchorRef.current.measureInWindow((x, y, width, height) => {
-        if (width && height) {
-          setAnchorLayout({ x, y, width, height });
-        }
+        if (width && height) setAnchorLayout({ x, y, width, height });
         setOpen(true);
       });
     } else {
@@ -118,9 +155,7 @@ export default function Rec_DropDown({
       top = Math.min(top, maxTop);
     }
 
-    if (top < marginTop) {
-      top = marginTop;
-    }
+    if (top < marginTop) top = marginTop;
 
     return top;
   }, [anchorLayout, keyboardHeight, cardHeight]);
@@ -134,6 +169,13 @@ export default function Rec_DropDown({
       top: computedTop,
     },
   ];
+
+  const selectedId = useMemo(() => {
+    if (!value) return '';
+    if (typeof value === 'object') return String(getItemId(value));
+    if (isPrimitive(value)) return String(value);
+    return '';
+  }, [value]);
 
   return (
     <>
@@ -153,10 +195,7 @@ export default function Rec_DropDown({
           onLayout={measureAnchor}
           activeOpacity={0.8}
         >
-          <Text
-            numberOfLines={1}
-            style={[styles.inputText, !selectedLabel && styles.placeholderText]}
-          >
+          <Text numberOfLines={1} style={[styles.inputText, !selectedLabel && styles.placeholderText]}>
             {selectedLabel || placeholder}
           </Text>
 
@@ -190,15 +229,9 @@ export default function Rec_DropDown({
           style={dropdownCardStyle}
           onLayout={event => {
             const h = event.nativeEvent.layout.height;
-            if (h && h !== cardHeight) {
-              setCardHeight(h);
-            }
+            if (h && h !== cardHeight) setCardHeight(h);
           }}
         >
-          {/* <View style={styles.searchLabelRow}>
-            <Text style={styles.searchLabel}>Search</Text>
-          </View> */}
-
           <View style={styles.searchInputWrapper}>
             <TextInput
               value={search}
@@ -215,12 +248,15 @@ export default function Rec_DropDown({
           <FlatList
             style={styles.list}
             data={filteredItems}
-            keyExtractor={(item, index) => String(item.id ?? index)}
+            keyExtractor={(item, index) => String(getItemId(item) || index)}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => {
-              const isSelected = value && value.id === item.id;
-              const description = item.description ? String(item.description) : '';
+              const itemId = String(getItemId(item));
+              const isSelected = !!selectedId && itemId === String(selectedId);
+
+              const description = item?.description ? String(item.description) : '';
+              const rightText = renderCode ? String(renderCode(item) ?? '') : description;
 
               return (
                 <TouchableOpacity
@@ -230,17 +266,16 @@ export default function Rec_DropDown({
                 >
                   <View style={styles.rowHeader}>
                     <Text style={styles.rowTitle} numberOfLines={1}>
-                      {item.name}
+                      {String(item?.name ?? item?.code ?? '')}
                     </Text>
-                    {description ? (
-                      <Text
-                        style={styles.rowRightDesc}
-                        numberOfLines={1}
-                      >
-                        {description}
+
+                    {rightText ? (
+                      <Text style={styles.rowRightDesc} numberOfLines={1}>
+                        {rightText}
                       </Text>
                     ) : null}
                   </View>
+
                   <View style={styles.rowdivider} />
                 </TouchableOpacity>
               );
@@ -307,13 +342,6 @@ const styles = StyleSheet.create({
   },
   list: {
     maxHeight: SCREEN_HEIGHT * 0.55,
-  },
-  searchLabelRow: {
-    marginBottom: rs(4),
-  },
-  searchLabel: {
-    fontSize: rs(12),
-    color: '#777777',
   },
   searchInputWrapper: {
     flexDirection: 'row',
