@@ -546,32 +546,35 @@ const openInspectLotSerialSerialModal = useCallback(() => {
   }, [allItems, receiveItems, readOnly]);
 
   useEffect(() => {
-    if (readOnly) return;
+  if (readOnly) return;
 
-    const next = {};
-    for (const it of allItems) {
-      const fromStore = Array.isArray(receiveItems)
-        ? receiveItems.find(r => String(r.id) === String(it.id))
-        : undefined;
+  const next = {};
+  for (const it of allItems) {
+    const fromStore = Array.isArray(receiveItems)
+      ? receiveItems.find(r => String(r.id) === String(it.id))
+      : undefined;
 
-      next[it.id] = {
-        subInventory:
-          fromStore?.putAwaySubInventory ??
+    next[it.id] = {
+      subInventory: getId(
+        fromStore?.putAwaySubInventory ??
           fromStore?.subInventory ??
           it.subInventory ??
           OrgData?.selectedinventory ??
           '',
-        locator:
-          fromStore?.putAwayLocator ??
+      ),
+      locator: getId(
+        fromStore?.putAwayLocator ??
           fromStore?.locator ??
           it.locator ??
           '',
-        putAwayQty: Number(fromStore?.putAwayQty ?? 0),
-      };
-    }
+      ),
+      putAwayQty: Number(fromStore?.putAwayQty ?? 0),
+    };
+  }
 
-    setPutAwayEditedMap(next);
-  }, [allItems, receiveItems, readOnly, OrgData]);
+  setPutAwayEditedMap(next);
+}, [allItems, receiveItems, readOnly, OrgData]);
+
 
 
   useFocusEffect(
