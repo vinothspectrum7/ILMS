@@ -861,6 +861,7 @@ useEffect(() => {
     const patches = [];
     allItems.forEach(it => {
       const st = edited[it.id];
+      const itemstore = edited[it.itemid];
       if (!st) return;
       const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
       const clampedQty = clampToLimit(Number(st.receivingQty ?? 0), limit);
@@ -872,8 +873,11 @@ useEffect(() => {
           lpn: st.lpn ?? '',
           subInventory: st.subInventory ?? '',
           locator: st.locator ?? null,
+          imageUri:itemstore?.imageUri ?? null
         });
       }
+          console.log(itemstore,"editededitededitededited");
+
     });
     patches.forEach(p => mergePatchIntoReceiveItems(p));
   };
@@ -1493,9 +1497,10 @@ useEffect(() => {
   if (!currentItem) return;
 
   const editedItem = edited[currentItem.itemid];
+  console.log(currentItem,"editedItemeditedItem");
 
   // 🚫 If user already changed image, DO NOT fetch
-  if (editedItem?.source === 'local') return;
+  if (currentItem?.imageUri) return;
 
   // ✅ Fetch only once
   if (!editedItem?.imageUri && !editedItem?.loading) {

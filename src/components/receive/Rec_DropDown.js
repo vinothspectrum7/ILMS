@@ -206,10 +206,10 @@ export default function Rec_DropDown({
                 activeOpacity={0.85}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <BarcodeScannerIcon width={rs(18)} height={rs(18)} />
+                <BarcodeScannerIcon width={rs(24)} height={rs(24)} />
               </TouchableOpacity>
             ) : (
-              <DropdownIcon width={rs(14)} height={rs(14)} style={styles.dropdownIcon} />
+              <DropdownIcon width={rs(24)} height={rs(24)} style={styles.dropdownIcon} />
             )}
           </View>
         </TouchableOpacity>
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: rs(12),
-    height: rs(44),
+    height: rs(40),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -314,12 +314,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFEFF0',
   },
   inputText: {
-    fontSize: rs(14),
-    color: '#222222',
+    fontSize: rs(12),
+    color: '#242424',
     flex: 1,
+    fontWeight:600
   },
   placeholderText: {
-    color: '#9E9E9E',
+    color: '#242424',
+    // fontWeight:600
   },
   rightIcons: {
     flexDirection: 'row',

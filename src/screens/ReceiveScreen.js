@@ -60,11 +60,11 @@ const getProgressCardColor = (percent) => {
 };
 const getProgressWrapperColor = (percent) => {
   const p = Number(percent || 0);
-  if(p>0 && p<=25) return '#FCDFCC';
+  if(p>0 && p<=25) return '#F8D2D4';
   if(p>25 && p<=60) return '#FCDFCC';
   if (p > 60 && p<=90) return '#D9E4EE';
   if (p >90) return '#D0E6D7';
-  if(p==0) return '#FCDFCC';
+  if(p==0) return '#F8D2D4';
 };
 // const getPOProgressColor = (percent) => {
 //   const p = Number(percent || 0);
@@ -980,7 +980,7 @@ const ReceiveScreen = () => {
                   <View style={[styles.progresscard,{backgroundColor: getProgressCardColor(item.received)}]}>
                     <View style={styles.progressLabel}>
                       <View style={{ flex: 1, flexDirection: 'row', marginBottom: scale(5) }}>
-                        <Text style={[styles.progressText, { color: getProgressColor(item.received), marginRight: 5 }]}>Outstanding Lines
+                        <Text style={[styles.progressText, { color: getProgressColor(item.received), marginRight: 5 }]}>Outstanding Lines - {item.pending_lines}
                         </Text>
                         {/* <View style={[styles.bardot, { backgroundColor: getProgressColor(item.received) }]} />
                         <Text style={[styles.progressText, { color: getProgressColor(item.received) }]}>Lines</Text> */}
