@@ -461,7 +461,11 @@ export default function Rec_SerialModalPopup({
                 </View>
               </LinearGradient>
 
-              <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: rs(18) }} keyboardShouldPersistTaps="handled">
+              <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={{ paddingBottom: rs(18) }}
+                keyboardShouldPersistTaps="handled"
+              >
                 {activeMode === 'ranges' && !rangesHasGenerated ? (
                   <View style={styles.sectionCard}>
                     <Text style={styles.sectionTitle}>Auto Generate Serials</Text>
@@ -547,7 +551,7 @@ export default function Rec_SerialModalPopup({
                     </View>
 
                     {activeRows.map(r => {
-                      const locked = r.source === 'auto' || r.source === 'scan' || r.source === 'added';
+                      const locked = r.source === 'auto' || r.source === 'scan';
                       return (
                         <View key={r.id} style={styles.rowWrap}>
                           <Text style={styles.rowEntryText}>#{r.entry}</Text>
@@ -577,7 +581,11 @@ export default function Rec_SerialModalPopup({
                               <BarcodeIcon width={rs(18)} height={rs(18)} />
                             </TouchableOpacity>
                           </View>
-                          <TouchableOpacity onPress={() => deleteRow(r.id)} activeOpacity={0.85} style={styles.deleteBtn}>
+                          <TouchableOpacity
+                            onPress={() => deleteRow(r.id)}
+                            activeOpacity={0.85}
+                            style={styles.deleteBtn}
+                          >
                             <SerialDeleteIcon width={rs(18)} height={rs(18)} />
                           </TouchableOpacity>
                         </View>
