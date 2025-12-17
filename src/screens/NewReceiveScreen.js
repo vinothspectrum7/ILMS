@@ -81,7 +81,7 @@ const NewReceiveScreen = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [scannedItems, setScannedItems] = useState([]);
   const [showScanner, setShowScanner] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('pending');
 
   useFocusEffect(
     useCallback(() => {

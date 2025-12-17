@@ -6,6 +6,7 @@ import FooterButtonsComponent from '../../components/FooterButtonsComponent';
 import { useReceivingStore } from '../../store/receivingStore';
 import LockIcon from '../../assets/icons/lock.svg';
 import EyeIcon from '../../assets/icons/eye.svg';
+import ProfileHeader from '../../components/ProfileHeader';
 
 const { width } = Dimensions.get('window');
 const base = 375;
@@ -44,7 +45,7 @@ export default function ChangePassword() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <GlobalHeaderComponent
+      <ProfileHeader
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Change Password"
         notificationCount={0}

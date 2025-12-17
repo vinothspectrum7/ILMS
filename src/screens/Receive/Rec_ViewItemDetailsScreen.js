@@ -2967,7 +2967,7 @@ const handleImagePick = (itemId) => {
                 </View>
 
                 <View style={styles.fieldBlockFull}>
-                  <Text style={styles.mandLabel}>LPN*</Text>
+                  <Text style={styles.mandLabel}>LPN</Text>
                   <Rec_DropDown
                     value={currentEdited.lpn}
                     onChange={id => handleLpnChange(current.id, id)}

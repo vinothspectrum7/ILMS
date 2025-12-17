@@ -1137,7 +1137,7 @@ const ReceiveScreen = () => {
               </View>
               <View style={styles.bottomrow}>
                 <View style={styles.bottomcardLeft}>
-                  <View style={[styles.progresscard,{backgroundColor: getProgressCardColor(item.received)}]}>
+                  <View style={[styles.progresscard,{backgroundColor:getProgressCardColor(item.receivedPct)}]}>
                     <View style={styles.progressLabel}>
                       <View style={{ flex: 1, flexDirection: 'row', marginBottom: scale(5) }}>
                         <Text style={[styles.progressText, { color: getProgressColor(item.receivedPct), marginRight: 5 }]}>Receiving Pending
@@ -1148,7 +1148,7 @@ const ReceiveScreen = () => {
                       {/* <View style={styles.dot} /> */}
                       <Text style={[styles.progresspercentage, { color: getProgressColor(item.receivedPct) }]}>{item.receivedPct}%</Text>
                     </View>
-                    <View style={[styles.progressWrapper,{backgroundColor: getProgressWrapperColor(item.received)}]}>
+                    <View style={[styles.progressWrapper,{backgroundColor: getProgressWrapperColor(item.receivedPct)}]}>
                       <View style={[styles.progressBarleft, { width: `${item.receivedPct}%`, backgroundColor: getProgressColor(item.receivedPct) }]} />
                     </View>
                   </View>
@@ -1352,6 +1352,7 @@ const ReceiveScreen = () => {
   };
 
   const selectSortOption = (key) => {
+    console.log(key,sortField,"selectSortOptionselectSortOptionselectSortOptionselectSortOption")
     if (sortField === key) {
       setSortField(null);
       restoreBaseline();
@@ -1361,6 +1362,7 @@ const ReceiveScreen = () => {
     captureBaselineIfNeeded();
     setSortField(key);
     setSortMenuOpen(false);
+    handleSort();
   };
 
   const isSortDropdownActive = sortMenuOpen || !!sortField;
@@ -1413,7 +1415,7 @@ const ReceiveScreen = () => {
                       indicatorStyle={{ backgroundColor: '#233E55', height: 3, bottom: -1 }}
                       style={{ backgroundColor: '#F7F9FB', elevation: 0 }}
                       scrollEnabled
-                      tabStyle={{ width: 100, paddingHorizontal: 10 }}
+                      tabStyle={{ width: 110, paddingHorizontal: 1 }}
                       activeColor="#233E55"
                       inactiveColor="#9D9FA3"
                       renderLabel={({ route, focused, color }) => <Text style={{ color, fontWeight: focused ? 'bold' : 'normal', fontSize: 12 }}>{route.title}</Text>}
