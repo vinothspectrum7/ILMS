@@ -83,14 +83,18 @@ const toBackendStatus = (label) => {
 const formatDate = (input) => {
   const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const out = (y, m, d) => `${String(d).padStart(2, '0')} ${monthShort[m]} ${y}`;
+
   if (input == null) return dash;
+
   const n = Date.parse(String(input).trim());
   if (!Number.isNaN(n)) {
     const dt = new Date(n);
-    return out(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+    return out(dt.getFullYear(), dt.getMonth(), dt.getDate());
   }
+
   return dash;
 };
+
 
 const RightActions = memo(({ onDelete }) => (
   <View style={styles.rightActionContainer}>
