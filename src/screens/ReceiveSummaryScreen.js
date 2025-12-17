@@ -218,7 +218,7 @@ const ReceiveSummaryScreen = () => {
       received_type: 'purchase_order',
       asn_header_uuid: null,
             // new fields
-      lpn_number: "string",
+      lpn_number: backend.lpn ? backend?.lpn?.id : null,
       failed_qty: 0,
       on_hold_qty: 0,
       lot_enabled: false,

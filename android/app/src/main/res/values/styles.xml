@@ -4,12 +4,21 @@
     <item name="android:navigationBarColor">@color/brand_bg</item>
     <item name="android:windowLightStatusBar">false</item>
     <item name="android:datePickerDialogTheme">@style/PickerDialogTheme</item>
+    <item name="android:textColorPrimary">@color/brand_bg</item>
+    <item name="android:textColorSecondary">@color/brand_bg</item>
   </style>
-  <style name="PickerDialogTheme" parent="Theme.Material3.DayNight.Dialog">
+<style name="PickerDialogTheme" parent="Theme.MaterialComponents.DayNight.Dialog">
     <item name="colorPrimary">@color/brand_bg</item>
+    <item name="colorPrimaryVariant">@color/brand_bg</item>
     <item name="colorAccent">@color/brand_bg</item>
+
+    <!-- Calendar background -->
+    <item name="android:windowBackground">#FFFFFF</item>
     <item name="colorSurface">@color/brand_bg</item>
-    <item name="colorOnPrimary">#FFFFFF</item>
-    <item name="colorOnSurface">#FFFFFF</item>
-  </style>
+
+    <!-- Text colors -->
+    <item name="android:textColorPrimary">@color/brand_bg</item>
+    <item name="android:textColorSecondary">@color/brand_bg</item>
+</style>
+
 </resources>
