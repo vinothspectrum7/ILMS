@@ -311,6 +311,7 @@ export default function Rec_LotModalPopup({
                             value={lot.lotNumber}
                             onChangeText={t => updateLot(lot.idx, { lotNumber: t })}
                             placeholder="Enter Lot Number"
+                            placeholderTextColor="#999999"
                           />
                           <TouchableOpacity
                             style={styles.barcodeBtn}
@@ -341,12 +342,14 @@ export default function Rec_LotModalPopup({
                               value={lot.mfgDate}
                               onChangeText={t => updateLot(lot.idx, { mfgDate: t })}
                               placeholder="DD/MM/YYYY"
+                              numberOfLines={1}
+                              placeholderTextColor="#999999"
                             />
                             <TouchableOpacity
                               style={styles.dateIconBtn}
                               onPress={() => openDatePicker(lot.idx, 'mfg', lot.mfgDate)}
                             >
-                              <CalendarIcon width={rs(16)} height={rs(16)} />
+                              <CalendarIcon width={rs(14)} height={rs(14)} />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -361,12 +364,14 @@ export default function Rec_LotModalPopup({
                               value={lot.expDate}
                               onChangeText={t => updateLot(lot.idx, { expDate: t })}
                               placeholder="DD/MM/YYYY"
+                              numberOfLines={1}
+                              placeholderTextColor="#999999"
                             />
                             <TouchableOpacity
                               style={styles.dateIconBtn}
                               onPress={() => openDatePicker(lot.idx, 'exp', lot.expDate)}
                             >
-                              <CalendarIcon width={rs(16)} height={rs(16)} />
+                              <CalendarIcon width={rs(14)} height={rs(14)} />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -431,7 +436,6 @@ export default function Rec_LotModalPopup({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: 'transparent' },
   content: { flex: 1, backgroundColor: '#FFFFFF', marginTop: rs(102) },
-
   headerBar: {
     height: rs(42),
     paddingHorizontal: rs(16),
@@ -441,7 +445,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E6EEF7',
   },
   headerTitle: { fontSize: rs(14), fontWeight: '600', color: '#242424' },
-
   errorBanner: {
     marginTop: rs(8),
     marginHorizontal: rs(16),
@@ -453,7 +456,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: { color: '#D32F2F', fontSize: rs(12), fontWeight: '600', marginLeft: rs(6) },
-
   topInfoWrapper: { marginTop: rs(8), marginHorizontal: rs(16) },
   topInfo: {
     flexDirection: 'row',
@@ -475,7 +477,6 @@ const styles = StyleSheet.create({
   itemTextBlock: { flex: 1 },
   itemLabel: { fontSize: rs(11), color: '#FFFFFF', opacity: 0.8 },
   itemValue: { fontSize: rs(14), fontWeight: '600', color: '#FFFFFF', marginTop: rs(2) },
-
   qtyInfo: { alignItems: 'flex-end' },
   topQtyLabel: { fontSize: rs(11), color: '#FFFFFF', opacity: 0.8 },
   qtyValue: { marginTop: rs(2) },
@@ -483,7 +484,6 @@ const styles = StyleSheet.create({
   qtySelectedActive: { fontSize: rs(16) },
   qtySlash: { fontSize: rs(14), color: '#FFFFFF' },
   qtyTotal: { fontSize: rs(14), fontWeight: '600', color: '#FFFFFF' },
-
   scroll: { flex: 1, paddingHorizontal: rs(16), paddingTop: rs(16) },
   lotGroup: { marginBottom: rs(20) },
   lotCard: {
@@ -514,10 +514,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   fieldLabel: { fontSize: rs(12), color: '#595A5C', marginBottom: rs(6) },
   required: { color: '#E53935' },
-
   lotNumberRow: { flexDirection: 'row', alignItems: 'center', marginBottom: rs(12) },
   lotNumberInputWrap: { flex: 1, position: 'relative' },
   lotNumberInput: {
@@ -551,18 +549,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   generateText: { color: '#145DA0', fontSize: rs(12), fontWeight: '600' },
-
   row2: { flexDirection: 'row', marginTop: rs(4) },
   col: { flex: 1, marginRight: rs(10) },
   colQty: { width: rs(100), marginStart: rs(1) },
-
   dateRow: { width: '100%', position: 'relative' },
   dateInput: {
     width: '100%',
     borderRadius: rs(8),
     borderWidth: 1,
     height: rs(40),
-    paddingHorizontal: rs(10),
+    paddingHorizontal: rs(5),
     paddingRight: rs(36),
     fontSize: rs(10),
     color: '#222222',
@@ -581,7 +577,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   footerBar: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -984,7 +984,7 @@ const ReceiveScreen = () => {
                   <View style={[styles.progresscard,{backgroundColor: getProgressCardColor(item.received)}]}>
                     <View style={styles.progressLabel}>
                       <View style={{ flex: 1, flexDirection: 'row', marginBottom: scale(5) }}>
-                        <Text style={[styles.progressText, { color: getProgressColor(item.received), marginRight: 5 }]}>Outstanding Lines - {item.pending_lines}
+                        <Text numberOfLines={1} style={[styles.progressText, { color: getProgressColor(item.received), marginRight: 5 }]}>Outstanding Lines - {item.pending_lines}
                         </Text>
                         {/* <View style={[styles.bardot, { backgroundColor: getProgressColor(item.received) }]} />
                         <Text style={[styles.progressText, { color: getProgressColor(item.received) }]}>Lines</Text> */}
