@@ -8,10 +8,8 @@ import BarcodeScanner from './BarCodeScanner';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import BarcodeScannerIcon from '../assets/icons/barcodescanner.svg';
 import DeleteSvg from '../assets/icons/delete.svg';
-import SortIcon from '../assets/icons/sorticon.svg';
 import SortDropdownIcon from '../assets/icons/sortdropdown.svg';
 import BackFilterIcon from '../assets/icons/filterbackicon.svg';
-import ViewMoreIcon from '../assets/icons/viewmore.svg';
 import InputSearchIcon from '../assets/icons/search_receivelist.svg';
 import ViewLessIcon from '../assets/icons/viewless.svg';
 import { useReceivingStore } from '../store/receivingStore';
@@ -33,45 +31,32 @@ const computePercent = (received, ordered) => {
   const o = Number(ordered ?? 0);
   if (!Number.isFinite(o) || o <= 0) return 0;
   const pct = (r / o) * 100;
-  return clampPct(Math.ceil(pct)); // round UP to whole number
-};
-const getStatusColor = (status) => {
-  const s = String(status || '').toUpperCase();
-  if (s === 'OPEN') return '#033EFF';
-  if (s === 'CLOSED') return '#168035';
-  if (s === 'FULLY RECEIVED') return '#168035';
-  return '#F06000';
+  return clampPct(Math.ceil(pct));
 };
 const getProgressColor = (percent) => {
   const p = Number(percent || 0);
-  if(p>0 && p<=25) return '#DA1E28';
-  if(p>25 && p<=60) return '#F06000';
-  if (p > 60 && p<=90) return '#033EFF';
-  if (p >90) return '#168035';
-  if(p==0) return '#DA1E28';
+  if (p > 0 && p <= 25) return '#DA1E28';
+  if (p > 25 && p <= 60) return '#F06000';
+  if (p > 60 && p <= 90) return '#033EFF';
+  if (p > 90) return '#168035';
+  if (p === 0) return '#DA1E28';
 };
 const getProgressCardColor = (percent) => {
   const p = Number(percent || 0);
-  if(p>0 && p<=25) return '#FFF5F4';
-  if(p>25 && p<=60) return '#FFF9F4';
-  if (p > 60 && p<=90) return '#F4F9FF';
-  if (p >90) return '#F0FDF4';
-  if(p==0) return '#FFF5F4';
+  if (p > 0 && p <= 25) return '#FFF5F4';
+  if (p > 25 && p <= 60) return '#FFF9F4';
+  if (p > 60 && p <= 90) return '#F4F9FF';
+  if (p > 90) return '#F0FDF4';
+  if (p === 0) return '#FFF5F4';
 };
 const getProgressWrapperColor = (percent) => {
   const p = Number(percent || 0);
-  if(p>0 && p<=25) return '#F8D2D4';
-  if(p>25 && p<=60) return '#FCDFCC';
-  if (p > 60 && p<=90) return '#D9E4EE';
-  if (p >90) return '#D0E6D7';
-  if(p==0) return '#F8D2D4';
+  if (p > 0 && p <= 25) return '#F8D2D4';
+  if (p > 25 && p <= 60) return '#FCDFCC';
+  if (p > 60 && p <= 90) return '#D9E4EE';
+  if (p > 90) return '#D0E6D7';
+  if (p === 0) return '#F8D2D4';
 };
-// const getPOProgressColor = (percent) => {
-//   const p = Number(percent || 0);
-//   if (p >= 100) return '#168035';
-//   if (p > 0) return '#F06000';
-//   return '#F06000';
-// };
 const toBackendStatus = (label) => {
   const v = String(label || '').toLowerCase();
   if (v === 'open') return 'OPEN';
@@ -94,7 +79,6 @@ const formatDate = (input) => {
 
   return dash;
 };
-
 
 const RightActions = memo(({ onDelete }) => (
   <View style={styles.rightActionContainer}>
@@ -147,10 +131,7 @@ const ReceiveScreen = () => {
 
   const baselineRef = useRef({ poir: null, asn: null, received: null, InComplete: null });
 
-  const renderRightActions = useCallback(
-    (onDelete) => <RightActions onDelete={onDelete} />,
-    []
-  );
+  const renderRightActions = useCallback((onDelete) => <RightActions onDelete={onDelete} />, []);
 
   const pretty = (v) => v;
 
@@ -232,7 +213,9 @@ const ReceiveScreen = () => {
           const dateA = new Date(a.order_date);
           const dateB = new Date(b.order_date);
           if (dateA.getTime() !== dateB.getTime()) return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+          return sortOrder === 'asc'
+            ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || ''))
+            : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
         });
         return sorted;
       });
@@ -246,7 +229,9 @@ const ReceiveScreen = () => {
           const dateA = new Date(a.shipped_date || a.expected_receipt_date);
           const dateB = new Date(b.shipped_date || b.expected_receipt_date);
           if (dateA.getTime() !== dateB.getTime()) return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+          return sortOrder === 'asc'
+            ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || ''))
+            : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
         });
         return sorted;
       });
@@ -260,7 +245,9 @@ const ReceiveScreen = () => {
           const da = new Date(a.received_date);
           const db = new Date(b.received_date);
           if (da.getTime() !== db.getTime()) return sortOrder === 'asc' ? da - db : db - da;
-          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+          return sortOrder === 'asc'
+            ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || ''))
+            : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
         });
         return sorted;
       });
@@ -274,7 +261,9 @@ const ReceiveScreen = () => {
           const da = new Date(a.last_updated_date || a.received_date || a.shipped_date || a.expected_receipt_date);
           const db = new Date(b.last_updated_date || b.received_date || b.shipped_date || b.expected_receipt_date);
           if (da.getTime() !== db.getTime()) return sortOrder === 'asc' ? da - db : db - da;
-          return sortOrder === 'asc' ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || '')) : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
+          return sortOrder === 'asc'
+            ? String(a.supplier_name || '').localeCompare(String(b.supplier_name || ''))
+            : String(b.supplier_name || '').localeCompare(String(a.supplier_name || ''));
         });
         return sorted;
       });
@@ -370,26 +359,99 @@ const ReceiveScreen = () => {
     [POIntialData, AsnIntialData, ICListInitial, IntialReceivedData]
   );
 
-  const handlePick = (picked) => {
-    setMenuOpen(false);
-    if (activeKey === 'received' || activeKey === 'InComplete') {
-      const v = String(picked).toLowerCase();
-      if (v === 'all') {
-        setActiveFilter(null);
-        applyVisible(activeKey, searchText, null);
-      } else if (v === 'purchase order') {
-        setActiveFilter('purchase_order');
-        applyVisible(activeKey, searchText, 'purchase_order');
-      } else if (v === 'asn order') {
-        setActiveFilter('asn');
-        applyVisible(activeKey, searchText, 'asn');
-      }
-      return;
+  const mapPOListWithPct = useCallback((data) => {
+    return (data || []).map((d, idx) => {
+      const pct = computePercent(d?.total_received_qty, d?.total_ord_qty);
+      return { ...d, id: d?.id || `${idx + 1}`, received: pct };
+    });
+  }, []);
+
+  const reloadDefaultPOList = useCallback(async () => {
+    try {
+      const data = await GetPoItems(OrgData?.selectedOrg);
+      const withPct = mapPOListWithPct(data);
+      setPOIntialData(withPct);
+      setPOData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN' && Number(x?.received) !== 100));
+    } catch {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
     }
-    const backend = toBackendStatus(picked);
-    setActiveFilter(backend);
-    applyVisible(activeKey, searchText, backend);
-  };
+  }, [OrgData?.selectedOrg, mapPOListWithPct]);
+
+  const runPOFilterApi = useCallback(
+    async (statusUpper) => {
+      try {
+        const data = await GetFilterPoItems(statusUpper);
+        const withPct = mapPOListWithPct(data);
+        setPOIntialData(withPct);
+        setPOData(withPct);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to filter Purchase Orders. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    },
+    [mapPOListWithPct]
+  );
+
+  const runPOSearchApi = useCallback(
+    async (text) => {
+      const poText = String(text ?? '').trim();
+      const statusToSend = activeFilter ? String(activeFilter) : 'All';
+
+      if (!poText) {
+        if (activeFilter && (activeFilter === 'OPEN' || activeFilter === 'CLOSED' || activeFilter === 'FULLY RECEIVED')) {
+          await runPOFilterApi(activeFilter);
+          return;
+        }
+        await reloadDefaultPOList();
+        return;
+      }
+
+      try {
+        const data = await GetSearchPoItems(poText, statusToSend);
+        const withPct = mapPOListWithPct(data);
+        setPOIntialData(withPct);
+        setPOData(withPct);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to search Purchase Orders. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    },
+    [activeFilter, mapPOListWithPct, reloadDefaultPOList, runPOFilterApi]
+  );
+
+  const handlePick = useCallback(
+    (picked) => {
+      setMenuOpen(false);
+
+      if (activeKey === 'poir') {
+        const backend = toBackendStatus(picked);
+        setActiveFilter(backend);
+
+        if (backend === 'OPEN' || backend === 'CLOSED' || backend === 'FULLY RECEIVED') {
+          runPOFilterApi(backend);
+        }
+        return;
+      }
+
+      if (activeKey === 'received' || activeKey === 'InComplete') {
+        const v = String(picked).toLowerCase();
+        if (v === 'all') {
+          setActiveFilter(null);
+          applyVisible(activeKey, searchText, null);
+        } else if (v === 'purchase order') {
+          setActiveFilter('purchase_order');
+          applyVisible(activeKey, searchText, 'purchase_order');
+        } else if (v === 'asn order') {
+          setActiveFilter('asn');
+          applyVisible(activeKey, searchText, 'asn');
+        }
+        return;
+      }
+
+      const backend = toBackendStatus(picked);
+      setActiveFilter(backend);
+      applyVisible(activeKey, searchText, backend);
+    },
+    [activeKey, applyVisible, runPOFilterApi, searchText]
+  );
 
   useEffect(() => {
     if (!ActiveTab && ActiveTab !== 0) return;
@@ -416,7 +478,7 @@ const ReceiveScreen = () => {
 
     const loadPO = async () => {
       try {
-        const data = await GetPoItems(OrgData?.selectedOrg);
+        const data = await GetPoItems(OrgData?.selectedOrg);        
         const withPct = (data || []).map((d, idx) => {
           const pct = computePercent(d?.total_received_qty, d?.total_ord_qty);
           return { ...d, id: d?.id || `${idx + 1}`, received: pct };
@@ -473,7 +535,7 @@ const ReceiveScreen = () => {
   useFocusEffect(
     React.useCallback(() => {
       resetReceiving();
-      return () => { };
+      return () => {};
     }, [resetReceiving])
   );
 
@@ -506,7 +568,6 @@ const ReceiveScreen = () => {
     if (tabKey === 'received') {
       return [
         { key: 'supplier_name', label: 'Supplier' },
-        // { key: 'purchase_date', label: 'Purchase Date' },
         { key: 'received_date', label: 'Receipt Date' },
       ];
     }
@@ -521,7 +582,9 @@ const ReceiveScreen = () => {
 
   const handleSearch = (text) => {
     setSearchText(text);
-    applyVisible(activeKey, text, activeFilter);
+    if (activeKey !== 'poir') {
+      applyVisible(activeKey, text, activeFilter);
+    }
   };
 
   const [expandedReceiptIds, setExpandedReceiptIds] = useState(new Set());
@@ -731,119 +794,104 @@ const ReceiveScreen = () => {
 
     const renderItem = useCallback(
       ({ item }) => (
-        <IncompleteRow
-          item={item}
-          isASN={item.isASN}
-          onDelete={onDelete}
-          pagerRef={pagerRef}
-          scrollRef={scrollRef}
-          openRowRef={openRowRef}
-        />
+        <IncompleteRow item={item} isASN={item.isASN} onDelete={onDelete} pagerRef={pagerRef} scrollRef={scrollRef} openRowRef={openRowRef} />
       ),
       [onDelete]
     );
 
     return (
       <>
-            <View style={styles.iconCluster}>
-        <View style={{ position: 'relative' }}>
-          <TouchableOpacity
-            onPress={() => {
-              setMenuOpen((v) => !v);
-              setSortMenuOpen(false);
-            }}
-            style={[styles.chip, isFilterActive && styles.chipActive]}
-            activeOpacity={0.8}
-          >
-            {isFilterActive && <View style={styles.chipInner} />}
-            <BackFilterIcon width={24} height={24} fill="#233E55" />
-            <Text style={styles.sortText}>Filter</Text>
-          </TouchableOpacity>
+        <View style={styles.iconCluster}>
+          <View style={{ position: 'relative' }}>
+            <TouchableOpacity
+              onPress={() => {
+                setMenuOpen((v) => !v);
+                setSortMenuOpen(false);
+              }}
+              style={[styles.chip, isFilterActive && styles.chipActive]}
+              activeOpacity={0.8}
+            >
+              {isFilterActive && <View style={styles.chipInner} />}
+              <BackFilterIcon width={24} height={24} fill="#233E55" />
+              <Text style={styles.sortText}>Filter</Text>
+            </TouchableOpacity>
 
-          {menuOpen && (
-            <View style={styles.menuAnchored}>
-              {(activeKey === 'poir' || activeKey === 'asn' ? FILTERS_PO_ASN : FILTERS_RX_IC).map((f) => (
-                <TouchableOpacity
-                  key={f}
-                  style={[
-                    styles.menuItem,
-                    (activeKey === 'poir' || activeKey === 'asn')
-                      ? activeFilter === toBackendStatus(f) && styles.menuItemActive
-                      : (String(f).toLowerCase() === 'all'
-                        ? activeFilter == null
-                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
-                  ]}
-                  onPress={() => handlePick(f)}
-                >
-                  <Text
+            {menuOpen && (
+              <View style={styles.menuAnchored}>
+                {(activeKey === 'poir' || activeKey === 'asn' ? FILTERS_PO_ASN : FILTERS_RX_IC).map((f) => (
+                  <TouchableOpacity
+                    key={f}
                     style={[
-                      styles.menuText,
+                      styles.menuItem,
                       (activeKey === 'poir' || activeKey === 'asn')
-                        ? activeFilter === toBackendStatus(f) && styles.menuTextActive
+                        ? activeFilter === toBackendStatus(f) && styles.menuItemActive
                         : (String(f).toLowerCase() === 'all'
-                          ? activeFilter == null
-                          : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                            ? activeFilter == null
+                            : String(f).toLowerCase() === 'purchase order'
+                              ? activeFilter === 'purchase_order'
+                              : activeFilter === 'asn') && styles.menuItemActive,
                     ]}
+                    onPress={() => handlePick(f)}
                   >
-                    {pretty(f)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-        <View style={{ position: 'relative' }}>
-          <TouchableOpacity
-            onPress={toggleSortMenu}
-            style={styles.dropdownHalf}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.sortText}>Sort</Text>
-            <SortDropdownIcon width={24} height={24} fill="#233E55" />
-          </TouchableOpacity>
-
-          {sortMenuOpen && (
-            <View style={styles.menuAnchoredfilter}>
-              {getSortOptionsForTab(activeKey).map((opt) => (
-                <TouchableOpacity
-                  key={opt.key}
-                  style={[
-                    styles.menuItem,
-                    sortField === opt.key && styles.menuItemActive
-                  ]}
-                  onPress={() => selectSortOption(opt.key)}
-                >
-                  <Text
-                    style={[
-                      styles.menuText,
-                      sortField === opt.key && styles.menuTextActive
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-      </View>
-      <FlatList
-        data={ICList}
-        keyExtractor={keyExtractor}
-        contentContainerStyle={{ paddingBottom: 80 }}
-        ref={scrollRef}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyWrap}>
-            <Text style={styles.emptyText}>No data found</Text>
+                    <Text
+                      style={[
+                        styles.menuText,
+                        (activeKey === 'poir' || activeKey === 'asn')
+                          ? activeFilter === toBackendStatus(f) && styles.menuTextActive
+                          : (String(f).toLowerCase() === 'all'
+                              ? activeFilter == null
+                              : String(f).toLowerCase() === 'purchase order'
+                                ? activeFilter === 'purchase_order'
+                                : activeFilter === 'asn') && styles.menuTextActive,
+                      ]}
+                    >
+                      {pretty(f)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
-        )}
-        renderItem={renderItem}
-        removeClippedSubviews
-        initialNumToRender={8}
-        windowSize={7}
-        maxToRenderPerBatch={8}
-        updateCellsBatchingPeriod={50}
-      />
+
+          <View style={{ position: 'relative' }}>
+            <TouchableOpacity onPress={toggleSortMenu} style={styles.dropdownHalf} activeOpacity={0.8}>
+              <Text style={styles.sortText}>Sort</Text>
+              <SortDropdownIcon width={24} height={24} fill="#233E55" />
+            </TouchableOpacity>
+
+            {sortMenuOpen && (
+              <View style={styles.menuAnchoredfilter}>
+                {getSortOptionsForTab(activeKey).map((opt) => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[styles.menuItem, sortField === opt.key && styles.menuItemActive]}
+                    onPress={() => selectSortOption(opt.key)}
+                  >
+                    <Text style={[styles.menuText, sortField === opt.key && styles.menuTextActive]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+
+        <FlatList
+          data={ICList}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={{ paddingBottom: 80 }}
+          ref={scrollRef}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyText}>No data found</Text>
+            </View>
+          )}
+          renderItem={renderItem}
+          removeClippedSubviews
+          initialNumToRender={8}
+          windowSize={7}
+          maxToRenderPerBatch={8}
+          updateCellsBatchingPeriod={50}
+        />
       </>
     );
   };
@@ -875,8 +923,10 @@ const ReceiveScreen = () => {
                     (activeKey === 'poir' || activeKey === 'asn')
                       ? activeFilter === toBackendStatus(f) && styles.menuItemActive
                       : (String(f).toLowerCase() === 'all'
-                        ? activeFilter == null
-                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
+                          ? activeFilter == null
+                          : String(f).toLowerCase() === 'purchase order'
+                            ? activeFilter === 'purchase_order'
+                            : activeFilter === 'asn') && styles.menuItemActive,
                   ]}
                   onPress={() => handlePick(f)}
                 >
@@ -886,8 +936,10 @@ const ReceiveScreen = () => {
                       (activeKey === 'poir' || activeKey === 'asn')
                         ? activeFilter === toBackendStatus(f) && styles.menuTextActive
                         : (String(f).toLowerCase() === 'all'
-                          ? activeFilter == null
-                          : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                            ? activeFilter == null
+                            : String(f).toLowerCase() === 'purchase order'
+                              ? activeFilter === 'purchase_order'
+                              : activeFilter === 'asn') && styles.menuTextActive,
                     ]}
                   >
                     {pretty(f)}
@@ -897,12 +949,9 @@ const ReceiveScreen = () => {
             </View>
           )}
         </View>
+
         <View style={{ position: 'relative' }}>
-          <TouchableOpacity
-            onPress={toggleSortMenu}
-            style={styles.dropdownHalf}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity onPress={toggleSortMenu} style={styles.dropdownHalf} activeOpacity={0.8}>
             <Text style={styles.sortText}>Sort</Text>
             <SortDropdownIcon width={24} height={24} fill="#233E55" />
           </TouchableOpacity>
@@ -912,26 +961,17 @@ const ReceiveScreen = () => {
               {getSortOptionsForTab(activeKey).map((opt) => (
                 <TouchableOpacity
                   key={opt.key}
-                  style={[
-                    styles.menuItem,
-                    sortField === opt.key && styles.menuItemActive
-                  ]}
+                  style={[styles.menuItem, sortField === opt.key && styles.menuItemActive]}
                   onPress={() => selectSortOption(opt.key)}
                 >
-                  <Text
-                    style={[
-                      styles.menuText,
-                      sortField === opt.key && styles.menuTextActive
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
+                  <Text style={[styles.menuText, sortField === opt.key && styles.menuTextActive]}>{opt.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
       </View>
+
       <FlatList
         data={POData}
         keyExtractor={(item) => String(item.id)}
@@ -942,10 +982,7 @@ const ReceiveScreen = () => {
         )}
         contentContainerStyle={{ paddingBottom: 80 }}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('NewReceiveScreen', { selectedPO: item, fromScan: false, scannedPoNumber: null })}
-            activeOpacity={0.9}
-          >
+          <TouchableOpacity onPress={() => navigation.navigate('NewReceiveScreen', { selectedPO: item, fromScan: false, scannedPoNumber: null })} activeOpacity={0.9}>
             <View style={styles.card}>
               <View style={styles.toprow}>
                 <View style={styles.topcardLeft}>
@@ -966,7 +1003,6 @@ const ReceiveScreen = () => {
                     <View style={styles.dot} />
                     <Text style={styles.receivestatusText}>{item.status}</Text>
                   </View>
-                  {/* <Text style={[styles.valueText, { color: getStatusColor(item.status) }]}>{item.status}</Text> */}
                 </View>
                 <View style={styles.bottomcardRight}>
                   <Text style={styles.labelText}>PO Order Date</Text>
@@ -981,23 +1017,20 @@ const ReceiveScreen = () => {
               </View>
               <View style={styles.bottomrow}>
                 <View style={styles.bottomcardLeft}>
-                  <View style={[styles.progresscard,{backgroundColor: getProgressCardColor(item.received)}]}>
+                  <View style={[styles.progresscard, { backgroundColor: getProgressCardColor(item.received) }]}>
                     <View style={styles.progressLabel}>
                       <View style={{ flex: 1, flexDirection: 'row', marginBottom: scale(5) }}>
-                        <Text numberOfLines={1} style={[styles.progressText, { color: getProgressColor(item.received), marginRight: 5 }]}>Outstanding Lines - {item.pending_lines}
+                        <Text numberOfLines={1} style={[styles.progressText, { color: getProgressColor(item.received), marginRight: 5 }]}>
+                          Outstanding Lines - {item.pending_lines}
                         </Text>
-                        {/* <View style={[styles.bardot, { backgroundColor: getProgressColor(item.received) }]} />
-                        <Text style={[styles.progressText, { color: getProgressColor(item.received) }]}>Lines</Text> */}
                       </View>
-                      {/* <View style={styles.dot} /> */}
                       <Text style={[styles.progresspercentage, { color: getProgressColor(item.received) }]}>{item.received}%</Text>
                     </View>
-                    <View style={[styles.progressWrapper,{backgroundColor: getProgressWrapperColor(item.received)}]}>
+                    <View style={[styles.progressWrapper, { backgroundColor: getProgressWrapperColor(item.received) }]}>
                       <View style={[styles.progressBarleft, { width: `${item.received}%`, backgroundColor: getProgressColor(item.received) }]} />
                     </View>
                   </View>
                 </View>
-                {/* <View style={styles.bottomcardRight} /> */}
               </View>
             </View>
           </TouchableOpacity>
@@ -1008,7 +1041,7 @@ const ReceiveScreen = () => {
 
   const ASNList = () => (
     <>
-          <View style={styles.iconCluster}>
+      <View style={styles.iconCluster}>
         <View style={{ position: 'relative' }}>
           <TouchableOpacity
             onPress={() => {
@@ -1033,8 +1066,10 @@ const ReceiveScreen = () => {
                     (activeKey === 'poir' || activeKey === 'asn')
                       ? activeFilter === toBackendStatus(f) && styles.menuItemActive
                       : (String(f).toLowerCase() === 'all'
-                        ? activeFilter == null
-                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
+                          ? activeFilter == null
+                          : String(f).toLowerCase() === 'purchase order'
+                            ? activeFilter === 'purchase_order'
+                            : activeFilter === 'asn') && styles.menuItemActive,
                   ]}
                   onPress={() => handlePick(f)}
                 >
@@ -1044,8 +1079,10 @@ const ReceiveScreen = () => {
                       (activeKey === 'poir' || activeKey === 'asn')
                         ? activeFilter === toBackendStatus(f) && styles.menuTextActive
                         : (String(f).toLowerCase() === 'all'
-                          ? activeFilter == null
-                          : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                            ? activeFilter == null
+                            : String(f).toLowerCase() === 'purchase order'
+                              ? activeFilter === 'purchase_order'
+                              : activeFilter === 'asn') && styles.menuTextActive,
                     ]}
                   >
                     {pretty(f)}
@@ -1055,12 +1092,9 @@ const ReceiveScreen = () => {
             </View>
           )}
         </View>
+
         <View style={{ position: 'relative' }}>
-          <TouchableOpacity
-            onPress={toggleSortMenu}
-            style={styles.dropdownHalf}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity onPress={toggleSortMenu} style={styles.dropdownHalf} activeOpacity={0.8}>
             <Text style={styles.sortText}>Sort</Text>
             <SortDropdownIcon width={24} height={24} fill="#233E55" />
           </TouchableOpacity>
@@ -1070,65 +1104,55 @@ const ReceiveScreen = () => {
               {getSortOptionsForTab(activeKey).map((opt) => (
                 <TouchableOpacity
                   key={opt.key}
-                  style={[
-                    styles.menuItem,
-                    sortField === opt.key && styles.menuItemActive
-                  ]}
+                  style={[styles.menuItem, sortField === opt.key && styles.menuItemActive]}
                   onPress={() => selectSortOption(opt.key)}
                 >
-                  <Text
-                    style={[
-                      styles.menuText,
-                      sortField === opt.key && styles.menuTextActive
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
+                  <Text style={[styles.menuText, sortField === opt.key && styles.menuTextActive]}>{opt.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
       </View>
-    <FlatList
-      data={AsnData}
-      keyExtractor={(item) => String(item.asn_id || item.id)}
-      contentContainerStyle={{ paddingBottom: 80 }}
-      ListEmptyComponent={() => (
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>No data found</Text>
-        </View>
-      )}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('AsnReceiptScreen', { selectedASN: item, fromScan: false, scannedAsnId: item.asn_id, scannedAsnNumber: item.asn_num })}
-          activeOpacity={0.9}
-        >
-          <View style={styles.card}>
-            <View style={styles.toprow}>
-              <View style={styles.topcardLeft}>
-                <Text style={styles.labelText}>ASN Number</Text>
-                <Text style={styles.valueText}>{item.asn_num}</Text>
+
+      <FlatList
+        data={AsnData}
+        keyExtractor={(item) => String(item.asn_id || item.id)}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyText}>No data found</Text>
+          </View>
+        )}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AsnReceiptScreen', { selectedASN: item, fromScan: false, scannedAsnId: item.asn_id, scannedAsnNumber: item.asn_num })}
+            activeOpacity={0.9}
+          >
+            <View style={styles.card}>
+              <View style={styles.toprow}>
+                <View style={styles.topcardLeft}>
+                  <Text style={styles.labelText}>ASN Number</Text>
+                  <Text style={styles.valueText}>{item.asn_num}</Text>
+                </View>
+                <View style={styles.topcardRight}>
+                  <Text style={styles.labelText}>Supplier</Text>
+                  <Text style={styles.valueText}>{item.supplier_name}</Text>
+                </View>
               </View>
-              <View style={styles.topcardRight}>
-                <Text style={styles.labelText}>Supplier</Text>
-                <Text style={styles.valueText}>{item.supplier_name}</Text>
-              </View>
-            </View>
-            <View style={styles.bottomrow}>
-              <View style={styles.bottomcardLeft}>
-                <Text style={styles.labelText}>Status</Text>
+              <View style={styles.bottomrow}>
+                <View style={styles.bottomcardLeft}>
+                  <Text style={styles.labelText}>Status</Text>
                   <View style={styles.statusCard}>
                     <View style={styles.dot} />
                     <Text style={styles.receivestatusText}>{item.status}</Text>
                   </View>
-                {/* <Text style={[styles.valueText, { color: getStatusColor(item.status) }]}>{item.status}</Text> */}
+                </View>
+                <View style={styles.bottomcardRight}>
+                  <Text style={styles.labelText}>Shipped Date</Text>
+                  <Text style={styles.orderdatevalueText}>{formatDate(item.shipped_date)}</Text>
+                </View>
               </View>
-              <View style={styles.bottomcardRight}>
-                <Text style={styles.labelText}>Shipped Date</Text>
-                <Text style={styles.orderdatevalueText}>{formatDate(item.shipped_date)}</Text>
-              </View>
-            </View>
               <View style={styles.bottomrow}>
                 <View style={styles.bottomcardLeft}>
                   <Text style={styles.labelText}>Receiving Status</Text>
@@ -1137,34 +1161,31 @@ const ReceiveScreen = () => {
               </View>
               <View style={styles.bottomrow}>
                 <View style={styles.bottomcardLeft}>
-                  <View style={[styles.progresscard,{backgroundColor:getProgressCardColor(item.receivedPct)}]}>
+                  <View style={[styles.progresscard, { backgroundColor: getProgressCardColor(item.receivedPct) }]}>
                     <View style={styles.progressLabel}>
                       <View style={{ flex: 1, flexDirection: 'row', marginBottom: scale(5) }}>
-                        <Text style={[styles.progressText, { color: getProgressColor(item.receivedPct), marginRight: 5 }]}>Receiving Pending
-                        </Text>
+                        <Text style={[styles.progressText, { color: getProgressColor(item.receivedPct), marginRight: 5 }]}>Receiving Pending</Text>
                         <View style={[styles.bardot, { backgroundColor: getProgressColor(item.receivedPct) }]} />
                         <Text style={[styles.progressText, { color: getProgressColor(item.receivedPct) }]}>3 Lines</Text>
                       </View>
-                      {/* <View style={styles.dot} /> */}
                       <Text style={[styles.progresspercentage, { color: getProgressColor(item.receivedPct) }]}>{item.receivedPct}%</Text>
                     </View>
-                    <View style={[styles.progressWrapper,{backgroundColor: getProgressWrapperColor(item.receivedPct)}]}>
+                    <View style={[styles.progressWrapper, { backgroundColor: getProgressWrapperColor(item.receivedPct) }]}>
                       <View style={[styles.progressBarleft, { width: `${item.receivedPct}%`, backgroundColor: getProgressColor(item.receivedPct) }]} />
                     </View>
                   </View>
                 </View>
-                {/* <View style={styles.bottomcardRight} /> */}
               </View>
-          </View>
-        </TouchableOpacity>
-      )}
-    />
+            </View>
+          </TouchableOpacity>
+        )}
+      />
     </>
   );
 
   const ReceivedList = () => (
     <>
-          <View style={styles.iconCluster}>
+      <View style={styles.iconCluster}>
         <View style={{ position: 'relative' }}>
           <TouchableOpacity
             onPress={() => {
@@ -1189,8 +1210,10 @@ const ReceiveScreen = () => {
                     (activeKey === 'poir' || activeKey === 'asn')
                       ? activeFilter === toBackendStatus(f) && styles.menuItemActive
                       : (String(f).toLowerCase() === 'all'
-                        ? activeFilter == null
-                        : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuItemActive
+                          ? activeFilter == null
+                          : String(f).toLowerCase() === 'purchase order'
+                            ? activeFilter === 'purchase_order'
+                            : activeFilter === 'asn') && styles.menuItemActive,
                   ]}
                   onPress={() => handlePick(f)}
                 >
@@ -1200,8 +1223,10 @@ const ReceiveScreen = () => {
                       (activeKey === 'poir' || activeKey === 'asn')
                         ? activeFilter === toBackendStatus(f) && styles.menuTextActive
                         : (String(f).toLowerCase() === 'all'
-                          ? activeFilter == null
-                          : (String(f).toLowerCase() === 'purchase order' ? activeFilter === 'purchase_order' : activeFilter === 'asn')) && styles.menuTextActive
+                            ? activeFilter == null
+                            : String(f).toLowerCase() === 'purchase order'
+                              ? activeFilter === 'purchase_order'
+                              : activeFilter === 'asn') && styles.menuTextActive,
                     ]}
                   >
                     {pretty(f)}
@@ -1211,12 +1236,9 @@ const ReceiveScreen = () => {
             </View>
           )}
         </View>
+
         <View style={{ position: 'relative' }}>
-          <TouchableOpacity
-            onPress={toggleSortMenu}
-            style={styles.dropdownHalf}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity onPress={toggleSortMenu} style={styles.dropdownHalf} activeOpacity={0.8}>
             <Text style={styles.sortText}>Sort</Text>
             <SortDropdownIcon width={24} height={24} fill="#233E55" />
           </TouchableOpacity>
@@ -1226,80 +1248,71 @@ const ReceiveScreen = () => {
               {getSortOptionsForTab(activeKey).map((opt) => (
                 <TouchableOpacity
                   key={opt.key}
-                  style={[
-                    styles.menuItem,
-                    sortField === opt.key && styles.menuItemActive
-                  ]}
+                  style={[styles.menuItem, sortField === opt.key && styles.menuItemActive]}
                   onPress={() => selectSortOption(opt.key)}
                 >
-                  <Text
-                    style={[
-                      styles.menuText,
-                      sortField === opt.key && styles.menuTextActive
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
+                  <Text style={[styles.menuText, sortField === opt.key && styles.menuTextActive]}>{opt.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
       </View>
-    <FlatList
-      data={ReceivedData}
-      keyExtractor={(item) => String(item.id)}
-      contentContainerStyle={{ paddingBottom: 80 }}
-      ListEmptyComponent={() => (
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>No data found</Text>
-        </View>
-      )}
-      renderItem={({ item }) => {
-        const isASN = String(item.received_type || '').toLowerCase() === 'asn';
-        return (
-          <TouchableOpacity
-            onPress={() => {
-              if (isASN) {
-                navigation.navigate('AsnReceivedScreen', {
-                  asn_id: item.asn_id,
-                  header: {
-                    receipt_num: item.receipt_num,
-                    receipt_id: item.receipt_id,
-                    asn_num: item.asn_num,
-                    supplier_name: item.supplier_name,
-                    supplier_site: item.supplier_site,
-                    shipped_date: item.shipped_date,
-                    expected_receipt_date: item.expected_receipt_date,
-                    carrier: item.carrier,
-                    pack_slip: item.pack_slip,
-                    bol: item.bol,
-                    waybill: item.waybill,
-                    airbill: item.airbill,
-                  },
-                });
-              } else {
-                navigation.navigate('ReceivedSummaryScreen', {
-                  readonly: true,
-                  id: item.receipt_id,
-                  listType: 'Received',
-                  header: {
-                    receiptNumber: item.receipt_num,
-                    supplier: item.supplier_name,
-                    poNumber: item.po_number ?? dash,
-                    receiptDate: item.received_date,
-                  },
-                  selectedItems: [],
-                });
-              }
-            }}
-            activeOpacity={0.9}
-          >
-            {isASN ? <ASNReceiptCard item={item} /> : <POReceiptCard item={item} />}
-          </TouchableOpacity>
-        );
-      }}
-    />
+
+      <FlatList
+        data={ReceivedData}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyText}>No data found</Text>
+          </View>
+        )}
+        renderItem={({ item }) => {
+          const isASN = String(item.received_type || '').toLowerCase() === 'asn';
+          return (
+            <TouchableOpacity
+              onPress={() => {
+                if (isASN) {
+                  navigation.navigate('AsnReceivedScreen', {
+                    asn_id: item.asn_id,
+                    header: {
+                      receipt_num: item.receipt_num,
+                      receipt_id: item.receipt_id,
+                      asn_num: item.asn_num,
+                      supplier_name: item.supplier_name,
+                      supplier_site: item.supplier_site,
+                      shipped_date: item.shipped_date,
+                      expected_receipt_date: item.expected_receipt_date,
+                      carrier: item.carrier,
+                      pack_slip: item.pack_slip,
+                      bol: item.bol,
+                      waybill: item.waybill,
+                      airbill: item.airbill,
+                    },
+                  });
+                } else {
+                  navigation.navigate('ReceivedSummaryScreen', {
+                    readonly: true,
+                    id: item.receipt_id,
+                    listType: 'Received',
+                    header: {
+                      receiptNumber: item.receipt_num,
+                      supplier: item.supplier_name,
+                      poNumber: item.po_number ?? dash,
+                      receiptDate: item.received_date,
+                    },
+                    selectedItems: [],
+                  });
+                }
+              }}
+              activeOpacity={0.9}
+            >
+              {isASN ? <ASNReceiptCard item={item} /> : <POReceiptCard item={item} />}
+            </TouchableOpacity>
+          );
+        }}
+      />
     </>
   );
 
@@ -1337,7 +1350,7 @@ const ReceiveScreen = () => {
     ),
     []
   );
-    const InputLeftIcon = useMemo(
+  const InputLeftIcon = useMemo(
     () => (
       <TouchableOpacity onPress={() => setShowScanner(true)}>
         <InputSearchIcon width={24} height={24} fill="#233E55" />
@@ -1352,7 +1365,6 @@ const ReceiveScreen = () => {
   };
 
   const selectSortOption = (key) => {
-    console.log(key,sortField,"selectSortOptionselectSortOptionselectSortOptionselectSortOption")
     if (sortField === key) {
       setSortField(null);
       restoreBaseline();
@@ -1365,19 +1377,25 @@ const ReceiveScreen = () => {
     handleSort();
   };
 
-  const isSortDropdownActive = sortMenuOpen || !!sortField;
   const isFilterActive = menuOpen || activeFilter != null;
+
+  const onSearchCommit = useCallback(() => {
+    if (activeKey !== 'poir') return;
+    runPOSearchApi(searchText);
+  }, [activeKey, runPOSearchApi, searchText]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
         <GlobalHeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Receiving" notificationCount={0} onBack={() => navigation.navigate('Home')} />
+
         {phase === 'loading' && (
           <View style={styles.loaderWrapper}>
             <ActivityIndicator size="large" color="#233E55" />
             <Text style={styles.statusText}>Loading...</Text>
           </View>
         )}
+
         {phase !== 'loading' && (
           <>
             <View style={styles.inputContainer}>
@@ -1388,6 +1406,9 @@ const ReceiveScreen = () => {
                 style={styles.input}
                 value={searchText}
                 onChangeText={handleSearch}
+                returnKeyType="search"
+                onSubmitEditing={onSearchCommit}
+                onBlur={onSearchCommit}
               />
               {InputRightIcon}
             </View>
@@ -1402,7 +1423,13 @@ const ReceiveScreen = () => {
                 setSortField(null);
                 setSortMenuOpen(false);
                 setMenuOpen(false);
-                applyVisible(routes[i].key, searchText, null);
+
+                const nextKey = routes[i].key;
+                if (nextKey === 'poir') {
+                  applyVisible('poir', '', null);
+                } else {
+                  applyVisible(nextKey, searchText, null);
+                }
               }}
               initialLayout={initialLayout}
               swipeEnabled
@@ -1439,14 +1466,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F9FB' },
   loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   statusText: { marginTop: 12, color: '#333', fontSize: 12 },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', margin: 12, paddingHorizontal: 10, borderRadius: 8, justifyContent: 'space-between',borderWidth:1,borderColor:'#D9E4EE', },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', margin: 12, paddingHorizontal: 10, borderRadius: 8, justifyContent: 'space-between', borderWidth: 1, borderColor: '#D9E4EE' },
   input: { flex: 1, height: 40, fontSize: 14, color: '#333' },
   emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   emptyText: { fontSize: 16, color: 'gray' },
 
-  card: { justifyContent: 'space-between', backgroundColor: '#FFFFFF', marginHorizontal: 12, marginVertical: 6, borderRadius: 12, padding: 12,borderWidth:1,borderColor:'#D9E4EE', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, },
+  card: { justifyContent: 'space-between', backgroundColor: '#FFFFFF', marginHorizontal: 12, marginVertical: 6, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#D9E4EE', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
   progresscard: { borderRadius: 10, padding: 12 },
-  poprogresscard: {backgroundColor:'#FFF7ED',borderRadius: 10, padding: 12 },
   cardInsideSwipe: { marginHorizontal: 0, marginVertical: 0, borderRadius: 0 },
   progressLabel: { flex: 2, flexDirection: 'row' },
 
@@ -1466,10 +1492,8 @@ const styles = StyleSheet.create({
   progressText: { fontSize: 12, marginBottom: scale(2), fontWeight: 700, letterSpacing: 0.5 },
   progresspercentage: { fontSize: 12, flex: 1, marginBottom: scale(2), fontWeight: 700, letterSpacing: 0.5, textAlign: 'right' },
   valueText: { fontFamily: 'Mulish', fontSize: 12, fontWeight: '700', color: '#595A5C', flex: 1, textAlign: 'left' },
-  orderdatevalueText: { fontFamily: 'Mulish', fontSize: 12, fontWeight: '700', color: '#595A5C', flex: 1, textAlign: 'left',marginTop:-15 },
-  subLabel: { fontSize: 10, color: '#555', marginTop: 4, marginBottom: 2 },
-  progressWrapper: { borderRadius: 20, height: 10, width: '100%', justifyContent: 'center',  marginTop: 4, marginBottom: 6, },
-  poprogressWrapper: { backgroundColor: 'green', borderRadius: 20, height: 10, width: '100%', justifyContent: 'center',  marginTop: 4, marginBottom: 6, },
+  orderdatevalueText: { fontFamily: 'Mulish', fontSize: 12, fontWeight: '700', color: '#595A5C', flex: 1, textAlign: 'left', marginTop: -15 },
+  progressWrapper: { borderRadius: 20, height: 10, width: '100%', justifyContent: 'center', marginTop: 4, marginBottom: 6 },
   progressBarleft: { height: 8, borderRadius: 2, marginHorizontal: 0 },
 
   incompleteRowContainer: { marginHorizontal: 12, marginVertical: 6, borderRadius: 12, backgroundColor: '#FFFFFF', overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
@@ -1480,21 +1504,16 @@ const styles = StyleSheet.create({
   tabBarRow: { flexDirection: 'row', zIndex: 999, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#7392AA', marginBottom: 10 },
   iconCluster: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'space-between', marginVertical: 6, padding: 12 },
 
-  sharedSortTile: { flexDirection: 'row', alignItems: 'center', height: 32, borderRadius: 8, backgroundColor: '#ECF1F7', borderWidth: 1, borderColor: '#D6E3ED' },
-  sortHalf: { width: 24, height: 32, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  sortDivider: { width: 1 },
   dropdownHalf: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 6,
-    paddingHorizontal: 8,   // add space inside
+    paddingHorizontal: 8,
     height: 32,
-    backgroundColor: '#FFFFFF',  // give bg here (instead of absolute view)
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#D9E4EE',
   },
-
-  dropdownInnerWhite: { position: 'absolute', borderRadius: 6, backgroundColor: '#FFFFFF' },
 
   chip: { width: 82, height: 32, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D6E3ED', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   chipActive: { backgroundColor: '#E6F0FA' },
@@ -1506,54 +1525,25 @@ const styles = StyleSheet.create({
   menuItemActive: { backgroundColor: '#E6F0FA' },
   menuText: { fontSize: 16, color: '#111' },
   menuTextActive: { fontWeight: '600' },
+
   statusCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECF1F7', // soft light blue
+    backgroundColor: '#ECF1F7',
     paddingVertical: 5,
     paddingHorizontal: 5,
     borderRadius: 8,
     width: '35%',
-    marginBottom: scale(5)
+    marginBottom: scale(5),
   },
 
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 5,
-    backgroundColor: '#7392AA', // blue dot
-    marginRight: 5,
-  },
+  dot: { width: 6, height: 6, borderRadius: 5, backgroundColor: '#7392AA', marginRight: 5 },
 
-  receivestatusText: {
-    fontSize: 12,
-    color: '#7392AA',
-    fontWeight: '600',
-  },
-  bardot: {
-    width: 6,
-    height: 6,
-    borderRadius: 5,
-    // backgroundColor: '#7392AA', // blue dot
-    marginRight: 5,
-    marginLeft: 5,
-    // alignItems:'center',
-    // justifyContent:'center',
-    marginTop: 5
-  },
+  receivestatusText: { fontSize: 12, color: '#7392AA', fontWeight: '600' },
 
-  receivestatusbarText: {
-    fontSize: 12,
-    color: '#7392AA',
-    fontWeight: '600',
-  },
-  sortText: {
-    color: '#233E55',
-    fontSize: 14,
-    marginRight: 6,  // space between text & icon
-    fontWeight: '500',
-  },
+  bardot: { width: 6, height: 6, borderRadius: 5, marginRight: 5, marginLeft: 5, marginTop: 5 },
 
+  sortText: { color: '#233E55', fontSize: 14, marginRight: 6, fontWeight: '500' },
 });
 
 export default ReceiveScreen;
