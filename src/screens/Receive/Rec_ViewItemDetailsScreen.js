@@ -1503,9 +1503,9 @@ useEffect(() => {
   if (currentItem?.imageUri) return;
 
   // ✅ Fetch only once
-  if (!editedItem?.imageUri && !editedItem?.loading) {
-    fetchImageForItem(currentItem.itemid);
-  }
+  // if (!editedItem?.imageUri && !editedItem?.loading) {
+  //   fetchImageForItem(currentItem.itemid);
+  // }
 }, [index, allItems, edited]);
 
     
@@ -1515,31 +1515,31 @@ const fetchImageForItem = async (itemId) => {
     ...prev,
     [itemId]: {
       ...(prev[itemId] ?? {}),
-      loading: true,
+      loading: false,
     },
   }));
 
-  try {
-    const resp = await GetItemImage(itemId);
+  // try {
+  //   const resp = await GetItemImage(itemId);
 
-    setEdited(prev => ({
-      ...prev,
-      [itemId]: {
-        imageUri: resp?.base64_image ?? null,
-        loading: false,
-        source: 'api',
-      },
-    }));
-  } catch (err) {
-    setEdited(prev => ({
-      ...prev,
-      [itemId]: {
-        imageUri: null,
-        loading: false,
-        source: 'api',
-      },
-    }));
-  }
+  //   setEdited(prev => ({
+  //     ...prev,
+  //     [itemId]: {
+  //       imageUri: resp?.base64_image ?? null,
+  //       loading: false,
+  //       source: 'api',
+  //     },
+  //   }));
+  // } catch (err) {
+  //   setEdited(prev => ({
+  //     ...prev,
+  //     [itemId]: {
+  //       imageUri: null,
+  //       loading: false,
+  //       source: 'api',
+  //     },
+  //   }));
+  // }
 };
 
 
@@ -1809,13 +1809,13 @@ const handleImagePick = (itemId) => {
               <View style={styles.itemInfoBox}>
                 <View style={styles.itemInfoRow}>
                   <View style={styles.itemIconWrap}>
-                    {/* <ReceiveItemBoxIcon width={40} height={40} /> */}
-                      {!readOnly &&<TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(current.itemid)}>
+                    <ReceiveItemBoxIcon width={40} height={40} />
+                      {/* {!readOnly &&<TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(current.itemid)}>
                         <CameraIcon width={25} height={25} />
                       </TouchableOpacity>}
                       <View style={styles.imageWrapper}>
                         {renderImageBox(allItems[index])}
-                      </View>
+                      </View> */}
                   </View>
                   <View style={styles.itemTextCol}>
                     <Text style={styles.itemName} numberOfLines={1}>
@@ -2993,7 +2993,7 @@ const handleImagePick = (itemId) => {
                     />
                   </View>
                   <View style={styles.locCol}>
-                    <Text style={styles.mandLabel}>Locator*</Text>
+                    <Text style={styles.mandLabel}>Locator</Text>
                     <Rec_DropDown
                       value={currentEdited.locator}
                       onChange={id => handleLocatorChange(current.id, id)}

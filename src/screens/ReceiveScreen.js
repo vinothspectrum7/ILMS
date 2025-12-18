@@ -400,19 +400,19 @@ const ReceiveScreen = () => {
     if (!OrgData?.selectedOrg) return;
     setPhase('loading');
 
-    const loadASN = async () => {
-      try {
-        const data = await FetchData(OrgData?.selectedOrg);
-        const withPct = (data || []).map((d, idx) => {
-          const pct = computePercent(d?.total_rcvd_qty, d?.total_order_qty);
-          return { ...d, id: d?.asn_id || `asn-${idx + 1}`, receivedPct: pct };
-        });
-        setAsnIntialData(withPct);
-        setAsnData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN' && Number(x?.receivedPct) !== 100));
-      } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load ASN data. Please try again.', position: 'top', visibilityTime: 5000 });
-      }
-    };
+    // const loadASN = async () => {
+    //   try {
+    //     const data = await FetchData(OrgData?.selectedOrg);
+    //     const withPct = (data || []).map((d, idx) => {
+    //       const pct = computePercent(d?.total_rcvd_qty, d?.total_order_qty);
+    //       return { ...d, id: d?.asn_id || `asn-${idx + 1}`, receivedPct: pct };
+    //     });
+    //     setAsnIntialData(withPct);
+    //     setAsnData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN' && Number(x?.receivedPct) !== 100));
+    //   } catch {
+    //     Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load ASN data. Please try again.', position: 'top', visibilityTime: 5000 });
+    //   }
+    // };
 
     const loadPO = async () => {
       try {
@@ -423,51 +423,53 @@ const ReceiveScreen = () => {
         });
         setPOIntialData(withPct);
         setPOData(withPct.filter((x) => String(x?.status || '').toUpperCase() === 'OPEN' && Number(x?.received) !== 100));
+        setPhase('success');
       } catch {
+        setPhase('error');
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Purchase Order data. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     };
 
-    const loadReceived = async () => {
-      try {
-        const data = await GetReceivedItems(OrgData?.selectedOrg);
-        const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
-        SetIntialReceivedData(withIds);
-        SetReceivedData(withIds);
-      } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
-      }
-    };
+    // const loadReceived = async () => {
+    //   try {
+    //     const data = await GetReceivedItems(OrgData?.selectedOrg);
+    //     const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
+    //     SetIntialReceivedData(withIds);
+    //     SetReceivedData(withIds);
+    //   } catch {
+    //     Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
+    //   }
+    // };
 
-    const loadIC = async () => {
-      try {
-        const data = await GetICPoItems(OrgData?.selectedOrg);
-        const normalized = (data || []).map((d, idx) => {
-          const isASN = String(d?.received_type || '').toLowerCase() === 'asn';
-          return {
-            ...d,
-            id: d?.interface_id || `ic-${idx + 1}`,
-            isASN,
-            asn_id: d?.asn_id,
-            asn_num: d?.asn_num,
-            po_number: d?.po_number,
-            supplier_name: d?.supplier_name,
-            received_date: d?.received_date,
-            shipped_date: d?.shipped_date,
-            expected_receipt_date: d?.expected_receipt_date,
-            status: d?.status,
-            last_updated_date: d?.last_updated_date,
-            received_type: d?.received_type,
-          };
-        });
-        setICListInitial(normalized);
-        setICList(normalized);
-      } catch {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Incomplete list. Please try again.', position: 'top', visibilityTime: 5000 });
-      }
-    };
-
-    Promise.all([loadASN(), loadPO(), loadReceived(), loadIC()]).finally(() => setPhase('success'));
+    // const loadIC = async () => {
+    //   try {
+    //     const data = await GetICPoItems(OrgData?.selectedOrg);
+    //     const normalized = (data || []).map((d, idx) => {
+    //       const isASN = String(d?.received_type || '').toLowerCase() === 'asn';
+    //       return {
+    //         ...d,
+    //         id: d?.interface_id || `ic-${idx + 1}`,
+    //         isASN,
+    //         asn_id: d?.asn_id,
+    //         asn_num: d?.asn_num,
+    //         po_number: d?.po_number,
+    //         supplier_name: d?.supplier_name,
+    //         received_date: d?.received_date,
+    //         shipped_date: d?.shipped_date,
+    //         expected_receipt_date: d?.expected_receipt_date,
+    //         status: d?.status,
+    //         last_updated_date: d?.last_updated_date,
+    //         received_type: d?.received_type,
+    //       };
+    //     });
+    //     setICListInitial(normalized);
+    //     setICList(normalized);
+    //   } catch {
+    //     Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Incomplete list. Please try again.', position: 'top', visibilityTime: 5000 });
+    //   }
+    // };
+loadPO();
+    // Promise.all([loadASN(), loadPO(), loadReceived(), loadIC()]).finally(() => setPhase('success'));
   }, [OrgData?.selectedOrg]);
 
   useFocusEffect(

@@ -105,41 +105,44 @@ const NewReceiveScreen = () => {
           setSaveModalVisible(false);
           return true;
         }
-        const { currentPO, lockedByUser } = getCurrentPO();
-        if (currentPO && !lockedByUser) {
-          setPhase('loading');
-          try {
-            const release = await ReleasePO(currentPO);
-            if (release) {
-              setPhase('success');
-              clearCurrentPO();
-              navigation.navigate('Receive');
-              return true;
-            } else {
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to Release PO. Please try again.',
-                position: 'top',
-                visibilityTime: 5000,
-              });
-            }
-          } catch (error) {
-            setPhase('error');
-            Toast.show({
-              type: 'error',
-              text1: 'Error',
-              text2: `${error}`,
-              position: 'top',
-              visibilityTime: 5000,
-            });
-          }
-        } else {
-          setPhase('error');
-          clearCurrentPO();
-          navigation.navigate('Receive');
-          return true;
-        }
+        clearCurrentPO();
+        navigation.navigate('Receive');
+        return true;
+        // const { currentPO, lockedByUser } = getCurrentPO();
+        // if (currentPO && !lockedByUser) {
+        //   setPhase('loading');
+        //   try {
+        //     const release = await ReleasePO(currentPO);
+        //     if (release) {
+        //       setPhase('success');
+        //       clearCurrentPO();
+        //       navigation.navigate('Receive');
+        //       return true;
+        //     } else {
+        //       Toast.show({
+        //         type: 'error',
+        //         text1: 'Error',
+        //         text2: 'Failed to Release PO. Please try again.',
+        //         position: 'top',
+        //         visibilityTime: 5000,
+        //       });
+        //     }
+        //   } catch (error) {
+        //     setPhase('error');
+        //     Toast.show({
+        //       type: 'error',
+        //       text1: 'Error',
+        //       text2: `${error}`,
+        //       position: 'top',
+        //       visibilityTime: 5000,
+        //     });
+        //   }
+        // } else {
+        //   setPhase('error');
+        //   clearCurrentPO();
+        //   navigation.navigate('Receive');
+        //   return true;
+        // }
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
@@ -167,7 +170,7 @@ const NewReceiveScreen = () => {
   const mapBackendArrayToFrontend = (data, posingledata) => {
     const mapped = data.map((backend, index) => ({
       id: index + 1,
-      po_line_id: backend?.po_line_id,
+      po_line_id: backend?.line_number,
       item_id: backend?.item_id,
       purchaseReceipt: posingledata?.next_receipt_num || '',
       name: backend.item?.item_code || '',
@@ -188,7 +191,8 @@ const NewReceiveScreen = () => {
       org_id: OrgData?.selectedOrg,
       locator: '',
       status: backend.line_status,
-      uom: backend.item?.uom === 'EA' ? 'Each' : backend.item?.uom,
+      uom: backend.item?.uom,
+      uomCode: backend.item?.uom_code,
       promisedDate: backend.promised_dlry_dt
         ? new Date(backend.promised_dlry_dt).toLocaleDateString('en-GB', {
             day: '2-digit',
@@ -211,7 +215,7 @@ const NewReceiveScreen = () => {
       return 0;
     });
   };
-
+  
   useEffect(() => {
     if (!selectedPO?.po_id) return;
     setPhase('loading');
@@ -502,9 +506,10 @@ const NewReceiveScreen = () => {
       });
     } else if (filter === 'pending') {
       filtered = draftItems.filter(it => {
-        const r = Number(it?.receivedQty ?? 0);
-        const o = Number(it?.orderedQty ?? 0);
-        return r > 0 && r < o;
+        const r = Number(it?.openQty ?? 0);
+        // const o = Number(it?.orderedQty ?? 0);
+        // console.log(r ,"andddddddd",o);
+        return r!=0 ;
       });
     } else {
       filtered = draftItems;
@@ -565,41 +570,45 @@ const NewReceiveScreen = () => {
   const hasAnyItems = useMemo(() => selectedItems.length > 0, [selectedItems]);
 
   const Releasefunction = async () => {
-    const { currentPO, lockedByUser } = getCurrentPO();
-    if (currentPO && !lockedByUser) {
-      setPhase('loading');
-      try {
-        const release = await ReleasePO(currentPO);
-        if (release) {
-          setPhase('success');
+    // const { currentPO, lockedByUser } = getCurrentPO();
+    // if (currentPO && !lockedByUser) {
+    //   setPhase('loading');
+    //   try {
+    //     const release = await ReleasePO(currentPO);
+    //     if (release) {
+    //       setPhase('success');
+    //       clearCurrentPO();
+    //       navigation.navigate('Receive');
+    //       return true;
+    //     } else {
+    //       Toast.show({
+    //         type: 'error',
+    //         text1: 'Error',
+    //         text2: 'Failed to Release PO. Please try again.',
+    //         position: 'top',
+    //         visibilityTime: 5000,
+    //       });
+    //     }
+    //   } catch (error) {
+    //     setPhase('error');
+    //     Toast.show({
+    //       type: 'error',
+    //       text1: 'Error',
+    //       text2: `${error}`,
+    //       position: 'top',
+    //       visibilityTime: 5000,
+    //     });
+    //   }
+    // } else {
+    //   setPhase('error');
+    //   clearCurrentPO();
+    //   navigation.navigate('Receive');
+    //   return true;
+    // }
+          // setPhase('success');
           clearCurrentPO();
           navigation.navigate('Receive');
           return true;
-        } else {
-          Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: 'Failed to Release PO. Please try again.',
-            position: 'top',
-            visibilityTime: 5000,
-          });
-        }
-      } catch (error) {
-        setPhase('error');
-        Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: `${error}`,
-          position: 'top',
-          visibilityTime: 5000,
-        });
-      }
-    } else {
-      setPhase('error');
-      clearCurrentPO();
-      navigation.navigate('Receive');
-      return true;
-    }
   };
 
   return (
