@@ -1,4 +1,7 @@
-export const BASE_URL ='http://3.17.31.222:8000';
+// Fusion API
+export const BASE_URL ='http://3.17.31.222:8001';
+// Local AWS
+// export const BASE_URL ='http://3.17.31.222:8000';
 // export const BASE_URL ='http://10.72.180.16:8000';
 // export const BASE_URL = 'http://192.168.1.15:3003/api/v1/';
 export const API_ENDPOINTS = {
@@ -7,6 +10,9 @@ export const API_ENDPOINTS = {
   GET_SINGLE_ASN_DATA: (asn_id) => `${BASE_URL}/asn/asn_lines_po/${asn_id}/details`,
   GET_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all`,
   GET_ALL_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all?status=all`,
+  GET_ALL_PO_FUSION_DATA: (orgId) => `${BASE_URL}/purchase_orders/all?org_id=${orgId}&status=all`,
+  GET_ALL_PO_FUSION_SEARCH_DATA: (po_id,status) => `${BASE_URL}/purchase_orders/all?status=${status}&po_number=${po_id}`,
+  GET_ALL_PO_FUSION_FILTEER_DATA: (status) => `${BASE_URL}/purchase_orders/all?status=${status}`,
   GET_RECEIVED_DATA: (org_id) => `${BASE_URL}/purchase_orders/received/${org_id}/all`,
   GET_SINGLE_PO_DATA: (po_id) => `${BASE_URL}/purchase_orders/${po_id}`,
   GET_SAVED_SINGLE_PO_DATA: (po_id,interface_id) => `${BASE_URL}/receipt_interface/${po_id}/${interface_id}`,

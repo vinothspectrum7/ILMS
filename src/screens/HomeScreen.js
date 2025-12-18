@@ -76,79 +76,85 @@ export default function HomeScreen({ navigation }) {
 
 useEffect(() => {
   if (!Defaultorg) return;
-  setLoadingRecent(true);
-  setloadingPriority(true);
+  // setLoadingRecent(true);
+  // setloadingPriority(true);
   const loadinventrydata = async () => {
-    try {
-      const inventrydata = await GetInventryData(Defaultorg);
-      if (inventrydata) {
-        const inventoryList = inventrydata.map(d => ({
-          id: d.sub_inv_id,
-          name: d.sub_inv_name,
-          enabled: d.sub_inv_enabled,
-          is_default: d.is_default
-        }));
+  //   try {
+  //     const inventrydata = await GetInventryData(Defaultorg);
+  //     if (inventrydata) {
+  //       const inventoryList = inventrydata.map(d => ({
+  //         id: d.sub_inv_id,
+  //         name: d.sub_inv_name,
+  //         enabled: d.sub_inv_enabled,
+  //         is_default: d.is_default
+  //       }));
 
-        setInventoryList(inventoryList);
-        const di = inventoryList.find(o => o.is_default);
-        Setdefaultinventory(di);   // ✔ set the new default inventory
-    setOrgData({
-    selectedOrg: Defaultorg,
-    selectedinventory: di,
-    selectedOrgCode: OrgCode
-  });
-      } else {
+  //       setInventoryList(inventoryList);
+  //       const di = inventoryList.find(o => o.is_default);
+  //       Setdefaultinventory(di);   // ✔ set the new default inventory
+  //   setOrgData({
+  //   selectedOrg: Defaultorg,
+  //   selectedinventory: di,
+  //   selectedOrgCode: OrgCode
+  // });
+  //     } else {
+  //   Setdefaultinventory(null);
+  //   setOrgData({
+  //   selectedOrg: Defaultorg,
+  //   selectedinventory: null,
+  //   selectedOrgCode: OrgCode
+  // });
+  //     }
+  //   } catch (err) {
+  //     Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories.' });
+  //   }
     Setdefaultinventory(null);
     setOrgData({
     selectedOrg: Defaultorg,
     selectedinventory: null,
     selectedOrgCode: OrgCode
-  });
-      }
-    } catch (err) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories.' });
-    }
+    });
   };
     const loadrecentactivity = async () => {
-      setRecentList([]);
-      try {
-        const recentdata = await RecentActivityList(Defaultorg,50);
-        if (recentdata) {
-          const recentList = recentdata.map(d => ({ id: `${d.type=='asn'?`ASN-${d.asn_num}`:`PO-${d.po_num}`}`, status:capitalizeFirstLetter(d.status), ago:getTimeAgo(d.time), value:d.units,unit: 'Units Scanned' }));
-          // recentList.push({ id: 'PO-24596', status: 'Shipped', ago: '2 mins', value: 150, unit: 'Units Scanned' });
-          setRecentList(recentList);
-          setLoadingRecent(false);
-        } else {
-          setRecentList([]);
-          setLoadingRecent(false);
-        }
-      } catch (err) {
-        setLoadingRecent(false);
-        Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
-      }
+      // setRecentList([]);
+      // try {
+      //   const recentdata = await RecentActivityList(Defaultorg,50);
+      //   if (recentdata) {
+      //     const recentList = recentdata.map(d => ({ id: `${d.type=='asn'?`ASN-${d.asn_num}`:`PO-${d.po_num}`}`, status:capitalizeFirstLetter(d.status), ago:getTimeAgo(d.time), value:d.units,unit: 'Units Scanned' }));
+      //     // recentList.push({ id: 'PO-24596', status: 'Shipped', ago: '2 mins', value: 150, unit: 'Units Scanned' });
+      //     setRecentList(recentList);
+      //     setLoadingRecent(false);
+      //   } else {
+      //     setRecentList([]);
+      //     setLoadingRecent(false);
+      //   }
+      // } catch (err) {
+      //   setLoadingRecent(false);
+      //   Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
+      // }
     };
     const loadpriorityList = async () => {
-      setPriorityList([]);
-      try {
-        const prioritydata = await PriorityTaskList(Defaultorg,50);
-        if (prioritydata) {
-          const priorityList = prioritydata.map(d => ({ 
-            id: d.type=='asn'?d.asn_num:d.po_num,
-            label:`Receive ${d.type=='asn'?`ASN-${d.asn_num}`:`PO-${d.po_num}`}`, 
-            value:d.units,
-            unit: 'Items',
-            priority:capitalizeFirstLetter(d.priority),
-            due:getTimeAgo(d.time) }));
-          setPriorityList(priorityList);
-          setloadingPriority(false);
-        } else {
-          setPriorityList([]);
-          setloadingPriority(false);
-        }
-      } catch (err) {
-        setLoadingRecent(false);
-        Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
-      }
+      // setPriorityList([]);
+      // try {
+      //   const prioritydata = await PriorityTaskList(Defaultorg,50);
+      //   if (prioritydata) {
+      //     const priorityList = prioritydata.map(d => ({ 
+      //       id: d.type=='asn'?d.asn_num:d.po_num,
+      //       label:`Receive ${d.type=='asn'?`ASN-${d.asn_num}`:`PO-${d.po_num}`}`, 
+      //       value:d.units,
+      //       unit: 'Items',
+      //       priority:capitalizeFirstLetter(d.priority),
+      //       due:getTimeAgo(d.time) }));
+      //     setPriorityList(priorityList);
+      //     setloadingPriority(false);
+      //   } else {
+      //     setPriorityList([]);
+      //     setloadingPriority(false);
+      //   }
+      // } catch (err) {
+      //   setLoadingRecent(false);
+      //   Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
+      // }
     };
   loadinventrydata();
   loadrecentactivity();
@@ -186,18 +192,18 @@ function capitalizeFirstLetter(str) {
 }
 
   const loadlocatordata = async sub_inv => {
-    if (!sub_inv) return;
-    try {
-      const locdata = await GetLocatorsData(sub_inv?.id);
-      if (locdata) {
-        const LocatorList = locdata.map(d => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
-        setLocatorList(LocatorList);
-        console.log(LocatorList,"LocatorList")
-        setLocatorInCache(sub_inv?.id, LocatorList);
-      }
-    } catch (err) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators. Please try again.', position: 'top', visibilityTime: 5000 });
-    }
+    // if (!sub_inv) return;
+    // try {
+    //   const locdata = await GetLocatorsData(sub_inv?.id);
+    //   if (locdata) {
+    //     const LocatorList = locdata.map(d => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
+    //     setLocatorList(LocatorList);
+    //     console.log(LocatorList,"LocatorList")
+    //     setLocatorInCache(sub_inv?.id, LocatorList);
+    //   }
+    // } catch (err) {
+    //   Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators. Please try again.', position: 'top', visibilityTime: 5000 });
+    // }
   };
 
   const STATUSCOUNT = [
