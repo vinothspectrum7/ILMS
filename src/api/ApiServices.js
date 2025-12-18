@@ -44,7 +44,27 @@ export const GetReceivedASNPoItems = async(asn_rcpt_id,asn_id)=>{
 
 export const GetPoItems = async(org_id)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_DATA(org_id));
+    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_DATA(org_id));
+        console.log("Response Data:popopo", response);
+    return response.data;
+  }catch (error) {
+    console.error("Get PO Error:", error.message, error.response?.data);
+    throw error;
+  }
+}
+export const GetSearchPoItems = async(status,po_no)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_SEARCH_DATA(status,po_no));
+        console.log("Response Data:popopo", response);
+    return response.data;
+  }catch (error) {
+    console.error("Get PO Error:", error.message, error.response?.data);
+    throw error;
+  }
+}
+export const GetFilterPoItems = async(status)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_FILTEER_DATA(status));
         console.log("Response Data:popopo", response);
     return response.data;
   }catch (error) {

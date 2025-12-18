@@ -192,18 +192,18 @@ function capitalizeFirstLetter(str) {
 }
 
   const loadlocatordata = async sub_inv => {
-    if (!sub_inv) return;
-    try {
-      const locdata = await GetLocatorsData(sub_inv?.id);
-      if (locdata) {
-        const LocatorList = locdata.map(d => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
-        setLocatorList(LocatorList);
-        console.log(LocatorList,"LocatorList")
-        setLocatorInCache(sub_inv?.id, LocatorList);
-      }
-    } catch (err) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators. Please try again.', position: 'top', visibilityTime: 5000 });
-    }
+    // if (!sub_inv) return;
+    // try {
+    //   const locdata = await GetLocatorsData(sub_inv?.id);
+    //   if (locdata) {
+    //     const LocatorList = locdata.map(d => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
+    //     setLocatorList(LocatorList);
+    //     console.log(LocatorList,"LocatorList")
+    //     setLocatorInCache(sub_inv?.id, LocatorList);
+    //   }
+    // } catch (err) {
+    //   Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators. Please try again.', position: 'top', visibilityTime: 5000 });
+    // }
   };
 
   const STATUSCOUNT = [
