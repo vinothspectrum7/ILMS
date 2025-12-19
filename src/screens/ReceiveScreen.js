@@ -13,7 +13,7 @@ import BackFilterIcon from '../assets/icons/filterbackicon.svg';
 import InputSearchIcon from '../assets/icons/search_receivelist.svg';
 import ViewLessIcon from '../assets/icons/viewless.svg';
 import { useReceivingStore } from '../store/receivingStore';
-import { FetchData, GetPoItems, GetReceivedItems, GetICPoItems, DeleteIncompleteRecord, GetSearchPoItems, GetFilterPoItems } from '../api/ApiServices';
+import { FetchData, GetPoItems, GetReceivedItems, GetICPoItems, DeleteIncompleteRecord, GetSearchPoItems, GetFilterPoItems, GetSearchReceivedItems } from '../api/ApiServices';
 
 const initialLayout = { width: Dimensions.get('window').width };
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

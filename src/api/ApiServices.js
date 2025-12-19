@@ -82,6 +82,16 @@ export const GetReceivedItems = async(org_id)=>{
     throw error;
   }
 }
+export const GetSearchReceivedItems = async(org_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_RECEIVED_FUSION_SEARCH_DATA(org_id));
+        console.log("Response Data:popopo", response);
+    return response.data;
+  }catch (error) {
+    console.error("Get Received Error:", error.message, error.response?.data);
+    throw error;
+  }
+}
 export const GetSinglePO = async(po_id)=>{
   try {
     const response = await api.get(API_ENDPOINTS.GET_SINGLE_PO_DATA(po_id));
