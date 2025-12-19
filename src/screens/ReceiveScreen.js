@@ -638,9 +638,9 @@ loadReceived();
 
   const handleSearch = (text) => {
     setSearchText(text);
-    if (activeKey !== 'poir') {
-      applyVisible(activeKey, text, activeFilter);
-    }
+    // if (activeKey !== 'poir') {
+    //   applyVisible(activeKey, text, activeFilter);
+    // }
   };
 
   const [expandedReceiptIds, setExpandedReceiptIds] = useState(new Set());
