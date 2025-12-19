@@ -328,8 +328,8 @@ const ReceiveScreen = () => {
             return hay.some((h) => h.includes(q));
           });
         }
-        if (filterVal === 'purchase_order') {
-          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'purchase_order');
+        if (filterVal === 'PO') {
+          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'PO');
         } else if (filterVal === 'asn') {
           base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'asn');
         }
@@ -347,8 +347,8 @@ const ReceiveScreen = () => {
             return hay.some((h) => h.includes(q));
           });
         }
-        if (filterVal === 'purchase_order') {
-          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'purchase_order');
+        if (filterVal === 'PO') {
+          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'PO');
         } else if (filterVal === 'asn') {
           base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'asn');
         }
@@ -445,8 +445,8 @@ const ReceiveScreen = () => {
           setActiveFilter(null);
           applyVisible(activeKey, searchText, null);
         } else if (v === 'purchase order') {
-          setActiveFilter('purchase_order');
-          applyVisible(activeKey, searchText, 'purchase_order');
+          setActiveFilter('PO');
+          applyVisible(activeKey, searchText, 'PO');
         } else if (v === 'asn order') {
           setActiveFilter('asn');
           applyVisible(activeKey, searchText, 'asn');
@@ -500,16 +500,16 @@ const ReceiveScreen = () => {
       }
     };
 
-    // const loadReceived = async () => {
-    //   try {
-    //     const data = await GetReceivedItems(OrgData?.selectedOrg);
-    //     const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
-    //     SetIntialReceivedData(withIds);
-    //     SetReceivedData(withIds);
-    //   } catch {
-    //     Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
-    //   }
-    // };
+    const loadReceived = async () => {
+      try {
+        const data = await GetReceivedItems(OrgData?.selectedOrg);
+        const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
+        SetIntialReceivedData(withIds);
+        SetReceivedData(withIds);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    };
 
     // const loadIC = async () => {
     //   try {
@@ -539,6 +539,7 @@ const ReceiveScreen = () => {
     //   }
     // };
 loadPO();
+loadReceived();
     // Promise.all([loadASN(), loadPO(), loadReceived(), loadIC()]).finally(() => setPhase('success'));
   }, [OrgData?.selectedOrg]);
 
@@ -838,7 +839,7 @@ loadPO();
                         : (String(f).toLowerCase() === 'all'
                             ? activeFilter == null
                             : String(f).toLowerCase() === 'purchase order'
-                              ? activeFilter === 'purchase_order'
+                              ? activeFilter === 'PO'
                               : activeFilter === 'asn') && styles.menuItemActive,
                     ]}
                     onPress={() => handlePick(f)}
@@ -851,7 +852,7 @@ loadPO();
                           : (String(f).toLowerCase() === 'all'
                               ? activeFilter == null
                               : String(f).toLowerCase() === 'purchase order'
-                                ? activeFilter === 'purchase_order'
+                                ? activeFilter === 'PO'
                                 : activeFilter === 'asn') && styles.menuTextActive,
                       ]}
                     >
@@ -935,7 +936,7 @@ loadPO();
                       : (String(f).toLowerCase() === 'all'
                           ? activeFilter == null
                           : String(f).toLowerCase() === 'purchase order'
-                            ? activeFilter === 'purchase_order'
+                            ? activeFilter === 'PO'
                             : activeFilter === 'asn') && styles.menuItemActive,
                   ]}
                   onPress={() => handlePick(f)}
@@ -948,7 +949,7 @@ loadPO();
                         : (String(f).toLowerCase() === 'all'
                             ? activeFilter == null
                             : String(f).toLowerCase() === 'purchase order'
-                              ? activeFilter === 'purchase_order'
+                              ? activeFilter === 'PO'
                               : activeFilter === 'asn') && styles.menuTextActive,
                     ]}
                   >
@@ -1078,7 +1079,7 @@ loadPO();
                       : (String(f).toLowerCase() === 'all'
                           ? activeFilter == null
                           : String(f).toLowerCase() === 'purchase order'
-                            ? activeFilter === 'purchase_order'
+                            ? activeFilter === 'PO'
                             : activeFilter === 'asn') && styles.menuItemActive,
                   ]}
                   onPress={() => handlePick(f)}
@@ -1091,7 +1092,7 @@ loadPO();
                         : (String(f).toLowerCase() === 'all'
                             ? activeFilter == null
                             : String(f).toLowerCase() === 'purchase order'
-                              ? activeFilter === 'purchase_order'
+                              ? activeFilter === 'PO'
                               : activeFilter === 'asn') && styles.menuTextActive,
                     ]}
                   >
@@ -1222,7 +1223,7 @@ loadPO();
                       : (String(f).toLowerCase() === 'all'
                           ? activeFilter == null
                           : String(f).toLowerCase() === 'purchase order'
-                            ? activeFilter === 'purchase_order'
+                            ? activeFilter === 'PO'
                             : activeFilter === 'asn') && styles.menuItemActive,
                   ]}
                   onPress={() => handlePick(f)}
@@ -1235,7 +1236,7 @@ loadPO();
                         : (String(f).toLowerCase() === 'all'
                             ? activeFilter == null
                             : String(f).toLowerCase() === 'purchase order'
-                              ? activeFilter === 'purchase_order'
+                              ? activeFilter === 'PO'
                               : activeFilter === 'asn') && styles.menuTextActive,
                     ]}
                   >
