@@ -329,10 +329,11 @@ const ReceiveScreen = () => {
           });
         }
         if (filterVal === 'PO') {
-          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'PO');
+          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'po');
         } else if (filterVal === 'asn') {
           base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'asn');
         }
+
         SetReceivedData(base);
         return;
       }
@@ -425,6 +426,45 @@ const ReceiveScreen = () => {
     [activeFilter, mapPOListWithPct, reloadDefaultPOList, runPOFilterApi]
   );
 
+  const reloadDefaultReceivedList = useCallback(async () => {
+    try {
+      setPhase('loading');
+      const data = await GetReceivedItems(OrgData?.selectedOrg);
+      const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
+      SetIntialReceivedData(withIds);
+      SetReceivedData(withIds);
+      setPhase('success');
+    } catch {
+      setPhase('error');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
+    }
+  }, [OrgData?.selectedOrg]);
+
+  const runReceivedSearchApi = useCallback(
+    async (text) => {
+      const poText = String(text ?? '').trim();
+
+      if (!poText) {
+        await reloadDefaultReceivedList();
+        return;
+      }
+
+      setPhase('loading');
+      try {
+        const data = await GetSearchReceivedItems(OrgData?.selectedOrg, poText);
+        const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
+        SetIntialReceivedData(withIds);
+        SetReceivedData(withIds);
+        setPhase('success');
+      } catch {
+        setPhase('error');
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to search Received data. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    },
+    [OrgData?.selectedOrg, reloadDefaultReceivedList]
+  );
+
+
   const handlePick = useCallback(
     (picked) => {
       setMenuOpen(false);
@@ -443,7 +483,12 @@ const ReceiveScreen = () => {
         const v = String(picked).toLowerCase();
         if (v === 'all') {
           setActiveFilter(null);
-          applyVisible(activeKey, searchText, null);
+
+          if (activeKey === 'received') {
+            SetReceivedData([...IntialReceivedData]);
+          } else {
+            applyVisible(activeKey, searchText, null);
+          }
         } else if (v === 'purchase order') {
           setActiveFilter('PO');
           applyVisible(activeKey, searchText, 'PO');
@@ -1391,9 +1436,17 @@ loadReceived();
   const isFilterActive = menuOpen || activeFilter != null;
 
   const onSearchCommit = useCallback(() => {
-    if (activeKey !== 'poir') return;
-    runPOSearchApi(searchText);
-  }, [activeKey, runPOSearchApi, searchText]);
+    if (activeKey === 'poir') {
+      runPOSearchApi(searchText);
+      return;
+    }
+
+    if (activeKey === 'received') {
+      runReceivedSearchApi(searchText);
+      return;
+    }
+  }, [activeKey, runPOSearchApi, runReceivedSearchApi, searchText]);
+
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
