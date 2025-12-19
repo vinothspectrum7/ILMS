@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
   GET_ALL_PO_FUSION_SEARCH_DATA: (po_id,status) => `${BASE_URL}/purchase_orders/all?status=${status}&po_number=${po_id}`,
   GET_ALL_PO_FUSION_FILTEER_DATA: (status) => `${BASE_URL}/purchase_orders/all?status=${status}`,
   GET_RECEIVED_DATA: (org_id) => `${BASE_URL}/purchase_orders/received/${org_id}/all`,
+  GET_RECEIVED_FUSION_DATA: (org_id) => `${BASE_URL}/receipts/received/${org_id}/receipts`,
+  GET_RECEIVED_FUSION_SEARCH_DATA: (org_id,po_no) => `${BASE_URL}/receipts/received/${org_id}/receipts?po_number=${po_no}`,
   GET_SINGLE_PO_DATA: (po_id) => `${BASE_URL}/purchase_orders/${po_id}`,
   GET_SAVED_SINGLE_PO_DATA: (po_id,interface_id) => `${BASE_URL}/receipt_interface/${po_id}/${interface_id}`,
   GET_SAVED_SINGLE_ASN_DATA: (asn_id,interface_id) => `${BASE_URL}/receipt_interface/asn/${asn_id}/${interface_id}`,

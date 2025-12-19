@@ -13,7 +13,7 @@ import BackFilterIcon from '../assets/icons/filterbackicon.svg';
 import InputSearchIcon from '../assets/icons/search_receivelist.svg';
 import ViewLessIcon from '../assets/icons/viewless.svg';
 import { useReceivingStore } from '../store/receivingStore';
-import { FetchData, GetPoItems, GetReceivedItems, GetICPoItems, DeleteIncompleteRecord, GetSearchPoItems, GetFilterPoItems } from '../api/ApiServices';
+import { FetchData, GetPoItems, GetReceivedItems, GetICPoItems, DeleteIncompleteRecord, GetSearchPoItems, GetFilterPoItems, GetSearchReceivedItems } from '../api/ApiServices';
 
 const initialLayout = { width: Dimensions.get('window').width };
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -328,11 +328,12 @@ const ReceiveScreen = () => {
             return hay.some((h) => h.includes(q));
           });
         }
-        if (filterVal === 'purchase_order') {
-          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'purchase_order');
+        if (filterVal === 'PO') {
+          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'po');
         } else if (filterVal === 'asn') {
           base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'asn');
         }
+
         SetReceivedData(base);
         return;
       }
@@ -347,8 +348,8 @@ const ReceiveScreen = () => {
             return hay.some((h) => h.includes(q));
           });
         }
-        if (filterVal === 'purchase_order') {
-          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'purchase_order');
+        if (filterVal === 'PO') {
+          base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'PO');
         } else if (filterVal === 'asn') {
           base = base.filter((it) => String(it?.received_type || '').toLowerCase() === 'asn');
         }
@@ -425,6 +426,45 @@ const ReceiveScreen = () => {
     [activeFilter, mapPOListWithPct, reloadDefaultPOList, runPOFilterApi]
   );
 
+  const reloadDefaultReceivedList = useCallback(async () => {
+    try {
+      setPhase('loading');
+      const data = await GetReceivedItems(OrgData?.selectedOrg);
+      const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
+      SetIntialReceivedData(withIds);
+      SetReceivedData(withIds);
+      setPhase('success');
+    } catch {
+      setPhase('error');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
+    }
+  }, [OrgData?.selectedOrg]);
+
+  const runReceivedSearchApi = useCallback(
+    async (text) => {
+      const poText = String(text ?? '').trim();
+
+      if (!poText) {
+        await reloadDefaultReceivedList();
+        return;
+      }
+
+      setPhase('loading');
+      try {
+        const data = await GetSearchReceivedItems(OrgData?.selectedOrg, poText);
+        const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
+        SetIntialReceivedData(withIds);
+        SetReceivedData(withIds);
+        setPhase('success');
+      } catch {
+        setPhase('error');
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to search Received data. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    },
+    [OrgData?.selectedOrg, reloadDefaultReceivedList]
+  );
+
+
   const handlePick = useCallback(
     (picked) => {
       setMenuOpen(false);
@@ -443,10 +483,15 @@ const ReceiveScreen = () => {
         const v = String(picked).toLowerCase();
         if (v === 'all') {
           setActiveFilter(null);
-          applyVisible(activeKey, searchText, null);
+
+          if (activeKey === 'received') {
+            SetReceivedData([...IntialReceivedData]);
+          } else {
+            applyVisible(activeKey, searchText, null);
+          }
         } else if (v === 'purchase order') {
-          setActiveFilter('purchase_order');
-          applyVisible(activeKey, searchText, 'purchase_order');
+          setActiveFilter('PO');
+          applyVisible(activeKey, searchText, 'PO');
         } else if (v === 'asn order') {
           setActiveFilter('asn');
           applyVisible(activeKey, searchText, 'asn');
@@ -500,16 +545,16 @@ const ReceiveScreen = () => {
       }
     };
 
-    // const loadReceived = async () => {
-    //   try {
-    //     const data = await GetReceivedItems(OrgData?.selectedOrg);
-    //     const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
-    //     SetIntialReceivedData(withIds);
-    //     SetReceivedData(withIds);
-    //   } catch {
-    //     Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
-    //   }
-    // };
+    const loadReceived = async () => {
+      try {
+        const data = await GetReceivedItems(OrgData?.selectedOrg);
+        const withIds = (data || []).map((d, idx) => ({ ...d, id: d?.id || `${idx + 1}` }));
+        SetIntialReceivedData(withIds);
+        SetReceivedData(withIds);
+      } catch {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Received data. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    };
 
     // const loadIC = async () => {
     //   try {
@@ -539,6 +584,7 @@ const ReceiveScreen = () => {
     //   }
     // };
 loadPO();
+loadReceived();
     // Promise.all([loadASN(), loadPO(), loadReceived(), loadIC()]).finally(() => setPhase('success'));
   }, [OrgData?.selectedOrg]);
 
@@ -838,7 +884,7 @@ loadPO();
                         : (String(f).toLowerCase() === 'all'
                             ? activeFilter == null
                             : String(f).toLowerCase() === 'purchase order'
-                              ? activeFilter === 'purchase_order'
+                              ? activeFilter === 'PO'
                               : activeFilter === 'asn') && styles.menuItemActive,
                     ]}
                     onPress={() => handlePick(f)}
@@ -851,7 +897,7 @@ loadPO();
                           : (String(f).toLowerCase() === 'all'
                               ? activeFilter == null
                               : String(f).toLowerCase() === 'purchase order'
-                                ? activeFilter === 'purchase_order'
+                                ? activeFilter === 'PO'
                                 : activeFilter === 'asn') && styles.menuTextActive,
                       ]}
                     >
@@ -935,7 +981,7 @@ loadPO();
                       : (String(f).toLowerCase() === 'all'
                           ? activeFilter == null
                           : String(f).toLowerCase() === 'purchase order'
-                            ? activeFilter === 'purchase_order'
+                            ? activeFilter === 'PO'
                             : activeFilter === 'asn') && styles.menuItemActive,
                   ]}
                   onPress={() => handlePick(f)}
@@ -948,7 +994,7 @@ loadPO();
                         : (String(f).toLowerCase() === 'all'
                             ? activeFilter == null
                             : String(f).toLowerCase() === 'purchase order'
-                              ? activeFilter === 'purchase_order'
+                              ? activeFilter === 'PO'
                               : activeFilter === 'asn') && styles.menuTextActive,
                     ]}
                   >
@@ -1078,7 +1124,7 @@ loadPO();
                       : (String(f).toLowerCase() === 'all'
                           ? activeFilter == null
                           : String(f).toLowerCase() === 'purchase order'
-                            ? activeFilter === 'purchase_order'
+                            ? activeFilter === 'PO'
                             : activeFilter === 'asn') && styles.menuItemActive,
                   ]}
                   onPress={() => handlePick(f)}
@@ -1091,7 +1137,7 @@ loadPO();
                         : (String(f).toLowerCase() === 'all'
                             ? activeFilter == null
                             : String(f).toLowerCase() === 'purchase order'
-                              ? activeFilter === 'purchase_order'
+                              ? activeFilter === 'PO'
                               : activeFilter === 'asn') && styles.menuTextActive,
                     ]}
                   >
@@ -1222,7 +1268,7 @@ loadPO();
                       : (String(f).toLowerCase() === 'all'
                           ? activeFilter == null
                           : String(f).toLowerCase() === 'purchase order'
-                            ? activeFilter === 'purchase_order'
+                            ? activeFilter === 'PO'
                             : activeFilter === 'asn') && styles.menuItemActive,
                   ]}
                   onPress={() => handlePick(f)}
@@ -1235,7 +1281,7 @@ loadPO();
                         : (String(f).toLowerCase() === 'all'
                             ? activeFilter == null
                             : String(f).toLowerCase() === 'purchase order'
-                              ? activeFilter === 'purchase_order'
+                              ? activeFilter === 'PO'
                               : activeFilter === 'asn') && styles.menuTextActive,
                     ]}
                   >
@@ -1390,9 +1436,17 @@ loadPO();
   const isFilterActive = menuOpen || activeFilter != null;
 
   const onSearchCommit = useCallback(() => {
-    if (activeKey !== 'poir') return;
-    runPOSearchApi(searchText);
-  }, [activeKey, runPOSearchApi, searchText]);
+    if (activeKey === 'poir') {
+      runPOSearchApi(searchText);
+      return;
+    }
+
+    if (activeKey === 'received') {
+      runReceivedSearchApi(searchText);
+      return;
+    }
+  }, [activeKey, runPOSearchApi, runReceivedSearchApi, searchText]);
+
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
