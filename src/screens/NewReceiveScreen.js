@@ -170,7 +170,8 @@ const NewReceiveScreen = () => {
   const mapBackendArrayToFrontend = (data, posingledata) => {
     const mapped = data.map((backend, index) => ({
       id: index + 1,
-      po_line_id: backend?.line_number,
+      po_line_id: backend?.po_line_id,
+      po_line_number: backend?.line_number,
       item_id: backend?.item_id,
       purchaseReceipt: posingledata?.next_receipt_num || '',
       name: backend.item?.item_code || '',
@@ -189,6 +190,8 @@ const NewReceiveScreen = () => {
       subInventory: OrgData?.selectedinventory,
       imageUri: backend?.image_uri || null,
       org_id: OrgData?.selectedOrg,
+      org_code:OrgData?.selectedOrgCode,
+      business_name:OrgData?.BusinessName,
       locator: '',
       status: backend.line_status,
       uom: backend.item?.uom,

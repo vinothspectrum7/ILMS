@@ -997,8 +997,9 @@ useEffect(() => {
       const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
       const q = Number(st.receivingQty ?? 0);
       const qtyOk = q > 0 && q <= limit;
-      const subInvOk = !!st.subInventory;
-      return qtyOk && subInvOk;
+      // const subInvOk = !!st.subInventory;
+      // return qtyOk && subInvOk;
+      return qtyOk;
     });
   }, [edited, allItems, readOnly]);
 
@@ -2981,7 +2982,7 @@ const handleImagePick = (itemId) => {
 
                 <View style={styles.subLocRow}>
                   <View style={styles.subCol}>
-                    <Text style={styles.mandLabel}>Sub Inventory*</Text>
+                    <Text style={styles.mandLabel}>Sub Inventory</Text>
                     <Rec_DropDown
                       value={currentEdited.subInventory}
                       onChange={id => handleSubInvChange(current.id, id)}

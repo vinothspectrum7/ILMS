@@ -203,47 +203,59 @@ const ReceiveSummaryScreen = () => {
   );
 
   const mapConfirmData = data => {
-    console.log(data,"mapconfirmdata");
     return data.map(backend => ({
       po_id: currentPO,
+      po_number:poHeader?.poNumber,
       po_line_id: backend?.po_line_id,
+      po_line_num:backend?.po_line_number,
       item_id: backend?.item_id,
+      item_code:backend?.name,
       org_id: backend?.org_id,
+      org_code:backend?.org_code,
+      business_unit:backend?.business_name,
+      supplier_name:poHeader?.supplier,
+      uom_code:backend?.uomCode,
+      uom:backend?.uom,
+      source_doc_code:'PO',
       sub_inv_id: backend.subInventory?backend?.subInventory?.id:null,
+      sub_inv_code:null,
       locator_id: backend.locator ? backend?.locator?.id : null,
-      lot_number: '',
-      expiry_date: formatToday(),
+      locator_code:null,
+      // lot_number: '',
+      // expiry_date: formatToday(),
       received_qty: Number(backend?.qtyToReceive),
-      interface_header_id: Interface_Id,
-      received_type: 'purchase_order',
-      asn_header_uuid: null,
+      // interface_header_id: Interface_Id,
+      // received_type: 'purchase_order',
+      // asn_header_uuid: null,
             // new fields
-      lpn_number: backend.lpn ? backend?.lpn?.id : null,
-      failed_qty: 0,
-      on_hold_qty: 0,
-      lot_enabled: false,
-      serial_enabled: false,
-      lot_serial_data: [
-      {
-        "lot_name": "string",
-        "lot_qty": "string",
-        "lot_mfg_date": "2025-12-09",
-        "lot_exp_date": "2025-12-09",
-        "serial_start_num": "string",
-        "serial_end_num": "string"
-      }
-    ],
-    "inspection_item_img_paths": [],  // Inspection items images
-    "inspection_notes": "string",
-    "is_putaway_completed": false,
+    //   lpn_number: backend.lpn ? backend?.lpn?.id : null,
+    //   failed_qty: 0,
+    //   on_hold_qty: 0,
+    //   lot_enabled: false,
+    //   serial_enabled: false,
+    //   lot_serial_data: [
+    //   {
+    //     "lot_name": "string",
+    //     "lot_qty": "string",
+    //     "lot_mfg_date": "2025-12-09",
+    //     "lot_exp_date": "2025-12-09",
+    //     "serial_start_num": "string",
+    //     "serial_end_num": "string"
+    //   }
+    // ],
+    // "inspection_item_img_paths": [],
+    // "inspection_notes": "string",
+    // "is_putaway_completed": false,
     }));
   };
 
   const confirmAction = async () => {
     const formatdata = mapConfirmData(renderItems);
+    console.log(formatdata,"mapConfirmDatamapConfirmData");
     try {
       const response = await Submit_Receive_Qty(formatdata);
-      if (response?.results?.[0].status == 'success')
+      console.log(response,"Submit_Receive_Qty");
+      if (response?.status == "SUCCESS")
         return { success: true, message: 'Received Quantity Updated Successfully!' };
       return {
         success: false,

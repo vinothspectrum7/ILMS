@@ -36,6 +36,7 @@ export default function HomeScreen({ navigation }) {
   const [Defaultorg, setDefaultorg] = useState(null);
   const [loadingRecent, setLoadingRecent] = useState(false);
   const [OrgCode, setOrgCode] = useState(null);
+  const [BusinessName,setBusinessName] = useState(null);
   const [RecentList,setRecentList] = useState([]);
   const [PriorityList,setPriorityList] = useState([]);
   const [loadingPriority, setloadingPriority] = useState(false);
@@ -72,6 +73,7 @@ export default function HomeScreen({ navigation }) {
   const handleOrganizationChange = org => {
     setDefaultorg(org.value);
     setOrgCode(org.org_code);
+    setBusinessName(org.business_unit_name);
   };
 
 useEffect(() => {
@@ -154,13 +156,14 @@ useEffect(() => {
     setOrgData({
     selectedOrg: Defaultorg,
     selectedinventory: null,
-    selectedOrgCode: OrgCode
+    selectedOrgCode: OrgCode,
+    BusinessName: BusinessName
   });
   loadinventrydata();
   loadrecentactivity();
   loadpriorityList();
 
-}, [Defaultorg, OrgCode, setInventoryList, setOrgData]);
+}, [Defaultorg, OrgCode, setInventoryList, setOrgData,BusinessName]);
 
 useEffect(() => {
   if (defaultinventory) {
@@ -302,6 +305,7 @@ function capitalizeFirstLetter(str) {
         onOrganizationChange={handleOrganizationChange}
         Defaultorg={v => setDefaultorg(v)}
         OrgCode={v => setOrgCode(v)}
+        BusinessName={v=>setBusinessName(v)}
         onCardPress={screen => navigation.navigate(screen)}
         onMenuSelect={handleHeaderMenuSelect}
         menuVersion="25102918"
