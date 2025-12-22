@@ -150,7 +150,7 @@ export const GetOrgsData = async()=>{
 }
 export const GetInventryData = async(org_id)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_SUB_INVENTORY_DATA(org_id));
+    const response = await api.get(API_ENDPOINTS.GET_FUSION_SUB_INVENTORY_DATA(org_id));
     return response.data;
     
   }catch (error) {

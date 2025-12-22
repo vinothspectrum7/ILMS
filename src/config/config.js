@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
   GET_SINGLE_ASN_RECEPT: (asn_rcpt_id,asn_id) => `${BASE_URL}/purchase_orders/receipts/${asn_rcpt_id}/details?received_type=asn&asn_hdr_uuid=${asn_id}`,
   GET_ORGS_DATA: `${BASE_URL}/organizations`,
   GET_SUB_INVENTORY_DATA: (po_id) => `${BASE_URL}/organizations/${po_id}/subinventories`,
+  GET_FUSION_SUB_INVENTORY_DATA: (org_code) => `${BASE_URL}/organizations${org_code}/subinventories`,
   GET_LOCATOR_DATA: (sub_inven_id) => `${BASE_URL}/organizations/${sub_inven_id}/locators`,
   UPDATE_RECEIVED_QTY: `${BASE_URL}/purchase_orders/update/batch_received_qty`,
   UPDATE_FUSION_RECEIVED_QTY: `${BASE_URL}/receipts/create/batch_received_qty`,

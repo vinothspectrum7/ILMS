@@ -179,6 +179,7 @@ const NewReceiveScreen = () => {
       orderedQty: backend.ord_qty,
       orderqty: backend.ord_qty,
       itemtype: getLabel(backend.item?.lot_enabled, backend.item?.serial_enabled),
+      deliverytype:'Direct',
       ship_to_location: backend.ship_to_location,
       receivedQty: backend.rcvd_qty,
       openQty:
@@ -334,6 +335,7 @@ const NewReceiveScreen = () => {
   const handleReceive = () => {
     commitDraftToStore();
     const source = draftItems;
+    console.log(source,"draftitemssssssssssssssssssssss")
     const payload = source
       .filter(i => Number(i.qtyToReceive ?? 0) > 0)
       .map(i => ({
@@ -467,12 +469,14 @@ const NewReceiveScreen = () => {
         poNumber: poHeader?.poNumber ?? '—',
         lineNumber: i + 1,
         itemName: it.name,
+        po_line_id: it.po_line_id,
         itemid: it.item_id,
         ship_to_location: it.ship_to_location,
         itemDescription: it.itemDescription ?? it.description ?? '—',
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
         itemtype: it.itemtype ?? null,
+        deliverytype:s?.deliverytype ?? it.deliverytype ?? null,
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
         receivingQty: qty,
@@ -569,8 +573,34 @@ const NewReceiveScreen = () => {
       visibilityTime: 5000,
     });
   };
+const hasValidLotData = (items = []) => {
+  return items
+    .filter(i => Number(i.qtyToReceive ?? 0) > 0)
+    .every(i => {
+      if (i.itemtype !== 'Lot') return true;
+
+      if (!Array.isArray(i.lotLines) || i.lotLines.length === 0) {
+        return false;
+      }
+
+      const lotQtyTotal = i.lotLines.reduce(
+        (sum, l) => sum + Number(l.qty ?? 0),
+        0
+      );
+
+      return (
+        lotQtyTotal === Number(i.qtyToReceive) &&
+        i.lotLines.every(
+          l => Number(l.qty ?? 0) > 0 && !!l.lotNumber
+        )
+      );
+    });
+};
+
 
   const hasAnyItems = useMemo(() => selectedItems.length > 0, [selectedItems]);
+  const canReceive =  hasAnyItems && hasValidLotData(draftItems);
+
 
   const Releasefunction = async () => {
     // const { currentPO, lockedByUser } = getCurrentPO();
@@ -708,7 +738,7 @@ const NewReceiveScreen = () => {
             onLeftPress={hasAnyItems ? () => { commitDraftToStore(); handlesave(); } : undefined}
             onRightPress={hasAnyItems ? handleReceive : undefined}
             leftEnabled={hasAnyItems}
-            rightEnabled={hasAnyItems}
+            rightEnabled={canReceive}
           />
           <Modal visible={showScanner} animationType="slide">
             <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />

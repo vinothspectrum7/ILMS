@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, SafeAreaView, BackHandler, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, SafeAreaView, BackHandler, Platform, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import Toast from 'react-native-toast-message';
 import HeaderComponent, { HEADER_METRICS } from '../components/HeaderComponent';
@@ -77,39 +77,44 @@ export default function HomeScreen({ navigation }) {
   };
 
 useEffect(() => {
-  if (!Defaultorg) return;
+  // Alert.alert(OrgCode)
+  if (!OrgCode) return;
   // setLoadingRecent(true);
   // setloadingPriority(true);
+  console.log(OrgCode,"OrgCodeOrgCode")
   const loadinventrydata = async () => {
-  //   try {
-  //     const inventrydata = await GetInventryData(Defaultorg);
-  //     if (inventrydata) {
-  //       const inventoryList = inventrydata.map(d => ({
-  //         id: d.sub_inv_id,
-  //         name: d.sub_inv_name,
-  //         enabled: d.sub_inv_enabled,
-  //         is_default: d.is_default
-  //       }));
+    try {
+      const inventrydata = await GetInventryData(OrgCode);
+      if (inventrydata) {
+        const inventoryList = inventrydata.map(d => ({
+          id: d.sub_inv_id,
+          name: d.sub_inv_name,
+          enabled: d.sub_inv_enabled,
+          is_default: d.is_default?d.is_default:null
+        }));
+        console.log(inventoryList,"inventoryLISTTTTTTTTT")
 
-  //       setInventoryList(inventoryList);
-  //       const di = inventoryList.find(o => o.is_default);
-  //       Setdefaultinventory(di);   // ✔ set the new default inventory
-  //   setOrgData({
-  //   selectedOrg: Defaultorg,
-  //   selectedinventory: di,
-  //   selectedOrgCode: OrgCode
-  // });
-  //     } else {
-  //   Setdefaultinventory(null);
-  //   setOrgData({
-  //   selectedOrg: Defaultorg,
-  //   selectedinventory: null,
-  //   selectedOrgCode: OrgCode
-  // });
-  //     }
-  //   } catch (err) {
-  //     Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories.' });
-  //   }
+        setInventoryList(inventoryList);
+        const di = inventoryList.find(o => o.is_default);
+        Setdefaultinventory(di??null);   // ✔ set the new default inventory
+    setOrgData({
+    selectedOrg: Defaultorg,
+    selectedinventory: null,
+    selectedOrgCode: OrgCode,
+    BusinessName: BusinessName
+  });
+      } else {
+    Setdefaultinventory(null);
+    setOrgData({
+    selectedOrg: Defaultorg,
+    selectedinventory: null,
+    selectedOrgCode: OrgCode,
+    BusinessName: BusinessName
+  });
+      }
+    } catch (err) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories.' });
+    }
   };
     const loadrecentactivity = async () => {
       setRecentList([]);
@@ -152,16 +157,16 @@ useEffect(() => {
       //   Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
       // }
     };
-    Setdefaultinventory(null);
-    setOrgData({
-    selectedOrg: Defaultorg,
-    selectedinventory: null,
-    selectedOrgCode: OrgCode,
-    BusinessName: BusinessName
-  });
+  //   Setdefaultinventory(null);
+  //   setOrgData({
+  //   selectedOrg: Defaultorg,
+  //   selectedinventory: null,
+  //   selectedOrgCode: OrgCode,
+  //   BusinessName: BusinessName
+  // });
   loadinventrydata();
-  loadrecentactivity();
-  loadpriorityList();
+  // loadrecentactivity();
+  // loadpriorityList();
 
 }, [Defaultorg, OrgCode, setInventoryList, setOrgData,BusinessName]);
 

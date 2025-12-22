@@ -202,6 +202,21 @@ const ReceiveSummaryScreen = () => {
     [poHeader]
   );
 
+const formatDateToYMD = (dateStr) => {
+  if (!dateStr) return null;
+
+  const [dd, mm, yyyy] = dateStr.split('/');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+  const mapConfirmLots = (data)=>{
+        return data.map(backend => ({
+        "lot_number": backend?.lotNumber,
+        "transaction_quantity": backend?.qty,
+        "lot_expiration_date": formatDateToYMD(backend?.expDate)
+      }));
+  }
+
   const mapConfirmData = data => {
     return data.map(backend => ({
       po_id: currentPO,
@@ -218,12 +233,14 @@ const ReceiveSummaryScreen = () => {
       uom:backend?.uom,
       source_doc_code:'PO',
       sub_inv_id: backend.subInventory?backend?.subInventory?.id:null,
-      sub_inv_code:null,
-      locator_id: backend.locator ? backend?.locator?.id : null,
-      locator_code:null,
+      sub_inv_code:backend.subInventory?backend?.subInventory?.name:null,
+      // locator_id: backend.locator ? backend?.locator?.id : null,
+      // locator_code:null,
       // lot_number: '',
       // expiry_date: formatToday(),
       received_qty: Number(backend?.qtyToReceive),
+      "delivery_type": backend?.deliverytype,
+     "lot_item_lots": mapConfirmLots(backend?.lotLines)
       // interface_header_id: Interface_Id,
       // received_type: 'purchase_order',
       // asn_header_uuid: null,
@@ -250,6 +267,7 @@ const ReceiveSummaryScreen = () => {
   };
 
   const confirmAction = async () => {
+    console.log(renderItems,"renderItemsrenderItemsrenderItemsrenderItems")
     const formatdata = mapConfirmData(renderItems);
     console.log(formatdata,"mapConfirmDatamapConfirmData");
     try {

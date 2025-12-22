@@ -192,6 +192,10 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const lotsCount = currentLotLines.length;
   const hasLots = lotsCount > 0;
+    const LottotalQty = useMemo(
+      () => currentLotLines.reduce((sum, l) => sum + (Number(l.qty) || 0), 0),
+      [currentLotLines],
+    );
 
   const lotSerialLotsCount = currentLotSerialLines.length;
   const hasLotSerials = lotSerialLotsCount > 0;
@@ -230,7 +234,10 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const serialCount = currentSavedSerials.length;
   const hasSerials = serialCount > 0;
-
+  const SerialTotalQty = currentSerialLines.reduce(
+    (sum, l) => sum + (Number(l.qty) || 0),
+    0,
+  );
   const serialMode = useMemo(() => {
     if (!current) return 'ranges';
     const m = currentStoreLine?.serialMode;
@@ -988,20 +995,86 @@ useEffect(() => {
 
     setLotSerialModalVisible(false);
   };
+const sumQty = (lines = []) =>
+  lines.reduce((sum, l) => sum + Number(l.qty ?? 0), 0);
 
-  const isReceiveSubmitEnabled = useMemo(() => {
-    if (readOnly) return false;
-    return allItems.some(it => {
-      const st = edited[it.id];
-      if (!st) return false;
-      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
-      const q = Number(st.receivingQty ?? 0);
-      const qtyOk = q > 0 && q <= limit;
-      // const subInvOk = !!st.subInventory;
-      // return qtyOk && subInvOk;
-      return qtyOk;
-    });
-  }, [edited, allItems, readOnly]);
+const getSerialLinesByItemId = (itemId) => {
+  const fromStore = receiveItems?.find(
+    r => String(r.id) === String(itemId)
+  )?.serialLines;
+
+  if (Array.isArray(fromStore)) return fromStore;
+
+  const fromLocal = serialRowsMap[itemId];
+  return Array.isArray(fromLocal) ? fromLocal : [];
+};
+
+  const getLotLinesByItemId = (itemId) => {
+  const fromStore = receiveItems?.find(
+    r => String(r.id) === String(itemId)
+  )?.lotLines;
+
+  if (Array.isArray(fromStore)) return fromStore;
+
+  const fromLocal = lotRowsMap[itemId];
+  return Array.isArray(fromLocal) ? fromLocal : [];
+};
+
+const isReceiveSubmitEnabled = useMemo(() => {
+  if (readOnly) return false;
+  // ✅ validate only items where qty is entered
+  const activeItems = allItems.filter(it => {
+    const st = edited[it.id];
+    return Number(st?.receivingQty ?? 0) > 0;
+  });
+
+  if (activeItems.length === 0) return false;
+  return activeItems.every(it => {
+    const st = edited[it.id];
+    if (!st) return false;
+
+    const receivingQty = Number(st.receivingQty ?? 0);
+    const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
+console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
+
+    // Basic qty validation
+    if (!(receivingQty > 0 && receivingQty <= limit)) return false;
+
+    // Sub inventory check
+    if (!st.subInventory) return false;
+
+    // Direct delivery extra validation
+    if (it.deliverytype === 'Direct') {
+      switch (it.itemtype) {
+        case 'Lot': {
+          const lotQty = sumQty(getLotLinesByItemId(it.id));
+          if (lotQty !== receivingQty) return false;
+          break;
+        }
+
+        case 'Serial': {
+          const serialQty = sumQty(getSerialLinesByItemId(it.id));
+          if (serialQty !== receivingQty) return false;
+          break;
+        }
+
+        case 'Lot+Serial': {
+          const lotQty = sumQty(getLotLinesByItemId(it.id));
+          if (lotQty !== receivingQty) {
+            return false;
+          }
+          break;
+        }
+
+        default:
+          break;
+      }
+    }
+
+    return true;
+  });
+}, [edited, allItems, readOnly]);
+
 
   // const handleSaveAll = () => {
   //   if (!isSubmitEnabled) return;
@@ -1139,6 +1212,7 @@ useEffect(() => {
     : [];
 
   const itemType = current?.itemType || null;
+  const deliverytype = current?.deliverytype || null;
 
   const currentPutAwayEdited = current ? putAwayEditedMap[current.id] ?? {} : {};
   const putAwaySubInventory = currentPutAwayEdited.subInventory ?? '';
@@ -1225,6 +1299,13 @@ useEffect(() => {
     const showLotSerial = itemType === 'Lot+Serial';
     const showreceive = itemType === null;
     return { showLot, showSerial, showLotSerial,showreceive };
+  })();
+    const deliveryPills = (() => {
+    const showreceive = deliverytype === 'Direct';
+    const showputaway = deliverytype === 'Standard';
+    const showall = deliverytype === 'inspection';
+    // const showreceive = deliverytype === null;
+    return {showall, showputaway,showreceive };
   })();
 
   const lineLabel = `Line${index + 1}`;
@@ -1509,8 +1590,42 @@ useEffect(() => {
   // }
 }, [index, allItems, edited]);
 
-    
-    
+useEffect(() => {
+  const currentItem = allItems[index];
+  if (!currentItem) return;
+
+  const editedItem = edited[currentItem.itemid];
+  console.log(currentItem,"editedItemeditedItem");
+
+  // 🚫 If user already changed image, DO NOT fetch
+  if (currentItem?.deliverytype) return;
+
+  // ✅ Fetch only once
+  // if (!editedItem?.deliverytype) {
+  //   fetchDeliveryTypeForItem(currentItem.po_line_id);
+  // }
+}, [index, allItems, edited]);
+
+// const fetchDeliveryTypeForItem = async (itemId) => {
+//   try {
+//     const resp = await GetItemImage(itemId);
+
+//     setEdited(prev => ({
+//       ...prev,
+//       [itemId]: {
+//         deliverytype: resp?.base64_image ?? null,
+//       },
+//     }));
+//   } catch (err) {
+//     setEdited(prev => ({
+//       ...prev,
+//       [itemId]: {
+//         deliverytype: resp?.base64_image ?? null,
+//       },
+//     }));
+//   }
+// };
+
 const fetchImageForItem = async (itemId) => {
   setEdited(prev => ({
     ...prev,
@@ -1739,38 +1854,51 @@ const handleImagePick = (itemId) => {
                 </LinearGradient>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.tabWrapper}
-                activeOpacity={0.9}
-                onPress={() => setActiveTab('Inspect')}
-                disabled={itemPills?.showreceive}
-              >
-                <LinearGradient
-                  colors={
-                    activeTab === 'Inspect'
-                      ? ['#233E55', '#5D768B']
-                      :itemPills?.showreceive?['#c1c3c6ff','#b7b9bdff']: ['#F3F4F6', '#E5E7EB']
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.tabBtn, activeTab === 'Inspect' && styles.tabBtnActive]}
-                >
-                  {activeTab === 'Inspect' ? (
-                    <SelectedInspectTabIcon width={18} height={18} />
-                  ) : (
-                    <InspectTabIcon width={18} height={18} />
-                  )}
-                  <Text
-                    style={
-                      activeTab === 'Inspect'
-                        ? [styles.tabText, styles.tabTextActive]
-                        : [styles.tabText, styles.tabTextInactive]
-                    }
-                  >
-                    Inspect
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
+
+<TouchableOpacity
+  style={styles.tabWrapper}
+  activeOpacity={0.9}
+  onPress={() => setActiveTab('Inspect')}
+  disabled={deliveryPills?.showreceive || deliveryPills?.showputaway}
+>
+  {(deliveryPills?.showreceive || deliveryPills?.showputaway) ? (
+    // 🔹 Disabled state (NO gradient)
+    <View style={[styles.tabBtn, styles.disabledTab]}>
+      <InspectTabIcon width={18} height={18} />
+      <Text style={[styles.tabText, styles.tabTextInactive]}>
+        Inspect
+      </Text>
+    </View>
+  ) : (
+    // 🔹 Enabled state (Gradient)
+    <LinearGradient
+      colors={
+        activeTab === 'Inspect'
+          ? ['#233E55', '#5D768B']
+          : ['#F3F4F6', '#E5E7EB']
+      }
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 0 }}
+      style={[styles.tabBtn, activeTab === 'Inspect' && styles.tabBtnActive]}
+    >
+      {activeTab === 'Inspect' ? (
+        <SelectedInspectTabIcon width={18} height={18} />
+      ) : (
+        <InspectTabIcon width={18} height={18} />
+      )}
+      <Text
+        style={
+          activeTab === 'Inspect'
+            ? [styles.tabText, styles.tabTextActive]
+            : [styles.tabText, styles.tabTextInactive]
+        }
+      >
+        Inspect
+      </Text>
+    </LinearGradient>
+  )}
+</TouchableOpacity>
+
 
               <TouchableOpacity
                 style={styles.tabWrapper}
@@ -1778,11 +1906,20 @@ const handleImagePick = (itemId) => {
                 onPress={() => setActiveTab('PutAway')}
                 disabled={itemPills?.showreceive}
               >
+                  {(deliveryPills?.showreceive) ? (
+    // 🔹 Disabled state (NO gradient)
+    <View style={[styles.tabBtn, styles.disabledTab]}>
+      <InspectTabIcon width={18} height={18} />
+      <Text style={[styles.tabText, styles.tabTextInactive]}>
+        Put Away
+      </Text>
+    </View>
+  ) : (
                 <LinearGradient
                   colors={
                     activeTab === 'PutAway'
                       ? ['#233E55', '#5D768B']
-                      :itemPills?.showreceive?['#c1c3c6ff','#b7b9bdff']: ['#F3F4F6', '#E5E7EB']
+                      : ['#F3F4F6', '#E5E7EB']
                   }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -1803,6 +1940,7 @@ const handleImagePick = (itemId) => {
                     Put Away
                   </Text>
                 </LinearGradient>
+  )}
               </TouchableOpacity>
             </View>
 
@@ -2982,7 +3120,7 @@ const handleImagePick = (itemId) => {
 
                 <View style={styles.subLocRow}>
                   <View style={styles.subCol}>
-                    <Text style={styles.mandLabel}>Sub Inventory</Text>
+                    <Text style={styles.mandLabel}>Sub Inventory*</Text>
                     <Rec_DropDown
                       value={currentEdited.subInventory}
                       onChange={id => handleSubInvChange(current.id, id)}
@@ -3013,13 +3151,13 @@ const handleImagePick = (itemId) => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openLotModal}
-                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty==0}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty==0 || !currentEdited.subInventory}
                     >
                       {hasLots ? (
                         <View style={styles.addLotGreen}>
                           <ReceiveAddIcon width={20} height={20} />
                           <Text style={styles.addLotGreenText}>
-                            {`${lotsCount} Lots Added - ${currentQty} QTY`}
+                            {`${lotsCount} Lots Added - ${LottotalQty} QTY`}
                           </Text>
                         </View>
                       ) : (
@@ -3924,6 +4062,14 @@ const styles = StyleSheet.create({
     height: '70%',
     resizeMode: 'contain',
   },
+disabledTab: {
+  backgroundColor: '#F5F5F6',
+  opacity: 0.6, // 👈 adjust as needed
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: 8, // same as tabBtn
+},
 
 });
 
