@@ -1301,9 +1301,9 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
     return { showLot, showSerial, showLotSerial,showreceive };
   })();
     const deliveryPills = (() => {
-    const showreceive = deliverytype === 'Direct';
-    const showputaway = deliverytype === 'Standard';
-    const showall = deliverytype === 'inspection';
+    const showreceive = deliverytype === 'Direct receipt';
+    const showputaway = deliverytype === 'Standard receipt';
+    const showall = deliverytype === 'Inspection required';
     // const showreceive = deliverytype === null;
     return {showall, showputaway,showreceive };
   })();
@@ -1589,42 +1589,6 @@ useEffect(() => {
   //   fetchImageForItem(currentItem.itemid);
   // }
 }, [index, allItems, edited]);
-
-useEffect(() => {
-  const currentItem = allItems[index];
-  if (!currentItem) return;
-
-  const editedItem = edited[currentItem.itemid];
-  console.log(currentItem,"editedItemeditedItem");
-
-  // 🚫 If user already changed image, DO NOT fetch
-  if (currentItem?.deliverytype) return;
-
-  // ✅ Fetch only once
-  // if (!editedItem?.deliverytype) {
-  //   fetchDeliveryTypeForItem(currentItem.po_line_id);
-  // }
-}, [index, allItems, edited]);
-
-// const fetchDeliveryTypeForItem = async (itemId) => {
-//   try {
-//     const resp = await GetItemImage(itemId);
-
-//     setEdited(prev => ({
-//       ...prev,
-//       [itemId]: {
-//         deliverytype: resp?.base64_image ?? null,
-//       },
-//     }));
-//   } catch (err) {
-//     setEdited(prev => ({
-//       ...prev,
-//       [itemId]: {
-//         deliverytype: resp?.base64_image ?? null,
-//       },
-//     }));
-//   }
-// };
 
 const fetchImageForItem = async (itemId) => {
   setEdited(prev => ({
