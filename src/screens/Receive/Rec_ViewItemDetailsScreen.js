@@ -144,6 +144,11 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const [index, setIndex] = useState(startIndex);
   const [activeTab, setActiveTab] = useState('Receive');
+  useEffect(() => {
+    if (isStandardReceipt && activeTab !== 'Receive') {
+      setActiveTab('Receive');
+    }
+  }, [isStandardReceipt, activeTab]);
   const [edited, setEdited] = useState({});
   const [locatorDataMap, setLocatorDataMap] = useState({});
   const [lotRowsMap, setLotRowsMap] = useState({});
@@ -873,14 +878,21 @@ useEffect(() => {
       const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
       const clampedQty = clampToLimit(Number(st.receivingQty ?? 0), limit);
       if (!readOnly) {
+        const lineDelivery = String(it?.deliverytype ?? '').trim();
+        const lineIsStandard = lineDelivery === 'Standard receipt';
+
         patches.push({
           id: String(it.id),
           receivingQty: clampedQty,
           qtyToReceive: clampedQty,
           lpn: st.lpn ?? '',
-          subInventory: st.subInventory ?? '',
-          locator: st.locator ?? null,
-          imageUri:itemstore?.imageUri ?? null
+          ...(lineIsStandard
+            ? {}
+            : {
+                subInventory: st.subInventory ?? '',
+                locator: st.locator ?? null,
+              }),
+          imageUri: itemstore?.imageUri ?? null,
         });
       }
           console.log(itemstore,"editededitededitededited");
@@ -1040,32 +1052,39 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
     // Basic qty validation
     if (!(receivingQty > 0 && receivingQty <= limit)) return false;
 
-    // Sub inventory check
+        // ✅ Standard receipt: LPN required for active items
+    const lineDelivery = String(it?.deliverytype ?? '').trim();
+    const lineIsDirect = lineDelivery === 'Direct delivery';
+    const lineIsStandard = lineDelivery === 'Standard receipt';
+
+    // Basic qty validation already above
+
+    // Standard receipt requires LPN, but DOES NOT require subInventory/locator
+    if (lineIsStandard) {
+      if (!st.lpn) return false;
+      return true;
+    }
+
+    // Direct delivery keeps existing validations + requires subInventory
     if (!st.subInventory) return false;
 
-    // Direct delivery extra validation
-    if (it.deliverytype === 'Direct') {
+    if (lineIsDirect) {
       switch (it.itemtype) {
         case 'Lot': {
           const lotQty = sumQty(getLotLinesByItemId(it.id));
           if (lotQty !== receivingQty) return false;
           break;
         }
-
         case 'Serial': {
           const serialQty = sumQty(getSerialLinesByItemId(it.id));
           if (serialQty !== receivingQty) return false;
           break;
         }
-
         case 'Lot+Serial': {
           const lotQty = sumQty(getLotLinesByItemId(it.id));
-          if (lotQty !== receivingQty) {
-            return false;
-          }
+          if (lotQty !== receivingQty) return false;
           break;
         }
-
         default:
           break;
       }
@@ -1212,7 +1231,14 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
     : [];
 
   const itemType = current?.itemType || null;
-  const deliverytype = current?.deliverytype || null;
+  const deliverytypeRaw = current?.deliverytype ?? '';
+  const deliverytype = String(deliverytypeRaw).trim();
+
+  const isDirectDelivery = deliverytype === 'Direct delivery';
+  const isStandardReceipt = deliverytype === 'Standard receipt';
+  const isInspectionRequired = deliverytype === 'Inspection required';
+  const isPutAwayRequired = deliverytype === 'PutAway required';
+
 
   const currentPutAwayEdited = current ? putAwayEditedMap[current.id] ?? {} : {};
   const putAwaySubInventory = currentPutAwayEdited.subInventory ?? '';
@@ -1301,12 +1327,12 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
     return { showLot, showSerial, showLotSerial,showreceive };
   })();
     const deliveryPills = (() => {
-    const showreceive = deliverytype === 'Direct receipt';
-    const showputaway = deliverytype === 'Standard receipt';
-    const showall = deliverytype === 'Inspection required';
-    // const showreceive = deliverytype === null;
-    return {showall, showputaway,showreceive };
+    const showreceive = isDirectDelivery;
+    const showputaway = isStandardReceipt;
+    const showall = isInspectionRequired;
+    return { showall, showputaway, showreceive };
   })();
+
 
   const lineLabel = `Line${index + 1}`;
 
@@ -1823,7 +1849,7 @@ const handleImagePick = (itemId) => {
   style={styles.tabWrapper}
   activeOpacity={0.9}
   onPress={() => setActiveTab('Inspect')}
-  disabled={deliveryPills?.showreceive || deliveryPills?.showputaway}
+  disabled={isDirectDelivery || isStandardReceipt}
 >
   {(deliveryPills?.showreceive || deliveryPills?.showputaway) ? (
     // 🔹 Disabled state (NO gradient)
@@ -1868,9 +1894,9 @@ const handleImagePick = (itemId) => {
                 style={styles.tabWrapper}
                 activeOpacity={0.9}
                 onPress={() => setActiveTab('PutAway')}
-                disabled={itemPills?.showreceive}
+                disabled={isDirectDelivery || isStandardReceipt}
               >
-                  {(deliveryPills?.showreceive) ? (
+                  {(isDirectDelivery || isStandardReceipt) ? (
     // 🔹 Disabled state (NO gradient)
     <View style={[styles.tabBtn, styles.disabledTab]}>
       <InspectTabIcon width={18} height={18} />
@@ -1913,50 +1939,51 @@ const handleImagePick = (itemId) => {
                 <View style={styles.itemInfoRow}>
                   <View style={styles.itemIconWrap}>
                     <ReceiveItemBoxIcon width={40} height={40} />
-                      {/* {!readOnly &&<TouchableOpacity style={styles.cameraIcon} onPress={() => handleImagePick(current.itemid)}>
-                        <CameraIcon width={25} height={25} />
-                      </TouchableOpacity>}
-                      <View style={styles.imageWrapper}>
-                        {renderImageBox(allItems[index])}
-                      </View> */}
                   </View>
+
                   <View style={styles.itemTextCol}>
                     <Text style={styles.itemName} numberOfLines={1}>
                       {current?.itemName || 'Item Name'}
                     </Text>
-                    <Text style={styles.itemCode} numberOfLines={1}>
-                      {current?.itemName || 'Item Code'}
-                    </Text>
                   </View>
-                  <View style={styles.itemPillsCol}>
-                    {itemPills.showLot && (
-                      <View style={styles.pillLot}>
-                        <Text style={styles.pillLotText}>Lot</Text>
-                      </View>
-                    )}
-                    {itemPills.showSerial && (
-                      <View style={styles.pillSerial}>
-                        <Text style={styles.pillSerialText}>Serial</Text>
-                      </View>
-                    )}
-                    {itemPills.showLotSerial && (
-                      <View style={styles.pilllotserial}>
+
+                  {isStandardReceipt ? (
+                    <View style={styles.itemPillsCol}>
+                      <Text style={styles.stdReceiptItemCode} numberOfLines={1}>
+                        {current?.itemid || current?.itemCode || '-'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.itemPillsCol}>
+                      {itemPills.showLot && (
                         <View style={styles.pillLot}>
                           <Text style={styles.pillLotText}>Lot</Text>
                         </View>
+                      )}
+                      {itemPills.showSerial && (
                         <View style={styles.pillSerial}>
                           <Text style={styles.pillSerialText}>Serial</Text>
                         </View>
-                      </View>
-                    )}
-                    {itemPills.showreceive && (
-                      <View style={styles.pilllotserial}>
-                        <View style={styles.pillLot}>
-                          <Text style={styles.pillLotText}>Receive</Text>
+                      )}
+                      {itemPills.showLotSerial && (
+                        <View style={styles.pilllotserial}>
+                          <View style={styles.pillLot}>
+                            <Text style={styles.pillLotText}>Lot</Text>
+                          </View>
+                          <View style={styles.pillSerial}>
+                            <Text style={styles.pillSerialText}>Serial</Text>
+                          </View>
                         </View>
-                      </View>
-                    )}
-                  </View>
+                      )}
+                      {itemPills.showreceive && (
+                        <View style={styles.pilllotserial}>
+                          <View style={styles.pillLot}>
+                            <Text style={styles.pillLotText}>Receive</Text>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  )}
                 </View>
               </View>
             )}
@@ -1974,6 +2001,17 @@ const handleImagePick = (itemId) => {
                     <Text style={styles.orderQtyUom}>/ {current.uom}</Text>
                   </Text>
                 </View>
+
+                {isStandardReceipt && (
+                <View style={[styles.row, { borderBottomWidth: 0.5, borderBottomColor: '#CCCED2' }]}>
+                  <Text style={styles.label}>Open Quantity</Text>
+                  <Text style={styles.orderQtyText}>
+                    {Number(current.max_open_qty ?? current.openQty ?? 0)}{' '}
+                    <Text style={styles.orderQtyUom}>/ {current.uom}</Text>
+                  </Text>
+                </View>
+              )}
+
 
                 <View style={styles.row}>
                   <Text style={styles.label}>Receiving Quantity</Text>
@@ -2001,6 +2039,26 @@ const handleImagePick = (itemId) => {
                 </View>
 
                 <Text style={styles.uomText}>{current.uom}</Text>
+
+                {isStandardReceipt && (
+                  <View style={{ marginTop: ms(12) }}>
+                    <Text style={styles.mandLabel}>LPN*</Text>
+                    <Rec_DropDown
+                      value={currentEdited.lpn}
+                      onChange={id => handleLpnChange(current.id, id)}
+                      items={LpnListData}
+                      placeholder="Select LPN"
+                      disabled={readOnly || Number(current.max_open_qty ?? current.openQty ?? 0) === 0}
+                      showBarcodeIcon
+                      onBarcodePress={() => {
+                        // render barcode scanner
+                      }}
+                      width="100%"
+                      height={32}
+                    />
+                  </View>
+                )}
+
               </View>
             )}
 
@@ -3049,7 +3107,7 @@ const handleImagePick = (itemId) => {
             
           </View>
 
-          {activeTab === 'Receive' && current && (
+          {activeTab === 'Receive' && current && !isStandardReceipt && (
             <>
               <View style={styles.cardShipTo}>
                 <View style={styles.shipHeaderRow}>
@@ -4034,6 +4092,13 @@ disabledTab: {
   justifyContent: 'center',
   borderRadius: 8, // same as tabBtn
 },
+  stdReceiptItemCode: {
+    fontSize: ms(12),
+    fontWeight: '700',
+    color: '#9D9FA3',
+    maxWidth: ms(120),
+    textAlign: 'right',
+  },
 
 });
 
