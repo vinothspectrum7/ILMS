@@ -51,6 +51,7 @@ import PhotoCaptureIcon from '../../assets/icons/photocaptureicon.svg';
 import DeleteAttachmentIcon from '../../assets/icons/deleteattachmenticon.svg';
 import InspectTickIcon from '../../assets/icons/inspecttickicon.svg';
 import Rec_InspectLotModalPopup from '../../components/receive/Rec_InspectLotModalPopup';
+import Rec_InspectModalPopup from '../../components/receive/Rec_InspectModalPopup';
 import Barcodescanner from '../../assets/icons/barcodescanner.svg';
 import BarcodeScanner from '../../screens/BarCodeScanner';
 import Rec_InspectLotSerialModalPopup from '../../components/receive/Rec_InspectLotSerialModalPopup';
@@ -95,6 +96,16 @@ const INSPECTION_STATUS_OPTIONS = [
 ];
 
 const normalizeLotKey = v => String(v ?? '').trim().toLowerCase();
+
+const makeInspectRowId = () => `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+const normalizeInspectDecision = v => {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object') return String(v.name ?? v.id ?? '');
+  return '';
+};
+
 
 const Rec_ViewItemDetailsScreen = () => {
   const navigation = useNavigation();
@@ -144,11 +155,34 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const [index, setIndex] = useState(startIndex);
   const [activeTab, setActiveTab] = useState('Receive');
+
+  const [inspectRowsMap, setInspectRowsMap] = useState({}); // { [itemId]: [rows] }
+  const [inspectRowModalVisible, setInspectRowModalVisible] = useState(false);
+  const [selectedInspectRow, setSelectedInspectRow] = useState(null);
+
+
   useEffect(() => {
-    if (isStandardReceipt && activeTab !== 'Receive') {
-      setActiveTab('Receive');
+  if (isStandardReceipt && activeTab !== 'Receive') {
+    setActiveTab('Receive');
+  }
+}, [isStandardReceipt, activeTab]);
+
+  useEffect(() => {
+    if (!current) return;
+    if (!isInspectionRequired) return;
+
+    // Default tab rule for Inspection required:
+    // - if Receiving Qty > 0 => Inspect
+    // - if Receiving Qty == 0 => Receive
+    if (Number(currentQty ?? 0) > 0) {
+      if (activeTab !== 'Inspect') setActiveTab('Inspect');
+    } else {
+      if (activeTab !== 'Receive') setActiveTab('Receive');
     }
-  }, [isStandardReceipt, activeTab]);
+  }, [current?.id, isInspectionRequired, currentQty, activeTab]);
+
+
+
   const [edited, setEdited] = useState({});
   const [locatorDataMap, setLocatorDataMap] = useState({});
   const [lotRowsMap, setLotRowsMap] = useState({});
@@ -1237,7 +1271,106 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
   const isDirectDelivery = deliverytype === 'Direct delivery';
   const isStandardReceipt = deliverytype === 'Standard receipt';
   const isInspectionRequired = deliverytype === 'Inspection required';
-  // const isPutAwayRequired = deliverytype === 'PutAway required';
+
+  const currentInspectRows = useMemo(() => {
+    if (!current) return [];
+    const rows = inspectRowsMap[current.id];
+    return Array.isArray(rows) ? rows : [];
+  }, [inspectRowsMap, current?.id]);
+
+  const completedInspectQty = useMemo(() => {
+    return currentInspectRows.reduce((sum, r) => {
+      if (!r?.isCompleted) return sum;
+      return sum + (Number(r.qty) || 0);
+    }, 0);
+  }, [currentInspectRows]);
+
+  const pendingInspectRow = useMemo(() => {
+    return currentInspectRows.find(r => !r.isCompleted) || null;
+  }, [currentInspectRows]);
+
+  const isInspectionFullyCompleted = useMemo(() => {
+    if (!isInspectionRequired) return true; // not applicable
+    if (!current) return false;
+    const recv = Number(currentQty ?? 0);
+    if (!recv || recv <= 0) return false;
+    const hasPending = currentInspectRows.some(r => !r.isCompleted);
+    return !hasPending && completedInspectQty === recv;
+  }, [isInspectionRequired, current?.id, currentQty, currentInspectRows, completedInspectQty]);
+
+  useEffect(() => {
+    if (!current) return;
+    if (!isInspectionRequired) return;
+
+    // initialize / sync default pending row based on current receiving qty
+    setInspectRowsMap(prev => {
+      const existing = Array.isArray(prev[current.id]) ? prev[current.id] : [];
+
+      const recv = Number(currentQty ?? 0);
+
+      // If receiving qty is 0 => keep rows empty
+      if (!recv || recv <= 0) {
+        if (existing.length === 0) return prev;
+        return { ...prev, [current.id]: [] };
+      }
+
+      // If no rows => create one default pending row
+      if (existing.length === 0) {
+        return {
+          ...prev,
+          [current.id]: [
+            {
+              id: makeInspectRowId(),
+              qty: recv,
+              inspectDecision: '-', // "Accepted/Rejected/-"
+              receivingStatus: 'Inspection Pending',
+              isCompleted: false,
+              completedAt: null,
+            },
+          ],
+        };
+      }
+
+      // If rows exist and there is a pending row => keep its qty in sync with remaining qty
+      const completed = existing.filter(r => r?.isCompleted);
+      const completedSum = completed.reduce((s, r) => s + (Number(r.qty) || 0), 0);
+      const remaining = Math.max(0, recv - completedSum);
+
+      const hasPending = existing.some(r => !r?.isCompleted);
+      if (!hasPending) {
+        // if fully completed and user increased recv qty later, add pending for the extra qty
+        if (remaining > 0) {
+          return {
+            ...prev,
+            [current.id]: [
+              ...existing,
+              {
+                id: makeInspectRowId(),
+                qty: remaining,
+                inspectDecision: '-',
+                receivingStatus: 'Inspection Pending',
+                isCompleted: false,
+                completedAt: null,
+              },
+            ],
+          };
+        }
+        return prev;
+      }
+
+      // adjust the single pending row qty to "remaining"
+      return {
+        ...prev,
+        [current.id]: existing.map(r => {
+          if (r?.isCompleted) return r;
+          return { ...r, qty: remaining, receivingStatus: 'Inspection Pending' };
+        }).filter(r => r.isCompleted || (Number(r.qty) || 0) > 0),
+      };
+    });
+  }, [current?.id, isInspectionRequired, currentQty]);
+
+
+  const isPutAwayRequired = deliverytype === 'PutAway required';
 
 
   const currentPutAwayEdited = current ? putAwayEditedMap[current.id] ?? {} : {};
@@ -1695,7 +1828,82 @@ const handleImagePick = (itemId) => {
 
 
 
-  const handleScanAndOpenLotandSerialInspect = scannedValue => {
+const openInspectRowModalForPending = useCallback(() => {
+  if (!current) return;
+  if (!isInspectionRequired) return;
+
+  const rows = Array.isArray(inspectRowsMap[current.id]) ? inspectRowsMap[current.id] : [];
+  const pending = rows.find(r => !r.isCompleted);
+
+  if (!pending) {
+    Toast.show({ type: 'info', text1: 'Inspection already completed' });
+    return;
+  }
+
+  const pendingQty = Number(pending.qty ?? 0);
+  if (!pendingQty || pendingQty <= 0) {
+    Toast.show({ type: 'error', text1: 'No pending qty to inspect' });
+    return;
+  }
+
+  setSelectedInspectRow({ ...pending });
+  setInspectRowModalVisible(true);
+}, [current?.id, isInspectionRequired, inspectRowsMap]);
+
+const handleInspectRowComplete = useCallback(
+  payload => {
+    if (!current) return;
+
+    const rowId = payload?.rowId;
+    const inspectQty = Number(payload?.inspectQty ?? 0);
+    const decision = normalizeInspectDecision(payload?.status);
+
+    if (!rowId || !inspectQty || inspectQty <= 0 || !decision) return;
+
+    setInspectRowsMap(prev => {
+      const rows = Array.isArray(prev[current.id]) ? prev[current.id] : [];
+      const idx = rows.findIndex(r => String(r.id) === String(rowId));
+      if (idx < 0) return prev;
+
+      const row = rows[idx];
+      if (!row || row.isCompleted) return prev;
+
+      const rowQty = Number(row.qty ?? 0);
+      const safeInspectQty = Math.min(inspectQty, rowQty);
+
+      const completedRow = {
+        ...row,
+        qty: safeInspectQty,
+        inspectDecision: decision === 'Accepted' ? 'Accepted' : 'Rejected',
+        receivingStatus: 'Inspection Completed',
+        isCompleted: true,
+        completedAt: new Date().toISOString(),
+      };
+
+      const remaining = Math.max(0, rowQty - safeInspectQty);
+
+      const nextRows = [...rows];
+      nextRows.splice(idx, 1, completedRow);
+
+      if (remaining > 0) {
+        nextRows.splice(idx + 1, 0, {
+          id: makeInspectRowId(),
+          qty: remaining,
+          inspectDecision: '-',
+          receivingStatus: 'Inspection Pending',
+          isCompleted: false,
+          completedAt: null,
+        });
+      }
+
+      return { ...prev, [current.id]: nextRows };
+    });
+  },
+  [current?.id],
+);
+  
+
+const handleScanAndOpenLotandSerialInspect = scannedValue => {
     if (!current) return;
     const code = normalizeLotKey(scannedValue);
     if (!code) {
@@ -1713,8 +1921,40 @@ const handleImagePick = (itemId) => {
     }, 250);
   };
 
-    const rightPress =
-    activeTab === 'Receive'
+      const handleSaveInspectionRequired = () => {
+    if (!current) return;
+
+    // Must satisfy receive validations AND inspection must be fully completed
+    if (!isReceiveSubmitEnabled) return;
+    if (!isInspectionFullyCompleted) return;
+
+    persistPatches();
+
+    const rows = Array.isArray(inspectRowsMap[current.id]) ? inspectRowsMap[current.id] : [];
+    const completedRows = rows.filter(r => r?.isCompleted);
+
+    const hasRejected = completedRows.some(r => String(r?.inspectDecision).toLowerCase() === 'rejected');
+    const inspectionStatus = hasRejected ? 'Rejected' : 'Passed';
+
+    mergePatchIntoReceiveItems({
+      id: String(current.id),
+      inspectionStatus,
+      lastInspectionDate: completedRows[completedRows.length - 1]?.completedAt || new Date().toISOString(),
+      inspectionData: {
+        rows: completedRows,
+      },
+    });
+
+    if (returnTo) navigation.navigate(returnTo, { listType });
+    else navigation.goBack();
+  };
+
+  const rightPress =
+    isInspectionRequired
+      ? isReceiveSubmitEnabled && isInspectionFullyCompleted
+        ? handleSaveInspectionRequired
+        : undefined
+      : activeTab === 'Receive'
       ? isReceiveSubmitEnabled
         ? handleSaveAll
         : undefined
@@ -1747,8 +1987,11 @@ const handleImagePick = (itemId) => {
 
 
 
+
     const rightEnabled =
-    activeTab === 'Receive'
+    isInspectionRequired
+      ? isReceiveSubmitEnabled && isInspectionFullyCompleted
+      : activeTab === 'Receive'
       ? isReceiveSubmitEnabled
       : activeTab === 'Inspect'
       ? itemType === 'Serial'
@@ -1765,6 +2008,7 @@ const handleImagePick = (itemId) => {
         ? isPutAwaySerialPassed
         : false
       : false;
+
 
 
 
@@ -1934,7 +2178,7 @@ const handleImagePick = (itemId) => {
               </TouchableOpacity>
             </View>
 
-            {activeTab === 'Receive' && current && (
+            {((activeTab === 'Receive') || (activeTab === 'Inspect' && isInspectionRequired)) && current && (
               <View style={styles.itemInfoBox}>
                 <View style={styles.itemInfoRow}>
                   <View style={styles.itemIconWrap}>
@@ -2062,7 +2306,110 @@ const handleImagePick = (itemId) => {
               </View>
             )}
 
-            {activeTab === 'Inspect' && current && itemType === 'Serial' && (
+            {activeTab === 'Inspect' && current && isInspectionRequired && (
+              <View style={styles.inspectRequiredWrap}>
+                <View style={styles.scanRowWrap}>
+                  <TouchableOpacity
+                    onPress={() => setShowScanner(true)}
+                    activeOpacity={0.7}
+                    style={styles.scanBox}
+                  >
+                    <Text style={styles.scanPlaceholder}>
+                      {pendingInspectRow ? 'Scan Item' : 'Inspection Completed'}
+                    </Text>
+                    <Barcodescanner width={18} height={18} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.inspectNowBtn, (!pendingInspectRow || currentQty <= 0) && styles.inspectNowBtnDisabled]}
+                    activeOpacity={0.85}
+                    disabled={!pendingInspectRow || currentQty <= 0}
+                    onPress={openInspectRowModalForPending}
+                  >
+                    <Text style={styles.inspectNowBtnText}>Inspect</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.inspectTableHeader}>
+                  <Text style={[styles.inspectTh, styles.inspectThQty]}>Qty</Text>
+                  <Text style={[styles.inspectTh, styles.inspectThMid]}>Inspection Status</Text>
+                  <Text style={[styles.inspectTh, styles.inspectThRight]}>Receiving Status</Text>
+                </View>
+
+                <View style={styles.inspectTableBody}>
+                  {currentInspectRows.map(r => {
+                    const isCompleted = !!r.isCompleted;
+                    const decision = String(r.inspectDecision ?? '-');
+                    const receivingStatus = String(r.receivingStatus ?? 'Inspection Pending');
+
+                    const isRejected = isCompleted && decision.toLowerCase() === 'rejected';
+                    const isAccepted = isCompleted && decision.toLowerCase() === 'accepted';
+
+                    const pillBg = isCompleted
+                      ? isRejected
+                        ? '#FDECEC'
+                        : '#D3FFE0'
+                      : '#FCDFCC';
+
+                    const pillText = isCompleted
+                      ? isRejected
+                        ? '#C62828'
+                        : '#168035'
+                      : '#F06000';
+
+                    const rowBg = isCompleted ? '#FFFFFF' : '#FFF9F4';
+
+                    return (
+                      <TouchableOpacity
+                        key={r.id}
+                        activeOpacity={0.85}
+                        disabled={isCompleted}
+                        onPress={() => {
+                          if (isCompleted) return;
+                          setSelectedInspectRow({ ...r });
+                          setInspectRowModalVisible(true);
+                        }}
+                        style={[styles.inspectTr, { backgroundColor: rowBg }]}
+                      >
+                        <Text style={[styles.inspectTd, styles.inspectTdQty]}>{Number(r.qty) || 0}</Text>
+
+                        <Text
+                          style={[
+                            styles.inspectTd,
+                            styles.inspectTdMid,
+                            isAccepted && { color: '#168035', fontWeight: '700' },
+                            isRejected && { color: '#C62828', fontWeight: '700' },
+                            !isCompleted && { color: '#111827' },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {isCompleted ? decision : '-'}
+                        </Text>
+
+                        <View style={styles.inspectTdRightWrap}>
+                          <View style={[styles.statusPill, { backgroundColor: pillBg }]}>
+                            <Text style={[styles.statusPillText, { color: pillText }]}>
+                              {receivingStatus === 'Inspection Completed'
+                                ? 'Inspection Completed'
+                                : 'Inspection Pending'}
+                            </Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.inspectRequiredFooterInfo}>
+                  <Text style={styles.inspectRequiredFooterText}>
+                    Completed: {completedInspectQty} / {Number(currentQty) || 0}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            
+            {activeTab === 'Inspect' && current && !isInspectionRequired && itemType === 'Serial' && (
               <View style={styles.inspectContainer}>
                 <View
                   style={[
@@ -2250,7 +2597,7 @@ const handleImagePick = (itemId) => {
               </View>
             )}
 
-            {activeTab === 'Inspect' && current && itemType === 'Lot' && (
+            {activeTab === 'Inspect' && current && !isInspectionRequired && itemType === 'Lot' && (
               <View style={styles.section}>
                 <View
                   style={[
@@ -2479,7 +2826,7 @@ const handleImagePick = (itemId) => {
               </View>
             )}
 
-            {activeTab === 'Inspect' && current && itemType !== 'Serial' && itemType !== 'Lot' && itemType !== 'Lot+Serial' && (
+            {activeTab === 'Inspect' && current && !isInspectionRequired && itemType !== 'Serial' && itemType !== 'Lot' && itemType !== 'Lot+Serial' && (
               <View style={styles.inspectWipContainer}>
                 <Text style={styles.inspectWipText}>
                   {itemType === 'Lot'
@@ -2489,232 +2836,232 @@ const handleImagePick = (itemId) => {
               </View>
             )}
 
-            {activeTab === 'Inspect' && current && itemType === 'Lot+Serial' && (
-  <View style={styles.section}>
-    <View
-      style={[
-        styles.inspectInfoCard,
-        {
-          backgroundColor: allSavedLotSerialLotsInspected ? '#EEFDF8' : '#FFF8EC',
-          borderColor: allSavedLotSerialLotsInspected ? '#73B386' : '#F06000',
-          marginTop: ms(6),
-        },
-      ]}
-    >
-      <View style={styles.inspectInfoIconWrap}>
-        {allSavedLotSerialLotsInspected ? (
-          <PassedInspectionIcon width={24} height={24} />
-        ) : (
-          <PendingInspectionIcon width={24} height={24} />
-        )}
-      </View>
-
-      <View style={styles.inspectInfoMiddle}>
-        <Text
-          style={[
-            styles.inspectInfoLabel,
-            { color: allSavedLotSerialLotsInspected ? '#168035' : '#F06000' },
-          ]}
-        >
-          Inspection Status
-        </Text>
-
-        <View
-          style={[
-            styles.inspectStatusPill,
-            { backgroundColor: allSavedLotSerialLotsInspected ? '#168035' : '#FCDFCC' },
-          ]}
-        >
-          <Text
-            style={[
-              styles.inspectStatusPillText,
-              allSavedLotSerialLotsInspected
-                ? styles.inspectStatusPillTextPassed
-                : styles.inspectStatusPillTextPending,
-            ]}
-          >
-            {allSavedLotSerialLotsInspected ? 'Passed' : 'Pending'}
-          </Text>
-        </View>
-      </View>
-
-      <Text
-        style={[
-          styles.inspectInfoRightText,
-          { color: allSavedLotSerialLotsInspected ? '#168035' : '#F06000' },
-        ]}
-      >
-        Lot + Serial Controlled
-      </Text>
-    </View>
-                {/* {current?.itemType === 'Lot' && ( */}
-                  <TouchableOpacity
-                    onPress={() => setShowScanner(true)}
-                    activeOpacity={0.7}
-                    style={{
-                      width: '100%',
-                      height: 38,
-                      borderRadius: 4,
-                      borderWidth: 1,
-                      borderColor: '#CCCED2',
-                      paddingHorizontal: 10,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: 18,
-                      marginTop: 18,
-                    }}
-                  >
-                    <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
-                      {scannedLotSerial || 'Scan Lot'}
-                    </Text>
-                    <Barcodescanner width={18} height={18} />
-                  </TouchableOpacity>
-                {/* )} */}
-    {hasLotSerials && currentLotSerialLines && (
-      <View style={{ marginTop: ms(14) }}>
-        {currentLotSerialLines.map((lot, idx) => {
-          const inspectionData = inspectionDataMap[`${current.id}-${idx}`];
-          const isInspected = !!inspectionData;
-          const statusName = inspectionData?.status?.name || 'Pending';
-
-          const getStatusStyle = statusNameArg => {
-            switch (statusNameArg) {
-              case 'Above Average':
-                return { bg: '#EEFDF8', text: '#168035' };
-              case 'Average':
-                return { bg: '#FFFBEA', text: '#C78C00' };
-              case 'Below Average':
-                return { bg: '#FFF8EC', text: '#F06000' };
-              case 'Excellent':
-                return { bg: '#EAF2FF', text: '#033EFF' };
-              case 'Reject and Notify':
-                return { bg: '#FFECEC', text: '#D32F2F' };
-              case 'Unacceptable':
-                return { bg: '#FDE2E2', text: '#991B1B' };
-              default:
-                return { bg: '#F3F4F6', text: '#374151' };
-            }
-          };
-
-          const statusStyle = getStatusStyle(statusName);
-
-          return (
-            <View
-              key={`lotserial-${idx}`}
-              style={{
-                width: '100%',
-                minHeight: 74,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: '#ECF1F7',
-                backgroundColor: '#FFFFFF',
-                padding: 10,
-                marginBottom: 8,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: 'Mulish',
-                  fontSize: 12,
-                  fontWeight: '600',
-                  color: '#233E55',
-                  marginBottom: 6,
-                }}
-              >
-                {lot.lotNumber || `LOT ${idx + 1}`}
-              </Text>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <View style={{ flexDirection: 'row' }}>
-                  <Text
-                    style={{
-                      fontSize: 9,
-                      fontWeight: '600',
-                      color: '#9D9FA3',
-                    }}
-                  >
-                    Mfg:{' '}
-                    <Text style={{ color: '#111827' }}>
-                      {lot.mfgDate || '-'}
-                    </Text>
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 9,
-                      fontWeight: '600',
-                      color: '#9D9FA3',
-                      marginLeft: 8,
-                    }}
-                  >
-                    Exp:{' '}
-                    <Text style={{ color: '#111827' }}>
-                      {lot.expDate || '-'}
-                    </Text>
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => openInspectLotSerialModal(lot, idx)}
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 6,
-                    borderWidth: 0,
-                    borderColor: isInspected ? '#16803C' : '#033EFF',
-                    backgroundColor: isInspected ? '#E7F7ED' : '#D7E8FE',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+            {activeTab === 'Inspect' && current && !isInspectionRequired && itemType === 'Lot+Serial' && (
+              <View style={styles.section}>
+                <View
+                  style={[
+                    styles.inspectInfoCard,
+                    {
+                      backgroundColor: allSavedLotSerialLotsInspected ? '#EEFDF8' : '#FFF8EC',
+                      borderColor: allSavedLotSerialLotsInspected ? '#73B386' : '#F06000',
+                      marginTop: ms(6),
+                    },
+                  ]}
                 >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: '700',
-                      color: isInspected ? '#16803C' : '#033EFF',
-                    }}
-                  >
-                    {isInspected ? 'Inspected' : 'Inspect'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {isInspected && (
-                <View style={{ marginTop: 6 }}>
-                  <View
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 3,
-                      borderRadius: 12,
-                      backgroundColor: statusStyle.bg,
-                      alignSelf: 'flex-start',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        fontWeight: '700',
-                        color: statusStyle.text,
-                      }}
-                    >
-                      Status: {statusName}
-                    </Text>
+                  <View style={styles.inspectInfoIconWrap}>
+                    {allSavedLotSerialLotsInspected ? (
+                      <PassedInspectionIcon width={24} height={24} />
+                    ) : (
+                      <PendingInspectionIcon width={24} height={24} />
+                    )}
                   </View>
+
+                  <View style={styles.inspectInfoMiddle}>
+                    <Text
+                      style={[
+                        styles.inspectInfoLabel,
+                        { color: allSavedLotSerialLotsInspected ? '#168035' : '#F06000' },
+                      ]}
+                    >
+                      Inspection Status
+                    </Text>
+
+                    <View
+                      style={[
+                        styles.inspectStatusPill,
+                        { backgroundColor: allSavedLotSerialLotsInspected ? '#168035' : '#FCDFCC' },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.inspectStatusPillText,
+                          allSavedLotSerialLotsInspected
+                            ? styles.inspectStatusPillTextPassed
+                            : styles.inspectStatusPillTextPending,
+                        ]}
+                      >
+                        {allSavedLotSerialLotsInspected ? 'Passed' : 'Pending'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.inspectInfoRightText,
+                      { color: allSavedLotSerialLotsInspected ? '#168035' : '#F06000' },
+                    ]}
+                  >
+                    Lot + Serial Controlled
+                  </Text>
                 </View>
-              )}
-            </View>
-          );
-        })}
-      </View>
-    )}
-  </View>
-)}
+                            {/* {current?.itemType === 'Lot' && ( */}
+                              <TouchableOpacity
+                                onPress={() => setShowScanner(true)}
+                                activeOpacity={0.7}
+                                style={{
+                                  width: '100%',
+                                  height: 38,
+                                  borderRadius: 4,
+                                  borderWidth: 1,
+                                  borderColor: '#CCCED2',
+                                  paddingHorizontal: 10,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  marginBottom: 18,
+                                  marginTop: 18,
+                                }}
+                              >
+                                <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
+                                  {scannedLotSerial || 'Scan Lot'}
+                                </Text>
+                                <Barcodescanner width={18} height={18} />
+                              </TouchableOpacity>
+                            {/* )} */}
+                {hasLotSerials && currentLotSerialLines && (
+                  <View style={{ marginTop: ms(14) }}>
+                    {currentLotSerialLines.map((lot, idx) => {
+                      const inspectionData = inspectionDataMap[`${current.id}-${idx}`];
+                      const isInspected = !!inspectionData;
+                      const statusName = inspectionData?.status?.name || 'Pending';
+
+                      const getStatusStyle = statusNameArg => {
+                        switch (statusNameArg) {
+                          case 'Above Average':
+                            return { bg: '#EEFDF8', text: '#168035' };
+                          case 'Average':
+                            return { bg: '#FFFBEA', text: '#C78C00' };
+                          case 'Below Average':
+                            return { bg: '#FFF8EC', text: '#F06000' };
+                          case 'Excellent':
+                            return { bg: '#EAF2FF', text: '#033EFF' };
+                          case 'Reject and Notify':
+                            return { bg: '#FFECEC', text: '#D32F2F' };
+                          case 'Unacceptable':
+                            return { bg: '#FDE2E2', text: '#991B1B' };
+                          default:
+                            return { bg: '#F3F4F6', text: '#374151' };
+                        }
+                      };
+
+                      const statusStyle = getStatusStyle(statusName);
+
+                      return (
+                        <View
+                          key={`lotserial-${idx}`}
+                          style={{
+                            width: '100%',
+                            minHeight: 74,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: '#ECF1F7',
+                            backgroundColor: '#FFFFFF',
+                            padding: 10,
+                            marginBottom: 8,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontFamily: 'Mulish',
+                              fontSize: 12,
+                              fontWeight: '600',
+                              color: '#233E55',
+                              marginBottom: 6,
+                            }}
+                          >
+                            {lot.lotNumber || `LOT ${idx + 1}`}
+                          </Text>
+
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <View style={{ flexDirection: 'row' }}>
+                              <Text
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: '600',
+                                  color: '#9D9FA3',
+                                }}
+                              >
+                                Mfg:{' '}
+                                <Text style={{ color: '#111827' }}>
+                                  {lot.mfgDate || '-'}
+                                </Text>
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: '600',
+                                  color: '#9D9FA3',
+                                  marginLeft: 8,
+                                }}
+                              >
+                                Exp:{' '}
+                                <Text style={{ color: '#111827' }}>
+                                  {lot.expDate || '-'}
+                                </Text>
+                              </Text>
+                            </View>
+
+                            <TouchableOpacity
+                              onPress={() => openInspectLotSerialModal(lot, idx)}
+                              style={{
+                                paddingHorizontal: 10,
+                                paddingVertical: 4,
+                                borderRadius: 6,
+                                borderWidth: 0,
+                                borderColor: isInspected ? '#16803C' : '#033EFF',
+                                backgroundColor: isInspected ? '#E7F7ED' : '#D7E8FE',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: '700',
+                                  color: isInspected ? '#16803C' : '#033EFF',
+                                }}
+                              >
+                                {isInspected ? 'Inspected' : 'Inspect'}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+
+                          {isInspected && (
+                            <View style={{ marginTop: 6 }}>
+                              <View
+                                style={{
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 3,
+                                  borderRadius: 12,
+                                  backgroundColor: statusStyle.bg,
+                                  alignSelf: 'flex-start',
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: '700',
+                                    color: statusStyle.text,
+                                  }}
+                                >
+                                  Status: {statusName}
+                                </Text>
+                              </View>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            )}
 
 
             {activeTab === 'PutAway' && current && itemType === 'Lot' && (
@@ -3316,24 +3663,34 @@ const handleImagePick = (itemId) => {
           >
             <BarcodeScanner
               onScan={value => {
-                if (current && activeTab === 'PutAway' && itemType === 'Lot') {
-                  setScannedPutAwayLot(value);
-                  setShowScanner(false);
-                  handleScanAndOpenPutAwayLot(value);
-                  return;
-                }
-
-                if (current && itemType === 'Lot+Serial') {
-                  setscannedLotSerial(value);
-                  setShowScanner(false);
-                  handleScanAndOpenLotandSerialInspect(value);
-                  return;
-                }
-
-                setScannedLot(value);
+              // Inspection required: scan item => open inspect modal for current pending qty
+              if (current && isInspectionRequired && activeTab === 'Inspect') {
                 setShowScanner(false);
-                handleScanAndOpenLotInspect(value);
-              }}
+                setTimeout(() => {
+                  openInspectRowModalForPending();
+                }, 150);
+                return;
+              }
+
+              if (current && activeTab === 'PutAway' && itemType === 'Lot') {
+                setScannedPutAwayLot(value);
+                setShowScanner(false);
+                handleScanAndOpenPutAwayLot(value);
+                return;
+              }
+
+              if (current && itemType === 'Lot+Serial') {
+                setscannedLotSerial(value);
+                setShowScanner(false);
+                handleScanAndOpenLotandSerialInspect(value);
+                return;
+              }
+
+              setScannedLot(value);
+              setShowScanner(false);
+              handleScanAndOpenLotInspect(value);
+            }}
+
 
               onClose={() => setShowScanner(false)}
             />
@@ -3364,6 +3721,20 @@ const handleImagePick = (itemId) => {
             }}
           />
 
+          <Rec_InspectModalPopup
+            visible={inspectRowModalVisible}
+            onClose={() => {
+              setInspectRowModalVisible(false);
+              setTimeout(() => setSelectedInspectRow(null), 200);
+            }}
+            rowQty={Number(selectedInspectRow?.qty ?? 0)}
+            rowId={selectedInspectRow?.id}
+            itemName={current?.itemName}
+            itemCode={current?.itemid || current?.itemCode || '-'}
+            onComplete={handleInspectRowComplete}
+          />
+
+          
           <Rec_PutAwaySerialModalPopup
             visible={putAwaySerialModalVisible}
             onClose={() => setPutAwaySerialModalVisible(false)}
@@ -4084,6 +4455,111 @@ const styles = StyleSheet.create({
     height: '70%',
     resizeMode: 'contain',
   },
+
+  inspectRequiredWrap: {
+  marginTop: ms(14),
+},
+scanRowWrap: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: ms(12),
+  marginBottom: ms(12),
+  gap: ms(10),
+},
+scanBox: {
+  flex: 1,
+  height: ms(38),
+  borderRadius: ms(6),
+  borderWidth: 1,
+  borderColor: '#CCCED2',
+  paddingHorizontal: ms(10),
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  backgroundColor: '#FFFFFF',
+},
+scanPlaceholder: {
+  color: '#7E7E7E',
+  fontSize: ms(13),
+  fontWeight: '600',
+},
+inspectNowBtn: {
+  height: ms(38),
+  paddingHorizontal: ms(16),
+  borderRadius: ms(8),
+  backgroundColor: '#5D768B',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+inspectNowBtnDisabled: {
+  opacity: 0.5,
+},
+inspectNowBtnText: {
+  color: '#FFFFFF',
+  fontSize: ms(12),
+  fontWeight: '800',
+},
+inspectTableHeader: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: ms(10),
+  paddingHorizontal: ms(10),
+  backgroundColor: 'rgba(93,118,139,0.05)',
+  borderTopLeftRadius: ms(10),
+  borderTopRightRadius: ms(10),
+},
+inspectTh: {
+  fontSize: ms(11),
+  fontWeight: '800',
+  color: '#233E55',
+},
+inspectThQty: { width: ms(60) },
+inspectThMid: { flex: 1, textAlign: 'center' },
+inspectThRight: { width: ms(150), textAlign: 'right' },
+
+inspectTableBody: {
+  borderWidth: 1,
+  borderColor: '#ECF1F7',
+  borderBottomLeftRadius: ms(10),
+  borderBottomRightRadius: ms(10),
+  overflow: 'hidden',
+},
+inspectTr: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: ms(10),
+  paddingHorizontal: ms(10),
+  borderBottomWidth: StyleSheet.hairlineWidth,
+  borderBottomColor: '#ECF1F7',
+},
+inspectTd: {
+  fontSize: ms(12),
+  color: '#111827',
+  fontWeight: '700',
+},
+inspectTdQty: { width: ms(60) },
+inspectTdMid: { flex: 1, textAlign: 'center' },
+inspectTdRightWrap: { width: ms(150), alignItems: 'flex-end' },
+
+statusPill: {
+  paddingHorizontal: ms(10),
+  paddingVertical: ms(5),
+  borderRadius: ms(20),
+},
+statusPillText: {
+  fontSize: ms(10),
+  fontWeight: '800',
+},
+inspectRequiredFooterInfo: {
+  marginTop: ms(10),
+  alignItems: 'flex-end',
+},
+inspectRequiredFooterText: {
+  fontSize: ms(11),
+  color: '#595A5C',
+  fontWeight: '700',
+},
+
 disabledTab: {
   backgroundColor: '#F5F5F6',
   opacity: 0.6, // 👈 adjust as needed

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,12 @@ import {
   ScrollView,
   Image,
   Dimensions,
-  Platform,
 } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Toast from 'react-native-toast-message';
 import CloseIcon from '../../assets/icons/close.svg';
 import PhotoUploadIcon from '../../assets/icons/photouploadicon.svg';
+import ItemBoxIcon from '../../assets/icons/lotserialitem.svg';
 import PhotoCaptureIcon from '../../assets/icons/photocaptureicon.svg';
 import DeleteAttachmentIcon from '../../assets/icons/deleteattachmenticon.svg';
 import ErrorIcon from '../../assets/icons/error.svg';
@@ -22,530 +22,409 @@ import Rec_CustomNumericInput from '../../components/receive/Rec_CustomNumericIn
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BASE_WIDTH = 375;
-const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
+const { width } = Dimensions.get('window');
+const rs = v => (width / 375) * v;
 
-const toUriList = imgs => {
-  if (!Array.isArray(imgs)) return [];
-  return imgs
-    .map(x => {
-      if (typeof x === 'string') return x;
-      if (x && typeof x === 'object') return String(x.uri || '');
-      return '';
-    })
-    .filter(Boolean);
-};
+const toUriList = assets =>
+  Array.isArray(assets)
+    ? assets.map(a => a?.uri).filter(u => typeof u === 'string' && u.length > 0)
+    : [];
 
 export default function Rec_InspectModalPopup({
   visible,
   onClose,
-  lot,
-  lotIndex,
-  itemName = '',
-  itemCode = '',
+  rowQty = 0,
+  rowId,
+  itemName,
+  itemCode,
   onComplete,
-  initialInspectionData = null,
 }) {
-  const lotQty = useMemo(() => Number(lot?.qty || 0), [lot]);
-
   const [inspectQty, setInspectQty] = useState(0);
   const [status, setStatus] = useState(null);
+  const [quality, setQuality] = useState(null);
   const [notes, setNotes] = useState('');
   const [images, setImages] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const statusList = useMemo(
+  useEffect(() => {
+    if (!visible) return;
+    setInspectQty(0);
+    setStatus(null);
+    setQuality(null);
+    setNotes('');
+    setImages([]);
+    setErrorMsg('');
+  }, [visible, rowId]);
+
+  const statusOptions = useMemo(
+    () => [
+      { id: 'Accepted', name: 'Accepted' },
+      { id: 'Rejected', name: 'Rejected' },
+    ],
+    [],
+  );
+
+  const qualityOptions = useMemo(
     () => [
       { id: 1, name: 'Above Average' },
       { id: 2, name: 'Average' },
       { id: 3, name: 'Below Average' },
       { id: 4, name: 'Excellent' },
-      { id: 5, name: 'Reject and Notify' },
-      { id: 6, name: 'Unacceptable' },
     ],
     [],
   );
 
-  const clearError = useCallback(() => setErrorMsg(''), []);
+  const clearError = () => setErrorMsg('');
 
-  const addUris = useCallback(
-    uris => {
-      const list = (uris || []).map(String).filter(Boolean);
-      if (!list.length) return;
-      setImages(prev => {
-        const existing = new Set((prev || []).map(x => String(x)));
-        const next = [...(prev || [])];
-        list.forEach(u => {
-          if (!existing.has(u)) next.push(u);
-        });
-        return next;
-      });
-      Toast.show({ type: 'success', text1: 'Image Attached' });
-    },
-    [],
-  );
+  const addImages = uris => {
+    if (!Array.isArray(uris) || !uris.length) return;
+    setImages(prev => [...prev, ...uris]);
+    Toast.show({ type: 'success', text1: 'Image Attached' });
+  };
 
-  const handleUpload = useCallback(async () => {
+  const handleUpload = async () => {
     clearError();
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      quality: 0.85,
-      selectionLimit: 0,
-    });
-    if (result?.didCancel || result?.errorCode) return;
-    const uris = (result?.assets || []).map(a => a?.uri).filter(Boolean);
-    addUris(uris);
-  }, [addUris, clearError]);
+    const res = await launchImageLibrary({ mediaType: 'photo', selectionLimit: 0 });
+    if (!res?.didCancel && !res?.errorCode) {
+      addImages(toUriList(res?.assets));
+    }
+  };
 
-  const handleCamera = useCallback(async () => {
+  const handleCamera = async () => {
     clearError();
-    const result = await launchCamera({
-      mediaType: 'photo',
-      quality: 0.85,
-      saveToPhotos: true,
-    });
-    if (result?.didCancel || result?.errorCode) return;
-    const uris = (result?.assets || []).map(a => a?.uri).filter(Boolean);
-    addUris(uris);
-  }, [addUris, clearError]);
+    const res = await launchCamera({ mediaType: 'photo' });
+    if (!res?.didCancel && !res?.errorCode) {
+      addImages(toUriList(res?.assets));
+    }
+  };
 
-  const handleRemoveImage = useCallback(
-    uri => {
-      clearError();
-      setImages(prev => (prev || []).filter(x => x !== uri));
-    },
-    [clearError],
-  );
+  const maxQty = Number(rowQty ?? 0);
 
-  const resolveStatusValue = useCallback(
-    preStatus => {
-      if (!preStatus) return null;
-      if (typeof preStatus === 'string') {
-        const found = statusList.find(s => String(s.name) === String(preStatus));
-        return found || null;
-      }
-      if (typeof preStatus === 'object' && preStatus?.name) {
-        const found = statusList.find(s => String(s.name) === String(preStatus.name));
-        return found || preStatus;
-      }
-      return null;
-    },
-    [statusList],
-  );
+  const isValid =
+    Number(inspectQty ?? 0) > 0 &&
+    Number(inspectQty ?? 0) <= maxQty &&
+    !!status &&
+    !!quality;
 
-  useEffect(() => {
-    if (!visible) return;
-
-    const pre = initialInspectionData || null;
-    const preQty = Number(pre?.inspectQty ?? pre?.qty ?? 0);
-    const preNotes = String(pre?.notes ?? '');
-    const preImgs = toUriList(pre?.images ?? pre?.attachments);
-
-    setInspectQty(preQty > 0 ? preQty : 0);
-    setStatus(resolveStatusValue(pre?.status));
-    setNotes(preNotes);
-    setImages(preImgs);
-    setErrorMsg('');
-  }, [visible, initialInspectionData, lotQty, lotIndex, lot, resolveStatusValue]);
-
-  const validate = useCallback(() => {
-    const q = Number(inspectQty || 0);
-    if (lotQty > 0 && q < lotQty) return 'Add all saved Lot Qty to Confirm Inspect';
-    if (!status) return 'Select Status to Confirm Inspect';
-    return '';
-  }, [inspectQty, lotQty, status]);
-
-  const handleConfirmInspect = useCallback(() => {
-    const msg = validate();
-    if (msg) {
-      setErrorMsg(msg);
+  const handleConfirm = () => {
+    if (!isValid) {
+      setErrorMsg('Fill all mandatory fields');
       return;
     }
 
-    const inspectionData = {
-      inspectQty: Number(inspectQty || 0),
+    const payload = {
+      rowId,
+      inspectQty: Number(inspectQty ?? 0),
       status,
-      notes,
-      images,
-      lotDetails: lot,
-      lotIndex,
-      itemName,
-      itemCode,
+      quality,
+      notes: String(notes ?? ''),
+      images: Array.isArray(images) ? images : [],
     };
 
-    if (onComplete) onComplete(inspectionData);
-    onClose();
-  }, [
-    validate,
-    inspectQty,
-    status,
-    notes,
-    images,
-    lot,
-    lotIndex,
-    itemName,
-    itemCode,
-    onComplete,
-    onClose,
-  ]);
-
-  const isInspectionComplete = Number(inspectQty || 0) > 0 && !!status;
+    onComplete?.(payload);
+    onClose?.();
+  };
 
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <ScrollView
-          style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>Inspection</Text>
-              <TouchableOpacity onPress={onClose} activeOpacity={0.85}>
-                <CloseIcon width={rs(18)} height={rs(18)} />
-              </TouchableOpacity>
-            </View>
-
-            {!!errorMsg && (
-              <View style={styles.errorBanner}>
-                <ErrorIcon width={rs(16)} height={rs(16)} />
-                <Text style={styles.errorText}>{errorMsg}</Text>
-              </View>
-            )}
-
-            <View style={styles.body}>
-              <View style={styles.lotCard}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.lotId}>{lot?.lotNumber || 'N/A'}</Text>
-                  <View style={styles.lotRow}>
-                    <Text style={styles.smallText}>Mfg: {lot?.mfgDate || '-'}</Text>
-                    <Text style={styles.smallText}>Exp: {lot?.expDate || '-'}</Text>
-                  </View>
-                </View>
-                <View style={styles.qtyBox}>
-                  <Text style={styles.qtyLabel}>Qty</Text>
-                  <Text style={styles.qtyValue}>{lotQty}</Text>
-                </View>
-              </View>
-
-              <View style={styles.sectionBlock}>
-                <Text style={styles.sectionTitle}>Inspection Qty</Text>
-                <Rec_CustomNumericInput
-                  value={inspectQty}
-                  setValue={v => {
-                    clearError();
-                    const raw = typeof v === 'function' ? v(inspectQty) : v;
-                    setInspectQty(Number(raw || 0));
-                  }}
-                  min={0}
-                  max={lotQty}
-                  step={1}
-                  width="100%"
-                  height={rs(42)}
-                  isSelected={true}
-                  disabledinput={false}
-                />
-              </View>
-
-              <View style={styles.sectionBlock}>
-                <Rec_DropDown
-                  label=""
-                  placeholder="Select Status"
-                  value={status}
-                  onChange={val => {
-                    clearError();
-                    setStatus(val);
-                  }}
-                  items={statusList}
-                />
-              </View>
-
-              <View style={styles.sectionBlock}>
-                <View style={styles.outerNotesBox}>
-                  <Text style={styles.outerLabel}>Inspection Notes</Text>
-                  <View style={styles.innerNotesBox}>
-                    <TextInput
-                      style={styles.innerNotesInput}
-                      placeholder="Maximum 100 characters"
-                      maxLength={100}
-                      multiline
-                      value={notes}
-                      onChangeText={t => {
-                        clearError();
-                        setNotes(t);
-                      }}
-                      placeholderTextColor="#A0A0A0"
-                      textAlignVertical="top"
-                    />
-                    <Text style={styles.charCount}>{notes.length}/100</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.sectionBlock}>
-                <Text style={styles.photosLabel}>Photos</Text>
-
-                <View style={styles.photoButtonsWrap}>
-                  <TouchableOpacity
-                    style={styles.photoBtn}
-                    onPress={handleUpload}
-                    activeOpacity={0.85}
-                  >
-                    <PhotoUploadIcon width={rs(20)} height={rs(20)} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.photoBtn, { marginLeft: rs(10) }]}
-                    onPress={handleCamera}
-                    activeOpacity={0.85}
-                  >
-                    <PhotoCaptureIcon width={rs(20)} height={rs(20)} />
-                  </TouchableOpacity>
-                </View>
-
-                {images.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.imagesScroll}
-                    contentContainerStyle={styles.imagesScrollContent}
-                  >
-                    {images.map(uri => (
-                      <View key={uri} style={styles.thumbWrap}>
-                        <Image source={{ uri }} style={styles.thumbImg} resizeMode="cover" />
-                        <TouchableOpacity
-                          style={styles.thumbDeleteBtn}
-                          onPress={() => handleRemoveImage(uri)}
-                          activeOpacity={0.85}
-                        >
-                          <DeleteAttachmentIcon width={rs(16)} height={rs(16)} />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </ScrollView>
-                )}
-              </View>
-
-              <View style={styles.footerWrap}>
-                <SingleFooterBtnComponent
-                  label="Confirm Inspect"
-                  onPress={handleConfirmInspect}
-                  enabled={isInspectionComplete}
-                  containerStyle={{ marginBottom: 0 }}
-                  buttonStyle={{ width: '100%', marginStart: 0 }}
-                  labelStyle={{ fontSize: 14 }}
-                />
-              </View>
-            </View>
+    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Inspection</Text>
+            <TouchableOpacity onPress={onClose} activeOpacity={0.8}>
+              <CloseIcon width={18} height={18} />
+            </TouchableOpacity>
           </View>
-        </ScrollView>
+
+          {errorMsg ? (
+            <View style={styles.errorRow}>
+              <ErrorIcon width={14} height={14} />
+              <Text style={styles.errorText}>{errorMsg}</Text>
+            </View>
+          ) : null}
+
+          <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
+            <View style={styles.itemCard}>            
+              <View style={styles.itemTop}>
+                <ItemBoxIcon width={40} height={40} />
+                <View style={styles.itemTextCol}>
+                  <Text style={styles.itemName} numberOfLines={1}>
+                    {itemName || 'Item'}
+                  </Text>
+                  <Text style={styles.itemCode} numberOfLines={1}>
+                    {itemCode || '-'}
+                  </Text>
+                </View>
+
+                <View style={styles.qtyPill}>
+                  <Text style={styles.qtyPillLabel}>Qty</Text>
+                  <Text style={styles.qtyPillValue}>{maxQty || 0}</Text>
+                </View>
+              </View>
+            </View>
+
+            <Text style={styles.label}>Inspection Qty*</Text>
+            <Rec_CustomNumericInput
+              value={inspectQty}
+              setValue={setInspectQty}
+              max={maxQty}
+              min={0}
+              width="100%"
+              height={rs(46)}
+              isSelected
+              bgColor="#5D768B"
+              borderColor="#5D768B"
+              textColor="#FFFFFF"
+              disabledinput={maxQty <= 0}
+            />
+
+            <View style={styles.dropWrap}>
+              <Text style={styles.mandLabel}>Select Status*</Text>
+              <Rec_DropDown
+                placeholder="Select Status"
+                items={statusOptions}
+                value={status}
+                onChange={setStatus}
+                width="100%"
+                height={32}
+              />
+            </View>
+
+            <View style={styles.dropWrap}>
+              <Text style={styles.mandLabel}>Select Quality*</Text>
+              <Rec_DropDown
+                placeholder="Select Quality"
+                items={qualityOptions}
+                value={quality}
+                onChange={setQuality}
+                width="100%"
+                height={32}
+              />
+            </View>
+
+            <View style={styles.notesWrap}>
+              <Text style={styles.mandLabel}>Inspection Notes</Text>
+              <View style={styles.notesBox}>
+                <TextInput
+                  style={styles.notes}
+                  placeholder="Maximum 100 characters"
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                  maxLength={100}
+                  value={notes}
+                  onChangeText={setNotes}
+                />
+                <Text style={styles.counter}>{String(notes || '').length}/100</Text>
+              </View>
+            </View>
+
+            <View style={styles.photosWrap}>
+              <Text style={styles.mandLabel}>Photos</Text>
+              <View style={styles.photoRow}>
+                <TouchableOpacity style={styles.photoBtn} onPress={handleUpload} activeOpacity={0.85}>
+                  <PhotoUploadIcon width={20} height={20} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.photoBtn} onPress={handleCamera} activeOpacity={0.85}>
+                  <PhotoCaptureIcon width={20} height={20} />
+                </TouchableOpacity>
+              </View>
+
+              {images.length > 0 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbList}>
+                  {images.map(uri => (
+                    <View key={uri} style={styles.thumb}>
+                      <Image source={{ uri }} style={styles.thumbImg} />
+                      <TouchableOpacity
+                        style={styles.thumbDel}
+                        activeOpacity={0.85}
+                        onPress={() => setImages(prev => prev.filter(x => x !== uri))}
+                      >
+                        <DeleteAttachmentIcon width={14} height={14} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          </ScrollView>
+
+          <SingleFooterBtnComponent label="Confirm Inspect" enabled={isValid} onPress={handleConfirm} />
+        </View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: rs(20),
+    paddingHorizontal: rs(16),
   },
-  modalContainer: {
-    width: Math.min(rs(360), SCREEN_WIDTH * 0.92),
-    backgroundColor: '#FFFFFF',
-    borderRadius: rs(8),
+  container: {
+    backgroundColor: '#fff',
+    borderRadius: rs(10),
     overflow: 'hidden',
   },
   header: {
-    height: rs(56),
-    backgroundColor: '#ECF1F7',
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: rs(16),
+    paddingVertical: rs(14),
+    backgroundColor: '#FFFFFF',
   },
-  headerTitle: {
-    fontSize: rs(16),
-    fontWeight: '600',
+  title: {
+    fontSize: rs(14),
+    fontWeight: '800',
     color: '#111827',
   },
-  errorBanner: {
-    marginTop: rs(10),
-    marginHorizontal: rs(16),
-    borderRadius: rs(8),
-    backgroundColor: '#FDE3E3',
-    paddingVertical: rs(8),
-    paddingHorizontal: rs(10),
+  errorRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: rs(12),
+    paddingVertical: rs(10),
+    backgroundColor: '#FDECEC',
   },
   errorText: {
-    color: '#D32F2F',
-    fontSize: rs(12),
-    fontWeight: '600',
     marginLeft: rs(6),
-    flex: 1,
+    color: '#C62828',
+    fontSize: rs(11),
+    fontWeight: '700',
   },
   body: {
     paddingHorizontal: rs(16),
-    paddingTop: rs(14),
-    paddingBottom: rs(16),
+    paddingBottom: rs(12),
+    maxHeight: rs(520),
   },
-  lotCard: {
-    width: '100%',
-    minHeight: rs(54),
-    backgroundColor: '#4F6577',
-    borderRadius: rs(6),
-    paddingHorizontal: rs(12),
-    paddingVertical: rs(10),
+  itemCard: {
+    backgroundColor: '#5D768B',
+    padding: rs(12),
+    borderRadius: rs(10),
+    marginBottom: rs(12),
+  },
+  itemTop: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  lotId: {
-    color: '#FFFFFF',
+  itemTextCol: {
+    flex: 1,
+    paddingRight: rs(10),
+    paddingLeft: rs(10),
+  },
+  itemName: {
+    color: '#fff',
+    fontWeight: '800',
     fontSize: rs(13),
-    fontWeight: '600',
   },
-  lotRow: {
-    flexDirection: 'row',
-    marginTop: rs(2),
-  },
-  smallText: {
-    color: '#DCE3EA',
+  itemCode: {
+    color: '#E5E7EB',
     fontSize: rs(11),
-    marginRight: rs(18),
+    fontWeight: '700',
+    marginTop: rs(4),
   },
-  qtyBox: {
-    alignItems: 'flex-end',
+  qtyPill: {
+    minWidth: rs(70),
+    borderRadius: rs(10),
+    backgroundColor: '#5D768B',
+    paddingVertical: rs(8),
+    paddingHorizontal: rs(10),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  qtyLabel: {
-    color: '#DCE3EA',
-    fontSize: rs(11),
-  },
-  qtyValue: {
-    color: '#FFFFFF',
-    fontSize: rs(16),
+  qtyPillLabel: {
+    color: '#E5E7EB',
+    fontSize: rs(10),
     fontWeight: '700',
   },
-  sectionBlock: {
-    width: '100%',
-    marginTop: rs(16),
-  },
-  sectionTitle: {
-    fontSize: rs(16),
-    fontWeight: '600',
-    marginBottom: rs(10),
-    color: '#111827',
-  },
-  outerNotesBox: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: rs(6),
-    padding: rs(14),
-    backgroundColor: '#FFFFFF',
-    width: '100%',
-  },
-  outerLabel: {
+  qtyPillValue: {
+    color: '#FFFFFF',
     fontSize: rs(14),
-    fontWeight: '600',
+    fontWeight: '900',
+    marginTop: rs(2),
+  },
+  label: {
+    marginTop: rs(6),
+    marginBottom: rs(6),
+    fontWeight: '800',
     color: '#111827',
-    marginBottom: rs(12),
-  },
-  innerNotesBox: {
-    width: '100%',
-    height: rs(90),
-    borderRadius: rs(10),
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D9E4EE',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  innerNotesInput: {
     fontSize: rs(12),
-    color: '#111827',
-    padding: rs(10),
-    height: '100%',
-    textAlignVertical: 'top',
   },
-  charCount: {
-    position: 'absolute',
-    bottom: rs(8),
-    right: rs(12),
-    fontSize: rs(10),
-    color: '#9CA3AF',
+  mandLabel: {
+    fontSize: rs(12),
+    color: '#595A5C',
+    marginBottom: rs(6),
+    fontWeight: '700',
   },
-  photosLabel: {
-    fontSize: rs(14),
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: rs(12),
-  },
-  photoButtonsWrap: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  photoBtn: {
-    flex: 1,
-    height: rs(44),
-    backgroundColor: '#ECF1F7',
-    borderRadius: rs(10),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imagesScroll: {
+  dropWrap: {
     marginTop: rs(12),
   },
-  imagesScrollContent: {
-    paddingBottom: rs(4),
+  notesWrap: {
+    marginTop: rs(12),
   },
-  thumbWrap: {
-    width: rs(62),
-    height: rs(62),
-    borderRadius: rs(8),
+  notesBox: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: rs(10),
+    paddingHorizontal: rs(10),
+    paddingTop: rs(8),
+    paddingBottom: rs(6),
+    backgroundColor: '#FFFFFF',
+  },
+  notes: {
+    minHeight: rs(72),
+    fontSize: rs(12),
+    color: '#111827',
+    textAlignVertical: 'top',
+  },
+  counter: {
+    alignSelf: 'flex-end',
+    marginTop: rs(4),
+    color: '#9CA3AF',
+    fontSize: rs(10),
+    fontWeight: '700',
+  },
+  photosWrap: {
+    marginTop: rs(12),
+    marginBottom: rs(10),
+  },
+  photoRow: {
+    flexDirection: 'row',
+    gap: rs(8),
+  },
+  photoBtn: {
+    width: rs(44),
+    height: rs(44),
+    backgroundColor: '#233E55',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: rs(500),
+  },
+  thumbList: {
+    marginTop: rs(10),
+  },
+  thumb: {
+    width: rs(56),
+    height: rs(56),
+    marginRight: rs(8),
+    borderRadius: rs(10),
     overflow: 'hidden',
-    backgroundColor: '#F3F4F6',
-    marginRight: rs(10),
-    ...Platform.select({
-      android: { elevation: 1 },
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 3,
-        shadowOffset: { width: 0, height: 2 },
-      },
-    }),
   },
   thumbImg: {
     width: '100%',
     height: '100%',
   },
-  thumbDeleteBtn: {
+  thumbDel: {
     position: 'absolute',
-    right: rs(-2),
-    top: rs(-2),
-    width: rs(22),
-    height: rs(22),
-    borderRadius: rs(11),
+    top: rs(2),
+    right: rs(2),
+    width: rs(18),
+    height: rs(18),
+    borderRadius: rs(9),
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  footerWrap: {
-    width: '100%',
-    marginTop: rs(18),
   },
 });
