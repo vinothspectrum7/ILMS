@@ -1462,8 +1462,8 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
     const deliveryPills = (() => {
     const showreceive = isDirectDelivery;
     const showputaway = isStandardReceipt;
-    const showall = isInspectionRequired;
-    return { showall, showputaway, showreceive };
+    const inspect = isInspectionRequired;
+    return { inspect, showputaway, showreceive };
   })();
 
 
@@ -2093,9 +2093,9 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
   style={styles.tabWrapper}
   activeOpacity={0.9}
   onPress={() => setActiveTab('Inspect')}
-  disabled={isDirectDelivery || isStandardReceipt}
+  disabled={isDirectDelivery || isStandardReceipt || isInspectionRequired}
 >
-  {(deliveryPills?.showreceive || deliveryPills?.showputaway) ? (
+  {(deliveryPills?.showreceive || deliveryPills?.showputaway || deliveryPills?.inspect) ? (
     // 🔹 Disabled state (NO gradient)
     <View style={[styles.tabBtn, styles.disabledTab]}>
       <InspectTabIcon width={18} height={18} />
@@ -2138,9 +2138,9 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                 style={styles.tabWrapper}
                 activeOpacity={0.9}
                 onPress={() => setActiveTab('PutAway')}
-                disabled={isDirectDelivery || isStandardReceipt}
+                disabled={isDirectDelivery || isStandardReceipt || isInspectionRequired}
               >
-                  {(isDirectDelivery || isStandardReceipt) ? (
+                  {(isDirectDelivery || isStandardReceipt || isInspectionRequired) ? (
     // 🔹 Disabled state (NO gradient)
     <View style={[styles.tabBtn, styles.disabledTab]}>
       <InspectTabIcon width={18} height={18} />
@@ -2191,7 +2191,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                     </Text>
                   </View>
 
-                  {isStandardReceipt ? (
+                  {(isStandardReceipt || isInspectionRequired) ? (
                     <View style={styles.itemPillsCol}>
                       <Text style={styles.stdReceiptItemCode} numberOfLines={1}>
                         {current?.itemid || current?.itemCode || '-'}
@@ -2246,7 +2246,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                   </Text>
                 </View>
 
-                {isStandardReceipt && (
+                {(isStandardReceipt || isInspectionRequired) && (
                 <View style={[styles.row, { borderBottomWidth: 0.5, borderBottomColor: '#CCCED2' }]}>
                   <Text style={styles.label}>Open Quantity</Text>
                   <Text style={styles.orderQtyText}>
@@ -2284,7 +2284,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
 
                 <Text style={styles.uomText}>{current.uom}</Text>
 
-                {isStandardReceipt && (
+                {(isStandardReceipt || isInspectionRequired) && (
                   <View style={{ marginTop: ms(12) }}>
                     <Text style={styles.mandLabel}>LPN*</Text>
                     <Rec_DropDown
@@ -3454,7 +3454,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
             
           </View>
 
-          {activeTab === 'Receive' && current && !isStandardReceipt && (
+          {activeTab === 'Receive' && current &&!isInspectionRequired&&!isStandardReceipt && (
             <>
               <View style={styles.cardShipTo}>
                 <View style={styles.shipHeaderRow}>
