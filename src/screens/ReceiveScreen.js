@@ -385,7 +385,7 @@ const ReceiveScreen = () => {
     async (statusUpper) => {
       try {
         setPhase('loading');
-        const data = await GetFilterPoItems(statusUpper);
+        const data = await GetFilterPoItems(statusUpper,OrgData?.selectedOrg);
         const withPct = mapPOListWithPct(data);
         setPOIntialData(withPct);
         setPOData(withPct);
@@ -395,7 +395,7 @@ const ReceiveScreen = () => {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to filter Purchase Orders. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     },
-    [mapPOListWithPct]
+    [OrgData?.selectedOrg,mapPOListWithPct]
   );
 
   const runPOSearchApi = useCallback(
@@ -413,7 +413,7 @@ const ReceiveScreen = () => {
       }
       setPhase('loading');
       try {
-        const data = await GetSearchPoItems(poText, statusToSend);
+        const data = await GetSearchPoItems(poText, statusToSend,OrgData?.selectedOrg);
         const withPct = mapPOListWithPct(data);
         setPOIntialData(withPct);
         setPOData(withPct);
@@ -423,7 +423,7 @@ const ReceiveScreen = () => {
         Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to search Purchase Orders. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     },
-    [activeFilter, mapPOListWithPct, reloadDefaultPOList, runPOFilterApi]
+    [activeFilter,OrgData?.selectedOrg, mapPOListWithPct, reloadDefaultPOList, runPOFilterApi]
   );
 
   const reloadDefaultReceivedList = useCallback(async () => {
