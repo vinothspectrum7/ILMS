@@ -19,7 +19,7 @@ export const API_ENDPOINTS = {
   GET_SINGLE_PO_DATA: (po_id) => `${BASE_URL}/purchase_orders/${po_id}`,
   GET_SAVED_SINGLE_PO_DATA: (po_id,interface_id) => `${BASE_URL}/receipt_interface/${po_id}/${interface_id}`,
   GET_SAVED_SINGLE_ASN_DATA: (asn_id,interface_id) => `${BASE_URL}/receipt_interface/asn/${asn_id}/${interface_id}`,
-  GET_SINGLE_PURCHASE_RECEPT: (po_id) => `${BASE_URL}/purchase_orders/receipts/${po_id}/details?received_type=purchase_order`,
+  GET_SINGLE_PURCHASE_RECEPT: (receipt_num,po_num) => `${BASE_URL}/receipts/lines/${po_num}/${receipt_num}/details`,
   GET_SINGLE_ASN_RECEPT: (asn_rcpt_id,asn_id) => `${BASE_URL}/purchase_orders/receipts/${asn_rcpt_id}/details?received_type=asn&asn_hdr_uuid=${asn_id}`,
   GET_ORGS_DATA: `${BASE_URL}/organizations`,
   GET_SUB_INVENTORY_DATA: (po_id) => `${BASE_URL}/organizations/${po_id}/subinventories`,

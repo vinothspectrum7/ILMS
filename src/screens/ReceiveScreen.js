@@ -1350,7 +1350,8 @@ loadReceived();
                 } else {
                   navigation.navigate('ReceivedSummaryScreen', {
                     readonly: true,
-                    id: item.receipt_id,
+                    id: item.receipt_num,
+                    poNumber:item.po_number??null,
                     listType: 'Received',
                     header: {
                       receiptNumber: item.receipt_num,

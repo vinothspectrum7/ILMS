@@ -127,9 +127,9 @@ export const GetSavedSingleASN = async(asn_id,interface_id)=>{
   }
 }
 
-export const GetSingleReceipt = async(po_id)=>{
+export const GetSingleReceipt = async(receipt_num,po_num)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(po_id));
+    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(receipt_num,po_num));
     console.log(response,"GET_SINGLE_PO_DATA");
     return response.data;
     

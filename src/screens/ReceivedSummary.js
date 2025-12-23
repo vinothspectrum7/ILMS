@@ -3,7 +3,8 @@ import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
-import ConfirmLineItemComponent from '../components/ConfirmLineItemComponent';
+// import ConfirmLineItemComponent from '../components/ConfirmLineItemComponent';
+import ReceivedLineitemComponent from '../components/ReceivedLineitemComponent';
 import FooterButtonsComponent from '../components/FooterButtonsComponent';
 import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
@@ -35,7 +36,8 @@ const ReceivedSummaryScreen = () => {
   const readonly = !!route?.params?.readonly;
   const listTypeFromRoute = route?.params?.listType || 'line';
   const headerFromRoute = route?.params?.header || null;
-  const purchaseReceipt = route?.params?.purchaseReceipt;
+  // const purchaseReceipt = route?.params?.purchaseReceipt;
+  const PONUMBER = route?.params?.poNumber;
   const [receivedData,SetReceivedData] = useState([]);
   const [phase, setPhase] = useState('idle');
   const sourceId = route?.params?.id ? String(route.params.id) : null;
@@ -99,6 +101,9 @@ const ReceivedSummaryScreen = () => {
     ship_to_location:backend.ship_to_location,
     max_open_qty:backend.max_open_qty,
     lpn: '',
+    deliverytype:index==0?'Direct delivery':'Inspection required',
+    deliverystatus:index==0?'Pending':'Done',
+    deliverystatusdesc:index==0?'Inspection Pending':'PutAway Pending',
     sub_inv_name: backend.sub_inv_name,
     org_id:OrgData?.selectedOrg,
     locator_name: backend.locator_name,
@@ -114,12 +119,12 @@ const ReceivedSummaryScreen = () => {
 }
 
   useEffect(() => {
-    if (!sourceId) return;
+    if (!sourceId&&!PONUMBER) return;
       setPhase('loading');
     const loadPoData = async () => {
       // Alert.alert(selectedPO?.po_id)
       try {
-        const posingledata = await GetSingleReceipt(sourceId);
+        const posingledata = await GetSingleReceipt(sourceId,PONUMBER);
         console.log(posingledata,"TESTESTETSTETSTETTET");
         if (posingledata) {
         //   SetPurchaseReceipt(posingledata?.next_receipt_num);
@@ -144,7 +149,7 @@ const ReceivedSummaryScreen = () => {
     };
   
     loadPoData();
-  }, [sourceId]);
+  }, [sourceId,PONUMBER]);
 
   useEffect(() => {
     if (headerFromRoute) {
@@ -330,7 +335,7 @@ const ReceivedSummaryScreen = () => {
             keyExtractor={item => String(item.id)}
             renderItem={({ item }) => (
               <View style={styles.lineItemWrapper}>
-                <ConfirmLineItemComponent
+                <ReceivedLineitemComponent
                   item={item}
                   qtyLabel={item.uom}
                   qtyValue={item.receivedQty}

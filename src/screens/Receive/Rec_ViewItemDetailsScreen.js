@@ -1237,7 +1237,7 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
   const isDirectDelivery = deliverytype === 'Direct delivery';
   const isStandardReceipt = deliverytype === 'Standard receipt';
   const isInspectionRequired = deliverytype === 'Inspection required';
-  const isPutAwayRequired = deliverytype === 'PutAway required';
+  // const isPutAwayRequired = deliverytype === 'PutAway required';
 
 
   const currentPutAwayEdited = current ? putAwayEditedMap[current.id] ?? {} : {};
