@@ -345,7 +345,7 @@ qtyRow: {
     alignItems: 'center',
     // height:28,
     padding:8,
-    backgroundColor:'#F6A066'
+    backgroundColor:'#FDECEC'
     // position: 'relative',
   },
 });
