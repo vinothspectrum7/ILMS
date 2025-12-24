@@ -628,7 +628,10 @@ const formatDateToYMD = (dateStr) => {
             visible={modalVisible}
             title="Confirmation"
             message="Are you sure want to receive this Purchase Order?"
+            deliveryType="INSPECTION"
             confirmAction={confirmAction}
+            onInspect={() => navigation.navigate('Inspection')}
+            onPutaway={() => navigation.navigate('PutAway')}
             onCancel={handleCancel}
             onSuccess={handleSuccess}
             onFailure={handleFailure}

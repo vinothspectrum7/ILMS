@@ -34,6 +34,9 @@ const ConfirmModalComponent = ({
   backdropColor = 'rgba(0,0,0,0.3)',
   headerBg = '#ECF1F7',
   widthRatio = 0.85,
+  deliveryType, // 'INSPECTION' | 'PUTAWAY' | 'DIRECT'
+  onInspect,
+  onPutaway,
   confirmAction,
   onCancel,
   onSuccess,
@@ -82,24 +85,29 @@ const ConfirmModalComponent = ({
     // onFailure,
   ]);
 
-  const handleYes = async () => {
-    if (!confirmAction) return;
-    setPhase('loading');
+const handleYes = async () => {
+  if (!confirmAction) return;
+  setPhase('loading');
 
-    try {
-      const res = await Promise.resolve(confirmAction());
-      console.log(res,"reserererererererrergrefegfregrrgefef")
-      const ok = typeof res === 'object' ? !!res.success : !!res;
-      console.log(ok,"OKOKOKOKOKOKOKOKO")
-      if (!ok) {
-  failureMessage = res.message;
-}
-      setPhase(ok?"success":"failure");
-      console.log(phase,"OKADSNDIIDIH")
-    } catch {
+  try {
+    const res = await Promise.resolve(confirmAction());
+    const ok = typeof res === 'object' ? !!res.success : !!res;
+
+    if (!ok) {
       setPhase('failure');
+      return;
     }
-  };
+
+    if (deliveryType === 'INSPECTION' || deliveryType === 'PUTAWAY') {
+      setPhase('postSuccess'); // 👈 NEW
+    } else {
+      setPhase('success'); // DIRECT flow
+    }
+  } catch {
+    setPhase('failure');
+  }
+};
+
 
   const handleNo = () => {
     onCancel?.();
@@ -198,6 +206,42 @@ const ConfirmModalComponent = ({
               <Text style={styles.statusText}>{failureMessage}</Text>
             </View>
           )}
+          {phase === 'postSuccess' && (
+  <View style={styles.statusBody}>
+    <SuccessIcon width={96} height={96} />
+    <Text style={styles.statusText}>{successMessage}</Text>
+
+    <View style={styles.postQuestionBox}>
+      <Text style={styles.postQuestionText}>
+        Do you want to {deliveryType === 'INSPECTION' ? 'Inspect' : 'Put Away'}?
+      </Text>
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={[styles.buttonBase, styles.half, styles.left]}
+          onPress={() => {
+            onCancel?.();
+            onSuccess?.();
+          }}
+        >
+          <Text style={[styles.label, { color: BRAND }]}>No</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.buttonBase, styles.half, styles.right]}
+          onPress={() => {
+            if (deliveryType === 'INSPECTION') onInspect?.();
+            if (deliveryType === 'PUTAWAY') onPutaway?.();
+            onCancel?.();
+          }}
+        >
+          <View style={styles.fillSolidBrand} />
+          <Text style={[styles.label, { color: '#fff' }]}>Yes</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+)}
         </Pressable>
       </Pressable>
     </Modal>
@@ -299,6 +343,21 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   fillSolidBrand: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS, backgroundColor: BRAND },
+
+postQuestionBox: {
+  marginTop: 20,
+  width: '100%',
+},
+postQuestionText: {
+  fontSize: 16,
+  color: '#242424',
+  marginBottom: 12,
+  textAlign: 'center',
+  fontFamily: 'Mulish',
+},
+right: {
+  marginLeft: 5,
+},
 });
 
 export default ConfirmModalComponent;
