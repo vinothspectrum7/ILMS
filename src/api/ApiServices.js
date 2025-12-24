@@ -52,9 +52,9 @@ export const GetPoItems = async(org_id)=>{
     throw error;
   }
 }
-export const GetSearchPoItems = async(status,po_no)=>{
+export const GetSearchPoItems = async(status,po_no,org_id)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_SEARCH_DATA(status,po_no));
+    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_SEARCH_DATA(status,po_no,org_id));
         console.log("Response Data:popopo", response);
     return response.data;
   }catch (error) {
@@ -62,9 +62,9 @@ export const GetSearchPoItems = async(status,po_no)=>{
     throw error;
   }
 }
-export const GetFilterPoItems = async(status)=>{
+export const GetFilterPoItems = async(status,org_id)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_FILTEER_DATA(status));
+    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_FILTEER_DATA(status,org_id));
         console.log("Response Data:popopo", response);
     return response.data;
   }catch (error) {
@@ -127,9 +127,9 @@ export const GetSavedSingleASN = async(asn_id,interface_id)=>{
   }
 }
 
-export const GetSingleReceipt = async(po_id)=>{
+export const GetSingleReceipt = async(receipt_num,po_num)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(po_id));
+    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(receipt_num,po_num));
     console.log(response,"GET_SINGLE_PO_DATA");
     return response.data;
     

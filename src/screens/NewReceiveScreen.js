@@ -179,7 +179,7 @@ const NewReceiveScreen = () => {
       orderedQty: backend.ord_qty,
       orderqty: backend.ord_qty,
       itemtype: getLabel(backend.item?.lot_enabled, backend.item?.serial_enabled),
-      deliverytype:'Direct',
+      deliverytype:backend?.delivery_type,
       ship_to_location: backend.ship_to_location,
       receivedQty: backend.rcvd_qty,
       openQty:

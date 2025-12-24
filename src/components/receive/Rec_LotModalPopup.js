@@ -74,6 +74,7 @@ export default function Rec_LotModalPopup({
   const [datePickerLotIdx, setDatePickerLotIdx] = useState(null);
   const [datePickerField, setDatePickerField] = useState(null);
   const [showQtyError, setShowQtyError] = useState(false);
+  const [ExpiryError, setExpiryError] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -158,13 +159,32 @@ export default function Rec_LotModalPopup({
     lots.length > 0 &&
     lots.every(l => l.lotNumber && l.mfgDate && l.expDate && Number(l.qty) > 0);
 
+const isFutureDate = (dateStr) => {
+  if (!dateStr) return false;
+
+  const [dd, mm, yyyy] = dateStr.split('/').map(Number);
+  const expDate = new Date(yyyy, mm - 1, dd);
+  expDate.setHours(0, 0, 0, 0);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return expDate > today;
+};
+
   const handleSave = () => {
     if (lineQty > 0 && totalQty < lineQty) {
       setShowQtyError(true);
       return;
     }
     if (!hasAllFields || totalQty !== lineQty || lineQty <= 0) return;
+  // ❌ Expiry validation
+  const invalidExpiry = lots.some(lot => !isFutureDate(lot.expDate));
 
+  if (invalidExpiry) {
+    setExpiryError(true); // or Toast / Alert
+    return;
+  }
     const payload = lots.map(({ idx, ...rest }) => rest);
     onSave?.(payload, totalQty);
     onClose?.();
@@ -240,6 +260,14 @@ export default function Rec_LotModalPopup({
                 <ErrorIcon width={rs(16)} height={rs(16)} />
                 <Text style={styles.errorText}>
                   Enter the complete transfer quantity to continue.
+                </Text>
+              </View>
+            )}
+              {ExpiryError && (
+              <View style={styles.errorBanner}>
+                <ErrorIcon width={rs(16)} height={rs(16)} />
+                <Text style={styles.errorText}>
+                  Expire date should be Future date.
                 </Text>
               </View>
             )}
