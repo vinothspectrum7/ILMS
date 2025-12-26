@@ -283,6 +283,28 @@ const ReceivedSummaryScreen = () => {
       const mapped = source.map(toDetailItemFromSummary);
 
       navigation.navigate({
+        name: 'LineItemDetails',
+        params: {
+          items: mapped,
+          startIndex: idx,
+          readonly,
+          returnTo: 'ReceivedSummaryScreen',
+          listType: listTypeFromRoute,
+          receiptNumber: headerData?.receiptNumber,
+        },
+        merge: true,
+      });
+    },
+    [filteredItems, navigation, readonly, listTypeFromRoute, headerData?.receiptNumber]
+  );
+
+  const openPendingLineDetailsFromSummary = useCallback(
+    (item, sourceList) => {
+      const source = Array.isArray(sourceList) ? sourceList : filteredItems;
+      const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
+      const mapped = source.map(toDetailItemFromSummary);
+
+      navigation.navigate({
         name: 'Rec_ViewReceivedItemDetailsScreen',
         params: {
           items: mapped,
@@ -303,7 +325,7 @@ const ReceivedSummaryScreen = () => {
   };
 
   const handlePressPendingAction = item => {
-    openLineDetailsFromSummary(item, filteredItems);
+    openPendingLineDetailsFromSummary(item, filteredItems);
   };
 
   const TogglePill = ({ label, value, onToggle }) => {
