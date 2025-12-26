@@ -310,18 +310,16 @@ const ReceivedSummaryScreen = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={onToggle}
-        style={[
-          styles.togglePill,
-          { backgroundColor: value ? '#233E55' : '#9D9FA3' },
-        ]}
+        onPress={onToggle}        
       >
-        <Text style={styles.toggleText}>{label}</Text>
-        <View style={styles.toggleKnobWrap}>
+        
+
+        <View style={[styles.toggleTrack, { backgroundColor: value ? '#233E55' : '#9D9FA3'},]}>
+          {/* <Text style={styles.toggleText}>{label}</Text> */}
           <View
             style={[
-              styles.toggleKnob,
-              value ? styles.knobOn : styles.knobOff,
+              styles.toggleDot,
+              value ? styles.dotOn : styles.dotOff,
             ]}
           />
         </View>
@@ -373,7 +371,7 @@ const ReceivedSummaryScreen = () => {
                   value={inspectOn}
                   onToggle={() => setInspectOn(v => !v)}
                 />
-                <View style={{ width: rs(8) }} />
+                <View style={{ width: rs(10) }} />
                 <TogglePill
                   label="Put Away"
                   value={putAwayOn}
@@ -453,9 +451,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: rs(23),
     borderRadius: rs(42),
-    paddingLeft: rs(10),
-    paddingRight: rs(6),
-    minWidth: rs(70),
+    paddingLeft: rs(12),
+    paddingRight: rs(8),
+    minWidth: rs(86),
   },
 
   toggleText: {
@@ -464,28 +462,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  toggleKnobWrap: {
-    marginLeft: rs(8),
-    width: rs(22),
-    height: rs(12),
-    borderRadius: rs(12),
-    backgroundColor: '#FFFFFF',
+  toggleTrack: {
+    marginLeft: rs(10),
+    width: rs(62),
+    height: rs(20),
+    borderRadius: rs(18),
+    // backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     paddingHorizontal: rs(2),
   },
 
-  toggleKnob: {
-    width: rs(8),
-    height: rs(8),
-    borderRadius: rs(8),
-    backgroundColor: '#233E55',
+  toggleDot: {
+    width: rs(14),
+    height: rs(14),
+    borderRadius: rs(20),
+    backgroundColor: '#FFFFFF',
   },
 
-  knobOn: {
+  dotOn: {
     alignSelf: 'flex-end',
   },
 
-  knobOff: {
+  dotOff: {
     alignSelf: 'flex-start',
   },
 
