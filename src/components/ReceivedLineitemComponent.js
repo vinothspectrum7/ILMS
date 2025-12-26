@@ -339,7 +339,7 @@ qtyRow: {
     borderRadius: 8,
     overflow: 'hidden',
     borderColor:'#F6A066',
-    // marginBottom: 22,
+    marginTop: 12,
     borderWidth:1,
     justifyContent: 'center',
     alignItems: 'center',
