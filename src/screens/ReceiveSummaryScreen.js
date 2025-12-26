@@ -397,6 +397,14 @@ const formatDateToYMD = (dateStr) => {
     return 'Direct delivery';
   };
 
+    const openConfirmModal = () => {
+    const eligibleLines = getConfirmEligibleLines(renderItems);
+    const dt = pickConfirmDeliveryType(eligibleLines);
+    setConfirmDeliveryType(dt);
+    setModalVisible(true);
+  };
+
+
 
 
   const confirmAction = async () => {
@@ -827,7 +835,7 @@ const formatDateToYMD = (dateStr) => {
             onLeftPress={() => {
               handlesave();
             }}
-            onRightPress={() => setModalVisible(true)}
+            onRightPress={openConfirmModal}
             leftEnabled
             rightEnabled
           />
@@ -871,8 +879,39 @@ const formatDateToYMD = (dateStr) => {
               });
             }}
 
+            onPutaway={(payloadFromModal) => {
+              const receipt_num =
+                payloadFromModal?.receipt_num ??
+                lastReceiptPayload?.receipt_num ??
+                null;
+
+              const supplier_name =
+                payloadFromModal?.item?.supplier_name ??
+                lastReceiptPayload?.supplier_name ??
+                '—';
+
+              const po_number =
+                payloadFromModal?.item?.po_number ??
+                lastReceiptPayload?.po_number ??
+                poHeader?.poNumber ??
+                '—';
+
+              navigation.navigate('ReceivedSummaryScreen', {
+                readonly: true,
+                id: receipt_num,
+                poNumber: po_number ?? null,
+                listType: 'Received',
+                header: {
+                  receiptNumber: receipt_num,
+                  supplier: supplier_name,
+                  poNumber: po_number ?? '—',
+                  receiptDate: '-', // future: from API response
+                },
+                selectedItems: [],
+              });
+            }}
+
             // keep if you still need putaway later (not used now but preserved)
-            onPutaway={() => navigation.navigate('PutAway')}
 
             onCancel={handleCancel}
             onSuccess={handleSuccess}

@@ -78,8 +78,11 @@ const ConfirmModalComponent = ({
 
   const norm = v => String(v ?? '').trim().toLowerCase();
 
-  const isInspectionRequired = dt => norm(dt) === 'inspection required';
-  const isStandardReceipt = dt => norm(dt) === 'standard receipt';
+  const isInspectionRequired = dt =>
+    norm(dt) === 'inspection required' || norm(dt) === 'inspection';
+
+  const isStandardReceipt = dt =>
+    norm(dt) === 'standard receipt' || norm(dt) === 'standard';
 
   const shouldAskPost = dt => isInspectionRequired(dt) || isStandardReceipt(dt);
 
@@ -92,6 +95,7 @@ const ConfirmModalComponent = ({
     receiptPayload?.receiptNumber ??
     receiptPayload?.data?.receipt_num ??
     receiptPayload?.data?.receiptNumber ??
+    receiptPayload?.results?.receipt_num ??
     null;
 
   const dynamicSuccessMessage = receiptNum
@@ -224,7 +228,7 @@ const ConfirmModalComponent = ({
             </View>
           )}
 
-          {phase === 'postSuccess' && (
+          {phase === 'postSuccess' && shouldAskPost(deliveryType) && (
             <View style={styles.postSuccessWrapper}>
               <View style={styles.postSuccessContent}>
                 <SuccessIcon width={96} height={96} />
