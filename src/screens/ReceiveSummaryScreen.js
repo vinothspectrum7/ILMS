@@ -191,6 +191,113 @@ const ReceiveSummaryScreen = () => {
     return () => clearTimeout(t);
   }, [patch?.id, patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation]);
 
+    
+  const normDeliveryType = v => String(v ?? '').trim().toLowerCase();
+  const isDirectDelivery = dt => normDeliveryType(dt) === 'Direct delivery';
+  const isStandardDelivery = dt => normDeliveryType(dt) === 'Standard receipt';
+  const isInspectionRequired = dt => normDeliveryType(dt) === 'Inspection required';
+
+  const hasAnyDeliveryType = dt => !!String(dt ?? '').trim();
+
+  const hasValidLotForLine = line => {
+    if (!Array.isArray(line?.lotLines) || line.lotLines.length === 0) return false;
+
+    const total = line.lotLines.reduce((sum, l) => sum + Number(l?.qty ?? 0), 0);
+    const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
+
+    if (!Number.isFinite(target) || target <= 0) return false;
+    if (total !== target) return false;
+
+    return line.lotLines.every(
+      l => Number(l?.qty ?? 0) > 0 && !!String(l?.lotNumber ?? '').trim()
+    );
+  };
+
+  const hasValidSerialForLine = line => {
+    if (!Array.isArray(line?.serialLines) || line.serialLines.length === 0) return false;
+
+    const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
+    if (!Number.isFinite(target) || target <= 0) return false;
+
+    if (line.serialLines.length !== target) return false;
+
+    return line.serialLines.every(s =>
+      !!String(s?.serialNumber ?? s?.serial ?? '').trim()
+    );
+  };
+
+  const hasValidLotSerialForLine = line => {
+    if (!Array.isArray(line?.lotLines) || line.lotLines.length === 0) return false;
+
+    const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
+    if (!Number.isFinite(target) || target <= 0) return false;
+
+    const lotTotal = line.lotLines.reduce((sum, l) => sum + Number(l?.qty ?? 0), 0);
+    if (lotTotal !== target) return false;
+
+    return line.lotLines.every(l => {
+      const lotNoOk = !!String(l?.lotNumber ?? '').trim();
+      const lotQty = Number(l?.qty ?? 0);
+      if (!lotNoOk || !Number.isFinite(lotQty) || lotQty <= 0) return false;
+
+      const serials = Array.isArray(l?.serials)
+        ? l.serials
+        : Array.isArray(l?.serialLines)
+        ? l.serialLines
+        : [];
+
+      if (!serials || serials.length !== lotQty) return false;
+
+      return serials.every(s => !!String(s?.serialNumber ?? s?.serial ?? '').trim());
+    });
+  };
+
+  const isLineItemTypeValidForDirect = line => {
+    const t = String(line?.itemtype ?? '').trim();
+    if (t === 'Lot') return hasValidLotForLine(line);
+    if (t === 'Serial') return hasValidSerialForLine(line);
+    if (t === 'Lot+Serial') return hasValidLotSerialForLine(line);
+    return true; // normal item => no lot/serial requirement
+  };
+
+  const isLineValidForConfirm = line => {
+    const qty = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
+    if (!Number.isFinite(qty) || qty <= 0) return false;
+
+    const dt = line?.deliverytype;
+
+    // deliverytype must be present
+    if (!hasAnyDeliveryType(dt)) return false;
+
+    // Standard / Inspection required:
+    // - qty > 0
+    // - LPN optional
+    // - subInventory optional
+    // - locator optional
+    // - no lot/serial enforcement
+    if (isStandardDelivery(dt) || isInspectionRequired(dt)) {
+      return true;
+    }
+
+    // Direct delivery:
+    // - qty > 0
+    // - subInventory mandatory
+    // - lot/serial mandatory based on itemtype
+    if (isDirectDelivery(dt)) {
+      const subInvOk = !!String(line?.subInventory ?? '').trim();
+      if (!subInvOk) return false;
+      return isLineItemTypeValidForDirect(line);
+    }
+
+    // unknown delivery type => block
+    return false;
+  };
+
+  const getConfirmEligibleLines = (items = []) => {
+    return (items || []).filter(isLineValidForConfirm);
+  };
+
+  
   const headerData = useMemo(
     () =>
       poHeader || {
@@ -218,57 +325,80 @@ const formatDateToYMD = (dateStr) => {
   }
 
   const mapConfirmData = data => {
-    return data.map(backend => ({
-      po_id: currentPO,
-      po_number:poHeader?.poNumber,
-      po_line_id: backend?.po_line_id,
-      po_line_num:backend?.po_line_number,
-      item_id: backend?.item_id,
-      item_code:backend?.name,
-      org_id: backend?.org_id,
-      org_code:backend?.org_code,
-      business_unit:backend?.business_name,
-      supplier_name:poHeader?.supplier,
-      uom_code:backend?.uomCode,
-      uom:backend?.uom,
-      source_doc_code:'PO',
-      sub_inv_id: backend.subInventory?backend?.subInventory?.id:null,
-      sub_inv_code:backend.subInventory?backend?.subInventory?.name:null,
-      // locator_id: backend.locator ? backend?.locator?.id : null,
-      // locator_code:null,
-      // lot_number: '',
-      // expiry_date: formatToday(),
-      received_qty: Number(backend?.qtyToReceive),
-      "delivery_type": backend?.deliverytype,
-     "lot_item_lots": mapConfirmLots(backend?.lotLines)
-      // interface_header_id: Interface_Id,
-      // received_type: 'purchase_order',
-      // asn_header_uuid: null,
-            // new fields
-    //   lpn_number: backend.lpn ? backend?.lpn?.id : null,
-    //   failed_qty: 0,
-    //   on_hold_qty: 0,
-    //   lot_enabled: false,
-    //   serial_enabled: false,
-    //   lot_serial_data: [
-    //   {
-    //     "lot_name": "string",
-    //     "lot_qty": "string",
-    //     "lot_mfg_date": "2025-12-09",
-    //     "lot_exp_date": "2025-12-09",
-    //     "serial_start_num": "string",
-    //     "serial_end_num": "string"
-    //   }
-    // ],
-    // "inspection_item_img_paths": [],
-    // "inspection_notes": "string",
-    // "is_putaway_completed": false,
-    }));
+    return (data || []).map(backend => {
+      const dt = backend?.deliverytype;
+
+      const subInvId =
+        backend?.subInventory?.id != null ? backend.subInventory.id : null;
+      const subInvCode =
+        backend?.subInventory?.name != null ? backend.subInventory.name : null;
+
+      const locatorId =
+        backend?.locator?.id != null ? backend.locator.id : null;
+      const locatorCode =
+        backend?.locator?.name != null ? backend.locator.name : null;
+
+      const lpnNumber =
+        backend?.lpn?.id != null ? backend.lpn.id : null;
+
+      const base = {
+        po_id: currentPO,
+        po_number: poHeader?.poNumber,
+
+        po_line_id: backend?.po_line_id,
+        po_line_num: backend?.po_line_number,
+
+        item_id: backend?.item_id,
+        item_code: backend?.name,
+
+        org_id: backend?.org_id,
+        org_code: backend?.org_code,
+        business_unit: backend?.business_name,
+        supplier_name: poHeader?.supplier,
+
+        uom_code: backend?.uomCode,
+        uom: backend?.uom,
+
+        source_doc_code: 'PO',
+        received_qty: Number(backend?.qtyToReceive ?? backend?.receivingQty ?? 0),
+        delivery_type: dt,
+
+        lot_item_lots: Array.isArray(backend?.lotLines) ? mapConfirmLots(backend.lotLines) : [],
+      };
+
+      // Include optional fields only if available (Standard/Inspection optional, Direct already validated)
+      if (subInvId != null) base.sub_inv_id = subInvId;
+      if (subInvCode != null) base.sub_inv_code = subInvCode;
+
+      if (locatorId != null) base.locator_id = locatorId;
+      if (locatorCode != null) base.locator_code = locatorCode;
+
+      // LPN optional for all (your current rule)
+      if (lpnNumber != null) base.lpn_number = lpnNumber;
+
+      return base;
+    });
   };
+
 
   const confirmAction = async () => {
     console.log(renderItems,"renderItemsrenderItemsrenderItemsrenderItems")
-    const formatdata = mapConfirmData(renderItems);
+        const eligibleLines = getConfirmEligibleLines(renderItems);
+
+    if (!eligibleLines.length) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid items',
+        text2: 'No eligible lines to confirm. Please check Delivery Type, Qty, Sub Inventory and Lot/Serial data.',
+        position: 'top',
+        visibilityTime: 5000,
+      });
+      return { success: false, message: 'No eligible lines to confirm' };
+    }
+
+    console.log(eligibleLines, "eligibleLines");
+    const formatdata = mapConfirmData(eligibleLines);
+
     console.log(formatdata,"mapConfirmDatamapConfirmData");
     try {
       const response = await Submit_Receive_Qty(formatdata);
@@ -419,38 +549,57 @@ const formatDateToYMD = (dateStr) => {
     setModalVisible(false);
   };
 
-  const toDetailItemFromSummary = (it, i) => {
-    const qty = Number(it.qtyToReceive ?? 0);
-    return {
-      id: String(it.id),
-      poNumber: headerData.poNumber ?? '—',
-      lineNumber: i + 1,
-      itemName: it.name,
-      itemid: it.item_id,
-      itemDescription: it.itemDescription ?? it.description ?? '—',
-      orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
-      orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
-      itemtype: it.itemtype ?? 'LotSerial',
-      openQty: Number(it.openQty ?? 0),
-      uom: it.uom,
-      receivingQty: qty,
-      receivingStatus: it.status,
-      lpn: it.lpn ?? '',
-      subInventory: it.subInventory ?? '',
-      locator: it.locator ?? '',
-      ship_to_location: it.ship_to_location,
-      max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
-    };
-  };
-
-  const openLineDetailsFromSummary = item => {
+  
+    const openLineDetailsFromSummary = item => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-    const mapped = source.map(toDetailItemFromSummary);
+
+    // Same data-flow as NewReceiveScreen -> goToLineItemDetails
+    const withLatestFromStore = source.map((it, i) => {
+      const s = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(it.id))
+        : null;
+
+      const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
+
+      return {
+        id: String(it.id),
+        poNumber: headerData.poNumber ?? '—',
+        lineNumber: i + 1,
+
+        itemName: it.name,
+        po_line_id: it.po_line_id,
+        po_line_number: it.po_line_number,
+        itemid: it.item_id,
+
+        ship_to_location: it.ship_to_location,
+        itemDescription: it.itemDescription ?? it.description ?? '—',
+
+        orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+        orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
+
+        itemtype: it.itemtype ?? null,
+        deliverytype: s?.deliverytype ?? it.deliverytype ?? null,
+
+        openQty: Number(it.openQty ?? 0),
+        uom: it.uom,
+
+        receivingQty: qty,
+        receivingStatus: it.status,
+
+        lpn: s?.lpn ?? it.lpn ?? '',
+        subInventory: s?.subInventory ?? it.subInventory ?? '',
+        locator: s?.locator ?? it.locator ?? null,
+
+        max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+        imageUri: s?.imageUri ?? it.imageUri ?? null,
+      };
+    });
+
     navigation.navigate({
       name: 'Rec_ViewItemDetailsScreen',
       params: {
-        items: mapped,
+        items: withLatestFromStore,
         startIndex: idx,
         readonly,
         returnTo: 'ReceiveSummaryScreen',
@@ -459,6 +608,7 @@ const formatDateToYMD = (dateStr) => {
       merge: true,
     });
   };
+
 
   const renderRightActions = onDelete => {
     return (
