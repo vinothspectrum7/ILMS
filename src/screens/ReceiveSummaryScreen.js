@@ -193,9 +193,9 @@ const ReceiveSummaryScreen = () => {
 
     
   const normDeliveryType = v => String(v ?? '').trim().toLowerCase();
-  const isDirectDelivery = dt => normDeliveryType(dt) === 'Direct delivery';
-  const isStandardDelivery = dt => normDeliveryType(dt) === 'Standard receipt';
-  const isInspectionRequired = dt => normDeliveryType(dt) === 'Inspection required';
+  const isDirectDelivery = dt => normDeliveryType(dt) === 'direct delivery';
+  const isStandardDelivery = dt => normDeliveryType(dt) === 'standard receipt';
+  const isInspectionRequired = dt => normDeliveryType(dt) === 'inspection required';
 
   const hasAnyDeliveryType = dt => !!String(dt ?? '').trim();
 
