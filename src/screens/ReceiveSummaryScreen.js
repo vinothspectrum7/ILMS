@@ -65,6 +65,10 @@ const ReceiveSummaryScreen = () => {
   const [draft, setDraft] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
 
+  const [lastReceiptPayload, setLastReceiptPayload] = useState(null);
+  const [confirmDeliveryType, setConfirmDeliveryType] = useState('Inspection required');
+
+
   const didCompleteRef = useRef(false);
 
   const [saveModalVisible, setSaveModalVisible] = useState(false);
@@ -380,6 +384,20 @@ const formatDateToYMD = (dateStr) => {
     });
   };
 
+    const pickConfirmDeliveryType = (lines = []) => {
+    const norm = v => String(v ?? '').trim().toLowerCase();
+
+    // If any line is inspection required -> Inspection required
+    if (lines.some(l => norm(l?.deliverytype) === 'inspection required')) return 'Inspection required';
+
+    // If any line is standard receipt -> Standard receipt
+    if (lines.some(l => norm(l?.deliverytype) === 'standard receipt')) return 'Standard receipt';
+
+    // else treat as Direct delivery (no post question)
+    return 'Direct delivery';
+  };
+
+
 
   const confirmAction = async () => {
     console.log(renderItems,"renderItemsrenderItemsrenderItemsrenderItems")
@@ -403,8 +421,47 @@ const formatDateToYMD = (dateStr) => {
     try {
       const response = await Submit_Receive_Qty(formatdata);
       console.log(response,"Submit_Receive_Qty");
-      if (response?.status == "SUCCESS")
-        return { success: true, message: 'Received Quantity Updated Successfully!' };
+            if (response?.status == "SUCCESS") {
+        // Extract receipt_num safely from possible shapes
+        const receipt_num =
+          response?.receipt_num ??
+          response?.receiptNumber ??
+          response?.data?.receipt_num ??
+          response?.data?.receiptNumber ??
+          response?.results?.receipt_num ??
+          null;
+
+        const supplier_name =
+          response?.supplier_name ??
+          response?.data?.supplier_name ??
+          poHeader?.supplier ??
+          '—';
+
+        const po_number =
+          response?.po_number ??
+          response?.data?.po_number ??
+          poHeader?.poNumber ??
+          '—';
+
+        // receipt_date not available now -> '-'
+        const received_date = response?.received_date ?? response?.data?.received_date ?? '-';
+
+        // store for navigation usage
+        setLastReceiptPayload({ receipt_num, supplier_name, po_number, received_date });
+
+        // decide which post question text to show
+        const dt = pickConfirmDeliveryType(eligibleLines);
+        setConfirmDeliveryType(dt);
+
+        console.log(setConfirmDeliveryType,"setConfirmDeliveryTypesetConfirmDeliveryTypesetConfirmDeliveryType");
+
+        return {
+          success: true,
+          receipt_num,
+          item: { supplier_name, po_number, received_date },
+        };
+      }
+
       return {
         success: false,
         message: response?.message || 'Failed to create order receipt',
@@ -778,14 +835,50 @@ const formatDateToYMD = (dateStr) => {
             visible={modalVisible}
             title="Confirmation"
             message="Are you sure want to receive this Purchase Order?"
-            deliveryType="INSPECTION"
+            deliveryType={confirmDeliveryType}
             confirmAction={confirmAction}
-            onInspect={() => navigation.navigate('Inspection')}
+
+            // YES on postSuccess -> navigate to ReceivedSummaryScreen with required params
+            onInspect={(payloadFromModal) => {
+              const receipt_num =
+                payloadFromModal?.receipt_num ??
+                lastReceiptPayload?.receipt_num ??
+                null;
+
+              const supplier_name =
+                payloadFromModal?.item?.supplier_name ??
+                lastReceiptPayload?.supplier_name ??
+                '—';
+
+              const po_number =
+                payloadFromModal?.item?.po_number ??
+                lastReceiptPayload?.po_number ??
+                poHeader?.poNumber ??
+                '—';
+
+              navigation.navigate('ReceivedSummaryScreen', {
+                readonly: true,
+                id: receipt_num,
+                poNumber: po_number ?? null,
+                listType: 'Received',
+                header: {
+                  receiptNumber: receipt_num,
+                  supplier: supplier_name,
+                  poNumber: po_number ?? '—',
+                  receiptDate: '-', // future: from API response
+                },
+                selectedItems: [],
+              });
+            }}
+
+            // keep if you still need putaway later (not used now but preserved)
             onPutaway={() => navigation.navigate('PutAway')}
+
             onCancel={handleCancel}
             onSuccess={handleSuccess}
             onFailure={handleFailure}
           />
+
           <Modal
             visible={saveModalVisible}
             transparent
