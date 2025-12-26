@@ -283,7 +283,7 @@ const ReceivedSummaryScreen = () => {
       const mapped = source.map(toDetailItemFromSummary);
 
       navigation.navigate({
-        name: 'LineItemDetails',
+        name: 'Rec_ViewReceivedItemDetailsScreen',
         params: {
           items: mapped,
           startIndex: idx,
@@ -308,20 +308,24 @@ const ReceivedSummaryScreen = () => {
 
   const TogglePill = ({ label, value, onToggle }) => {
     return (
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={onToggle}        
-      >
-        
-
-        <View style={[styles.toggleTrack, { backgroundColor: value ? '#233E55' : '#9D9FA3'},]}>
-          {/* <Text style={styles.toggleText}>{label}</Text> */}
-          <View
-            style={[
-              styles.toggleDot,
-              value ? styles.dotOn : styles.dotOff,
-            ]}
-          />
+      <TouchableOpacity activeOpacity={0.9} onPress={onToggle}>
+        <View
+          style={[
+            styles.toggleTrack,
+            { backgroundColor: value ? '#233E55' : '#9D9FA3' },
+          ]}
+        >
+          {value ? (
+            <>
+              <Text style={[styles.toggleText, styles.textLeft]}>{label}</Text>
+              <View style={[styles.toggleDot, styles.dotOn]} />
+            </>
+          ) : (
+            <>
+              <View style={[styles.toggleDot, styles.dotOff]} />
+              <Text style={[styles.toggleText, styles.textRight]}>{label}</Text>
+            </>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -446,30 +450,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  togglePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: rs(23),
-    borderRadius: rs(42),
-    paddingLeft: rs(12),
-    paddingRight: rs(8),
-    minWidth: rs(86),
-  },
-
   toggleText: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: '400',
     color: '#FFFFFF',
+    paddingLeft: rs(5),
+    paddingRight: rs(5),
   },
 
   toggleTrack: {
-    marginLeft: rs(10),
     width: rs(62),
     height: rs(20),
     borderRadius: rs(18),
-    // backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    paddingHorizontal: rs(2),
+    paddingHorizontal: rs(3),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 
   toggleDot: {
@@ -479,12 +475,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
-  dotOn: {
-    alignSelf: 'flex-end',
+  dotOn: {},
+
+  dotOff: {},
+
+  textLeft: {
+    textAlign: 'left',
+    flex: 1,
   },
 
-  dotOff: {
-    alignSelf: 'flex-start',
+  textRight: {
+    textAlign: 'right',
+    flex: 1,
   },
 
   tableHeader: { marginTop: 8, marginBottom: 10 },
