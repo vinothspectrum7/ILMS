@@ -161,27 +161,6 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
   const [selectedInspectRow, setSelectedInspectRow] = useState(null);
 
 
-  useEffect(() => {
-  if (isStandardReceipt && activeTab !== 'Receive') {
-    setActiveTab('Receive');
-  }
-}, [isStandardReceipt, activeTab]);
-
-  useEffect(() => {
-    if (!current) return;
-    if (!isInspectionRequired) return;
-
-    // Default tab rule for Inspection required:
-    // - if Receiving Qty > 0 => Inspect
-    // - if Receiving Qty == 0 => Receive
-    if (Number(currentQty ?? 0) > 0) {
-      if (activeTab !== 'Inspect') setActiveTab('Inspect');
-    } else {
-      if (activeTab !== 'Receive') setActiveTab('Receive');
-    }
-  }, [current?.id, isInspectionRequired, currentQty, activeTab]);
-
-
 
   const [edited, setEdited] = useState({});
   const [locatorDataMap, setLocatorDataMap] = useState({});
@@ -1086,18 +1065,17 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
     // Basic qty validation
     if (!(receivingQty > 0 && receivingQty <= limit)) return false;
 
-        // ✅ Standard receipt: LPN required for active items
     const lineDelivery = String(it?.deliverytype ?? '').trim();
     const lineIsDirect = lineDelivery === 'Direct delivery';
     const lineIsStandard = lineDelivery === 'Standard receipt';
+    const lineIsInspectionRequired = lineDelivery === 'Inspection required';
 
-    // Basic qty validation already above
-
-    // Standard receipt requires LPN, but DOES NOT require subInventory/locator
-    if (lineIsStandard) {
-      if (!st.lpn) return false;
+    // Standard receipt / Inspection required: LPN is OPTIONAL for now.
+    // Only validate qty here (already validated above) and allow save.
+    if (lineIsStandard || lineIsInspectionRequired) {
       return true;
     }
+
 
     // Direct delivery keeps existing validations + requires subInventory
     if (!st.subInventory) return false;
@@ -1949,65 +1927,12 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
     else navigation.goBack();
   };
 
-  const rightPress =
-    isInspectionRequired
-      ? isReceiveSubmitEnabled && isInspectionFullyCompleted
-        ? handleSaveInspectionRequired
-        : undefined
-      : activeTab === 'Receive'
-      ? isReceiveSubmitEnabled
-        ? handleSaveAll
-        : undefined
-      : activeTab === 'Inspect'
-      ? itemType === 'Serial'
-        ? isInspectSubmitEnabled
-          ? handleSaveInspect
-          : undefined
-        : itemType === 'Lot'
-        ? isInspectLotSubmitEnabled
-          ? handleSaveInspectLot
-          : undefined
-        : itemType === 'Lot+Serial'
-        ? isInspectLotSerialSubmitEnabled
-          ? handleSaveInspectLot
-          : undefined
-        : undefined
-      : activeTab === 'PutAway'
-      ? itemType === 'Lot'
-        ? allSavedLotsPutAwayCompleted
-          ? handleSavePutAway
-          : undefined
-        : itemType === 'Serial'
-        ? isPutAwaySerialPassed
-          ? handleSavePutAway
-          : undefined
-        : undefined
-      : undefined;
+  const rightPress = isReceiveSubmitEnabled ? handleSaveAll : undefined;
 
 
 
 
-
-    const rightEnabled =
-    isInspectionRequired
-      ? isReceiveSubmitEnabled && isInspectionFullyCompleted
-      : activeTab === 'Receive'
-      ? isReceiveSubmitEnabled
-      : activeTab === 'Inspect'
-      ? itemType === 'Serial'
-        ? isInspectSubmitEnabled
-        : itemType === 'Lot'
-        ? isInspectLotSubmitEnabled
-        : itemType === 'Lot+Serial'
-        ? isInspectLotSerialSubmitEnabled
-        : false
-      : activeTab === 'PutAway'
-      ? itemType === 'Lot'
-        ? allSavedLotsPutAwayCompleted
-        : itemType === 'Serial'
-        ? isPutAwaySerialPassed
-        : false
-      : false;
+    const rightEnabled = isReceiveSubmitEnabled;
 
 
 
@@ -2091,9 +2016,9 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
 
 <TouchableOpacity
   style={styles.tabWrapper}
-  activeOpacity={0.9}
-  onPress={() => setActiveTab('Inspect')}
-  disabled={isDirectDelivery || isStandardReceipt || isInspectionRequired}
+  activeOpacity={1}
+  onPress={() => {}}
+  disabled
 >
   {(deliveryPills?.showreceive || deliveryPills?.showputaway || deliveryPills?.inspect) ? (
     // 🔹 Disabled state (NO gradient)
@@ -2136,9 +2061,9 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
 
               <TouchableOpacity
                 style={styles.tabWrapper}
-                activeOpacity={0.9}
-                onPress={() => setActiveTab('PutAway')}
-                disabled={isDirectDelivery || isStandardReceipt || isInspectionRequired}
+                activeOpacity={1}
+                onPress={() => {}}
+                disabled
               >
                   {(isDirectDelivery || isStandardReceipt || isInspectionRequired) ? (
     // 🔹 Disabled state (NO gradient)
@@ -2178,7 +2103,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
               </TouchableOpacity>
             </View>
 
-            {((activeTab === 'Receive') || (activeTab === 'Inspect' && isInspectionRequired)) && current && (
+            {activeTab === 'Receive' && current && (
               <View style={styles.itemInfoBox}>
                 <View style={styles.itemInfoRow}>
                   <View style={styles.itemIconWrap}>
@@ -2286,7 +2211,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
 
                 {(isStandardReceipt || isInspectionRequired) && (
                   <View style={{ marginTop: ms(12) }}>
-                    <Text style={styles.mandLabel}>LPN*</Text>
+                    <Text style={styles.mandLabel}>LPN</Text>
                     <Rec_DropDown
                       value={currentEdited.lpn}
                       onChange={id => handleLpnChange(current.id, id)}

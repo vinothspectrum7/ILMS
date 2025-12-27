@@ -68,7 +68,7 @@ const ReceivedSummaryScreen = () => {
         if (listTypeFromRoute === 'Received') {
           navigation.navigate('Receive');
         } else {
-          navigation.navigate('NewReceiveScreen');
+          navigation.navigate('Receive');
         }
         return true;
       };
@@ -276,49 +276,123 @@ const ReceivedSummaryScreen = () => {
     };
   };
 
-  const openLineDetailsFromSummary = useCallback(
-    (item, sourceList) => {
-      const source = Array.isArray(sourceList) ? sourceList : filteredItems;
-      const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-      const mapped = source.map(toDetailItemFromSummary);
+  const openLineDetailsFromSummary = item => {
+    const source = renderItems;
+    const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
 
-      navigation.navigate({
-        name: 'LineItemDetails',
-        params: {
-          items: mapped,
-          startIndex: idx,
-          readonly,
-          returnTo: 'ReceivedSummaryScreen',
-          listType: listTypeFromRoute,
-          receiptNumber: headerData?.receiptNumber,
-        },
-        merge: true,
-      });
-    },
-    [filteredItems, navigation, readonly, listTypeFromRoute, headerData?.receiptNumber]
-  );
+    // Same data-flow as NewReceiveScreen -> goToLineItemDetails
+    const withLatestFromStore = source.map((it, i) => {
+      const s = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(it.id))
+        : null;
 
-  const openPendingLineDetailsFromSummary = useCallback(
-    (item, sourceList) => {
-      const source = Array.isArray(sourceList) ? sourceList : filteredItems;
-      const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-      const mapped = source.map(toDetailItemFromSummary);
+      const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
 
-      navigation.navigate({
-        name: 'Rec_ViewReceivedItemDetailsScreen',
-        params: {
-          items: mapped,
-          startIndex: idx,
-          readonly,
-          returnTo: 'ReceivedSummaryScreen',
-          listType: listTypeFromRoute,
-          receiptNumber: headerData?.receiptNumber,
-        },
-        merge: true,
-      });
-    },
-    [filteredItems, navigation, readonly, listTypeFromRoute, headerData?.receiptNumber]
-  );
+      return {
+        id: String(it.id),
+        poNumber: headerData.poNumber ?? '—',
+        lineNumber: i + 1,
+
+        itemName: it.name,
+        po_line_id: it.po_line_id,
+        po_line_number: it.po_line_number,
+        itemid: it.item_id,
+
+        ship_to_location: it.ship_to_location,
+        itemDescription: it.itemDescription ?? it.description ?? '—',
+
+        orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+        orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
+
+        itemtype: it.itemtype ?? null,
+        deliverytype: s?.deliverytype ?? it.deliverytype ?? null,
+
+        openQty: Number(it.openQty ?? 0),
+        uom: it.uom,
+
+        receivingQty: qty,
+        receivingStatus: it.status,
+
+        lpn: s?.lpn ?? it.lpn ?? '',
+        subInventory: s?.subInventory ?? it.subInventory ?? '',
+        locator: s?.locator ?? it.locator ?? null,
+
+        max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+        imageUri: s?.imageUri ?? it.imageUri ?? null,
+      };
+    });
+
+    navigation.navigate({
+      name: 'Rec_ViewItemDetailsScreen',
+      params: {
+        items: withLatestFromStore,
+        startIndex: idx,
+        readonly,
+        returnTo: 'ReceiveSummaryScreen',
+        listType: listTypeFromRoute,
+      },
+      merge: true,
+    });
+  };
+
+  const openPendingLineDetailsFromSummary = item => {
+    const source = renderItems;
+    const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
+
+    // Same data-flow as NewReceiveScreen -> goToLineItemDetails
+    const withLatestFromStore = source.map((it, i) => {
+      const s = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(it.id))
+        : null;
+
+      const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
+
+      return {
+        id: String(it.id),
+        poNumber: headerData.poNumber ?? '—',
+        lineNumber: i + 1,
+
+        itemName: it.name,
+        po_line_id: it.po_line_id,
+        po_line_number: it.po_line_number,
+        itemid: it.item_id,
+
+        ship_to_location: it.ship_to_location,
+        itemDescription: it.itemDescription ?? it.description ?? '—',
+
+        orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+        orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
+
+        itemtype: it.itemtype ?? null,
+        deliverytype: s?.deliverytype ?? it.deliverytype ?? null,
+
+        openQty: Number(it.openQty ?? 0),
+        uom: it.uom,
+
+        receivingQty: qty,
+        receivingStatus: it.status,
+
+        lpn: s?.lpn ?? it.lpn ?? '',
+        subInventory: s?.subInventory ?? it.subInventory ?? '',
+        locator: s?.locator ?? it.locator ?? null,
+
+        max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+        imageUri: s?.imageUri ?? it.imageUri ?? null,
+      };
+    });
+
+    navigation.navigate({
+      name: 'Rec_ViewReceivedItemDetailsScreen',
+      params: {
+        items: withLatestFromStore,
+        startIndex: idx,
+        readonly,
+        returnTo: 'ReceivedSummaryScreen',
+        listType: listTypeFromRoute,
+      },
+      merge: true,
+    });
+  };
 
   const handlePressViewDetails = item => {
     openLineDetailsFromSummary(item, filteredItems);
@@ -366,7 +440,7 @@ const ReceivedSummaryScreen = () => {
           if (listTypeFromRoute === 'Received') {
             navigation.navigate('Receive');
           } else {
-            navigation.navigate('NewReceiveScreen');
+            navigation.navigate('Receive');
           }
         }}
       />
