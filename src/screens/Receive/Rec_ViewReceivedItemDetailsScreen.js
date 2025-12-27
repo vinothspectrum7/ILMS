@@ -2587,14 +2587,14 @@ const rightEnabled =
                     <Barcodescanner width={18} height={18} />
                   </TouchableOpacity>
 
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     style={[styles.inspectNowBtn, (!pendingInspectRow || currentQty <= 0) && styles.inspectNowBtnDisabled]}
                     activeOpacity={0.85}
                     disabled={!pendingInspectRow || currentQty <= 0}
                     onPress={openInspectRowModalForPending}
                   >
                     <Text style={styles.inspectNowBtnText}>Inspect</Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
                 </View>
 
                 <View style={styles.inspectTableHeader}>
@@ -3345,7 +3345,7 @@ const rightEnabled =
         <Barcodescanner width={18} height={18} />
       </TouchableOpacity>
 
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={[
           styles.inspectNowBtn,
           (!pendingPutAwayRow || putAwayTargetQty <= 0) && styles.inspectNowBtnDisabled,
@@ -3355,7 +3355,7 @@ const rightEnabled =
         onPress={openPutAwayRowModalForPending}
       >
         <Text style={styles.inspectNowBtnText}>Put Away</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
 
     <View style={styles.inspectTableHeader}>
