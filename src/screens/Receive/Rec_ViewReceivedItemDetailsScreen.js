@@ -3360,7 +3360,7 @@ const rightEnabled =
 
     <View style={styles.inspectTableHeader}>
       <Text style={[styles.inspectTh, styles.inspectThQty]}>Qty</Text>
-      <Text style={[styles.inspectTh, styles.inspectThMid]}>Put Away Status</Text>
+      <Text style={[styles.inspectTh, styles.inspectThMid]}>Inspection Status</Text>
       <Text style={[styles.inspectTh, styles.inspectThRight]}>Receiving Status</Text>
     </View>
 
