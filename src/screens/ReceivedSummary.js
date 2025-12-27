@@ -65,16 +65,12 @@ const ReceivedSummaryScreen = () => {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        if (listTypeFromRoute === 'Received') {
-          navigation.navigate('Receive');
-        } else {
-          navigation.navigate('Receive');
-        }
+        navigation.navigate('Receive');
         return true;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [navigation, listTypeFromRoute])
+    }, [navigation])
   );
 
   const norm = v => String(v ?? '').trim().toLowerCase();
@@ -102,6 +98,7 @@ const ReceivedSummaryScreen = () => {
         return {
           id: String(backend?.po_line_id ?? index + 1),
           po_line_id: backend?.po_line_id,
+          po_line_number: backend?.po_line_number,
           item_id: backend?.item_id,
           name: backend?.item?.item_code || '',
           description: backend?.item?.description || '',
@@ -112,7 +109,11 @@ const ReceivedSummaryScreen = () => {
           max_open_qty: backend?.max_open_qty,
           lpn: '',
           deliverytype: deliveryType,
+          deliveryType: deliveryType,
           sub_inv_name: backend?.sub_inv_name,
+          subInventory: backend?.sub_inv_name,
+          lot_transaction_id: backend?.lot_transaction_id ?? null,
+          lotTransactionId: backend?.lot_transaction_id ?? null,
           org_id: OrgData?.selectedOrg,
           locator_name: backend?.locator_name,
           status: backend?.line_status,
@@ -245,42 +246,10 @@ const ReceivedSummaryScreen = () => {
     });
   }, [renderItems, inspectOn, putAwayOn]);
 
-  const toDetailItemFromSummary = (it, i) => {
-    const readonlyReceivingQty =
-      listTypeFromRoute === 'scan'
-        ? Number(it.openQty ?? 0) > 0
-          ? Number(it.openQty ?? 0)
-          : Number(it.orderedQty ?? it.orderQty ?? 0)
-        : Number(it.orderedQty ?? it.orderQty ?? 0);
-
-    return {
-      id: String(it.id),
-      poNumber: headerData.poNumber ?? '—',
-      lineNumber: i + 1,
-      itemName: it.name,
-      itemid: it.item_id,
-      itemDescription: it.itemDescription ?? it.description ?? '—',
-      orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
-      openQty: Number(it.openQty ?? 0),
-      ship_to_location: it.ship_to_location ?? '—',
-      receivingQty: readonlyReceivingQty,
-      receivedQty: Number(it.receivedQty ?? 0),
-      receivingStatus: it.status,
-      lpn: it.lpn ?? '',
-      uom: it.uom,
-      sub_inv_name: it.sub_inv_name,
-      locator_name: it.locator_name,
-      subInventory: it.subInventory ?? '',
-      locator: it.locator ?? '',
-      deliverytype: it.deliverytype ?? null,
-    };
-  };
-
   const openLineDetailsFromSummary = item => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
 
-    // Same data-flow as NewReceiveScreen -> goToLineItemDetails
     const withLatestFromStore = source.map((it, i) => {
       const s = Array.isArray(receiveItems)
         ? receiveItems.find(r => String(r.id) === String(it.id))
@@ -339,13 +308,11 @@ const ReceivedSummaryScreen = () => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
 
-    // Same data-flow as NewReceiveScreen -> goToLineItemDetails
     const withLatestFromStore = source.map((it, i) => {
-      const s = Array.isArray(receiveItems)
-        ? receiveItems.find(r => String(r.id) === String(it.id))
-        : null;
-
-      const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
+      const deliveryType = it?.deliverytype ?? it?.deliveryType ?? null;
+      const receivedqty = Number(it?.receivedQty ?? 0);
+      const subInventory = it?.sub_inv_name ?? it?.subInventory ?? '';
+      const lotTransactionId = it?.lot_transaction_id ?? it?.lotTransactionId ?? null;
 
       return {
         id: String(it.id),
@@ -363,21 +330,19 @@ const ReceivedSummaryScreen = () => {
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
 
-        itemtype: it.itemtype ?? null,
-        deliverytype: s?.deliverytype ?? it.deliverytype ?? null,
-
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
 
-        receivingQty: qty,
         receivingStatus: it.status,
 
-        lpn: s?.lpn ?? it.lpn ?? '',
-        subInventory: s?.subInventory ?? it.subInventory ?? '',
-        locator: s?.locator ?? it.locator ?? null,
-
-        max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
-        imageUri: s?.imageUri ?? it.imageUri ?? null,
+        receivedqty,
+        receivedQty: receivedqty,
+        subInventory,
+        sub_inv_name: subInventory,
+        deliveryType,
+        deliverytype: deliveryType,
+        lotTransactionId,
+        lot_transaction_id: lotTransactionId,
       };
     });
 
@@ -395,11 +360,11 @@ const ReceivedSummaryScreen = () => {
   };
 
   const handlePressViewDetails = item => {
-    openLineDetailsFromSummary(item, filteredItems);
+    openLineDetailsFromSummary(item);
   };
 
   const handlePressPendingAction = item => {
-    openPendingLineDetailsFromSummary(item, filteredItems);
+    openPendingLineDetailsFromSummary(item);
   };
 
   const TogglePill = ({ label, value, onToggle }) => {
@@ -437,11 +402,7 @@ const ReceivedSummaryScreen = () => {
         screenTitle="Receiving"
         notificationCount={0}
         onBack={() => {
-          if (listTypeFromRoute === 'Received') {
-            navigation.navigate('Receive');
-          } else {
-            navigation.navigate('Receive');
-          }
+          navigation.navigate('Receive');
         }}
       />
 
@@ -514,7 +475,6 @@ const styles = StyleSheet.create({
   loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   statusText: { marginTop: 12, color: '#333', fontSize: 14 },
   contentContainer: { paddingBottom: 120 },
-
   itemcontainer: {
     backgroundColor: '#fff',
     marginHorizontal: 12,
@@ -525,7 +485,6 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     elevation: 2,
   },
-
   summaryHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -533,19 +492,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 3,
   },
-
   itemName: {
     fontSize: 14,
     fontWeight: '700',
     color: '#111827',
     marginStart: 6,
   },
-
   toggleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   toggleText: {
     fontSize: 10,
     fontWeight: '400',
@@ -553,7 +509,6 @@ const styles = StyleSheet.create({
     paddingLeft: rs(5),
     paddingRight: rs(5),
   },
-
   toggleTrack: {
     width: rs(62),
     height: rs(20),
@@ -563,28 +518,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-
   toggleDot: {
     width: rs(14),
     height: rs(14),
     borderRadius: rs(20),
     backgroundColor: '#FFFFFF',
   },
-
   dotOn: {},
-
   dotOff: {},
-
   textLeft: {
     textAlign: 'left',
     flex: 1,
   },
-
   textRight: {
     textAlign: 'right',
     flex: 1,
   },
-
   tableHeader: { marginTop: 8, marginBottom: 10 },
   lineItemWrapper: { marginBottom: 12 },
 });
