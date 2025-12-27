@@ -801,7 +801,7 @@ export default function Rec_LotSerialModalPopup({
                       <View style={styles.row2}>
                         <View style={styles.col}>
                           <Text style={styles.fieldLabel}>
-                            Mfg Date<Text style={styles.required}>*</Text>
+                            Mfg Date<Text style={styles.required}></Text>
                           </Text>
                           <View style={styles.dateRow}>
                             <TextInput
@@ -818,7 +818,7 @@ export default function Rec_LotSerialModalPopup({
 
                         <View style={styles.col}>
                           <Text style={styles.fieldLabel}>
-                            Exp Date<Text style={styles.required}>*</Text>
+                            Exp Date<Text style={styles.required}></Text>
                           </Text>
                           <View style={styles.dateRow}>
                             <TextInput
