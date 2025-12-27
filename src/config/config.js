@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   GET_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all`,
   GET_ALL_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all?status=all`,
   GET_ALL_PO_FUSION_DATA: (orgId) => `${BASE_URL}/purchase_orders/all?org_id=${orgId}&status=OPEN`,
+  GET_FUSION_LOT_DATA: (lotId) => `${BASE_URL}/receipts/lines/lot/details?lot_transaction_id=${lotId}`,
   GET_ALL_PO_FUSION_SEARCH_DATA: (po_id,status,orgId) => `${BASE_URL}/purchase_orders/all?org_id=${orgId}&status=${status}&po_number=${po_id}`,
   GET_ALL_PO_FUSION_FILTEER_DATA: (status,orgId) => `${BASE_URL}/purchase_orders/all?org_id=${orgId}&status=${status}`,
   GET_RECEIVED_DATA: (org_id) => `${BASE_URL}/purchase_orders/received/${org_id}/all`,

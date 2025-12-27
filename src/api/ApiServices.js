@@ -42,6 +42,17 @@ export const GetReceivedASNPoItems = async(asn_rcpt_id,asn_id)=>{
   }
 }
 
+export const GetLotDetails = async(lot_id)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_FUSION_LOT_DATA(lot_id));
+        console.log("Response Data:lotdetails", response);
+    return response.data;
+  }catch (error) {
+    console.error("Get lotdetails Error:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
 export const GetPoItems = async(org_id)=>{
   try {
     const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_DATA(org_id));
