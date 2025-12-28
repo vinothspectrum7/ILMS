@@ -15,6 +15,7 @@ import ErrorIcon from '../../assets/icons/error.svg';
 import Rec_CustomNumericInput from '../../components/receive/Rec_CustomNumericInput';
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
+import ItemBoxIcon from '../../assets/icons/lotserialitem.svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -56,8 +57,12 @@ export default function Rec_PutAwayLotSerialModalPopup({
   lineReceivingQty = 0,
   initialPutAwayData = null,
   onComplete,
+  rowQty,
+  rowId,
+  putAwayTargetQty,
+
 }) {
-  const lotQty = useMemo(() => Number(lot?.qty || 0), [lot]);
+  // const putAwayTargetQty = useMemo(() => Number(lot?.qty || 0), [lot]);
 
   const [subInv, setSubInv] = useState(null);
   const [locator, setLocator] = useState(null);
@@ -118,12 +123,12 @@ export default function Rec_PutAwayLotSerialModalPopup({
       defaultLocator ??
       null;
 
-    const preQtyRaw = Number(pre?.putAwayQty ?? pre?.qty ?? lotQty ?? 0);
-    const preQty = Number.isFinite(preQtyRaw) && preQtyRaw > 0 ? preQtyRaw : lotQty;
+    const preQtyRaw = Number(pre?.putAwayQty ?? pre?.qty ?? putAwayTargetQty ?? 0);
+    const preQty = Number.isFinite(preQtyRaw) && preQtyRaw > 0 ? preQtyRaw : putAwayTargetQty;
 
     setSubInv(preSubInv || null);
     setLocator(preLocator || null);
-    setPutAwayQty(lotQty > 0 ? preQty : 0);
+    setPutAwayQty(putAwayTargetQty > 0 ? preQty : 0);
     setErrorMsg('');
 
     (async () => {
@@ -137,12 +142,12 @@ export default function Rec_PutAwayLotSerialModalPopup({
         if (!ok) setLocator(null);
       }
     })();
-  }, [visible, initialPutAwayData, defaultSubInventory, defaultLocator, lotQty, loadLocators]);
+  }, [visible, initialPutAwayData, defaultSubInventory, defaultLocator, putAwayTargetQty, loadLocators]);
 
   const validate = useCallback(() => {
     const q = Number(putAwayQty || 0);
-    const lotQ = Number(lotQty || 0);
-    const lineQ = Number(lineReceivingQty || 0);
+    const lotQ = Number(putAwayTargetQty || 0);
+    const lineQ = Number(rowQty || 0);
 
     if (!subInv) return 'Select Sub Inventory to Confirm Put Away';
     if (!locator) return 'Select Target Locator to Confirm Put Away';
@@ -153,7 +158,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
     if (lineQ > 0 && q > lineQ) return 'Put Away Qty should not be greater than Receiving Qty';
 
     return '';
-  }, [subInv, locator, putAwayQty, lotQty, lineReceivingQty]);
+  }, [subInv, locator, putAwayQty, putAwayTargetQty, rowQty]);
 
   const handleConfirmPutAway = useCallback(() => {
     const msg = validate();
@@ -216,7 +221,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
         >
           <View style={styles.modalContainer}>
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Inspection</Text>
+              <Text style={styles.headerTitle}>Put Away</Text>
               <TouchableOpacity onPress={onClose} activeOpacity={0.85}>
                 <CloseIcon width={rs(18)} height={rs(18)} />
               </TouchableOpacity>
@@ -231,16 +236,17 @@ export default function Rec_PutAwayLotSerialModalPopup({
 
             <View style={styles.body}>
               <View style={styles.lotCard}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.lotId}>{lot?.lotNumber || 'N/A'}</Text>
+                <ItemBoxIcon width={40} height={40} />
+                <View style={{ flex: 1, marginLeft: 5 }}>                  
+                  <Text style={styles.lotId}>{itemName || 'N/A'}</Text>
                   <View style={styles.lotRow}>
-                    <Text style={styles.smallText}>Mfg: {lot?.mfgDate || '-'}</Text>
-                    <Text style={styles.smallText}>Exp: {lot?.expDate || '-'}</Text>
+                    <Text style={styles.smallText}>{itemCode || '-'}</Text>
+                    {/* <Text style={styles.smallText}>Exp: {lot?.expDate || '-'}</Text> */}
                   </View>
                 </View>
                 <View style={styles.qtyBox}>
                   <Text style={styles.qtyLabel}>Qty</Text>
-                  <Text style={styles.qtyValue}>{lotQty}</Text>
+                  <Text style={styles.qtyValue}>{putAwayTargetQty}</Text>
                 </View>
               </View>
 
@@ -261,7 +267,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
               </View>
 
               <View style={styles.sectionBlock}>
-                <Text style={styles.mandLabel}>Target Locator*</Text>
+                <Text style={styles.mandLabel}>Target Locator</Text>
                 <Rec_DropDown
                   label=""
                   placeholder="Select Target Locator"
@@ -284,7 +290,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
                     setPutAwayQty(Number(raw || 0));
                   }}
                   min={0}
-                  max={lotQty}
+                  max={putAwayTargetQty}
                   step={1}
                   width="100%"
                   height={rs(42)}

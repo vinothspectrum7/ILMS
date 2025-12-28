@@ -573,33 +573,107 @@ const NewReceiveScreen = () => {
       visibilityTime: 5000,
     });
   };
-const hasValidLotData = (items = []) => {
-  return items
-    .filter(i => Number(i.qtyToReceive ?? 0) > 0)
-    .every(i => {
-      if (i.itemtype !== 'Lot') return true;
+    const normDeliveryType = v => String(v ?? '').trim().toLowerCase();
+    const isDirectDelivery = dt => normDeliveryType(dt) === 'direct delivery';
+    const isStandardDelivery = dt => normDeliveryType(dt) === 'standard receipt';
+    const isInspectionRequired = dt => normDeliveryType(dt) === 'inspection required';
 
-      if (!Array.isArray(i.lotLines) || i.lotLines.length === 0) {
-        return false;
+    const getSelectedDraftItems = (items = []) =>
+      (items || []).filter(i => Number(i.qtyToReceive ?? 0) > 0);
+
+    const hasValidLotForLine = line => {
+      if (!Array.isArray(line?.lotLines) || line.lotLines.length === 0) return false;
+
+      const total = line.lotLines.reduce((sum, l) => sum + Number(l?.qty ?? 0), 0);
+      const target = Number(line?.qtyToReceive ?? 0);
+
+      if (total !== target) return false;
+
+      return line.lotLines.every(l => Number(l?.qty ?? 0) > 0 && !!String(l?.lotNumber ?? '').trim());
+      };
+
+      const hasValidSerialForLine = line => {
+      if (!Array.isArray(line?.serialLines) || line.serialLines.length === 0) return false;
+
+      const target = Number(line?.qtyToReceive ?? 0);
+      if (!Number.isFinite(target) || target <= 0) return false;
+
+      // Common rule: serial count must match receiving qty
+      if (line.serialLines.length !== target) return false;
+
+      return line.serialLines.every(s => !!String(s?.serialNumber ?? s?.serial ?? '').trim());
+      };
+
+      const hasValidLotSerialForLine = line => {
+      // 1) Must have lot lines
+      if (!Array.isArray(line?.lotLines) || line.lotLines.length === 0) return false;
+
+      const target = Number(line?.qtyToReceive ?? 0);
+      const lotTotal = line.lotLines.reduce((sum, l) => sum + Number(l?.qty ?? 0), 0);
+      if (lotTotal !== target) return false;
+
+      // 2) Each lot must be valid and its serials count must match that lot qty
+      return line.lotLines.every(l => {
+        const lotNoOk = !!String(l?.lotNumber ?? '').trim();
+        const lotQty = Number(l?.qty ?? 0);
+        if (!lotNoOk || !Number.isFinite(lotQty) || lotQty <= 0) return false;
+
+        const serials = Array.isArray(l?.serials) ? l.serials : Array.isArray(l?.serialLines) ? l.serialLines : [];
+        if (!serials || serials.length !== lotQty) return false;
+
+        return serials.every(s => !!String(s?.serialNumber ?? s?.serial ?? '').trim());
+      });
+      };
+
+      const isLineItemTypeValidForDirect = line => {
+      const t = String(line?.itemtype ?? '').trim();
+
+      if (t === 'Lot') return hasValidLotForLine(line);
+      if (t === 'Serial') return hasValidSerialForLine(line);
+      if (t === 'Lot+Serial') return hasValidLotSerialForLine(line);
+
+      // If itemtype is null / normal item => no lot/serial validation required
+      return true;
+      };
+
+      const isLineValidForReceive = line => {
+      const qty = Number(line?.qtyToReceive ?? 0);
+      if (!Number.isFinite(qty) || qty <= 0) return false;
+
+      const dt = line?.deliverytype;
+
+      // Standard & Inspection required:
+      // - qty > 0 only
+      // - LPN not mandatory
+      // - subInventory/locator not required
+      if (isStandardDelivery(dt) || isInspectionRequired(dt)) {
+        return true;
       }
 
-      const lotQtyTotal = i.lotLines.reduce(
-        (sum, l) => sum + Number(l.qty ?? 0),
-        0
-      );
+      // Direct delivery:
+      // - qty > 0
+      // - subInventory mandatory
+      // - lot/serial data mandatory based on itemtype
+      if (isDirectDelivery(dt)) {
+        const subInvOk = !!String(line?.subInventory ?? '').trim();
+        if (!subInvOk) return false;
+        return isLineItemTypeValidForDirect(line);
+      }
 
-      return (
-        lotQtyTotal === Number(i.qtyToReceive) &&
-        i.lotLines.every(
-          l => Number(l.qty ?? 0) > 0 && !!l.lotNumber
-        )
-      );
-    });
-};
+      // Unknown delivery type => be safe and block receive
+      return false;
+      };
+
+      const canReceiveByDeliveryType = (items = []) => {
+      const selected = getSelectedDraftItems(items);
+      if (selected.length === 0) return false;
+      return selected.every(isLineValidForReceive);
+      };
+
 
 
   const hasAnyItems = useMemo(() => selectedItems.length > 0, [selectedItems]);
-  const canReceive =  hasAnyItems && hasValidLotData(draftItems);
+  const canReceive = hasAnyItems && canReceiveByDeliveryType(draftItems);
 
 
   const Releasefunction = async () => {
@@ -736,7 +810,7 @@ const hasValidLotData = (items = []) => {
             leftLabel="Save"
             rightLabel="Receive"
             onLeftPress={hasAnyItems ? () => { commitDraftToStore(); handlesave(); } : undefined}
-            onRightPress={hasAnyItems ? handleReceive : undefined}
+            onRightPress={canReceive ? handleReceive : undefined}
             leftEnabled={hasAnyItems}
             rightEnabled={canReceive}
           />

@@ -1,53 +1,50 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, BackHandler,ActivityIndicator, Alert } from 'react-native';
+import {
+  FlatList,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  View,
+  Text,
+  BackHandler,
+  ActivityIndicator,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
-// import ConfirmLineItemComponent from '../components/ConfirmLineItemComponent';
 import ReceivedLineitemComponent from '../components/ReceivedLineitemComponent';
-import FooterButtonsComponent from '../components/FooterButtonsComponent';
-import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
-import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import Toast from 'react-native-toast-message';
-import { createOrderReceipt } from '../api/mockApi';
 import { useReceivingStore } from '../store/receivingStore';
-import { GetSinglePO, GetSingleReceipt, Submit_Receive_Qty } from '../api/ApiServices';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GetSingleReceipt } from '../api/ApiServices';
 import SummaryTabHdrsComponent from '../components/ReceivedSummaryheader';
 
-const receivedData = [
-  { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', receivedDate: '21 Jul 2025', status: 'Fully Received' },
-  { id: '2', purchaseReceipt: 'PR-00003', poNumber: 'PO-00003', supplier: 'TechNerds', receivedDate: '22 Jul 2025', status: 'Partially Received' },
-  { id: '3', purchaseReceipt: 'PR-00004', poNumber: 'PO-00004', supplier: 'CreativeTools', receivedDate: '23 Jul 2025', status: 'Fully Received' },
-  { id: '4', purchaseReceipt: 'PR-00005', poNumber: 'PO-00005', supplier: 'BuildCorp', receivedDate: '24 Jul 2025', status: 'Fully Received' },
-];
-
-const defaultReceiptItems = [
-  { id: 'a', name: 'Lorem Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 100, receivedQty: 100, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN1', subInventory: 'SUBINVENTORY1', locator: 'LOCATOR1' },
-  { id: 'b', name: 'Impusum', description: 'Lorem ipsum dolor sit amet…', orderedQty: 150, receivedQty: 150, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN2', subInventory: 'SUBINVENTORY2', locator: 'LOCATOR2' },
-  { id: 'c', name: 'Des Impusum', description: 'dolor ipsum dolor sit amet…', orderedQty: 200, receivedQty: 200, openQty: 0, promisedDate: '22/07/2025', needByDate: '24/07/2025', lpn: 'LPN3', subInventory: 'SUBINVENTORY3', locator: 'LOCATOR3' },
-];
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
 
 const ReceivedSummaryScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
-  const [profileName, setProfileName] = useState('');
   const readonly = !!route?.params?.readonly;
   const listTypeFromRoute = route?.params?.listType || 'line';
   const headerFromRoute = route?.params?.header || null;
-  // const purchaseReceipt = route?.params?.purchaseReceipt;
   const PONUMBER = route?.params?.poNumber;
-  const [receivedData,SetReceivedData] = useState([]);
-  const [phase, setPhase] = useState('idle');
   const sourceId = route?.params?.id ? String(route.params.id) : null;
+
+  const [apiItems, setApiItems] = useState([]);
+  const [phase, setPhase] = useState('idle');
+
+  const [inspectOn, setInspectOn] = useState(true);
+  const [putAwayOn, setPutAwayOn] = useState(true);
 
   const {
     poHeader,
     setPoHeader,
     receiveItems,
     summaryItems,
-    initSummaryItems,
     mergePatchIntoSummaryItems,
     mergePatchIntoReceiveItems,
     resetReceiving,
@@ -55,11 +52,8 @@ const ReceivedSummaryScreen = () => {
   } = useReceivingStore();
 
   const [draft, setDraft] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-
-  const didCompleteRef = useRef(false);
   const handledPatchIdsRef = useRef(new Set());
-  const initializedRef = useRef(false);
+  const didCompleteRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -71,112 +65,134 @@ const ReceivedSummaryScreen = () => {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
-        if (modalVisible) {
-          setModalVisible(false);
-          return true;
-        }
-        if (listTypeFromRoute === 'Received') {
-          navigation.navigate('Receive');
-        } else {
-          navigation.navigate('NewReceiveScreen');
-        }
+        navigation.navigate('Receive');
         return true;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [navigation, modalVisible, listTypeFromRoute])
+    }, [navigation])
   );
 
-  const  mapBackendArrayToFrontend = (data)=> {
-  return data.map((backend,index) => ({
-    id: index+1,
-    po_line_id:backend?.po_line_id,
-    item_id:backend?.item_id,
-    // purchaseReceipt:posingledata?.next_receipt_num || "", // placeholder (if needed)
-    name: backend.item?.item_code || "",
-    description: backend.item?.description || "",
-    orderedQty: backend.ord_qty,
-    receivedQty: backend.rcvd_qty,
-    openQty: backend.open_qty,
-    ship_to_location:backend.ship_to_location,
-    max_open_qty:backend.max_open_qty,
-    lpn: '',
-    deliverytype:index==0?'Direct delivery':'Inspection required',
-    // deliverystatus:index==0?'Pending':'Done',
-    deliverystatus:'Done',
-    deliverystatusdesc:index==0?'Inspection Pending':'PutAway Pending',
-    sub_inv_name: backend.sub_inv_name,
-    org_id:OrgData?.selectedOrg,
-    locator_name: backend.locator_name,
-    status:backend.line_status,
-    uom: backend.item?.uom === "EA" ? "Each" : backend.item?.uom, // convert if needed
-    promisedDate: backend.promised_dlry_dt 
-      ? new Date(backend.promised_dlry_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-      : null,
-    needByDate: backend.need_by_dt 
-      ? new Date(backend.need_by_dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-      : null
-  }));
-}
+  const norm = v => String(v ?? '').trim().toLowerCase();
+  const isInspectionRequired = dt =>
+    norm(dt) === 'inspection required' || norm(dt) === 'inspection';
+  const isStandardReceipt = dt =>
+    norm(dt) === 'standard receipt' || norm(dt) === 'standard';
+  const isDirectDelivery = dt =>
+    norm(dt) === 'direct delivery' || norm(dt) === 'direct';
+
+  const mapBackendArrayToFrontend = useCallback(
+    data => {
+      const arr = Array.isArray(data) ? data : [];
+      return arr.map((backend, index) => {
+        const deliveryType =
+          backend?.delivery_type ??
+          backend?.deliveryType ??
+          backend?.delivery_type_name ??
+          backend?.deliveryTypeName ??
+          backend?.deliverytype ??
+          backend?.delivery_type_code ??
+          backend?.delivery_type_desc ??
+          '';
+
+        return {
+          id: String(backend?.po_line_id ?? index + 1),
+          po_line_id: backend?.po_line_id,
+          po_line_number: backend?.po_line_number,
+          item_id: backend?.item_id,
+          name: backend?.item?.item_code || '',
+          description: backend?.item?.description || '',
+          orderedQty: backend?.ord_qty,
+          receivedQty: backend?.rcvd_qty,
+          openQty: backend?.open_qty,
+          ship_to_location: backend?.ship_to_location,
+          max_open_qty: backend?.max_open_qty,
+          lpn: '',
+          deliverytype: deliveryType,
+          deliveryType: deliveryType,
+          sub_inv_name: backend?.sub_inv_name,
+          subInventory: backend?.sub_inv_name,
+          lot_transaction_id: backend?.lot_transaction_id ?? null,
+          lotTransactionId: backend?.lot_transaction_id ?? null,
+          org_id: OrgData?.selectedOrg,
+          locator_name: backend?.locator_name,
+          status: backend?.line_status,
+          uom: backend?.item?.uom === 'EA' ? 'Each' : backend?.item?.uom,
+          promisedDate: backend?.promised_dlry_dt
+            ? new Date(backend.promised_dlry_dt).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })
+            : null,
+          needByDate: backend?.need_by_dt
+            ? new Date(backend.need_by_dt).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })
+            : null,
+        };
+      });
+    },
+    [OrgData?.selectedOrg]
+  );
 
   useEffect(() => {
-    if (!sourceId&&!PONUMBER) return;
-      setPhase('loading');
-    const loadPoData = async () => {
-      // Alert.alert(selectedPO?.po_id)
+    if (!sourceId && !PONUMBER) return;
+
+    setPhase('loading');
+
+    const loadReceipt = async () => {
       try {
-        const posingledata = await GetSingleReceipt(sourceId,PONUMBER);
-        console.log(posingledata,"TESTESTETSTETSTETTET");
-        if (posingledata) {
-        //   SetPurchaseReceipt(posingledata?.next_receipt_num);
-          const frontendArray = mapBackendArrayToFrontend(posingledata);
-          console.log(frontendArray,"frontendArrayfrontendArrayfrontendArrayfrontendArray")
-          SetReceivedData(frontendArray); // ✅ only set once
-        } else {
-          SetReceivedData([]);
-        }
+        const resp = await GetSingleReceipt(sourceId, PONUMBER);
+        const frontendArray = mapBackendArrayToFrontend(resp);
+        setApiItems(frontendArray);
         setPhase('success');
       } catch (err) {
-        console.error("Error loading PO data:", err);
-                Toast.show({
-                  type: 'error',
-                  text1: 'Error',
-                  text2: 'Failed to load PO Items. Please try again.',
-                  position: 'top',
-                  visibilityTime: 5000
-                });
-            setPhase('error');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load PO Items. Please try again.',
+          position: 'top',
+          visibilityTime: 5000,
+        });
+        setApiItems([]);
+        setPhase('error');
       }
     };
-  
-    loadPoData();
-  }, [sourceId,PONUMBER]);
+
+    loadReceipt();
+  }, [sourceId, PONUMBER, mapBackendArrayToFrontend]);
 
   useEffect(() => {
     if (headerFromRoute) {
       setPoHeader(null);
       setPoHeader(headerFromRoute);
-      return;
     }
-
-  }, [headerFromRoute]);
+  }, [headerFromRoute, setPoHeader]);
 
   useEffect(() => {
-      setDraft(receivedData);
-  }, [receivedData]);
+    setDraft(apiItems);
+  }, [apiItems]);
 
   const patch = route?.params?.patch;
 
   useEffect(() => {
     const patchId = patch?.id != null ? String(patch.id) : null;
     if (!patchId || handledPatchIdsRef.current.has(patchId)) return;
+
     handledPatchIdsRef.current.add(patchId);
+
     setDraft(prev =>
       prev.map(it =>
         String(it.id) === patchId
           ? {
               ...it,
-              qtyToReceive: typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive,
+              qtyToReceive:
+                typeof patch.receivingQty === 'number'
+                  ? patch.receivingQty
+                  : it.qtyToReceive,
               lpn: patch.lpn ?? it.lpn,
               subInventory: patch.subInventory ?? it.subInventory,
               locator: patch.locator ?? it.locator,
@@ -184,174 +200,272 @@ const ReceivedSummaryScreen = () => {
           : it
       )
     );
+
     mergePatchIntoSummaryItems(patch);
     mergePatchIntoReceiveItems(patch);
+
     const t = setTimeout(() => navigation.setParams({ patch: undefined }), 0);
     return () => clearTimeout(t);
   }, [patch?.id, patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation]);
 
   const headerData = useMemo(
-    () => poHeader || { purchaseReceipt: '—', supplier: '—', poNumber: '—', poDate: '—' },
+    () =>
+      poHeader || {
+        receiptNumber: '—',
+        supplier: '—',
+        poNumber: '—',
+        poDate: '—',
+      },
     [poHeader]
   );
 
   const renderItems = useMemo(() => {
-  if (Array.isArray(draft) && draft.length > 0) return draft;
-  return [];
-}, [draft]);
+    if (Array.isArray(draft) && draft.length > 0) return draft;
+    return [];
+  }, [draft]);
 
-  const qtyFor = useCallback(
-    it => {
-      const inReceive = Array.isArray(receiveItems) ? receiveItems.find(x => String(x.id) === String(it.id)) : null;
-      const inSummary = Array.isArray(summaryItems) ? summaryItems.find(x => String(x.id) === String(it.id)) : null;
-      const q =
-        inReceive?.qtyToReceive ??
-        inReceive?.receivingQty ??
-        inSummary?.qtyToReceive ??
-        inSummary?.receivingQty ??
-        it?.qtyToReceive ??
-        0;
-      return Number(q);
-    },
-    [receiveItems, summaryItems]
-  );
+  const filteredItems = useMemo(() => {
+    const wantInspection = inspectOn;
+    const wantStandard = putAwayOn;
 
-//   useFocusEffect(
-//     useCallback(() => {
-//       const hasLive = Array.isArray(receiveItems) && receiveItems.length > 0;
-//       const nonePassed = !Array.isArray(passedItems) || passedItems.length === 0;
-//       const noneSummary = !Array.isArray(summaryItems) || summaryItems.length === 0;
-//       if (!readonly && !hasLive && nonePassed && noneSummary) {
-//         if (listTypeFromRoute === 'Received') {
-//           navigation.replace('Receive');
-//         } else {
-//           navigation.replace('NewReceiveScreen', { listType: listTypeFromRoute || 'line' });
-//         }
-//       }
-//     }, [readonly, receiveItems, passedItems, summaryItems, listTypeFromRoute, navigation])
-//   );
+    return (renderItems || []).filter(it => {
+      const dt = it?.deliverytype;
 
-  const handleCancel = () => setModalVisible(false);
+      if (!wantInspection && !wantStandard) {
+        return isDirectDelivery(dt);
+      }
 
-  const handleSuccess = () => {
-    if (didCompleteRef.current) return;
-    didCompleteRef.current = true;
-    Toast.hide();
-    Toast.show({ type: 'success', text1: 'Order receipt created successfully', position: 'top', visibilityTime: 5000 });
-    setModalVisible(false);
-    resetReceiving();
-    navigation.navigate('Receive');
-  };
+      if (wantInspection && wantStandard) {
+        return isInspectionRequired(dt) || isStandardReceipt(dt);
+      }
 
-  const handleFailure = () => {
-    Toast.hide();
-    Toast.show({ type: 'error', text1: 'Failed to create receipt', position: 'top', visibilityTime: 5000 });
-    setModalVisible(false);
-  };
+      if (wantInspection) return isInspectionRequired(dt);
+      if (wantStandard) return isStandardReceipt(dt);
 
-  const toDetailItemFromSummary = (it, i) => {
-    console.log(it.receivedQty,"ITRECEITCEFIIENFINEFIIFE")
-    const readonlyReceivingQty =
-      listTypeFromRoute === 'scan'
-        ? Number(it.openQty ?? 0) > 0
-          ? Number(it.openQty ?? 0)
-          : Number(it.orderedQty ?? it.orderQty ?? 0)
-        : Number(it.orderedQty ?? it.orderQty ?? 0);
-    return {
-      id: String(it.id),
-      poNumber: headerData.poNumber ?? '—',
-      lineNumber: i + 1,
-      itemName: it.name,
-      itemid:it.item_id,
-      itemDescription: it.itemDescription ?? it.description ?? '—',
-      orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
-      openQty: Number(it.openQty ?? 0),
-      ship_to_location:it.ship_to_location??'—',
-      receivingQty: readonlyReceivingQty,
-      receivedQty:Number(it.receivedQty ?? 0),
-      receivingStatus: it.status,
-      lpn: it.lpn ?? '',
-      uom:it.uom,
-      sub_inv_name: it.sub_inv_name,
-      locator_name: it.locator_name,
-      subInventory: it.subInventory ?? '',
-      locator: it.locator ?? '',
-    };
-  };
+      return false;
+    });
+  }, [renderItems, inspectOn, putAwayOn]);
 
   const openReceiptLineDetailsFromSummary = item => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-    const mapped = source.map(toDetailItemFromSummary);
-    console.log(headerData?.receiptNumber,"headerData?.receiptNumberheaderData?.receiptNumber")
+
+    const withLatestFromStore = source.map((it, i) => {
+      const s = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(it.id))
+        : null;
+
+      const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
+
+      return {
+        id: String(it.id),
+        poNumber: headerData.poNumber ?? '—',
+        lineNumber: i + 1,
+
+        itemName: it.name,
+        po_line_id: it.po_line_id,
+        po_line_number: it.po_line_number,
+        itemid: it.item_id,
+
+        ship_to_location: it.ship_to_location,
+        itemDescription: it.itemDescription ?? it.description ?? '—',
+
+        orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+        orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
+
+        itemtype: it.itemtype ?? null,
+        deliverytype: s?.deliverytype ?? it.deliverytype ?? null,
+
+        openQty: Number(it.openQty ?? 0),
+        uom: it.uom,
+
+        receivingQty: qty,
+        receivingStatus: it.status,
+
+        lpn: s?.lpn ?? it.lpn ?? '',
+        subInventory: s?.subInventory ?? it.subInventory ?? '',
+        locator: s?.locator ?? it.locator ?? null,
+
+        max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
+        imageUri: s?.imageUri ?? it.imageUri ?? null,
+      };
+    });
+
     navigation.navigate({
-      name: 'Rec_ViewReceiptItemDetailsScreen',
-      params: { items: mapped, startIndex: idx, readonly, returnTo: 'ReceivedSummaryScreen', listType: listTypeFromRoute,receiptNumber:headerData?.receiptNumber },
+      name: 'Rec_ViewItemDetailsScreen',
+      params: {
+        items: withLatestFromStore,
+        startIndex: idx,
+        readonly,
+        returnTo: 'ReceiveSummaryScreen',
+        listType: listTypeFromRoute,
+      },
       merge: true,
     });
   };
 
+  const openPendingLineDetailsFromSummary = item => {
+    const source = renderItems;
+    const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
+
+    const withLatestFromStore = source.map((it, i) => {
+      const deliveryType = it?.deliverytype ?? it?.deliveryType ?? null;
+      const receivedqty = Number(it?.receivedQty ?? 0);
+      const subInventory = it?.sub_inv_name ?? it?.subInventory ?? '';
+      const lotTransactionId = it?.lot_transaction_id ?? it?.lotTransactionId ?? null;
+
+      return {
+        id: String(it.id),
+        poNumber: headerData.poNumber ?? '—',
+        lineNumber: i + 1,
+
+        itemName: it.name,
+        po_line_id: it.po_line_id,
+        po_line_number: it.po_line_number,
+        itemid: it.item_id,
+
+        ship_to_location: it.ship_to_location,
+        itemDescription: it.itemDescription ?? it.description ?? '—',
+
+        orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
+        orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
+
+        openQty: Number(it.openQty ?? 0),
+        uom: it.uom,
+
+        receivingStatus: it.status,
+
+        receivedqty,
+        receivedQty: receivedqty,
+        subInventory,
+        sub_inv_name: subInventory,
+        deliveryType,
+        deliverytype: deliveryType,
+        lotTransactionId,
+        lot_transaction_id: lotTransactionId,
+      };
+    });
+
+    navigation.navigate({
+      name: 'Rec_ViewReceivedItemDetailsScreen',
+      params: {
+        items: withLatestFromStore,
+        startIndex: idx,
+        readonly,
+        returnTo: 'ReceivedSummaryScreen',
+        listType: listTypeFromRoute,
+      },
+      merge: true,
+    });
+  };
+
+  const handlePressViewDetails = item => {
+    openLineDetailsFromSummary(item);
+  };
+
+  const handlePressPendingAction = item => {
+    openPendingLineDetailsFromSummary(item);
+  };
+
+  const TogglePill = ({ label, value, onToggle }) => {
+    return (
+      <TouchableOpacity activeOpacity={0.9} onPress={onToggle}>
+        <View
+          style={[
+            styles.toggleTrack,
+            { backgroundColor: value ? '#233E55' : '#9D9FA3' },
+          ]}
+        >
+          {value ? (
+            <>
+              <Text style={[styles.toggleText, styles.textLeft]}>{label}</Text>
+              <View style={[styles.toggleDot, styles.dotOn]} />
+            </>
+          ) : (
+            <>
+              <View style={[styles.toggleDot, styles.dotOff]} />
+              <Text style={[styles.toggleText, styles.textRight]}>{label}</Text>
+            </>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
-        organizationName={useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode}
+        organizationName={
+          useReceivingStore.getState()?.OrgData?.selectedOrgCode ||
+          OrgData?.selectedOrgCode
+        }
         screenTitle="Receiving"
         notificationCount={0}
-        // profileName={profileName}
         onBack={() => {
-          if (listTypeFromRoute === 'Received') {
-            navigation.navigate('Receive');
-          } else {
-            navigation.navigate('NewReceiveScreen');
-          }
+          navigation.navigate('Receive');
         }}
-        // onNotificationPress={() => navigation.navigate('Home')}
-        // onProfilePress={() => navigation.navigate('Home')}
       />
-            {phase === 'loading' && (
-              <View style={styles.loaderWrapper}>
-                <ActivityIndicator size="large" color="#233E55" />
-                <Text style={styles.statusText}>Loading data…</Text>
-              </View>
-            )}
-          {phase !== 'loading' && (
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        <POinfoCardComponent
-          receiptNumber={headerData.receiptNumber}
-          supplier={headerData.supplier}
-          poNumber={headerData.poNumber}
-          receiptDate={headerData.poDate}
-        />
 
-        <View style={styles.itemcontainer}>
-          <Text style={styles.itemName}>Item Summary</Text>
+      {phase === 'loading' && (
+        <View style={styles.loaderWrapper}>
+          <ActivityIndicator size="large" color="#233E55" />
+          <Text style={styles.statusText}>Loading data…</Text>
+        </View>
+      )}
 
-          <View style={styles.tableHeader}>
-            <SummaryTabHdrsComponent />
-          </View>
+      {phase !== 'loading' && (
+        <ScrollView contentContainerStyle={styles.contentContainer}>
+          <POinfoCardComponent
+            receiptNumber={headerData.receiptNumber}
+            supplier={headerData.supplier}
+            poNumber={headerData.poNumber}
+            receiptDate={headerData.poDate}
+          />
 
-          <FlatList
-            data={renderItems}
-            keyExtractor={item => String(item.id)}
-            renderItem={({ item }) => (
-              <View style={styles.lineItemWrapper}>
-                <ReceivedLineitemComponent
-                  item={item}
-                  qtyLabel={item.uom}
-                  qtyValue={item.receivedQty}
-                  readOnly
-                  onViewDetails={() => openReceiptLineDetailsFromSummary(item)}
+          <View style={styles.itemcontainer}>
+            <View style={styles.summaryHeaderRow}>
+              <Text style={styles.itemName}>Item Summary</Text>
+
+              <View style={styles.toggleGroup}>
+                <TogglePill
+                  label="Inspect"
+                  value={inspectOn}
+                  onToggle={() => setInspectOn(v => !v)}
+                />
+                <View style={{ width: rs(10) }} />
+                <TogglePill
+                  label="Put Away"
+                  value={putAwayOn}
+                  onToggle={() => setPutAwayOn(v => !v)}
                 />
               </View>
-            )}
-            scrollEnabled={false}
-            ListEmptyComponent={<View style={{ height: 16 }} />}
-          />
-        </View>
-      </ScrollView>
-        )}
+            </View>
 
+            <View style={styles.tableHeader}>
+              <SummaryTabHdrsComponent />
+            </View>
+
+            <FlatList
+              data={filteredItems}
+              keyExtractor={item => String(item.id)}
+              renderItem={({ item }) => (
+                <View style={styles.lineItemWrapper}>
+                  <ReceivedLineitemComponent
+                    item={item}
+                    qtyLabel={item.uom}
+                    qtyValue={item.receivedQty}
+                    readOnly
+                    onPressViewDetails={() => handlePressViewDetails(item)}
+                    onPressPendingAction={() => handlePressPendingAction(item)}
+                  />
+                </View>
+              )}
+              scrollEnabled={false}
+              ListEmptyComponent={<View style={{ height: 16 }} />}
+            />
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -361,8 +475,6 @@ const styles = StyleSheet.create({
   loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   statusText: { marginTop: 12, color: '#333', fontSize: 14 },
   contentContainer: { paddingBottom: 120 },
-  tableHeader: { marginTop: 8, marginBottom: 10 },
-  lineItemWrapper: { marginBottom: 12 },
   itemcontainer: {
     backgroundColor: '#fff',
     marginHorizontal: 12,
@@ -373,15 +485,57 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     elevation: 2,
   },
+  summaryHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 3,
+  },
   itemName: {
     fontSize: 14,
     fontWeight: '700',
     color: '#111827',
-    marginHorizontal: 12,
-    marginStart: 18,
-    marginTop: 3,
-    paddingTop: 3,
+    marginStart: 6,
   },
+  toggleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toggleText: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: '#FFFFFF',
+    paddingLeft: rs(5),
+    paddingRight: rs(5),
+  },
+  toggleTrack: {
+    width: rs(62),
+    height: rs(20),
+    borderRadius: rs(18),
+    paddingHorizontal: rs(3),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleDot: {
+    width: rs(14),
+    height: rs(14),
+    borderRadius: rs(20),
+    backgroundColor: '#FFFFFF',
+  },
+  dotOn: {},
+  dotOff: {},
+  textLeft: {
+    textAlign: 'left',
+    flex: 1,
+  },
+  textRight: {
+    textAlign: 'right',
+    flex: 1,
+  },
+  tableHeader: { marginTop: 8, marginBottom: 10 },
+  lineItemWrapper: { marginBottom: 12 },
 });
 
 export default ReceivedSummaryScreen;
