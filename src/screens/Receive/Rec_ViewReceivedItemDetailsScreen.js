@@ -679,7 +679,7 @@ useEffect(() => {
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        navigation.navigate('NewReceiveScreen');
+        navigation.goBack()
         return true;
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
@@ -2315,7 +2315,7 @@ const rightEnabled =
         screenTitle="Receiving"
         contextInfo={titleContext}
         notificationCount={0}
-        onBack={handleCancelNav}
+        onBack={() => navigation.goBack()}
       />
 
       <View style={styles.navBar}>

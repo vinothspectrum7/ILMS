@@ -254,7 +254,10 @@ const ReceivedSummaryScreen = () => {
       const s = Array.isArray(receiveItems)
         ? receiveItems.find(r => String(r.id) === String(it.id))
         : null;
-
+  const deliveryType = it?.deliverytype ?? it?.deliveryType ?? null;
+      const receivedqty = Number(it?.receivedQty ?? 0);
+      const subInventory = it?.sub_inv_name ?? it?.subInventory ?? '';
+      const lotTransactionId = it?.lot_transaction_id ?? it?.lotTransactionId ?? null;
       const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
 
       return {
@@ -279,8 +282,17 @@ const ReceivedSummaryScreen = () => {
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
 
-        receivingQty: qty,
+        // receivingQty: qty,
         receivingStatus: it.status,
+
+         receivedqty,
+        receivedQty: receivedqty,
+        subInventory,
+        sub_inv_name: subInventory,
+        deliveryType,
+        deliverytype: deliveryType,
+        lotTransactionId,
+        lot_transaction_id: lotTransactionId,
 
         lpn: s?.lpn ?? it.lpn ?? '',
         subInventory: s?.subInventory ?? it.subInventory ?? '',
@@ -292,12 +304,12 @@ const ReceivedSummaryScreen = () => {
     });
 
     navigation.navigate({
-      name: 'Rec_ViewItemDetailsScreen',
+      name: 'Rec_ViewReceiptItemDetailsScreen',
       params: {
         items: withLatestFromStore,
         startIndex: idx,
         readonly,
-        returnTo: 'ReceiveSummaryScreen',
+        returnTo: 'ReceivedSummaryScreen',
         listType: listTypeFromRoute,
       },
       merge: true,
@@ -360,7 +372,7 @@ const ReceivedSummaryScreen = () => {
   };
 
   const handlePressViewDetails = item => {
-    openLineDetailsFromSummary(item);
+    openReceiptLineDetailsFromSummary(item);
   };
 
   const handlePressPendingAction = item => {
@@ -510,7 +522,7 @@ const styles = StyleSheet.create({
     paddingRight: rs(5),
   },
   toggleTrack: {
-    width: rs(62),
+    width: rs(68),
     height: rs(20),
     borderRadius: rs(18),
     paddingHorizontal: rs(3),
