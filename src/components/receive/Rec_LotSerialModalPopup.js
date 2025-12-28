@@ -112,7 +112,10 @@ export default function Rec_LotSerialModalPopup({
   initialLots = [],
   onSave,
   lineLabel,
+  mode = 'receive', // 'receive' | 'putAway'
 }) {
+
+  const isPutAway = String(mode || '').toLowerCase() === 'putaway';
   const [lots, setLots] = useState([]);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [scanContext, setScanContext] = useState({
@@ -442,9 +445,25 @@ export default function Rec_LotSerialModalPopup({
     for (let i = 0; i < lots.length; i += 1) {
       const lot = lots[i];
       const lotIdx = i + 1;
-      if (!lot.lotNumber || !lot.mfgDate || !lot.expDate || !(Number(lot.qty) > 0)) {
-        return { ok: false, msg: `Please fill all Lot fields for Lot ${lotIdx}` };
+            // In PutAway mode, Mfg/Exp are optional. In Receive mode, keep existing strictness.
+      if (!lot.lotNumber || !(Number(lot.qty) > 0)) {
+        return { ok: false, msg: `Please fill all required Lot fields for Lot ${lotIdx}` };
       }
+
+      if (!isPutAway) {
+        if (!lot.mfgDate || !lot.expDate) {
+          return { ok: false, msg: `Please fill all Lot fields for Lot ${lotIdx}` };
+        }
+      } else {
+        // Optional dates in PutAway: if provided, must be valid DD/MM/YYYY
+        if (lot.mfgDate && !parseDate(lot.mfgDate)) {
+          return { ok: false, msg: `Invalid Mfg Date for Lot ${lotIdx}` };
+        }
+        if (lot.expDate && !parseDate(lot.expDate)) {
+          return { ok: false, msg: `Invalid Exp Date for Lot ${lotIdx}` };
+        }
+      }
+
       const rows = lot.serialRows || [];
       if (!rows.length) continue;
 
@@ -478,9 +497,18 @@ export default function Rec_LotSerialModalPopup({
       serialMode: l.serialRows && l.serialRows.length > 0 ? l.serialMode || 'manual' : null,
       serials: (l.serialRows || []).map(r => (r.serial || '').trim()),
     }));
-    const total = payload.reduce((sum, x) => sum + (Number(x.qty) || 0), 0);
-    onSave?.(payload, total);
+        const total = payload.reduce((sum, x) => sum + (Number(x.qty) || 0), 0);
+
+    const meta = {
+      mode: isPutAway ? 'putAway' : 'receive',
+      lotsCount: payload.length,
+      totalQty: total,
+      serialsCount: payload.reduce((s, l) => s + ((l.serials || []).length || 0), 0),
+    };
+
+    onSave?.(payload, total, meta);
     onClose?.();
+
   };
 
   if (!visible) return null;
@@ -566,7 +594,10 @@ export default function Rec_LotSerialModalPopup({
           <View style={styles.autoBox}>
             <View style={styles.autoRow}>
               <View style={styles.fieldBox}>
-                <Text style={styles.fieldLabel}>Prefix</Text>
+                <Text style={styles.fieldLabel}>
+                  Mfg Date{!isPutAway ? <Text style={styles.required}>*</Text> : null}
+                </Text>
+
                 <TextInput
                   value={lot.prefix}
                   onChangeText={t => handleRangeInputChange(lot.idx, 'prefix', t)}
@@ -577,7 +608,10 @@ export default function Rec_LotSerialModalPopup({
                 />
               </View>
               <View style={styles.fieldBox}>
-                <Text style={styles.fieldLabel}>Start Number</Text>
+                <Text style={styles.fieldLabel}>
+                  Exp Date{!isPutAway ? <Text style={styles.required}>*</Text> : null}
+                </Text>
+
                 <View style={styles.spinnerBox}>
                   <TextInput
                     value={lot.startNumberText}

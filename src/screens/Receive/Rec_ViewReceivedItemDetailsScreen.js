@@ -1528,6 +1528,36 @@ useEffect(() => {
       const existing = Array.isArray(prev[current.id]) ? prev[current.id] : [];
       const target = Number(putAwayTargetQty || 0);
 
+          // ✅ Standard receipt MUST ALWAYS be a single-row table (no multi-row history)
+    if (isStandardReceipt) {
+      if (!target || target <= 0) {
+        if (existing.length === 0) return prev;
+        return { ...prev, [current.id]: [] };
+      }
+
+      const alreadyCompleted =
+        existing.length === 1 &&
+        existing[0]?.isCompleted &&
+        Number(existing[0]?.qty ?? 0) === Number(target);
+
+      if (alreadyCompleted) return prev;
+
+      return {
+        ...prev,
+        [current.id]: [
+          {
+            id: existing[0]?.id || makePutAwayRowId(),
+            qty: target,
+            putAwayDecision: '-',
+            receivingStatus: 'Put Away Pending',
+            isCompleted: false,
+            completedAt: null,
+          },
+        ],
+      };
+    }
+
+
       // If target is 0 => keep rows empty
       if (!target || target <= 0) {
         if (existing.length === 0) return prev;
@@ -2106,9 +2136,9 @@ const handlePutAwayRowComplete = useCallback(
     if (!current) return;
 
     const rowId = payload?.rowId;
-    const putQty = Number(payload?.putAwayQty ?? 0);
+    const rawPutQty = Number(payload?.putAwayQty ?? 0);
 
-    if (!rowId || !putQty || putQty <= 0) return;
+    if (!rowId) return;
 
     setPutAwayRowsMap(prev => {
       const rows = Array.isArray(prev[current.id]) ? prev[current.id] : [];
@@ -2119,7 +2149,11 @@ const handlePutAwayRowComplete = useCallback(
       if (!row || row.isCompleted) return prev;
 
       const rowQty = Number(row.qty ?? 0);
-      const safeQty = Math.min(putQty, rowQty);
+      if (!rowQty || rowQty <= 0) return prev;
+
+      // ✅ Standard receipt: ALWAYS single row → force full completion, NO split rows
+      const safeQty = isStandardReceipt ? rowQty : Math.min(rawPutQty, rowQty);
+      if (!safeQty || safeQty <= 0) return prev;
 
       const completedRow = {
         ...row,
@@ -2128,29 +2162,36 @@ const handlePutAwayRowComplete = useCallback(
         receivingStatus: 'Put Away Completed',
         isCompleted: true,
         completedAt: new Date().toISOString(),
-      };
 
-      const remaining = Math.max(0, rowQty - safeQty);
+        // ✅ keep row-level details (no remap by index)
+        subInventory: payload?.subInventory ?? payload?.sub_inventory ?? row.subInventory ?? '',
+        locator: payload?.locator ?? payload?.locator_id ?? row.locator ?? '',
+      };
 
       const nextRows = [...rows];
       nextRows.splice(idx, 1, completedRow);
 
-      if (remaining > 0) {
-        nextRows.splice(idx + 1, 0, {
-          id: makePutAwayRowId(),
-          qty: remaining,
-          putAwayDecision: '-',
-          receivingStatus: 'Put Away Pending',
-          isCompleted: false,
-          completedAt: null,
-        });
+      // ✅ Only Inspection required can split into multiple rows
+      if (!isStandardReceipt) {
+        const remaining = Math.max(0, rowQty - safeQty);
+        if (remaining > 0) {
+          nextRows.splice(idx + 1, 0, {
+            id: makePutAwayRowId(),
+            qty: remaining,
+            putAwayDecision: '-',
+            receivingStatus: 'Put Away Pending',
+            isCompleted: false,
+            completedAt: null,
+          });
+        }
       }
 
       return { ...prev, [current.id]: nextRows };
     });
   },
-  [current?.id],
+  [current?.id, isStandardReceipt],
 );
+
 
 
 const handleInspectRowComplete = useCallback(
@@ -2262,16 +2303,20 @@ const handleSavePutAwayStdOrInspect = useCallback(() => {
   const rows = Array.isArray(putAwayRowsMap[current.id]) ? putAwayRowsMap[current.id] : [];
   const completedRows = rows.filter(r => r?.isCompleted);
 
+  // ✅ Since we allow saving ONLY when fully completed,
+  // store rows as-is (row-by-row order) to avoid any index remap.
   mergePatchIntoReceiveItems({
     id: String(current.id),
     putAwayStatus: 'Passed',
-    lastPutAwayDate: completedRows[completedRows.length - 1]?.completedAt || new Date().toISOString(),
+    lastPutAwayDate:
+      completedRows[completedRows.length - 1]?.completedAt || new Date().toISOString(),
     putAwayData: {
-      rows: completedRows,
+      rows: rows, // <-- keep original order
       targetQty: Number(putAwayTargetQty || 0),
       basedOn: isStandardReceipt ? 'receivedQty' : 'inspectedQty',
     },
   });
+
 
   if (returnTo) navigation.navigate(returnTo, { listType });
   else navigation.goBack();
@@ -3340,7 +3385,7 @@ const rightEnabled =
         style={styles.scanBox}
       >
         <Text style={styles.scanPlaceholder}>
-          {pendingPutAwayRow ? 'Scan Item' : 'Inspection Pending'}
+          {pendingPutAwayRow ? 'Scan Item' : 'Put Away Completed'}
         </Text>
         <Barcodescanner width={18} height={18} />
       </TouchableOpacity>
