@@ -292,7 +292,7 @@ const ReceivedSummaryScreen = () => {
     });
 
     navigation.navigate({
-      name: 'Rec_ViewItemDetailsScreen',
+      name: 'Rec_ViewReceivedItemDetailsScreen',
       params: {
         items: withLatestFromStore,
         startIndex: idx,
