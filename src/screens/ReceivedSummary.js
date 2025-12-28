@@ -279,13 +279,13 @@ const ReceivedSummaryScreen = () => {
     };
   };
 
-  const openLineDetailsFromSummary = item => {
+  const openReceiptLineDetailsFromSummary = item => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
     const mapped = source.map(toDetailItemFromSummary);
     console.log(headerData?.receiptNumber,"headerData?.receiptNumberheaderData?.receiptNumber")
     navigation.navigate({
-      name: 'LineItemDetails',
+      name: 'Rec_ViewReceiptItemDetailsScreen',
       params: { items: mapped, startIndex: idx, readonly, returnTo: 'ReceivedSummaryScreen', listType: listTypeFromRoute,receiptNumber:headerData?.receiptNumber },
       merge: true,
     });
@@ -341,7 +341,7 @@ const ReceivedSummaryScreen = () => {
                   qtyLabel={item.uom}
                   qtyValue={item.receivedQty}
                   readOnly
-                  onViewDetails={() => openLineDetailsFromSummary(item)}
+                  onViewDetails={() => openReceiptLineDetailsFromSummary(item)}
                 />
               </View>
             )}
