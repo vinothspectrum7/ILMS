@@ -79,6 +79,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
   initialPutAwayData = null,
   onComplete,
   rowQty,
+  rowId,
   putAwayTargetQty,
 }) {
   const [subInv, setSubInv] = useState(null);
@@ -209,6 +210,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
     const locObj = locator ? findItem(locatorItems, locator) || locator : null;
 
     const payload = {
+      rowId,
       putAwayQty: safeNum(putAwayQty),
       subInventory: subObj,
       targetLocator: locObj,

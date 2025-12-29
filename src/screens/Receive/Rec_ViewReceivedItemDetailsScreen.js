@@ -2185,7 +2185,7 @@ const handlePutAwayRowComplete = useCallback(
           });
         }
       }
-
+      
       return { ...prev, [current.id]: nextRows };
     });
   },
@@ -2318,8 +2318,8 @@ const handleSavePutAwayStdOrInspect = useCallback(() => {
   });
 
 
-  if (returnTo) navigation.navigate(returnTo, { listType });
-  else navigation.goBack();
+  // if (returnTo) navigation.navigate(returnTo, { listType });
+   navigation.goBack();
 }, [
   current?.id,
   isStandardReceipt,

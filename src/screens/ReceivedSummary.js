@@ -84,6 +84,24 @@ const ReceivedSummaryScreen = () => {
   const mapBackendArrayToFrontend = useCallback(
     data => {
       const arr = Array.isArray(data) ? data : [];
+          // 🔍 Check delivery types
+    const isAllDirectDelivery = arr.every(backend => {
+      const deliveryType =
+        backend?.delivery_type ??
+        backend?.deliveryType ??
+        backend?.delivery_type_name ??
+        backend?.deliveryTypeName ??
+        backend?.deliverytype ??
+        backend?.delivery_type_code ??
+        backend?.delivery_type_desc ??
+        '';
+
+      return deliveryType === 'Direct delivery';
+    });
+
+    // ✅ Set states once
+    setInspectOn(!isAllDirectDelivery);
+    setPutAwayOn(!isAllDirectDelivery);
       return arr.map((backend, index) => {
         const deliveryType =
           backend?.delivery_type ??
@@ -251,6 +269,10 @@ const ReceivedSummaryScreen = () => {
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
 
     const withLatestFromStore = source.map((it, i) => {
+      const deliveryType = it?.deliverytype ?? it?.deliveryType ?? null;
+      const receivedqty = Number(it?.receivedQty ?? 0);
+      const subInventory = it?.sub_inv_name ?? it?.subInventory ?? '';
+      const lotTransactionId = it?.lot_transaction_id ?? it?.lotTransactionId ?? null;
       const s = Array.isArray(receiveItems)
         ? receiveItems.find(r => String(r.id) === String(it.id))
         : null;
@@ -288,6 +310,14 @@ const ReceivedSummaryScreen = () => {
 
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
         imageUri: s?.imageUri ?? it.imageUri ?? null,
+        receivedqty,
+        receivedQty: receivedqty,
+        subInventory,
+        sub_inv_name: subInventory,
+        deliveryType,
+        deliverytype: deliveryType,
+        lotTransactionId,
+        lot_transaction_id: lotTransactionId,
       };
     });
 
@@ -297,7 +327,7 @@ const ReceivedSummaryScreen = () => {
         items: withLatestFromStore,
         startIndex: idx,
         readonly,
-        returnTo: 'ReceiveSummaryScreen',
+        returnTo: 'ReceivedSummaryScreen',
         listType: listTypeFromRoute,
       },
       merge: true,
@@ -510,7 +540,7 @@ const styles = StyleSheet.create({
     paddingRight: rs(5),
   },
   toggleTrack: {
-    width: rs(62),
+    width: rs(72),
     height: rs(20),
     borderRadius: rs(18),
     paddingHorizontal: rs(3),
