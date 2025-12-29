@@ -2172,7 +2172,7 @@ const handlePutAwayRowComplete = useCallback(
       nextRows.splice(idx, 1, completedRow);
 
       // ✅ Only Inspection required can split into multiple rows
-      if (!isStandardReceipt) {
+      // if (!isStandardReceipt) {
         const remaining = Math.max(0, rowQty - safeQty);
         if (remaining > 0) {
           nextRows.splice(idx + 1, 0, {
@@ -2184,7 +2184,7 @@ const handlePutAwayRowComplete = useCallback(
             completedAt: null,
           });
         }
-      }
+      // }
       
       return { ...prev, [current.id]: nextRows };
     });

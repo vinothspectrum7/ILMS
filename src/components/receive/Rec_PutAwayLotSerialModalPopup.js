@@ -190,7 +190,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
 
     if (!hasLots) return 'Add Lot or Lot+Serial to Confirm Put Away';
 
-    if (lotQ > 0 && q !== lotQ) return 'Put Away Qty should be equal to Lot Qty';
+    // if (lotQ > 0 && q !== lotQ) return 'Put Away Qty should be equal to Lot Qty';
     if (lineQ > 0 && q > lineQ) return 'Put Away Qty should not be greater than Receiving Qty';
 
     const lotsTotal = safeNum(totalLotQty);
