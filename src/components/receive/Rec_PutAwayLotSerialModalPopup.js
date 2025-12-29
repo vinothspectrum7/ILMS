@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  Platform,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import Toast from 'react-native-toast-message';
 import CloseIcon from '../../assets/icons/close.svg';
 import ErrorIcon from '../../assets/icons/error.svg';
@@ -16,6 +16,7 @@ import Rec_CustomNumericInput from '../../components/receive/Rec_CustomNumericIn
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import ItemBoxIcon from '../../assets/icons/lotserialitem.svg';
+import Rec_LotSerialModalPopup from './Rec_LotSerialModalPopup';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -42,6 +43,27 @@ const findItem = (items, value) => {
   return arr.find(x => String(x?.id) === id) || null;
 };
 
+const safeNum = v => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const sumLotQty = lots =>
+  (Array.isArray(lots) ? lots : []).reduce((acc, l) => acc + safeNum(l?.qty ?? l?.lotQty ?? 0), 0);
+
+const sumSerialCount = lots =>
+  (Array.isArray(lots) ? lots : []).reduce((acc, l) => {
+    const s = l?.serials ?? l?.serialLines ?? l?.serialNumbers ?? [];
+    return acc + (Array.isArray(s) ? s.length : 0);
+  }, 0);
+
+const inferStatus = lots => {
+  const hasLots = Array.isArray(lots) && lots.length > 0;
+  if (!hasLots) return '';
+  const sc = sumSerialCount(lots);
+  return sc > 0 ? 'Lot + Serial Added' : 'Lot Added';
+};
+
 export default function Rec_PutAwayLotSerialModalPopup({
   visible,
   onClose,
@@ -54,21 +76,22 @@ export default function Rec_PutAwayLotSerialModalPopup({
   defaultSubInventory = null,
   defaultLocator = null,
   fetchLocators,
-  lineReceivingQty = 0,
   initialPutAwayData = null,
   onComplete,
   rowQty,
-  rowId,
   putAwayTargetQty,
-
 }) {
-  // const putAwayTargetQty = useMemo(() => Number(lot?.qty || 0), [lot]);
-
   const [subInv, setSubInv] = useState(null);
   const [locator, setLocator] = useState(null);
   const [locatorItems, setLocatorItems] = useState([]);
   const [putAwayQty, setPutAwayQty] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const [lotSerialVisible, setLotSerialVisible] = useState(false);
+  const [addedPutAwayLots, setAddedPutAwayLots] = useState([]);
+
+  const [showPutAwayUI, setShowPutAwayUI] = useState(true);
+
 
   const clearError = useCallback(() => setErrorMsg(''), []);
 
@@ -111,54 +134,69 @@ export default function Rec_PutAwayLotSerialModalPopup({
 
     const pre = initialPutAwayData || null;
 
-    const preSubInv =
-      pre?.subInventory ??
-      pre?.fromSubInventory ??
-      defaultSubInventory ??
-      null;
+    const preSubInv = pre?.subInventory ?? pre?.fromSubInventory ?? defaultSubInventory ?? null;
+    const preLocator = pre?.locator ?? pre?.targetLocator ?? defaultLocator ?? null;
 
-    const preLocator =
-      pre?.locator ??
-      pre?.targetLocator ??
-      defaultLocator ??
-      null;
+    const preQtyRaw = safeNum(pre?.putAwayQty ?? pre?.qty ?? putAwayTargetQty ?? 0);
+    const preQty = preQtyRaw > 0 ? preQtyRaw : safeNum(putAwayTargetQty);
 
-    const preQtyRaw = Number(pre?.putAwayQty ?? pre?.qty ?? putAwayTargetQty ?? 0);
-    const preQty = Number.isFinite(preQtyRaw) && preQtyRaw > 0 ? preQtyRaw : putAwayTargetQty;
+    const preLots =
+      pre?.putAwayLotLines ??
+      pre?.putAwayLots ??
+      pre?.lotLines ??
+      pre?.lots ??
+      [];
 
     setSubInv(preSubInv || null);
     setLocator(preLocator || null);
-    setPutAwayQty(putAwayTargetQty > 0 ? preQty : 0);
+    setPutAwayQty(safeNum(putAwayTargetQty) > 0 ? preQty : 0);
+    setAddedPutAwayLots(Array.isArray(preLots) ? preLots : []);
     setErrorMsg('');
 
     (async () => {
       const list = await loadLocators(preSubInv || null);
 
       if (preLocator) {
-        const ok =
-          !!findItem(list, preLocator) ||
-          !!findItem(list, { id: asId(preLocator) });
-
+        const ok = !!findItem(list, preLocator) || !!findItem(list, { id: asId(preLocator) });
         if (!ok) setLocator(null);
       }
     })();
   }, [visible, initialPutAwayData, defaultSubInventory, defaultLocator, putAwayTargetQty, loadLocators]);
 
+  const subName = useMemo(() => asName(findItem(inventoryItems, subInv) || subInv), [inventoryItems, subInv]);
+  const locName = useMemo(() => asName(findItem(locatorItems, locator) || locator), [locatorItems, locator]);
+
+  const showSummary = !!subInv && safeNum(putAwayQty) > 0;
+
+  const hasLots = Array.isArray(addedPutAwayLots) && addedPutAwayLots.length > 0;
+  const lotsCount = hasLots ? addedPutAwayLots.length : 0;
+  const totalLotQty = hasLots ? sumLotQty(addedPutAwayLots) : 0;
+  const serialCount = hasLots ? sumSerialCount(addedPutAwayLots) : 0;
+
+  const addRowText = useMemo(() => {
+    if (!hasLots) return 'Add Lot+Serial';
+    if (serialCount > 0) return `${lotsCount} Lots+${serialCount} Serials Added - ${safeNum(putAwayQty)} QTY`;
+    return `${lotsCount} Lots Added - ${safeNum(putAwayQty)} QTY`;
+  }, [hasLots, lotsCount, serialCount, putAwayQty]);
+
   const validate = useCallback(() => {
-    const q = Number(putAwayQty || 0);
-    const lotQ = Number(putAwayTargetQty || 0);
-    const lineQ = Number(rowQty || 0);
+    const q = safeNum(putAwayQty);
+    const lotQ = safeNum(putAwayTargetQty);
+    const lineQ = safeNum(rowQty);
 
     if (!subInv) return 'Select Sub Inventory to Confirm Put Away';
-    if (!locator) return 'Select Target Locator to Confirm Put Away';
-
     if (!q || q <= 0) return 'Enter Put Away Qty to Confirm Put Away';
+
+    if (!hasLots) return 'Add Lot or Lot+Serial to Confirm Put Away';
 
     if (lotQ > 0 && q !== lotQ) return 'Put Away Qty should be equal to Lot Qty';
     if (lineQ > 0 && q > lineQ) return 'Put Away Qty should not be greater than Receiving Qty';
 
+    const lotsTotal = safeNum(totalLotQty);
+    if (lotsTotal > 0 && q > 0 && lotsTotal !== q) return 'Total Lot Qty should be equal to Put Away Qty';
+
     return '';
-  }, [subInv, locator, putAwayQty, putAwayTargetQty, rowQty]);
+  }, [subInv, putAwayQty, putAwayTargetQty, rowQty, hasLots, totalLotQty]);
 
   const handleConfirmPutAway = useCallback(() => {
     const msg = validate();
@@ -168,10 +206,10 @@ export default function Rec_PutAwayLotSerialModalPopup({
     }
 
     const subObj = findItem(inventoryItems, subInv) || subInv;
-    const locObj = findItem(locatorItems, locator) || locator;
+    const locObj = locator ? findItem(locatorItems, locator) || locator : null;
 
     const payload = {
-      putAwayQty: Number(putAwayQty || 0),
+      putAwayQty: safeNum(putAwayQty),
       subInventory: subObj,
       targetLocator: locObj,
       lotDetails: lot,
@@ -179,10 +217,14 @@ export default function Rec_PutAwayLotSerialModalPopup({
       itemName,
       itemCode,
       uom,
-      putAwayDate: new Date().toISOString(),
+      putAwayLotLines: addedPutAwayLots,
+      putAwaySerialLines: [],
+      putAwayStatus: inferStatus(addedPutAwayLots),
+      lastPutAwayDate: new Date().toISOString(),
     };
 
     if (onComplete) onComplete(payload);
+
     Toast.show({ type: 'success', text1: 'Put Away Saved' });
     onClose();
   }, [
@@ -197,17 +239,43 @@ export default function Rec_PutAwayLotSerialModalPopup({
     itemName,
     itemCode,
     uom,
+    addedPutAwayLots,
     onComplete,
     onClose,
   ]);
 
-  const isReady =
-    !!subInv &&
-    !!locator &&
-    Number(putAwayQty || 0) > 0;
+  const isReady = !!subInv && safeNum(putAwayQty) > 0 && hasLots;
 
-  const subName = useMemo(() => asName(findItem(inventoryItems, subInv) || subInv), [inventoryItems, subInv]);
-  const locName = useMemo(() => asName(findItem(locatorItems, locator) || locator), [locatorItems, locator]);
+  const openLotSerialModal = useCallback(() => {
+  clearError();
+  if (!subInv) {
+    setErrorMsg('Select Sub Inventory before adding Lot/Serial');
+    return;
+  }
+  if (safeNum(putAwayQty) <= 0) {
+    setErrorMsg('Enter Put Away Qty before adding Lot/Serial');
+    return;
+  }
+
+  setShowPutAwayUI(false);
+  setLotSerialVisible(true);
+}, [clearError, subInv, putAwayQty]);
+
+
+  const handleLotSerialClose = useCallback(() => {
+  setLotSerialVisible(false);
+  setShowPutAwayUI(true);
+}, []);
+
+
+  const handleLotSerialSave = useCallback((payload) => {
+  const lots = Array.isArray(payload) ? payload : [];
+  setAddedPutAwayLots(lots);
+  setLotSerialVisible(false);
+  setShowPutAwayUI(true);
+  Toast.show({ type: 'success', text1: 'Lot/Serial Saved' });
+}, []);
+
 
   if (!visible) return null;
 
@@ -219,6 +287,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+        {showPutAwayUI && (
           <View style={styles.modalContainer}>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Put Away</Text>
@@ -237,16 +306,15 @@ export default function Rec_PutAwayLotSerialModalPopup({
             <View style={styles.body}>
               <View style={styles.lotCard}>
                 <ItemBoxIcon width={40} height={40} />
-                <View style={{ flex: 1, marginLeft: 5 }}>                  
+                <View style={{ flex: 1, marginLeft: 5 }}>
                   <Text style={styles.lotId}>{itemName || 'N/A'}</Text>
                   <View style={styles.lotRow}>
                     <Text style={styles.smallText}>{itemCode || '-'}</Text>
-                    {/* <Text style={styles.smallText}>Exp: {lot?.expDate || '-'}</Text> */}
                   </View>
                 </View>
                 <View style={styles.qtyBox}>
                   <Text style={styles.qtyLabel}>Qty</Text>
-                  <Text style={styles.qtyValue}>{putAwayTargetQty}</Text>
+                  <Text style={styles.qtyValue}>{safeNum(putAwayTargetQty)}</Text>
                 </View>
               </View>
 
@@ -287,7 +355,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
                   setValue={v => {
                     clearError();
                     const raw = typeof v === 'function' ? v(putAwayQty) : v;
-                    setPutAwayQty(Number(raw || 0));
+                    setPutAwayQty(safeNum(raw));
                   }}
                   min={0}
                   max={putAwayTargetQty}
@@ -299,7 +367,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
                 />
               </View>
 
-              {isReady && (
+              {showSummary && (
                 <View style={styles.sectionBlock}>
                   <View style={styles.summaryWrap}>
                     <View style={styles.summaryHeader}>
@@ -324,7 +392,8 @@ export default function Rec_PutAwayLotSerialModalPopup({
                       <View style={styles.summaryCol}>
                         <Text style={styles.sumLabel}>Quantity</Text>
                         <Text style={styles.sumValue} numberOfLines={1}>
-                          {Number(putAwayQty || 0)}{uom ? ` ${uom}` : ''}
+                          {safeNum(putAwayQty)}
+                          {uom ? ` ${uom}` : ''}
                         </Text>
 
                         <View style={{ height: rs(14) }} />
@@ -339,6 +408,27 @@ export default function Rec_PutAwayLotSerialModalPopup({
                 </View>
               )}
 
+              <View style={styles.addLotRow}>
+                <TouchableOpacity style={styles.addLotBtn} activeOpacity={0.85} onPress={openLotSerialModal}>
+                  {hasLots ? (
+                    <View style={styles.addLotGreen}>
+                      <ItemBoxIcon width={rs(16)} height={rs(16)} />
+                      <Text style={styles.addLotGreenText}>{addRowText}</Text>
+                    </View>
+                  ) : (
+                    <LinearGradient
+                      colors={['#7392AA', '#89ADC9']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.addLotGrad}
+                    >
+                      <ItemBoxIcon width={rs(20)} height={rs(20)} />
+                      <Text style={styles.addLotText}>{addRowText}</Text>
+                    </LinearGradient>
+                  )}
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.footerWrap}>
                 <SingleFooterBtnComponent
                   label="Confirm Put Away"
@@ -351,6 +441,19 @@ export default function Rec_PutAwayLotSerialModalPopup({
               </View>
             </View>
           </View>
+        )}
+
+          <Rec_LotSerialModalPopup
+            visible={lotSerialVisible}
+            onClose={handleLotSerialClose}
+            itemName={itemName}
+            itemCode={itemCode}
+            lineQty={safeNum(putAwayQty)}
+            initialLots={addedPutAwayLots}
+            onSave={handleLotSerialSave}
+            mode="putAway"
+          />
+
         </ScrollView>
       </View>
     </Modal>
@@ -458,12 +561,6 @@ const styles = StyleSheet.create({
     marginBottom: rs(6),
     fontWeight: '600',
   },
-  sectionTitle: {
-    fontSize: rs(16),
-    fontWeight: '600',
-    marginBottom: rs(10),
-    color: '#111827',
-  },
   summaryWrap: {
     width: '100%',
     borderRadius: rs(10),
@@ -502,6 +599,42 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontSize: rs(13),
     fontWeight: '700',
+  },
+  addLotRow: {
+    marginTop: rs(14),
+  },
+  addLotBtn: {
+    alignSelf: 'stretch',
+  },
+  addLotGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: rs(12),
+    paddingVertical: rs(10),
+    borderRadius: rs(8),
+    alignSelf: 'stretch',
+  },
+  addLotText: {
+    marginLeft: rs(6),
+    fontSize: rs(14),
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  addLotGreen: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: rs(12),
+    paddingVertical: rs(10),
+    borderRadius: rs(12),
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    backgroundColor: '#73B386',
+  },
+  addLotGreenText: {
+    marginLeft: rs(6),
+    fontSize: rs(11),
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   footerWrap: {
     width: '100%',
