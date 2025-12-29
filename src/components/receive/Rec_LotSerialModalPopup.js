@@ -110,12 +110,15 @@ export default function Rec_LotSerialModalPopup({
   itemName = '',
   itemCode = '',
   initialLots = [],
+  initialData = [],
   onSave,
+  onComplete,
   lineLabel,
   mode = 'receive', // 'receive' | 'putAway'
+  putAwayMode = false,
 }) {
 
-  const isPutAway = String(mode || '').toLowerCase() === 'putaway';
+  const isPutAway = String(mode || '').toLowerCase() === 'putaway' || !!putAwayMode;
   const [lots, setLots] = useState([]);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [scanContext, setScanContext] = useState({
@@ -134,12 +137,22 @@ export default function Rec_LotSerialModalPopup({
 
   useEffect(() => {
     if (!visible) return;
-    if (Array.isArray(initialLots) && initialLots.length > 0) {
-      const nextLots = initialLots.map((l, index) => createEmptyLot(Number.isFinite(l.idx) ? l.idx : index, l));
+    const seedLots =
+      Array.isArray(initialLots) && initialLots.length > 0
+        ? initialLots
+        : Array.isArray(initialData) && initialData.length > 0
+        ? initialData
+        : [];
+
+    if (seedLots.length > 0) {
+      const nextLots = seedLots.map((l, index) =>
+        createEmptyLot(Number.isFinite(l.idx) ? l.idx : index, l),
+      );
       setLots(nextLots);
     } else {
       setLots([createEmptyLot(0)]);
     }
+
     setErrorMsg('');
     setScannerVisible(false);
     setScanContext({ kind: null, lotIdx: null, rowId: null, fromAddBar: false });
@@ -507,6 +520,7 @@ export default function Rec_LotSerialModalPopup({
     };
 
     onSave?.(payload, total, meta);
+    onComplete?.(payload, total, meta);
     onClose?.();
 
   };

@@ -90,6 +90,9 @@ export default function Rec_PutAwayLotSerialModalPopup({
   const [lotSerialVisible, setLotSerialVisible] = useState(false);
   const [addedPutAwayLots, setAddedPutAwayLots] = useState([]);
 
+  const [showPutAwayUI, setShowPutAwayUI] = useState(true);
+
+
   const clearError = useCallback(() => setErrorMsg(''), []);
 
   const loadLocators = useCallback(
@@ -244,31 +247,35 @@ export default function Rec_PutAwayLotSerialModalPopup({
   const isReady = !!subInv && safeNum(putAwayQty) > 0 && hasLots;
 
   const openLotSerialModal = useCallback(() => {
-    clearError();
-    if (!subInv) {
-      setErrorMsg('Select Sub Inventory before adding Lot/Serial');
-      return;
-    }
-    if (safeNum(putAwayQty) <= 0) {
-      setErrorMsg('Enter Put Away Qty before adding Lot/Serial');
-      return;
-    }
-    setLotSerialVisible(true);
-  }, [clearError, subInv, putAwayQty]);
+  clearError();
+  if (!subInv) {
+    setErrorMsg('Select Sub Inventory before adding Lot/Serial');
+    return;
+  }
+  if (safeNum(putAwayQty) <= 0) {
+    setErrorMsg('Enter Put Away Qty before adding Lot/Serial');
+    return;
+  }
+
+  setShowPutAwayUI(false);
+  setLotSerialVisible(true);
+}, [clearError, subInv, putAwayQty]);
+
 
   const handleLotSerialClose = useCallback(() => {
-    setLotSerialVisible(false);
-  }, []);
+  setLotSerialVisible(false);
+  setShowPutAwayUI(true);
+}, []);
 
-  const handleLotSerialSave = useCallback(
-    data => {
-      const lots = Array.isArray(data) ? data : data?.lotLines ?? data?.lots ?? [];
-      setAddedPutAwayLots(Array.isArray(lots) ? lots : []);
-      setLotSerialVisible(false);
-      Toast.show({ type: 'success', text1: 'Lot/Serial Saved' });
-    },
-    [],
-  );
+
+  const handleLotSerialSave = useCallback((payload) => {
+  const lots = Array.isArray(payload) ? payload : [];
+  setAddedPutAwayLots(lots);
+  setLotSerialVisible(false);
+  setShowPutAwayUI(true);
+  Toast.show({ type: 'success', text1: 'Lot/Serial Saved' });
+}, []);
+
 
   if (!visible) return null;
 
@@ -280,6 +287,7 @@ export default function Rec_PutAwayLotSerialModalPopup({
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+        {showPutAwayUI && (
           <View style={styles.modalContainer}>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Put Away</Text>
@@ -433,20 +441,19 @@ export default function Rec_PutAwayLotSerialModalPopup({
               </View>
             </View>
           </View>
+        )}
 
           <Rec_LotSerialModalPopup
             visible={lotSerialVisible}
             onClose={handleLotSerialClose}
-            onComplete={handleLotSerialSave}
             itemName={itemName}
             itemCode={itemCode}
-            uom={uom}
             lineQty={safeNum(putAwayQty)}
-            initialData={addedPutAwayLots}
-            putAwayMode={true}
-            mfgDateRequired={false}
-            serialOptional={true}
+            initialLots={addedPutAwayLots}
+            onSave={handleLotSerialSave}
+            mode="putAway"
           />
+
         </ScrollView>
       </View>
     </Modal>
