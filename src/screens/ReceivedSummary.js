@@ -40,16 +40,8 @@ const ReceivedSummaryScreen = () => {
   const [inspectOn, setInspectOn] = useState(true);
   const [putAwayOn, setPutAwayOn] = useState(true);
 
-  const {
-    poHeader,
-    setPoHeader,
-    receiveItems,
-    summaryItems,
-    mergePatchIntoSummaryItems,
-    mergePatchIntoReceiveItems,
-    resetReceiving,
-    OrgData,
-  } = useReceivingStore();
+  const { poHeader, setPoHeader, receiveItems, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, OrgData } =
+    useReceivingStore();
 
   const [draft, setDraft] = useState([]);
   const handledPatchIdsRef = useRef(new Set());
@@ -74,17 +66,17 @@ const ReceivedSummaryScreen = () => {
   );
 
   const norm = v => String(v ?? '').trim().toLowerCase();
-  const isInspectionRequired = dt =>
-    norm(dt) === 'inspection required' || norm(dt) === 'inspection';
-  const isStandardReceipt = dt =>
-    norm(dt) === 'standard receipt' || norm(dt) === 'standard';
-  const isDirectDelivery = dt =>
-    norm(dt) === 'direct delivery' || norm(dt) === 'direct';
+  const isInspectionRequired = dt => norm(dt) === 'inspection required' || norm(dt) === 'inspection';
+  const isStandardReceipt = dt => norm(dt) === 'standard receipt' || norm(dt) === 'standard';
+  const isDirectDelivery = dt => norm(dt) === 'direct delivery' || norm(dt) === 'direct';
+  const isPending = st => norm(st) === 'pending';
+  const isCompleted = st => norm(st) === 'completed';
 
   const mapBackendArrayToFrontend = useCallback(
     data => {
       const arr = Array.isArray(data) ? data : [];
-      return arr.map((backend, index) => {
+
+      const mapped = arr.map((backend, index) => {
         const deliveryType =
           backend?.delivery_type ??
           backend?.deliveryType ??
@@ -94,6 +86,12 @@ const ReceivedSummaryScreen = () => {
           backend?.delivery_type_code ??
           backend?.delivery_type_desc ??
           '';
+
+        const deliveryStatus =
+          backend?.delivery_status ??
+          backend?.deliveryStatus ??
+          backend?.deliverystatus ??
+          null;
 
         return {
           id: String(backend?.po_line_id ?? index + 1),
@@ -110,6 +108,8 @@ const ReceivedSummaryScreen = () => {
           lpn: '',
           deliverytype: deliveryType,
           deliveryType: deliveryType,
+          delivery_status: deliveryStatus,
+          deliveryStatus: deliveryStatus,
           sub_inv_name: backend?.sub_inv_name,
           subInventory: backend?.sub_inv_name,
           lot_transaction_id: backend?.lot_transaction_id ?? null,
@@ -134,6 +134,18 @@ const ReceivedSummaryScreen = () => {
             : null,
         };
       });
+
+      const hasPendingInspection = mapped.some(
+        it => isInspectionRequired(it.deliverytype ?? it.deliveryType) && isPending(it.delivery_status ?? it.deliveryStatus)
+      );
+      const hasPendingStandard = mapped.some(
+        it => isStandardReceipt(it.deliverytype ?? it.deliveryType) && isPending(it.delivery_status ?? it.deliveryStatus)
+      );
+
+      setInspectOn(hasPendingInspection);
+      setPutAwayOn(hasPendingStandard);
+
+      return mapped;
     },
     [OrgData?.selectedOrg]
   );
@@ -189,10 +201,7 @@ const ReceivedSummaryScreen = () => {
         String(it.id) === patchId
           ? {
               ...it,
-              qtyToReceive:
-                typeof patch.receivingQty === 'number'
-                  ? patch.receivingQty
-                  : it.qtyToReceive,
+              qtyToReceive: typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive,
               lpn: patch.lpn ?? it.lpn,
               subInventory: patch.subInventory ?? it.subInventory,
               locator: patch.locator ?? it.locator,
@@ -229,20 +238,20 @@ const ReceivedSummaryScreen = () => {
     const wantStandard = putAwayOn;
 
     return (renderItems || []).filter(it => {
-      const dt = it?.deliverytype;
-
-      if (!wantInspection && !wantStandard) {
-        return isDirectDelivery(dt);
-      }
+      const dt = it?.deliverytype ?? it?.deliveryType;
+      const st = it?.delivery_status ?? it?.deliveryStatus ?? it?.deliverystatus;
 
       if (wantInspection && wantStandard) {
-        return isInspectionRequired(dt) || isStandardReceipt(dt);
+        return (
+          (isInspectionRequired(dt) && isPending(st)) ||
+          (isStandardReceipt(dt) && isPending(st))
+        );
       }
 
-      if (wantInspection) return isInspectionRequired(dt);
-      if (wantStandard) return isStandardReceipt(dt);
+      if (wantInspection) return isInspectionRequired(dt) && isPending(st);
+      if (wantStandard) return isStandardReceipt(dt) && isPending(st);
 
-      return false;
+      return isDirectDelivery(dt) && isCompleted(st);
     });
   }, [renderItems, inspectOn, putAwayOn]);
 
@@ -251,13 +260,13 @@ const ReceivedSummaryScreen = () => {
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
 
     const withLatestFromStore = source.map((it, i) => {
-      const s = Array.isArray(receiveItems)
-        ? receiveItems.find(r => String(r.id) === String(it.id))
-        : null;
-  const deliveryType = it?.deliverytype ?? it?.deliveryType ?? null;
+      const deliveryType = it?.deliverytype ?? it?.deliveryType ?? null;
+      const deliveryStatus = it?.delivery_status ?? it?.deliveryStatus ?? null;
       const receivedqty = Number(it?.receivedQty ?? 0);
       const subInventory = it?.sub_inv_name ?? it?.subInventory ?? '';
       const lotTransactionId = it?.lot_transaction_id ?? it?.lotTransactionId ?? null;
+
+      const s = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : null;
       const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
 
       return {
@@ -277,7 +286,10 @@ const ReceivedSummaryScreen = () => {
         orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
 
         itemtype: it.itemtype ?? null,
-        deliverytype: s?.deliverytype ?? it.deliverytype ?? null,
+        deliveryType,
+        deliverytype: deliveryType,
+        delivery_status: deliveryStatus,
+        deliveryStatus: deliveryStatus,
 
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
@@ -300,6 +312,13 @@ const ReceivedSummaryScreen = () => {
 
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
         imageUri: s?.imageUri ?? it.imageUri ?? null,
+
+        receivedqty,
+        receivedQty: receivedqty,
+        sub_inv_name: subInventory,
+
+        lotTransactionId,
+        lot_transaction_id: lotTransactionId,
       };
     });
 
@@ -322,6 +341,7 @@ const ReceivedSummaryScreen = () => {
 
     const withLatestFromStore = source.map((it, i) => {
       const deliveryType = it?.deliverytype ?? it?.deliveryType ?? null;
+      const deliveryStatus = it?.delivery_status ?? it?.deliveryStatus ?? null;
       const receivedqty = Number(it?.receivedQty ?? 0);
       const subInventory = it?.sub_inv_name ?? it?.subInventory ?? '';
       const lotTransactionId = it?.lot_transaction_id ?? it?.lotTransactionId ?? null;
@@ -347,12 +367,16 @@ const ReceivedSummaryScreen = () => {
 
         receivingStatus: it.status,
 
+        deliveryType,
+        deliverytype: deliveryType,
+        delivery_status: deliveryStatus,
+        deliveryStatus: deliveryStatus,
+
         receivedqty,
         receivedQty: receivedqty,
         subInventory,
         sub_inv_name: subInventory,
-        deliveryType,
-        deliverytype: deliveryType,
+
         lotTransactionId,
         lot_transaction_id: lotTransactionId,
       };
@@ -382,12 +406,7 @@ const ReceivedSummaryScreen = () => {
   const TogglePill = ({ label, value, onToggle }) => {
     return (
       <TouchableOpacity activeOpacity={0.9} onPress={onToggle}>
-        <View
-          style={[
-            styles.toggleTrack,
-            { backgroundColor: value ? '#233E55' : '#9D9FA3' },
-          ]}
-        >
+        <View style={[styles.toggleTrack, { backgroundColor: value ? '#233E55' : '#9D9FA3' }]}>
           {value ? (
             <>
               <Text style={[styles.toggleText, styles.textLeft]}>{label}</Text>
@@ -407,10 +426,7 @@ const ReceivedSummaryScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
-        organizationName={
-          useReceivingStore.getState()?.OrgData?.selectedOrgCode ||
-          OrgData?.selectedOrgCode
-        }
+        organizationName={useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode}
         screenTitle="Receiving"
         notificationCount={0}
         onBack={() => {
@@ -439,17 +455,9 @@ const ReceivedSummaryScreen = () => {
               <Text style={styles.itemName}>Item Summary</Text>
 
               <View style={styles.toggleGroup}>
-                <TogglePill
-                  label="Inspect"
-                  value={inspectOn}
-                  onToggle={() => setInspectOn(v => !v)}
-                />
+                <TogglePill label="Inspect" value={inspectOn} onToggle={() => setInspectOn(v => !v)} />
                 <View style={{ width: rs(10) }} />
-                <TogglePill
-                  label="Put Away"
-                  value={putAwayOn}
-                  onToggle={() => setPutAwayOn(v => !v)}
-                />
+                <TogglePill label="Put Away" value={putAwayOn} onToggle={() => setPutAwayOn(v => !v)} />
               </View>
             </View>
 
@@ -522,7 +530,7 @@ const styles = StyleSheet.create({
     paddingRight: rs(5),
   },
   toggleTrack: {
-    width: rs(68),
+    width: rs(75),
     height: rs(20),
     borderRadius: rs(18),
     paddingHorizontal: rs(3),

@@ -100,6 +100,7 @@ export default function Rec_LotModalPopup({
       ]);
     }
     setShowQtyError(false);
+    setExpiryError(false);
   }, [visible, initialLots]);
 
   const totalQty = useMemo(
@@ -112,6 +113,7 @@ export default function Rec_LotModalPopup({
 
   const updateLot = (idx, patch) => {
     setLots(prev => prev.map(l => (l.idx === idx ? { ...l, ...patch } : l)));
+    if (patch?.expDate !== undefined) setExpiryError(false);
   };
 
   const handleQtyChange = (idx, nextQty) => {
@@ -153,38 +155,43 @@ export default function Rec_LotModalPopup({
       },
     ]);
     setShowQtyError(false);
+    setExpiryError(false);
   };
 
   const hasAllFields =
     lots.length > 0 &&
-    lots.every(l => l.lotNumber && l.mfgDate && l.expDate && Number(l.qty) > 0);
+    lots.every(l => l.lotNumber && l.expDate && Number(l.qty) > 0);
 
-const isFutureDate = (dateStr) => {
-  if (!dateStr) return false;
+  const isFutureDate = dateStr => {
+    if (!dateStr) return false;
+    const [dd, mm, yyyy] = String(dateStr).split('/').map(Number);
+    if (!dd || !mm || !yyyy) return false;
 
-  const [dd, mm, yyyy] = dateStr.split('/').map(Number);
-  const expDate = new Date(yyyy, mm - 1, dd);
-  expDate.setHours(0, 0, 0, 0);
+    const expDate = new Date(yyyy, mm - 1, dd);
+    if (Number.isNaN(expDate.getTime())) return false;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    expDate.setHours(0, 0, 0, 0);
 
-  return expDate > today;
-};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return expDate > today;
+  };
 
   const handleSave = () => {
     if (lineQty > 0 && totalQty < lineQty) {
       setShowQtyError(true);
       return;
     }
-    if (!hasAllFields || totalQty !== lineQty || lineQty <= 0) return;
-  // ❌ Expiry validation
-  const invalidExpiry = lots.some(lot => !isFutureDate(lot.expDate));
 
-  if (invalidExpiry) {
-    setExpiryError(true); // or Toast / Alert
-    return;
-  }
+    if (!hasAllFields || totalQty !== lineQty || lineQty <= 0) return;
+
+    const invalidExpiry = lots.some(lot => !isFutureDate(lot.expDate));
+    if (invalidExpiry) {
+      setExpiryError(true);
+      return;
+    }
+
     const payload = lots.map(({ idx, ...rest }) => rest);
     onSave?.(payload, totalQty);
     onClose?.();
@@ -239,17 +246,27 @@ const isFutureDate = (dateStr) => {
       onRequestClose={onClose}
     >
       {scannerVisible ? (
-        <BarcodeScanner onScan={handleLotScanned} onClose={() => setScannerVisible(false)} />
+        <BarcodeScanner
+          onScan={handleLotScanned}
+          onClose={() => setScannerVisible(false)}
+        />
       ) : (
         <View style={styles.root}>
           <View style={styles.content}>
             <View style={styles.headerBar}>
               <Text style={styles.headerTitle}>
-                {lineLabel ? `${lineLabel} - Lot Number Details` : 'Lot Number Details'}
+                {lineLabel
+                  ? `${lineLabel} - Lot Number Details`
+                  : 'Lot Number Details'}
               </Text>
               <TouchableOpacity
                 onPress={onClose}
-                hitSlop={{ top: rs(10), bottom: rs(10), left: rs(10), right: rs(10) }}
+                hitSlop={{
+                  top: rs(10),
+                  bottom: rs(10),
+                  left: rs(10),
+                  right: rs(10),
+                }}
               >
                 <CloseIcon width={rs(20)} height={rs(20)} />
               </TouchableOpacity>
@@ -263,7 +280,8 @@ const isFutureDate = (dateStr) => {
                 </Text>
               </View>
             )}
-              {ExpiryError && (
+
+            {ExpiryError && (
               <View style={styles.errorBanner}>
                 <ErrorIcon width={rs(16)} height={rs(16)} />
                 <Text style={styles.errorText}>
@@ -293,7 +311,12 @@ const isFutureDate = (dateStr) => {
                 <View style={styles.qtyInfo}>
                   <Text style={styles.topQtyLabel}>Qty Selected</Text>
                   <Text style={styles.qtyValue}>
-                    <Text style={[styles.qtySelected, qtySelectedActive && styles.qtySelectedActive]}>
+                    <Text
+                      style={[
+                        styles.qtySelected,
+                        qtySelectedActive && styles.qtySelectedActive,
+                      ]}
+                    >
                       {totalQty}
                     </Text>
                     <Text style={styles.qtySlash}>/</Text>
@@ -320,10 +343,18 @@ const isFutureDate = (dateStr) => {
                         <Text style={styles.lotTitle}>Lot {index + 1}</Text>
                         <TouchableOpacity
                           onPress={() => handleDeleteLot(lot.idx)}
-                          hitSlop={{ top: rs(8), bottom: rs(8), left: rs(8), right: rs(8) }}
+                          hitSlop={{
+                            top: rs(8),
+                            bottom: rs(8),
+                            left: rs(8),
+                            right: rs(8),
+                          }}
                         >
                           <View style={styles.lotDeleteIconWrapper}>
-                            <LotSerialDeleteIcon width={rs(16)} height={rs(16)} />
+                            <LotSerialDeleteIcon
+                              width={rs(16)}
+                              height={rs(16)}
+                            />
                           </View>
                         </TouchableOpacity>
                       </View>
@@ -337,14 +368,21 @@ const isFutureDate = (dateStr) => {
                           <TextInput
                             style={styles.lotNumberInput}
                             value={lot.lotNumber}
-                            onChangeText={t => updateLot(lot.idx, { lotNumber: t })}
+                            onChangeText={t =>
+                              updateLot(lot.idx, { lotNumber: t })
+                            }
                             placeholder="Enter Lot Number"
                             placeholderTextColor="#999999"
                           />
                           <TouchableOpacity
                             style={styles.barcodeBtn}
                             onPress={() => openScannerForLot(lot.idx)}
-                            hitSlop={{ top: rs(10), bottom: rs(10), left: rs(10), right: rs(10) }}
+                            hitSlop={{
+                              top: rs(10),
+                              bottom: rs(10),
+                              left: rs(10),
+                              right: rs(10),
+                            }}
                           >
                             <BarcodeScannerIcon width={rs(18)} height={rs(18)} />
                           </TouchableOpacity>
@@ -352,7 +390,9 @@ const isFutureDate = (dateStr) => {
 
                         <TouchableOpacity
                           style={styles.generateBtn}
-                          onPress={() => updateLot(lot.idx, { lotNumber: generateLotNumber() })}
+                          onPress={() =>
+                            updateLot(lot.idx, { lotNumber: generateLotNumber() })
+                          }
                           activeOpacity={0.85}
                         >
                           <Text style={styles.generateText}>Generate</Text>
@@ -361,21 +401,23 @@ const isFutureDate = (dateStr) => {
 
                       <View style={styles.row2}>
                         <View style={styles.col}>
-                          <Text style={styles.fieldLabel}>
-                            Mfg Date<Text style={styles.required}></Text>
-                          </Text>
+                          <Text style={styles.fieldLabel}>Mfg Date</Text>
                           <View style={styles.dateRow}>
                             <TextInput
                               style={[styles.dateInput, styles.dateInputMfg]}
                               value={lot.mfgDate}
-                              onChangeText={t => updateLot(lot.idx, { mfgDate: t })}
+                              onChangeText={t =>
+                                updateLot(lot.idx, { mfgDate: t })
+                              }
                               placeholder="DD/MM/YYYY"
                               numberOfLines={1}
                               placeholderTextColor="#999999"
                             />
                             <TouchableOpacity
                               style={styles.dateIconBtn}
-                              onPress={() => openDatePicker(lot.idx, 'mfg', lot.mfgDate)}
+                              onPress={() =>
+                                openDatePicker(lot.idx, 'mfg', lot.mfgDate)
+                              }
                             >
                               <CalendarIcon width={rs(14)} height={rs(14)} />
                             </TouchableOpacity>
@@ -384,20 +426,24 @@ const isFutureDate = (dateStr) => {
 
                         <View style={styles.col}>
                           <Text style={styles.fieldLabel}>
-                            Exp Date<Text style={styles.required}></Text>
+                            Exp Date<Text style={styles.required}>*</Text>
                           </Text>
                           <View style={styles.dateRow}>
                             <TextInput
                               style={[styles.dateInput, styles.dateInputExp]}
                               value={lot.expDate}
-                              onChangeText={t => updateLot(lot.idx, { expDate: t })}
+                              onChangeText={t =>
+                                updateLot(lot.idx, { expDate: t })
+                              }
                               placeholder="DD/MM/YYYY"
                               numberOfLines={1}
                               placeholderTextColor="#999999"
                             />
                             <TouchableOpacity
                               style={styles.dateIconBtn}
-                              onPress={() => openDatePicker(lot.idx, 'exp', lot.expDate)}
+                              onPress={() =>
+                                openDatePicker(lot.idx, 'exp', lot.expDate)
+                              }
                             >
                               <CalendarIcon width={rs(14)} height={rs(14)} />
                             </TouchableOpacity>
