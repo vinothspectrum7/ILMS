@@ -30,7 +30,8 @@ const ReceivedLineitemComponent = ({
   const isStandard = dt => norm(dt) === 'standard receipt' || norm(dt) === 'standard';
   const isInspection = dt => norm(dt) === 'inspection required' || norm(dt) === 'inspection';
 
-  const deliveryType = item?.deliverytype;
+  const deliveryType = item?.deliverytype ?? item?.deliveryType;
+  const deliveryStatus = item?.delivery_status ?? item?.deliveryStatus ?? item?.deliverystatus;
 
   const actionMode = useMemo(() => {
     if (isDirect(deliveryType)) return 'direct';
@@ -39,10 +40,18 @@ const ReceivedLineitemComponent = ({
     return 'direct';
   }, [deliveryType]);
 
+  const statusMode = useMemo(() => {
+    const st = norm(deliveryStatus);
+    if (st === 'completed') return 'completed';
+    if (st === 'pending') return 'pending';
+    return 'unknown';
+  }, [deliveryStatus]);
+
   const pendingLabel = useMemo(() => {
     if (actionMode === 'standard') return 'Put Away Pending';
     if (actionMode === 'inspection') return 'Inspection Pending';
-    return '';
+    if (actionMode === 'direct') return 'Pending';
+    return 'Pending';
   }, [actionMode]);
 
   const formatDate = dateStr => {
@@ -53,18 +62,30 @@ const ReceivedLineitemComponent = ({
     const [day, monthStr, year] = parts;
 
     const months = {
-      jan: 0, january: 0,
-      feb: 1, february: 1,
-      mar: 2, march: 2,
-      apr: 3, april: 3,
+      jan: 0,
+      january: 0,
+      feb: 1,
+      february: 1,
+      mar: 2,
+      march: 2,
+      apr: 3,
+      april: 3,
       may: 4,
-      jun: 5, june: 5,
-      jul: 6, july: 6,
-      aug: 7, august: 7,
-      sep: 8, sept: 8, september: 8,
-      oct: 9, october: 9,
-      nov: 10, november: 10,
-      dec: 11, december: 11,
+      jun: 5,
+      june: 5,
+      jul: 6,
+      july: 6,
+      aug: 7,
+      august: 7,
+      sep: 8,
+      sept: 8,
+      september: 8,
+      oct: 9,
+      october: 9,
+      nov: 10,
+      november: 10,
+      dec: 11,
+      december: 11,
     };
 
     const monthIndex = months[String(monthStr).toLowerCase()];
@@ -87,8 +108,11 @@ const ReceivedLineitemComponent = ({
     if (typeof onViewDetails === 'function') return onViewDetails(item);
   };
 
-  const showDirectViewDetails = actionMode === 'direct';
-  const showPendingPill = actionMode === 'standard' || actionMode === 'inspection';
+  const showDirectViewDetails =
+    statusMode === 'completed' ? true : statusMode === 'pending' ? false : actionMode === 'direct';
+
+  const showPendingPill =
+    statusMode === 'pending' ? true : statusMode === 'completed' ? false : actionMode === 'standard' || actionMode === 'inspection';
 
   return (
     <View style={[styles.cardwrapper, { marginRight: isSwipe ? -20 : scale(15) }]}>
@@ -102,9 +126,7 @@ const ReceivedLineitemComponent = ({
             <View style={{ flexDirection: 'column' }}>
               <Text style={styles.itemName}>{item.name}</Text>
               <Text style={styles.itemdesc}>
-                {item.description?.length > 20
-                  ? item.description.substring(0, 20) + '...'
-                  : item.description}
+                {item.description?.length > 20 ? item.description.substring(0, 20) + '...' : item.description}
               </Text>
             </View>
 
@@ -135,7 +157,7 @@ const ReceivedLineitemComponent = ({
 
           {showPendingPill && (
             <TouchableOpacity activeOpacity={0.85} style={[styles.buttonBase, styles.half]} onPress={handlePendingPress}>
-              <Text style={[styles.pendingLabel]}>{pendingLabel}</Text>
+              <Text style={styles.pendingLabel}>{pendingLabel}</Text>
             </TouchableOpacity>
           )}
 
@@ -174,38 +196,31 @@ const styles = StyleSheet.create({
     borderRadius: scale(10),
     elevation: 3,
   },
-
   rowBetween: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-
   content: {
     flex: 1,
     padding: s(10),
   },
-
   qtyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: s(4),
   },
-
   rowContainer: { flexDirection: 'row', height: '100%' },
-
   itemName: {
     fontSize: ms(12),
     fontWeight: '700',
     color: '#111827',
   },
-
   itemdesc: {
     fontSize: ms(11),
     fontWeight: '700',
     color: '#595A5C',
     marginTop: 2,
   },
-
   enterDetailsBox: {
     marginTop: s(8),
     padding: s(6),
@@ -215,7 +230,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
   enterDetailsText: {
     fontSize: fs(11),
     color: '#145DA0',
@@ -223,7 +237,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
     marginLeft: 5,
   },
-
   qtyInput: {
     height: ms(34),
     borderRadius: ms(6),
@@ -236,7 +249,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     color: '#000000',
   },
-
   uomText: {
     fontSize: ms(10),
     color: '#242424',
@@ -244,7 +256,6 @@ const styles = StyleSheet.create({
     paddingRight: s(4),
     marginLeft: 'auto',
   },
-
   vertDivider: {
     width: Math.max(StyleSheet.hairlineWidth, scale(1)),
     height: scale(18),
@@ -253,30 +264,24 @@ const styles = StyleSheet.create({
     borderRadius: scale(0.5),
     opacity: 0.9,
   },
-
   metaText: {
     fontSize: ms(10),
     color: '#595A5C',
   },
-
   datesRight: {
     marginLeft: 'auto',
   },
-
   itemIconWrap: {
     width: ms(50),
     height: ms(50),
     borderRadius: ms(10),
   },
-
   dateValue: {
     fontSize: ms(10),
     color: '#6C6C6C',
     fontWeight: '500',
   },
-
   half: { width: '50%' },
-
   buttonBase: {
     borderRadius: 8,
     overflow: 'hidden',
@@ -288,7 +293,6 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#FDECEC',
   },
-
   pendingLabel: {
     color: '#F06000',
     fontWeight: '700',
