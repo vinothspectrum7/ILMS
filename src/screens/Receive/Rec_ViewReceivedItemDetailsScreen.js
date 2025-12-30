@@ -30,7 +30,7 @@ import Rec_LotSerialModalPopup from '../../components/receive/Rec_LotSerialModal
 import Rec_SerialModalPopup from '../../components/receive/Rec_SerialModalPopup';
 import Rec_InspectSerialModalPopup from '../../components/receive/Rec_InspectSerialModalPopup';
 import { useReceivingStore } from '../../store/receivingStore';
-import { GetItemImage, GetLocatorsData, LPNList, GetLotDetails } from '../../api/ApiServices';
+import { GetItemImage, GetLocatorsData, LPNList, GetLotDetails, Put_Away_Complete } from '../../api/ApiServices';
 import ReceiveItemBoxIcon from '../../assets/icons/receiveitemboxicon.svg';
 import ReceiveQtyIcon from '../../assets/icons/receiveqtyicon.svg';
 import ReceiveLocationIcon from '../../assets/icons/receivelocationicon.svg';
@@ -143,12 +143,14 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
     mergePatchIntoReceiveItems,
     setLocatorInCache,
     getLocatorFromCache,
+    poHeader
   } = useReceivingStore();
 
   const baseItems = Array.isArray(route?.params?.items) ? route.params.items : [];
 
   const mergedItems = useMemo(() => {
     return baseItems.map(it => {
+      console.log(it,"baseItemsbaseItemsbaseItemsbaseItemsbaseItemsbaseItems")
       const stored = Array.isArray(receiveItems)
         ? receiveItems.find(r => String(r.id) === String(it.id))
         : undefined;
@@ -1414,6 +1416,8 @@ useEffect(() => {
 
   const currentPutAwayRows = useMemo(() => {
     if (!current) return [];
+    console.log(inspectRowsMap,"inspectRowsMapinspectRowsMapinspectRowsMapinspectRowsMap");
+    console.log(putAwayRowsMap,"putAwayRowsMapputAwayRowsMapputAwayRowsMap")
     const rows = putAwayRowsMap[current.id];
     return Array.isArray(rows) ? rows : [];
   }, [putAwayRowsMap, current?.id]);
@@ -1995,17 +1999,13 @@ const renderImageBox = (item) => {
 useEffect(() => {
   const currentItem = allItems[index];
   if (!currentItem) return;
-
-  const editedItem = edited[currentItem.itemid];
-  console.log(currentItem,"editedItemeditedItem");
-
-  // 🚫 If user already changed image, DO NOT fetch
-  if (currentItem?.imageUri) return;
-
-  // ✅ Fetch only once
-  // if (!editedItem?.imageUri && !editedItem?.loading) {
-  //   fetchImageForItem(currentItem.itemid);
-  // }
+if(currentItem?.deliverytype=="Inspection required"){
+setActiveTab('Inspect');
+}else if(currentItem?.deliverytype=="Standard receipt"){
+setActiveTab('PutAway');
+}else{
+setActiveTab('Receive');
+}
 }, [index, allItems, edited]);
 
 const fetchImageForItem = async (itemId) => {
@@ -2134,6 +2134,7 @@ const openPutAwayRowModalForPending = useCallback(() => {
 const handlePutAwayRowComplete = useCallback(
   payload => {
     if (!current) return;
+    console.log(payload,"handlePutAwayRowCompletecurrent");
 
     const rowId = payload?.rowId;
     const rawPutQty = Number(payload?.putAwayQty ?? 0);
@@ -2154,9 +2155,9 @@ const handlePutAwayRowComplete = useCallback(
       // ✅ Standard receipt: ALWAYS single row → force full completion, NO split rows
       const safeQty = isStandardReceipt ? rowQty : Math.min(rawPutQty, rowQty);
       if (!safeQty || safeQty <= 0) return prev;
-
+console.log(row,"isStandardReceiptisStandardReceiptisStandardReceiptisStandardReceipt")
       const completedRow = {
-        ...row,
+        ...payload,
         qty: safeQty,
         putAwayDecision: 'Completed',
         receivingStatus: 'Put Away Completed',
@@ -2172,7 +2173,7 @@ const handlePutAwayRowComplete = useCallback(
       nextRows.splice(idx, 1, completedRow);
 
       // ✅ Only Inspection required can split into multiple rows
-      // if (!isStandardReceipt) {
+      if (!isStandardReceipt) {
         const remaining = Math.max(0, rowQty - safeQty);
         if (remaining > 0) {
           nextRows.splice(idx + 1, 0, {
@@ -2184,7 +2185,7 @@ const handlePutAwayRowComplete = useCallback(
             completedAt: null,
           });
         }
-      // }
+      }
       
       return { ...prev, [current.id]: nextRows };
     });
@@ -2214,9 +2215,8 @@ const handleInspectRowComplete = useCallback(
 
       const rowQty = Number(row.qty ?? 0);
       const safeInspectQty = Math.min(inspectQty, rowQty);
-
       const completedRow = {
-        ...row,
+        ...payload,
         qty: safeInspectQty,
         inspectDecision: decision === 'Accepted' ? 'Accepted' : 'Rejected',
         receivingStatus: 'Inspection Completed',
@@ -2243,7 +2243,7 @@ const handleInspectRowComplete = useCallback(
       return { ...prev, [current.id]: nextRows };
     });
   },
-  [current?.id],
+  [current?.id,isInspectionRequired],
 );
   
 
@@ -2295,7 +2295,23 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
 
   const putAwayPassed = String(currentStoreLine?.putAwayStatus ?? '').toLowerCase() === 'passed';
 
-const handleSavePutAwayStdOrInspect = useCallback(() => {
+  const mapConfirmLots = (data)=>{
+    console.log(data,"mapConfirmLotsmapConfirmLots")
+        return data.map(backend => ({
+        "lot_number": backend?.lotNumber,
+        "transaction_quantity": backend?.qty,
+        "lot_expiration_date": formatDateToYMD(backend?.expDate)
+      }));
+  }
+
+  const formatDateToYMD = (dateStr) => {
+  if (!dateStr) return null;
+
+  const [dd, mm, yyyy] = dateStr.split('/');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const handleSavePutAwayStdOrInspect = useCallback(async() => {
   if (!current) return;
   if (!(isStandardReceipt || isInspectionRequired)) return;
   if (!isPutAwayFullyCompleted) return;
@@ -2305,21 +2321,69 @@ const handleSavePutAwayStdOrInspect = useCallback(() => {
 
   // ✅ Since we allow saving ONLY when fully completed,
   // store rows as-is (row-by-row order) to avoid any index remap.
-  mergePatchIntoReceiveItems({
-    id: String(current.id),
-    putAwayStatus: 'Passed',
-    lastPutAwayDate:
-      completedRows[completedRows.length - 1]?.completedAt || new Date().toISOString(),
-    putAwayData: {
-      rows: rows, // <-- keep original order
-      targetQty: Number(putAwayTargetQty || 0),
-      basedOn: isStandardReceipt ? 'receivedQty' : 'inspectedQty',
-    },
-  });
+  console.log(rows,"mergePatchIntoReceiveItems");
+  console.log(current,"currentcurrentcurrentcurrentcurrent")
+  // console.log(OrgData,"OrgDataOrgDataOrgDataOrgData");
+  console.log(poHeader,"poHeaderpoHeaderpoHeaderpoHeader")
+  let obj = [
+  {
+    "po_number":poHeader?.poNumber,
+    "receipt_num": poHeader?.receiptNumber,
+    "po_line_num": current?.po_line_number,
+    "item_code": current?.itemName,
+    "org_code": OrgData?.selectedOrgCode,
+    "business_unit": OrgData?.BusinessName,
+    "supplier_name":poHeader?.supplier,
+    "uom_code": current?.uomCode,
+    "uom": current?.uom,
+    "source_doc_code": "PO",
+    "received_qty": rows?.[0].putAwayQty,
+    "delivery_type": isStandardReceipt?"Standard receipt":'Inspection required',
+    "sub_inv_id": rows?.[0].subInventory?.id,
+    "sub_inv_code": rows?.[0].subInventory?.name,
+    "lot_item_lots": mapConfirmLots(rows?.[0].putAwayLotLines)
+        // 👉 conditionally add inspection_results
+    // (!isStandardReceipt && {
+    //   inspection_results: [
+    //     {
+    //       inspection_status: "ACCEPT",
+    //       quantity: 0,
+    //       sub_inv_id: current?.sub_inv_name,
+    //       sub_inv_code: current?.sub_inv_name,
+    //       lot_item_lots: mapConfirmLots(rows?.[0].putAwayLotLines)
+    //     }
+    //   ]
+    // })
+  }
+];
+console.log(obj,"objjjjjjpoHeaderpoHeaderpoHeaderpoHeader")
+    // try {
+    //   const response = await Put_Away_Complete(obj);
+    //   console.log(response,"Submit_Receive_Qty");
+    //   if (response?.status == "SUCCESS") {
+    //     Toast.show({ type: 'success', text1: response?.message });
+    //     navigation.navigate('Receive');                   
+    //    }else{
+    //   Toast.show({ type: 'error', text1: response?.message }); 
+    //    }           
+    // } catch (err) {
+    //   Toast.show({ type: 'error', text1: err });
+    // }
+  // mergePatchIntoReceiveItems({
+  //   id: String(current.id),
+  //   putAwayStatus: 'Passed',
+  //   lastPutAwayDate:
+  //     completedRows[completedRows.length - 1]?.completedAt || new Date().toISOString(),
+  //   putAwayData: {
+  //     rows: rows, // <-- keep original order
+  //     targetQty: Number(putAwayTargetQty || 0),
+  //     basedOn: isStandardReceipt ? 'receivedQty' : 'inspectedQty',
+  //   },
+  // });
 
 
   // if (returnTo) navigation.navigate(returnTo, { listType });
-   navigation.goBack();
+  //  navigation.goBack();
 }, [
   current?.id,
   isStandardReceipt,
@@ -3751,6 +3815,8 @@ const rightEnabled =
             rowId={selectedPutAwayRow?.id}
             itemName={current?.itemName}
             itemCode={current?.itemid || current?.itemCode || '-'}
+            uom={current?.uom}
+            uomCode={current?.uomCode}
             inventoryItems={InventoryList}
         defaultSubInventory={edited[current?.id]?.subInventory || current?.subInventory || OrgData?.selectedinventory}
         defaultLocator={edited[current?.id]?.locator || current?.locator || ''}

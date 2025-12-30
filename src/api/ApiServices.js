@@ -318,3 +318,13 @@ export const LPNList = async()=>{
     throw error.response?.data?.detail;
   }
 }
+export const Put_Away_Complete = async(data)=>{
+    try {
+    const response = await api.patch(API_ENDPOINTS.PUT_AWAY_COMPLETE,data);
+    console.log("PUT_AWAY_COMPLETE Data:", response);
+    return response.data;
+  } catch (error) {
+    console.error("PUT_AWAY_COMPLETE Error:", error.message, error.response?.data);
+    throw error.response?.data;
+  }  
+}

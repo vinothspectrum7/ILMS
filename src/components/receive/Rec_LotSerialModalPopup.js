@@ -80,28 +80,6 @@ const computeDupIds = list => {
   return dups;
 };
 
-const createEmptyLot = (idx, base = {}) => ({
-  idx,
-  lotNumber: base.lotNumber || '',
-  mfgDate: base.mfgDate || '',
-  expDate: base.expDate || '',
-  qty: Number(base.qty) || 0,
-  serialMode: base.serialMode || null,
-  serialRows: Array.isArray(base.serials)
-    ? base.serials.map((s, i) => ({
-        id: makeId(),
-        entry: i + 1,
-        serial: String(s || ''),
-        source: base.serialMode === 'ranges' ? 'auto' : 'manual',
-      }))
-    : [],
-  serialExpanded: false,
-  prefix: 'SN',
-  startNumberText: '1',
-  rangesHasGenerated:
-    base.serialMode === 'ranges' && Array.isArray(base.serials) && base.serials.length > 0,
-  addSerialText: '',
-});
 
 export default function Rec_LotSerialModalPopup({
   visible,
@@ -134,6 +112,29 @@ export default function Rec_LotSerialModalPopup({
   const [errorMsg, setErrorMsg] = useState('');
 
   const clearError = () => setErrorMsg('');
+
+  const createEmptyLot = (idx, base = {}) => ({
+  idx,
+  lotNumber: base.lotNumber || '',
+  mfgDate: base.mfgDate || '',
+  expDate: base.expDate || '',
+  qty: Number(base.qty) || 0,
+  serialMode: base.serialMode || null,
+  serialRows: Array.isArray(base.serials)
+    ? base.serials.map((s, i) => ({
+        id: makeId(),
+        entry: i + 1,
+        serial: String(s || ''),
+        source: base.serialMode === 'ranges' ? 'auto' : 'manual',
+      }))
+    : [],
+  serialExpanded: false,
+  prefix: 'SN',
+  startNumberText: '1',
+  rangesHasGenerated:
+    base.serialMode === 'ranges' && Array.isArray(base.serials) && base.serials.length > 0,
+  addSerialText: '',
+});
 
   useEffect(() => {
     if (!visible) return;
