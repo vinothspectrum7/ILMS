@@ -233,7 +233,7 @@ const ReceivedSummaryScreen = () => {
         receiptNumber: '—',
         supplier: '—',
         poNumber: '—',
-        poDate: '—',
+        receiptDate: '—',
       },
     [poHeader]
   );
@@ -451,7 +451,7 @@ const ReceivedSummaryScreen = () => {
             receiptNumber={headerData.receiptNumber}
             supplier={headerData.supplier}
             poNumber={headerData.poNumber}
-            receiptDate={headerData.poDate}
+            receiptDate={headerData.receiptDate}
           />
 
           <View style={styles.itemcontainer}>
