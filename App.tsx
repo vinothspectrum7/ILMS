@@ -45,6 +45,7 @@ import SettingsScreen from './src/screens/Profile/profile';
 import ChangePassword from './src/screens/Profile/ChangePassword';
 import Sub_Inv_TransferSummaryScreen from './src/screens/Inventory/Sub_Inv_TransferSummaryScreen';
 import Rec_ViewItemDetailsScreen from './src/screens/Receive/Rec_ViewItemDetailsScreen';
+import Rec_ViewReceiptItemDetailsScreen from './src/screens/Receive/Rec_ViewReceiptItemDetailsScreen';
 import Rec_ViewReceivedItemDetailsScreen from './src/screens/Receive/Rec_ViewReceivedItemDetailsScreen';
 
 
@@ -270,6 +271,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="Rec_ViewItemDetailsScreen"
 component={Rec_ViewItemDetailsScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Rec_ViewReceiptItemDetailsScreen"
+component={Rec_ViewReceiptItemDetailsScreen}
 options={{ headerShown: false }}
 />
 <Stack.Screen

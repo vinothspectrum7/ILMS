@@ -39,6 +39,7 @@ const ReceivedSummaryScreen = () => {
 
   const [inspectOn, setInspectOn] = useState(true);
   const [putAwayOn, setPutAwayOn] = useState(true);
+  const [subInv, setSubInv] = useState("");
 
   const { poHeader, setPoHeader, receiveItems, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, OrgData } =
     useReceivingStore();
@@ -50,7 +51,7 @@ const ReceivedSummaryScreen = () => {
   useFocusEffect(
     useCallback(() => {
       didCompleteRef.current = false;
-      return () => {};
+      return () => { };
     }, [])
   );
 
@@ -128,19 +129,20 @@ const ReceivedSummaryScreen = () => {
           locator_name: backend?.locator_name,
           status: backend?.line_status,
           uom: backend?.item?.uom === 'EA' ? 'Each' : backend?.item?.uom,
+          uomCode:backend?.item?.uom_code,
           promisedDate: backend?.promised_dlry_dt
             ? new Date(backend.promised_dlry_dt).toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              })
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })
             : null,
           needByDate: backend?.need_by_dt
             ? new Date(backend.need_by_dt).toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              })
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })
             : null,
         };
       });
@@ -198,12 +200,12 @@ const ReceivedSummaryScreen = () => {
       prev.map(it =>
         String(it.id) === patchId
           ? {
-              ...it,
-              qtyToReceive: typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive,
-              lpn: patch.lpn ?? it.lpn,
-              subInventory: patch.subInventory ?? it.subInventory,
-              locator: patch.locator ?? it.locator,
-            }
+            ...it,
+            qtyToReceive: typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive,
+            lpn: patch.lpn ?? it.lpn,
+            subInventory: patch.subInventory ?? it.subInventory,
+            locator: patch.locator ?? it.locator,
+          }
           : it
       )
     );
@@ -221,7 +223,7 @@ const ReceivedSummaryScreen = () => {
         receiptNumber: '—',
         supplier: '—',
         poNumber: '—',
-        poDate: '—',
+        receiptDate: '—',
       },
     [poHeader]
   );
@@ -256,14 +258,12 @@ const ReceivedSummaryScreen = () => {
   const openLineDetailsFromSummary = item => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-
     const withLatestFromStore = source.map((it, i) => {
       const deliveryType = it?.deliverytype ?? it?.deliveryType ?? null;
       const deliveryStatus = it?.delivery_status ?? it?.deliveryStatus ?? null;
       const receivedqty = Number(it?.receivedQty ?? 0);
       const subInventory = it?.sub_inv_name ?? it?.subInventory ?? '';
       const lotTransactionId = it?.lot_transaction_id ?? it?.lotTransactionId ?? null;
-
       const s = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : null;
       const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
 
@@ -292,8 +292,17 @@ const ReceivedSummaryScreen = () => {
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
 
-        receivingQty: qty,
+        // receivingQty: qty,
         receivingStatus: it.status,
+
+        receivedqty,
+        receivedQty: receivedqty,
+        subInventory,
+        sub_inv_name: subInventory,
+        deliveryType,
+        deliverytype: deliveryType,
+        lotTransactionId,
+        lot_transaction_id: lotTransactionId,
 
         lpn: s?.lpn ?? it.lpn ?? '',
         subInventory: s?.subInventory ?? it.subInventory ?? '',
@@ -312,12 +321,13 @@ const ReceivedSummaryScreen = () => {
     });
 
     navigation.navigate({
-      name: 'Rec_ViewReceivedItemDetailsScreen',
+      name: 'Rec_ViewReceiptItemDetailsScreen',
       params: {
         items: withLatestFromStore,
         startIndex: idx,
         readonly,
         returnTo: 'ReceivedSummaryScreen',
+        subInventory: subInv,
         listType: listTypeFromRoute,
       },
       merge: true,
@@ -353,6 +363,7 @@ const ReceivedSummaryScreen = () => {
 
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
+        uomCode:it.uomCode,
 
         receivingStatus: it.status,
 
@@ -436,7 +447,7 @@ const ReceivedSummaryScreen = () => {
             receiptNumber={headerData.receiptNumber}
             supplier={headerData.supplier}
             poNumber={headerData.poNumber}
-            receiptDate={headerData.poDate}
+            receiptDate={headerData.receiptDate}
           />
 
           <View style={styles.itemcontainer}>

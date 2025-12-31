@@ -40,11 +40,8 @@ export const API_ENDPOINTS = {
   SUB_INVENTORY_ADJUST_TRANSFER: (type) => `${BASE_URL}/inventory/adj_transfer?type=${type}`,
   RECENT_LIST: (org_id,limit) => `${BASE_URL}/dashboard/recent-activities?org_uuid=${org_id}&limit=${limit}`,
   PRIORITY_LIST: (org_id,limit) => `${BASE_URL}/dashboard/priority-tasks?org_uuid=${org_id}&limit=${limit}`,
-  LPN_LIST: `${BASE_URL}/purchase_orders/get/lpn_num`
-
-
-
-
+  LPN_LIST: `${BASE_URL}/purchase_orders/get/lpn_num`,
+  PUT_AWAY_COMPLETE: `${BASE_URL}/receipts/update/batch_received_qty`
 
  
 };
