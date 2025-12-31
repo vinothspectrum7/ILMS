@@ -60,6 +60,9 @@ import Rec_PutAwaySerialModalPopup from '../../components/receive/Rec_PutAwaySer
 import Rec_PutAwayLotSerialModalPopup from '../../components/receive/Rec_PutAwayLotSerialModalPopup';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import Rec_LotPutawayViewPopup from '../../components/receive/Rec_LotPutawayViewPopup';
+import { MOCK_INSPECTION } from '../../data/Receipt_InspectMockData';
+import Rec_InspectViewPopup from '../../components/receive/Rec_InspectViewPopup';
+import Rec_InspectPutawayView from '../../components/receive/Rec_InspectPutawayView';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -131,7 +134,7 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
 
   const readOnly = !!route?.params?.readonly;
   const returnTo = route?.params?.returnTo || null;
-    const subInventory = route?.params?.subInventory || null;
+  const subInventory = route?.params?.subInventory || null;
 
   const listType = route?.params?.listType || 'line';
 
@@ -172,6 +175,11 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
     0,
     Math.min(Number(route?.params?.startIndex ?? 0), mergedItems.length - 1),
   );
+
+  const [inspectViewModalVisible, setInspectViewModalVisible] = useState(false);
+const [selectedInspection, setSelectedInspection] = useState(null);
+const [selectedPutAwayItem, setSelectedPutAwayItem] = useState(null);
+const [inspectPutawayViewModalVisible, setInspectPutawayViewModalVisible] = useState(false);
 
   const [index, setIndex] = useState(startIndex);
   const [activeTab, setActiveTab] = useState('Receive');
@@ -350,6 +358,15 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
     },
     [current?.id, inspectionDataMap, currentStoreLine],
   );
+  const openInspectionViewModal = (inspection) => {
+  setSelectedInspection(inspection);
+  setInspectViewModalVisible(true);
+};
+
+const openPutAwayViewModal = (item) => {
+  setSelectedPutAwayItem(item);
+  setInspectPutawayViewModalVisible(true);
+};
 
   const openPutAwayModal = useCallback(
     (lot, lotIdx) => {
@@ -2535,103 +2552,126 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
               </View>
             )}
 
-            {activeTab === 'Inspect' && current && isInspectionRequired && (
+{activeTab === 'Inspect' && current && isInspectionRequired && (
+  <View style={styles.inspectRequiredWrap}>
+    <View style={styles.itemInfoBox}>
+      <View style={styles.itemInfoRow}>
+        <View style={styles.itemIconWrap}>
+          <ReceiveItemBoxIcon width={40} height={40} />
+        </View>
+        <View style={styles.itemTextCol}>
+          <Text style={styles.itemName} numberOfLines={1}>
+            {current?.itemName || 'Item Name'}
+          </Text>
+          <Text style={styles.itemCode} numberOfLines={1}>
+            {current?.itemid || current?.itemCode || '-'}
+          </Text>
+        </View>
+        <View style={styles.quantityInfoCol}>
+          <Text style={styles.quantityValue}>
+            {currentQty} <Text style={styles.quantityUom}>Qty</Text>
+          </Text>
+        </View>
+      </View>
+    </View>
+    
+    <View style={styles.scanRowWrap}>
+      <TouchableOpacity
+        onPress={() => setShowScanner(true)}
+        activeOpacity={0.7}
+        style={styles.scanBox}
+      >
+        <Text style={styles.scanPlaceholder}>
+          {pendingInspectRow ? 'Scan Item' : 'Inspection Completed'}
+        </Text>
+        <Barcodescanner width={18} height={18} />
+      </TouchableOpacity>
+    </View>
 
-              <View style={styles.inspectRequiredWrap}>
-                <View style={styles.scanRowWrap}>
-                  <TouchableOpacity
-                    onPress={() => setShowScanner(true)}
-                    activeOpacity={0.7}
-                    style={styles.scanBox}
-                  >
-                    <Text style={styles.scanPlaceholder}>
-                      {pendingInspectRow ? 'Scan Item' : 'Inspection Completed'}
-                    </Text>
-                    <Barcodescanner width={18} height={18} />
-                  </TouchableOpacity>
-                </View>
+    <View style={styles.inspectTableHeader}>
+      <Text style={[styles.inspectTh, styles.inspectThQty]}>Qty</Text>
+      <Text style={[styles.inspectTh, styles.inspectThMid]}>Inspection Status</Text>
+      <Text style={[styles.inspectTh, styles.inspectThRight]}>Action</Text>
+    </View>
 
-                <View style={styles.inspectTableHeader}>
-                  <Text style={[styles.inspectTh, styles.inspectThQty]}>Qty</Text>
-                  <Text style={[styles.inspectTh, styles.inspectThMid]}>Inspection Status</Text>
-                  <Text style={[styles.inspectTh, styles.inspectThRight]}>Receivascdasdsading Status</Text>
-                </View>
+    <View style={styles.inspectTableBody}>
+      {MOCK_INSPECTION.map((inspection, index) => {
+        const inspectionStatus = inspection.inspection_status; 
+        const quantity = inspection.quantity;
+        
+        const isAccepted = inspectionStatus === "ACCEPT";
+          const isRejected = inspectionStatus === "REJECT"; 
 
-                <View style={styles.inspectTableBody}>
-                  {currentInspectRows.map(r => {
-                    const isCompleted = !!r.isCompleted;
-                    const decision = String(r.inspectDecision ?? '-');
-                    const receivingStatus = String(r.receivingStatus ?? 'Inspection Pending');
+ 
+        
+        return (
+          <View
+            key={index}
+            style={[
+              styles.inspectTableRow,
+              isAccepted 
+                ? styles.inspectTableRowCompleted 
+          : styles.inspectTableRowRejected  
+            ]}
+          >
+            <Text style={[styles.inspectTd, styles.inspectTdQty]}>
+              {quantity}
+            </Text>
 
-                    const isRejected = isCompleted && decision.toLowerCase() === 'rejected';
-                    const isAccepted = isCompleted && decision.toLowerCase() === 'accepted';
-
-                    const pillBg = isCompleted
-                      ? isRejected
-                        ? '#FDECEC'
-                        : '#D3FFE0'
-                      : '#FCDFCC';
-
-                    const pillText = isCompleted
-                      ? isRejected
-                        ? '#C62828'
-                        : '#168035'
-                      : '#F06000';
-
-                    const rowBg = isCompleted ? '#FFFFFF' : '#FFF9F4';
-
-                    return (
-                      <TouchableOpacity
-                        key={r.id}
-                        activeOpacity={0.85}
-                        disabled={isCompleted}
-                        onPress={() => {
-                          if (isCompleted) return;
-                          setSelectedInspectRow({ ...r });
-                          setInspectRowModalVisible(true);
-                        }}
-                        style={[styles.inspectTr, { backgroundColor: rowBg }]}
-                      >
-                        <Text style={[styles.inspectTd, styles.inspectTdQty]}>{Number(r.qty) || 0}</Text>
-
-                        <Text
-                          style={[
-                            styles.inspectTd,
-                            styles.inspectTdMid,
-                            isAccepted && { color: '#168035', fontWeight: '700' },
-                            isRejected && { color: '#C62828', fontWeight: '700' },
-                            !isCompleted && { color: '#111827' },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {isCompleted ? decision : '-'}
-                        </Text>
-
-                        <View style={styles.inspectTdRightWrap}>
-                          <View style={[styles.statusPill, { backgroundColor: pillBg }]}>
-                            <Text style={[styles.statusPillText, { color: pillText }]}>
-                              {receivingStatus === 'Inspection Completed'
-                                ? 'Inspection Completed'
-                                : 'Inspection Pending'}
-                            </Text>
-                          </View>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <View style={styles.inspectRequiredFooterInfo}>
-                  <Text style={styles.inspectRequiredFooterText}>
-                    Completed: {completedInspectQty} / {Number(currentQty) || 0}
-                  </Text>
-                </View>
+            <View style={[styles.inspectTd, styles.inspectTdMid]}>
+              <View style={[
+                styles.inspectionStatusBadge, 
+                isAccepted ? styles.inspectionStatusAccepted : styles.inspectionStatusRejected
+              ]}>
+                <Text style={[
+                  styles.inspectionStatusText,
+                  isAccepted ? styles.inspectionStatusAcceptedText : styles.inspectionStatusRejectedText
+                ]}>
+                  {isAccepted ? "Accepted" : "Rejected"}
+                </Text>
               </View>
-            )}
+            </View>
 
+            <View style={[styles.inspectTd, styles.inspectTdRight]}>
+              <TouchableOpacity
+                style={styles.inspectActionButton}
+                activeOpacity={0.8}
+                onPress={() => openInspectionViewModal(inspection)}
+              >
+                <Text style={styles.inspectActionButtonText}>
+                  View
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  </View>
+)}
 
             {activeTab === 'Inspect' && current && !isInspectionRequired && itemType === 'Serial' && (
               <View style={styles.inspectContainer}>
+                <View style={styles.itemInfoBox}>
+                  <View style={styles.itemInfoRow}>
+                    <View style={styles.itemIconWrap}>
+                      <ReceiveItemBoxIcon width={40} height={40} />
+                    </View>
+                    <View style={styles.itemTextCol}>
+                      <Text style={styles.itemName} numberOfLines={1}>
+                        {current?.itemName || 'Item Name'}
+                      </Text>
+                      <Text style={styles.itemCode} numberOfLines={1}>
+                        {current?.itemid || current?.itemCode || '-'}
+                      </Text>
+                    </View>
+                    <View style={styles.quantityInfoCol}>
+                      <Text style={styles.quantityValue}>
+                        {currentQty} <Text style={styles.quantityUom}>Qty</Text>
+                      </Text>
+                    </View>
+                  </View>
+                </View>
                 <View
                   style={[
                     styles.inspectInfoCard,
@@ -2820,6 +2860,26 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
 
             {activeTab === 'Inspect' && current && !isInspectionRequired && itemType === 'Lot' && (
               <View style={styles.section}>
+                <View style={styles.itemInfoBox}>
+                  <View style={styles.itemInfoRow}>
+                    <View style={styles.itemIconWrap}>
+                      <ReceiveItemBoxIcon width={40} height={40} />
+                    </View>
+                    <View style={styles.itemTextCol}>
+                      <Text style={styles.itemName} numberOfLines={1}>
+                        {current?.itemName || 'Item Name'}
+                      </Text>
+                      <Text style={styles.itemCode} numberOfLines={1}>
+                        {current?.itemid || current?.itemCode || '-'}
+                      </Text>
+                    </View>
+                    <View style={styles.quantityInfoCol}>
+                      <Text style={styles.quantityValue}>
+                        {currentQty} <Text style={styles.quantityUom}>Qty</Text>
+                      </Text>
+                    </View>
+                  </View>
+                </View>
                 <View
                   style={[
                     styles.inspectInfoCard,
@@ -3059,6 +3119,26 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
 
             {activeTab === 'Inspect' && current && !isInspectionRequired && itemType === 'Lot+Serial' && (
               <View style={styles.section}>
+                <View style={styles.itemInfoBox}>
+                  <View style={styles.itemInfoRow}>
+                    <View style={styles.itemIconWrap}>
+                      <ReceiveItemBoxIcon width={40} height={40} />
+                    </View>
+                    <View style={styles.itemTextCol}>
+                      <Text style={styles.itemName} numberOfLines={1}>
+                        {current?.itemName || 'Item Name'}
+                      </Text>
+                      <Text style={styles.itemCode} numberOfLines={1}>
+                        {current?.itemid || current?.itemCode || '-'}
+                      </Text>
+                    </View>
+                    <View style={styles.quantityInfoCol}>
+                      <Text style={styles.quantityValue}>
+                        {currentQty} <Text style={styles.quantityUom}>Qty</Text>
+                      </Text>
+                    </View>
+                  </View>
+                </View>
                 <View
                   style={[
                     styles.inspectInfoCard,
@@ -3283,7 +3363,7 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
               </View>
             )}
 
-            {activeTab === 'PutAway' && current && (isStandardReceipt || isInspectionRequired) && (
+            {activeTab === 'PutAway' && current && (isStandardReceipt) && (
               <>
                 <View style={styles.itemInfoBox}>
                   <View style={styles.itemInfoRow}>
@@ -3379,6 +3459,123 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
                 </View>
               </>
             )}
+        {activeTab === 'PutAway' && current && (isInspectionRequired) && (
+  <>
+    <View style={styles.itemInfoBox}>
+      <View style={styles.itemInfoRow}>
+        <View style={styles.itemIconWrap}>
+          <ReceiveItemBoxIcon width={40} height={40} />
+        </View>
+
+        <View style={styles.itemTextCol}>
+          <Text style={styles.itemName} numberOfLines={1}>
+            {current?.itemName || 'Item Name'}
+          </Text>
+          <Text style={styles.itemCode} numberOfLines={1}>
+            {current?.itemid || current?.itemCode || '-'}
+          </Text>
+        </View>
+
+        <View style={styles.quantityInfoCol}>
+          <Text style={styles.quantityValue}>
+            {putAwayTargetQty} <Text style={styles.quantityUom}>Qty</Text>
+          </Text>
+        </View>
+      </View>
+    </View>
+
+    <View style={styles.inspectRequiredWrap}>
+      <View style={styles.scanRowWrap}>
+        <TouchableOpacity
+          onPress={() => setShowScanner(true)}
+          activeOpacity={0.7}
+          style={styles.scanBox}
+        >
+          <Text style={styles.scanPlaceholder}>
+            {pendingPutAwayRow ? 'Scan Item' : 'Put Away Completed'}
+          </Text>
+          <Barcodescanner width={18} height={18} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.putAwayTable}>
+      <View style={styles.putAwayTableHeader}>
+        <Text style={[styles.putAwayTh, styles.putAwayThQty]}>Qty</Text>
+        <Text style={[styles.putAwayTh, styles.putAwayThMid]}>Put Away Status</Text>
+        <Text style={[styles.putAwayTh, styles.putAwayThRight]}>Action</Text>
+      </View>
+
+      <View style={styles.putAwayTableBody}>
+        {MOCK_INSPECTION.map((item, index) => {
+          const putAwayStatus = item.put_away_status || item.inspection_status || "PENDING"; 
+          const quantity = item.quantity;
+          
+          const isCompleted = putAwayStatus === "COMPLETED" || putAwayStatus === "ACCEPT";
+          const isPending = putAwayStatus === "PENDING" || !putAwayStatus;
+          const isRejected = putAwayStatus === "REJECT";
+          
+          return (
+            <View
+              key={index}
+              style={[
+                styles.putAwayTableRow,
+                isCompleted 
+                  ? styles.putAwayTableRowCompleted 
+                  : isRejected 
+                    ? styles.putAwayTableRowRejected 
+                    : styles.putAwayTableRowPending
+              ]}
+            >
+              <Text style={[styles.putAwayTd, styles.putAwayTdQty]}>
+                {quantity}
+              </Text>
+
+              <View style={[styles.putAwayTd, styles.putAwayTdMid]}>
+                <View style={[
+                  styles.putAwayStatusBadge, 
+                  isCompleted 
+                    ? styles.putAwayStatusCompleted 
+                    : isRejected 
+                      ? styles.putAwayStatusRejected 
+                      : styles.putAwayStatusPending
+                ]}>
+                  <Text style={[
+                    styles.putAwayStatusText,
+                    isCompleted 
+                      ? styles.putAwayStatusCompletedText 
+                      : isRejected 
+                        ? styles.putAwayStatusRejectedText 
+                        : styles.putAwayStatusPendingText
+                  ]}>
+                    {isCompleted ? "Completed" : isRejected ? "Rejected" : "Pending"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.putAwayTd, styles.putAwayTdRight]}>
+                <TouchableOpacity
+                  style={styles.putAwayActionButton}
+                  activeOpacity={0.8}
+                   onPress={() => {
+                                setSelectedPutAwayRow({
+                                  ...item,
+                                });
+                                setPutAwayRowModalVisible(true);
+                              }}
+                >
+                  <Text style={styles.putAwayActionButtonText}>
+                    View
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+    </View>
+  </>
+)}
           </View>
 
           {activeTab === 'Receive' && current && !isInspectionRequired && !isStandardReceipt && (
@@ -3549,7 +3746,7 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
             lineQty={currentQty}
             lineLabel={lineLabel}
             initialLots={currentLotLines}
-            
+
           />
 
           <Rec_SerialModalPopup
@@ -3574,7 +3771,17 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
             lineLabel={lineLabel}
             initialLots={currentLotSerialLines}
           />
-
+<Rec_InspectPutawayView
+  visible={inspectPutawayViewModalVisible}
+  onClose={() => {
+    setInspectPutawayViewModalVisible(false);
+    setTimeout(() => setSelectedPutAwayItem(null), 200);
+  }}
+  putAwayData={selectedPutAwayItem}
+  itemName={current?.itemName}
+  itemCode={current?.itemid || current?.itemCode || '-'}
+  uom={current?.uom || ''}
+/>
           <Modal
             visible={showScanner}
             animationType="slide"
@@ -3694,18 +3901,18 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
  */}
           <Rec_LotPutawayViewPopup
             visible={putAwayRowModalVisible}
-            subInventory = {current?.sub_inv_name}
-            transactionId = {current?.lot_transaction_id}
+            subInventory={current?.sub_inv_name}
+            transactionId={current?.lot_transaction_id}
             onClose={() => {
               setPutAwayRowModalVisible(false);
               setTimeout(() => setSelectedPutAwayRow(null), 200);
             }}
 
-            rowData={selectedPutAwayRow}  
+            rowData={selectedPutAwayRow}
 
-            qty={selectedPutAwayRow?.qty} 
+            qty={selectedPutAwayRow?.qty}
             lotNumber={selectedPutAwayRow?.lotNumber}
-            lotIndex={selectedPutAwayRow?.lotIndex} 
+            lotIndex={selectedPutAwayRow?.lotIndex}
 
             itemName={current?.itemName}
             itemCode={current?.itemid || current?.itemCode || '-'}
@@ -3909,6 +4116,18 @@ const Rec_ViewReceivedItemDetailsScreen = () => {
           setInspectLotSerialSerialModalVisible(false);
         }}
       />
+
+      <Rec_InspectViewPopup
+  visible={inspectViewModalVisible}
+  onClose={() => {
+    setInspectViewModalVisible(false);
+    setTimeout(() => setSelectedInspection(null), 200);
+  }}
+  inspectionData={selectedInspection}
+  itemName={current?.itemName}
+  itemCode={current?.itemid || current?.itemCode || '-'}
+  uom={current?.uom || ''}
+/>
       <Modal
         visible={previewVisible}
         transparent={true}
@@ -4618,7 +4837,7 @@ const styles = StyleSheet.create({
   putAwayTableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F4F9FF',  // Header background
+    backgroundColor: '#F4F9FF',  
     height: 29,
     borderRadius: 4,
   },
@@ -4716,7 +4935,192 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#FFFFFF',
   },
+  
+  inspectTableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F4F9FF',
+    height: 29,
+    borderRadius: 4,
+    marginTop: ms(16),
+  },
+  inspectTh: {
+    fontFamily: 'Mulish',
+    fontWeight: '700',
+    fontSize: 12,
+    color: '#233E55',
+  },
+  inspectThQty: {
+    width: 80,
+    textAlign: 'center',
+  },
+  inspectThMid: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  inspectThRight: {
+    width: 80,
+    textAlign: 'center',
+  },
 
+  inspectTableBody: {
+    marginTop: ms(8),
+  },
+  inspectTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: ms(8),
+    height: 40,
+    borderRadius: 4,
+  },
+  inspectTableRowCompleted: {
+    backgroundColor: '#f4fff9ff',
+  },
+  inspectTableRowPending: {
+    backgroundColor: '#F4F9FF',
+  },
+
+  inspectTd: {
+    fontFamily: 'Mulish',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  inspectTdQty: {
+    width: 80,
+    textAlign: 'center',
+    color: '#111827',
+  },
+  inspectTdMid: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inspectTdRight: {
+    width: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  inspectionStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inspectionStatusAccepted: {
+    backgroundColor: '#D3FFE0',
+  },
+  inspectionStatusRejected: {
+    backgroundColor: '#FDECEC',
+  },
+  inspectionStatusPending: {
+    backgroundColor: '#FCDFCC',
+  },
+  
+  inspectionStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  inspectionStatusAcceptedText: {
+    color: '#168035',
+  },
+  inspectionStatusRejectedText: {
+    color: '#C62828',
+  },
+  inspectionStatusPendingText: {
+    color: '#F06000',
+  },
+
+  inspectActionButton: {
+    width: 47,
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: '#033EFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inspectActionButtonText: {
+    fontFamily: 'Mulish',
+    fontWeight: '700',
+    fontSize: 10,
+    color: '#FFFFFF',
+  },
+  inspectTableRowRejected: {
+  backgroundColor: '#fef2f2', 
+},
+putAwayTableBody: {
+  borderWidth: 1,
+  borderColor: '#ECF1F7',
+  borderBottomLeftRadius: ms(10),
+  borderBottomRightRadius: ms(10),
+  overflow: 'hidden',
+},
+
+putAwayStatusBadge: {
+  paddingHorizontal: 12,
+  paddingVertical: 3,
+  borderRadius: 12,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+putAwayStatusCompleted: {
+  backgroundColor: '#D3FFE0',
+},
+
+putAwayStatusPending: {
+  backgroundColor: '#FCDFCC',
+},
+
+putAwayStatusRejected: {
+  backgroundColor: '#FDECEC',
+},
+
+putAwayStatusText: {
+  fontSize: 10,
+  fontWeight: '700',
+},
+
+putAwayStatusCompletedText: {
+  color: '#168035',
+},
+
+putAwayStatusPendingText: {
+  color: '#F06000',
+},
+
+putAwayStatusRejectedText: {
+  color: '#C62828',
+},
+
+putAwayActionButton: {
+  width: 47,
+  height: 20,
+  borderRadius: 4,
+  backgroundColor: '#033EFF',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+putAwayActionButtonText: {
+  fontFamily: 'Mulish',
+  fontWeight: '700',
+  fontSize: 10,
+  color: '#FFFFFF',
+},
+
+putAwayTableRowCompleted: {
+  backgroundColor: '#f4fff9ff',
+},
+
+putAwayTableRowPending: {
+  backgroundColor: '#F4F9FF',
+},
+
+putAwayTableRowRejected: {
+  backgroundColor: '#fef2f2',
+},
 });
 
 export default Rec_ViewReceivedItemDetailsScreen;
