@@ -39,6 +39,7 @@ const ReceivedSummaryScreen = () => {
 
   const [inspectOn, setInspectOn] = useState(true);
   const [putAwayOn, setPutAwayOn] = useState(true);
+  const [subInv, setSubInv] = useState("");
 
   const { poHeader, setPoHeader, receiveItems, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, OrgData } =
     useReceivingStore();
@@ -50,7 +51,7 @@ const ReceivedSummaryScreen = () => {
   useFocusEffect(
     useCallback(() => {
       didCompleteRef.current = false;
-      return () => {};
+      return () => { };
     }, [])
   );
 
@@ -69,14 +70,28 @@ const ReceivedSummaryScreen = () => {
   const isInspectionRequired = dt => norm(dt) === 'inspection required' || norm(dt) === 'inspection';
   const isStandardReceipt = dt => norm(dt) === 'standard receipt' || norm(dt) === 'standard';
   const isDirectDelivery = dt => norm(dt) === 'direct delivery' || norm(dt) === 'direct';
-  const isPending = st => norm(st) === 'pending';
-  const isCompleted = st => norm(st) === 'completed';
 
   const mapBackendArrayToFrontend = useCallback(
     data => {
       const arr = Array.isArray(data) ? data : [];
 
-      const mapped = arr.map((backend, index) => {
+      const isAllDirectDelivery = arr.every(backend => {
+        const deliveryType =
+          backend?.delivery_type ??
+          backend?.deliveryType ??
+          backend?.delivery_type_name ??
+          backend?.deliveryTypeName ??
+          backend?.deliverytype ??
+          backend?.delivery_type_code ??
+          backend?.delivery_type_desc ??
+          '';
+        return deliveryType === 'Direct delivery';
+      });
+
+      setInspectOn(!isAllDirectDelivery);
+      setPutAwayOn(!isAllDirectDelivery);
+
+      return arr.map((backend, index) => {
         const deliveryType =
           backend?.delivery_type ??
           backend?.deliveryType ??
@@ -87,11 +102,7 @@ const ReceivedSummaryScreen = () => {
           backend?.delivery_type_desc ??
           '';
 
-        const deliveryStatus =
-          backend?.delivery_status ??
-          backend?.deliveryStatus ??
-          backend?.deliverystatus ??
-          null;
+        const deliveryStatus = backend?.delivery_status ?? backend?.deliveryStatus ?? backend?.deliverystatus ?? null;
 
         return {
           id: String(backend?.po_line_id ?? index + 1),
@@ -120,32 +131,20 @@ const ReceivedSummaryScreen = () => {
           uom: backend?.item?.uom === 'EA' ? 'Each' : backend?.item?.uom,
           promisedDate: backend?.promised_dlry_dt
             ? new Date(backend.promised_dlry_dt).toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              })
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })
             : null,
           needByDate: backend?.need_by_dt
             ? new Date(backend.need_by_dt).toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              })
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })
             : null,
         };
       });
-
-      const hasPendingInspection = mapped.some(
-        it => isInspectionRequired(it.deliverytype ?? it.deliveryType) && isPending(it.delivery_status ?? it.deliveryStatus)
-      );
-      const hasPendingStandard = mapped.some(
-        it => isStandardReceipt(it.deliverytype ?? it.deliveryType) && isPending(it.delivery_status ?? it.deliveryStatus)
-      );
-
-      setInspectOn(hasPendingInspection);
-      setPutAwayOn(hasPendingStandard);
-
-      return mapped;
     },
     [OrgData?.selectedOrg]
   );
@@ -200,12 +199,12 @@ const ReceivedSummaryScreen = () => {
       prev.map(it =>
         String(it.id) === patchId
           ? {
-              ...it,
-              qtyToReceive: typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive,
-              lpn: patch.lpn ?? it.lpn,
-              subInventory: patch.subInventory ?? it.subInventory,
-              locator: patch.locator ?? it.locator,
-            }
+            ...it,
+            qtyToReceive: typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive,
+            lpn: patch.lpn ?? it.lpn,
+            subInventory: patch.subInventory ?? it.subInventory,
+            locator: patch.locator ?? it.locator,
+          }
           : it
       )
     );
@@ -238,34 +237,32 @@ const ReceivedSummaryScreen = () => {
     const wantStandard = putAwayOn;
 
     return (renderItems || []).filter(it => {
-      const dt = it?.deliverytype ?? it?.deliveryType;
-      const st = it?.delivery_status ?? it?.deliveryStatus ?? it?.deliverystatus;
+      const dt = it?.deliverytype;
 
-      if (wantInspection && wantStandard) {
-        return (
-          (isInspectionRequired(dt) && isPending(st)) ||
-          (isStandardReceipt(dt) && isPending(st))
-        );
+      if (!wantInspection && !wantStandard) {
+        return isDirectDelivery(dt);
       }
 
-      if (wantInspection) return isInspectionRequired(dt) && isPending(st);
-      if (wantStandard) return isStandardReceipt(dt) && isPending(st);
+      if (wantInspection && wantStandard) {
+        return isInspectionRequired(dt) || isStandardReceipt(dt);
+      }
 
-      return isDirectDelivery(dt) && isCompleted(st);
+      if (wantInspection) return isInspectionRequired(dt);
+      if (wantStandard) return isStandardReceipt(dt);
+
+      return false;
     });
   }, [renderItems, inspectOn, putAwayOn]);
 
-  const openReceiptLineDetailsFromSummary = item => {
+  const openLineDetailsFromSummary = item => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
-
     const withLatestFromStore = source.map((it, i) => {
       const deliveryType = it?.deliverytype ?? it?.deliveryType ?? null;
       const deliveryStatus = it?.delivery_status ?? it?.deliveryStatus ?? null;
       const receivedqty = Number(it?.receivedQty ?? 0);
       const subInventory = it?.sub_inv_name ?? it?.subInventory ?? '';
       const lotTransactionId = it?.lot_transaction_id ?? it?.lotTransactionId ?? null;
-
       const s = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : null;
       const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
 
@@ -297,7 +294,7 @@ const ReceivedSummaryScreen = () => {
         // receivingQty: qty,
         receivingStatus: it.status,
 
-         receivedqty,
+        receivedqty,
         receivedQty: receivedqty,
         subInventory,
         sub_inv_name: subInventory,
@@ -329,6 +326,7 @@ const ReceivedSummaryScreen = () => {
         startIndex: idx,
         readonly,
         returnTo: 'ReceivedSummaryScreen',
+        subInventory: subInv,
         listType: listTypeFromRoute,
       },
       merge: true,
@@ -396,7 +394,7 @@ const ReceivedSummaryScreen = () => {
   };
 
   const handlePressViewDetails = item => {
-    openReceiptLineDetailsFromSummary(item);
+    openLineDetailsFromSummary(item);
   };
 
   const handlePressPendingAction = item => {
@@ -530,7 +528,7 @@ const styles = StyleSheet.create({
     paddingRight: rs(5),
   },
   toggleTrack: {
-    width: rs(75),
+    width: rs(72),
     height: rs(20),
     borderRadius: rs(18),
     paddingHorizontal: rs(3),
