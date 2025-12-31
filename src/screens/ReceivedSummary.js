@@ -129,6 +129,7 @@ const ReceivedSummaryScreen = () => {
           locator_name: backend?.locator_name,
           status: backend?.line_status,
           uom: backend?.item?.uom === 'EA' ? 'Each' : backend?.item?.uom,
+          uomCode:backend?.item?.uom_code,
           promisedDate: backend?.promised_dlry_dt
             ? new Date(backend.promised_dlry_dt).toLocaleDateString('en-GB', {
               day: '2-digit',
@@ -222,7 +223,7 @@ const ReceivedSummaryScreen = () => {
         receiptNumber: '—',
         supplier: '—',
         poNumber: '—',
-        poDate: '—',
+        receiptDate: '—',
       },
     [poHeader]
   );
@@ -362,6 +363,7 @@ const ReceivedSummaryScreen = () => {
 
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
+        uomCode:it.uomCode,
 
         receivingStatus: it.status,
 
@@ -445,7 +447,7 @@ const ReceivedSummaryScreen = () => {
             receiptNumber={headerData.receiptNumber}
             supplier={headerData.supplier}
             poNumber={headerData.poNumber}
-            receiptDate={headerData.poDate}
+            receiptDate={headerData.receiptDate}
           />
 
           <View style={styles.itemcontainer}>
