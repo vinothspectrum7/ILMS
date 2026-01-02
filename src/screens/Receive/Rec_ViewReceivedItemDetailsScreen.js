@@ -2288,7 +2288,7 @@ const handleSavePutAwayStdOrInspect = useCallback(async() => {
   if (!current) return;
   if (!(isStandardReceipt || isInspectionRequired)) return;
   if (!isPutAwayFullyCompleted) return;
-  // setPhase('loading');
+  setPhase('loading');
 
   const rows = Array.isArray(putAwayRowsMap[current.id]) ? putAwayRowsMap[current.id] : [];
   const completedRows = rows.filter(r => r?.isCompleted);
@@ -2355,21 +2355,21 @@ if (isStandardReceipt) {
 
 console.log(obj, "objjjjjjpoHeaderpoHeaderpoHeaderpoHeader");
 
-// try {
-//   const response = await Put_Away_Complete(obj);
+try {
+  const response = await Put_Away_Complete(obj);
 
-//   if (response?.status === "SUCCESS") {
-//     Toast.show({ type: 'success', text1: response?.message });
-//     setPhase('success');
-//     navigation.navigate('Receive');
-//   } else {
-//     setPhase('error');
-//     Toast.show({ type: 'error', text1: response?.message });
-//   }
-// } catch (err) {
-//   setPhase('error');
-//   Toast.show({ type: 'error', text1: err });
-// }
+  if (response?.status === "SUCCESS") {
+    Toast.show({ type: 'success', text1: response?.message });
+    setPhase('success');
+    navigation.navigate('Receive');
+  } else {
+    setPhase('error');
+    Toast.show({ type: 'error', text1: response?.message });
+  }
+} catch (err) {
+  setPhase('error');
+  Toast.show({ type: 'error', text1: err?.detail });
+}
 }, [
   current?.id,
   isStandardReceipt,
