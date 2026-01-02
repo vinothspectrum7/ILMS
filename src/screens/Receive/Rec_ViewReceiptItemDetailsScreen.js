@@ -751,23 +751,23 @@ const openPutAwayViewModal = (item) => {
     }
   }, [allItems, edited, readOnly, OrgData, getLocatorFromCache, setLocatorInCache]);
 
-  useEffect(() => {
-    async function fetchLPN() {
-      try {
-        const Lpndata = await LPNList();
-        const LpndataList = Lpndata.map(d => ({
-          id: d.lpn_id,
-          name: d.lpn_num,
-          enabled: d.lpn_enabled,
-        }));
-        setLPNoption(LpndataList);
-      } catch (err) {
-        console.log('LPN fetch error', err);
-      }
-    }
+  // useEffect(() => {
+  //   async function fetchLPN() {
+  //     try {
+  //       const Lpndata = await LPNList();
+  //       const LpndataList = Lpndata.map(d => ({
+  //         id: d.lpn_id,
+  //         name: d.lpn_num,
+  //         enabled: d.lpn_enabled,
+  //       }));
+  //       setLPNoption(LpndataList);
+  //     } catch (err) {
+  //       console.log('LPN fetch error', err);
+  //     }
+  //   }
 
-    fetchLPN();
-  }, []);
+  //   fetchLPN();
+  // }, []);
 
   const scrollToIndex = useCallback(
     i => {

@@ -71,84 +71,108 @@ const ReceivedSummaryScreen = () => {
   const isStandardReceipt = dt => norm(dt) === 'standard receipt' || norm(dt) === 'standard';
   const isDirectDelivery = dt => norm(dt) === 'direct delivery' || norm(dt) === 'direct';
 
-  const mapBackendArrayToFrontend = useCallback(
-    data => {
-      const arr = Array.isArray(data) ? data : [];
+const mapBackendArrayToFrontend = useCallback(
+  data => {
+    const arr = Array.isArray(data) ? data : [];
 
-      const isAllDirectDelivery = arr.every(backend => {
-        const deliveryType =
-          backend?.delivery_type ??
-          backend?.deliveryType ??
-          backend?.delivery_type_name ??
-          backend?.deliveryTypeName ??
-          backend?.deliverytype ??
-          backend?.delivery_type_code ??
-          backend?.delivery_type_desc ??
-          '';
-        return deliveryType === 'Direct delivery';
-      });
+    const getDeliveryType = backend =>
+      backend?.delivery_type ??
+      backend?.deliveryType ??
+      backend?.delivery_type_name ??
+      backend?.deliveryTypeName ??
+      backend?.deliverytype ??
+      backend?.delivery_type_code ??
+      backend?.delivery_type_desc ??
+      '';
 
-      setInspectOn(!isAllDirectDelivery);
-      setPutAwayOn(!isAllDirectDelivery);
+    const allDirectDelivery = arr.every(
+      backend => getDeliveryType(backend) === 'Direct delivery'
+    );
 
-      return arr.map((backend, index) => {
-        const deliveryType =
-          backend?.delivery_type ??
-          backend?.deliveryType ??
-          backend?.delivery_type_name ??
-          backend?.deliveryTypeName ??
-          backend?.deliverytype ??
-          backend?.delivery_type_code ??
-          backend?.delivery_type_desc ??
-          '';
+    const allInspection = arr.every(
+      backend => getDeliveryType(backend) === 'Inspection required'
+    );
 
-        const deliveryStatus = backend?.delivery_status ?? backend?.deliveryStatus ?? backend?.deliverystatus ?? null;
+    const allPutaway = arr.every(
+      backend => getDeliveryType(backend) === 'Putaway required'
+    );
 
-        return {
-          id: String(backend?.po_line_id ?? index + 1),
-          po_line_id: backend?.po_line_id,
-          po_line_number: backend?.po_line_number,
-          item_id: backend?.item_id,
-          name: backend?.item?.item_code || '',
-          description: backend?.item?.description || '',
-          orderedQty: backend?.ord_qty,
-          receivedQty: backend?.rcvd_qty,
-          openQty: backend?.open_qty,
-          ship_to_location: backend?.ship_to_location,
-          max_open_qty: backend?.max_open_qty,
-          lpn: '',
-          deliverytype: deliveryType,
-          deliveryType: deliveryType,
-          delivery_status: deliveryStatus,
-          deliveryStatus: deliveryStatus,
-          sub_inv_name: backend?.sub_inv_name,
-          subInventory: backend?.sub_inv_name,
-          lot_transaction_id: backend?.lot_transaction_id ?? null,
-          lotTransactionId: backend?.lot_transaction_id ?? null,
-          org_id: OrgData?.selectedOrg,
-          locator_name: backend?.locator_name,
-          status: backend?.line_status,
-          uom: backend?.item?.uom === 'EA' ? 'Each' : backend?.item?.uom,
-          uomCode:backend?.item?.uom_code,
-          promisedDate: backend?.promised_dlry_dt
-            ? new Date(backend.promised_dlry_dt).toLocaleDateString('en-GB', {
+    const allInspectionAndPutaway = arr.every(
+      backend => getDeliveryType(backend) === 'Inspection + Putaway'
+    );
+
+    if (allDirectDelivery) {
+      setInspectOn(false);
+      setPutAwayOn(false);
+    } else if (allInspection) {
+      setInspectOn(true);
+      setPutAwayOn(false);
+    } else if (allPutaway) {
+      setInspectOn(false);
+      setPutAwayOn(true);
+    } else if (allInspectionAndPutaway) {
+      setInspectOn(true);
+      setPutAwayOn(true);
+    } else {
+      // Mixed delivery types → enable both
+      setInspectOn(true);
+      setPutAwayOn(true);
+    }
+
+    return arr.map((backend, index) => {
+      const deliveryType = getDeliveryType(backend);
+      const deliveryStatus =
+        backend?.delivery_status ??
+        backend?.deliveryStatus ??
+        backend?.deliverystatus ??
+        null;
+
+      return {
+        id: String(backend?.po_line_id ?? index + 1),
+        po_line_id: backend?.po_line_id,
+        po_line_number: backend?.po_line_number,
+        item_id: backend?.item_id,
+        name: backend?.item?.item_code || '',
+        description: backend?.item?.description || '',
+        orderedQty: backend?.ord_qty,
+        receivedQty: backend?.rcvd_qty,
+        openQty: backend?.open_qty,
+        ship_to_location: backend?.ship_to_location,
+        max_open_qty: backend?.max_open_qty,
+        lpn: '',
+        deliverytype: deliveryType,
+        deliveryType: deliveryType,
+        delivery_status: deliveryStatus,
+        deliveryStatus: deliveryStatus,
+        sub_inv_name: backend?.sub_inv_name,
+        subInventory: backend?.sub_inv_name,
+        lot_transaction_id: backend?.lot_transaction_id ?? null,
+        lotTransactionId: backend?.lot_transaction_id ?? null,
+        org_id: OrgData?.selectedOrg,
+        locator_name: backend?.locator_name,
+        status: backend?.line_status,
+        uom: backend?.item?.uom === 'EA' ? 'Each' : backend?.item?.uom,
+        uomCode: backend?.item?.uom_code,
+        promisedDate: backend?.promised_dlry_dt
+          ? new Date(backend.promised_dlry_dt).toLocaleDateString('en-GB', {
               day: '2-digit',
               month: 'short',
               year: 'numeric',
             })
-            : null,
-          needByDate: backend?.need_by_dt
-            ? new Date(backend.need_by_dt).toLocaleDateString('en-GB', {
+          : null,
+        needByDate: backend?.need_by_dt
+          ? new Date(backend.need_by_dt).toLocaleDateString('en-GB', {
               day: '2-digit',
               month: 'short',
               year: 'numeric',
             })
-            : null,
-        };
-      });
-    },
-    [OrgData?.selectedOrg]
-  );
+          : null,
+      };
+    });
+  },
+  [OrgData?.selectedOrg]
+);
+
 
   useEffect(() => {
     if (!sourceId && !PONUMBER) return;
