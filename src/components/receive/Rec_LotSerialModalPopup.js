@@ -469,6 +469,9 @@ export default function Rec_LotSerialModalPopup({
           return { ok: false, msg: `Please fill all Lot fields for Lot ${lotIdx}` };
         }
       } else {
+          if (!lot.expDate) {
+           return { ok: false, msg: `Please enter Exp Date for Lot ${lotIdx}` };
+           }
         // Optional dates in PutAway: if provided, must be valid DD/MM/YYYY
         if (lot.mfgDate && !parseDate(lot.mfgDate)) {
           return { ok: false, msg: `Invalid Mfg Date for Lot ${lotIdx}` };
@@ -867,7 +870,7 @@ export default function Rec_LotSerialModalPopup({
 
                         <View style={styles.col}>
                           <Text style={styles.fieldLabel}>
-                            Exp Date<Text style={styles.required}></Text>
+                            Exp Date <Text style={styles.required}>*</Text>
                           </Text>
                           <View style={styles.dateRow}>
                             <TextInput

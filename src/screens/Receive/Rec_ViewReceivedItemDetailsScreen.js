@@ -738,23 +738,23 @@ useEffect(() => {
     }
   }, [allItems, edited, readOnly, OrgData, getLocatorFromCache, setLocatorInCache]);
 
-  useEffect(() => {
-    async function fetchLPN() {
-      try {
-        const Lpndata = await LPNList();
-        const LpndataList = Lpndata.map(d => ({
-          id: d.lpn_id,
-          name: d.lpn_num,
-          enabled: d.lpn_enabled,
-        }));
-        setLPNoption(LpndataList);
-      } catch (err) {
-        console.log('LPN fetch error', err);
-      }
-    }
+  // useEffect(() => {
+  //   async function fetchLPN() {
+  //     try {
+  //       const Lpndata = await LPNList();
+  //       const LpndataList = Lpndata.map(d => ({
+  //         id: d.lpn_id,
+  //         name: d.lpn_num,
+  //         enabled: d.lpn_enabled,
+  //       }));
+  //       setLPNoption(LpndataList);
+  //     } catch (err) {
+  //       console.log('LPN fetch error', err);
+  //     }
+  //   }
 
-    fetchLPN();
-  }, []);
+  //   fetchLPN();
+  // }, []);
 
   const scrollToIndex = useCallback(
     i => {
@@ -1560,7 +1560,9 @@ useEffect(() => {
         ],
       };
     }
-
+    console.log(existing,"existingexistingexistingexistingexisting")
+    const hasCompletedRow = existing.some(r => r?.isCompleted === true);
+    if (hasCompletedRow) return prev;
  
     if (isInspectionRequired) {
       const inspectRows = inspectRowsMap?.[current.id] || [];
@@ -1574,7 +1576,7 @@ useEffect(() => {
         if (existing.length === 0) return prev;
         return { ...prev, [current.id]: [] };
       }
-
+console.log(completedInspectRows,"completedInspectRowscompletedInspectRowscompletedInspectRows")
       // Create Put Away rows that mirror inspection rows
       const nextPutAwayRows = completedInspectRows.map(inspectRow => ({
         id: makePutAwayRowId(),
@@ -2130,7 +2132,7 @@ console.log(row,"isStandardReceiptisStandardReceiptisStandardReceiptisStandardRe
       const completedRow = {
         ...payload,
         qty: safeQty,
-        putAwayDecision: 'Completed',
+        putAwayDecision: row?.putAwayDecision??'-',
         receivingStatus: 'Put Away Completed',
         isCompleted: true,
         completedAt: new Date().toISOString(),
@@ -2150,7 +2152,7 @@ console.log(row,"isStandardReceiptisStandardReceiptisStandardReceiptisStandardRe
           nextRows.splice(idx + 1, 0, {
             id: makePutAwayRowId(),
             qty: remaining,
-            putAwayDecision: '-',
+            putAwayDecision: completedRow?.putAwayDecision?? '-',
             receivingStatus: 'Put Away Pending',
             isCompleted: false,
             completedAt: null,
@@ -2286,7 +2288,7 @@ const handleSavePutAwayStdOrInspect = useCallback(async() => {
   if (!current) return;
   if (!(isStandardReceipt || isInspectionRequired)) return;
   if (!isPutAwayFullyCompleted) return;
-  setPhase('loading');
+  // setPhase('loading');
 
   const rows = Array.isArray(putAwayRowsMap[current.id]) ? putAwayRowsMap[current.id] : [];
   const completedRows = rows.filter(r => r?.isCompleted);
@@ -2297,68 +2299,77 @@ const handleSavePutAwayStdOrInspect = useCallback(async() => {
   console.log(current,"currentcurrentcurrentcurrentcurrent")
   // console.log(OrgData,"OrgDataOrgDataOrgDataOrgData");
   console.log(poHeader,"poHeaderpoHeaderpoHeaderpoHeader")
-  let obj = [
-  {
-    "po_number":poHeader?.poNumber,
-    "receipt_num": poHeader?.receiptNumber,
-    "po_line_num": current?.po_line_number,
-    "item_code": current?.itemName,
-    "org_code": OrgData?.selectedOrgCode,
-    "business_unit": OrgData?.BusinessName,
-    "supplier_name":poHeader?.supplier,
-    "uom_code": current?.uomCode,
-    "uom": current?.uom,
-    "source_doc_code": "PO",
-    "received_qty": rows?.[0].putAwayQty,
-    "delivery_type": isStandardReceipt?"Standard receipt":'Inspection required',
-    "sub_inv_id": rows?.[0].subInventory?.id,
-    "sub_inv_code": rows?.[0].subInventory?.name,
-    "lot_item_lots": mapConfirmLots(rows?.[0].putAwayLotLines)
-        // 👉 conditionally add inspection_results
-    // (!isStandardReceipt && {
-    //   inspection_results: [
-    //     {
-    //       inspection_status: "ACCEPT",
-    //       quantity: 0,
-    //       sub_inv_id: current?.sub_inv_name,
-    //       sub_inv_code: current?.sub_inv_name,
-    //       lot_item_lots: mapConfirmLots(rows?.[0].putAwayLotLines)
-    //     }
-    //   ]
-    // })
-  }
-];
-console.log(obj,"objjjjjjpoHeaderpoHeaderpoHeaderpoHeader")
-    try {
-      const response = await Put_Away_Complete(obj);
-      console.log(response,"Submit_Receive_Qty");
-      if (response?.status == "SUCCESS") {
-        Toast.show({ type: 'success', text1: response?.message });
-        setPhase('success');
-        navigation.navigate('Receive');                   
-       }else{
-      setPhase('error');
-      Toast.show({ type: 'error', text1: response?.message }); 
-       }           
-    } catch (err) {
-        setPhase('error');
-      Toast.show({ type: 'error', text1: err });
+let obj = [];
+
+if (isStandardReceipt) {
+  obj = [
+    {
+      po_number: poHeader?.poNumber,
+      receipt_num: poHeader?.receiptNumber,
+      po_line_num: current?.po_line_number,
+      item_code: current?.itemName,
+      org_code: OrgData?.selectedOrgCode,
+      business_unit: OrgData?.BusinessName,
+      supplier_name: poHeader?.supplier,
+      uom_code: current?.uomCode,
+      uom: current?.uom,
+      source_doc_code: "PO",
+      received_qty: rows?.[0].putAwayQty,
+      delivery_type: "Standard receipt",
+      sub_inv_id: rows?.[0].subInventory?.id,
+      sub_inv_code: rows?.[0].subInventory?.name,
+      lot_item_lots: mapConfirmLots(rows?.[0].putAwayLotLines),
     }
-  // mergePatchIntoReceiveItems({
-  //   id: String(current.id),
-  //   putAwayStatus: 'Passed',
-  //   lastPutAwayDate:
-  //     completedRows[completedRows.length - 1]?.completedAt || new Date().toISOString(),
-  //   putAwayData: {
-  //     rows: rows, // <-- keep original order
-  //     targetQty: Number(putAwayTargetQty || 0),
-  //     basedOn: isStandardReceipt ? 'receivedQty' : 'inspectedQty',
-  //   },
-  // });
+  ];
+} else {
+  const inspectionResults = rows
+  ?.filter(row => row?.isCompleted) // only completed rows
+  .map(row => ({
+    inspection_status:
+      row.putAwayDecision === "Accepted" ? "ACCEPT" : "REJECT",
+    quantity: Number(row.putAwayQty || row.qty || 0),
+    sub_inv_id: row.subInventory?.id,
+    sub_inv_code: row.subInventory?.name,
+    lot_item_lots: mapConfirmLots(row.putAwayLotLines),
+  }));
 
+  obj = [
+    {
+      po_number: poHeader?.poNumber,
+      receipt_num: poHeader?.receiptNumber,
+      po_line_num: current?.po_line_number,
+      item_code: current?.itemName,
+      org_code: OrgData?.selectedOrgCode,
+      business_unit: OrgData?.BusinessName,
+      supplier_name: poHeader?.supplier,
+      uom_code: current?.uomCode,
+      uom: current?.uom,
+      source_doc_code: "PO",
+      received_qty: inspectionResults.reduce(
+      (sum, r) => sum + r.quantity,0),   // current?.receivedQty,
+      delivery_type: "Inspection required",
+      inspection_results: inspectionResults
+    }
+  ];
+}
 
-  // if (returnTo) navigation.navigate(returnTo, { listType });
-  //  navigation.goBack();
+console.log(obj, "objjjjjjpoHeaderpoHeaderpoHeaderpoHeader");
+
+// try {
+//   const response = await Put_Away_Complete(obj);
+
+//   if (response?.status === "SUCCESS") {
+//     Toast.show({ type: 'success', text1: response?.message });
+//     setPhase('success');
+//     navigation.navigate('Receive');
+//   } else {
+//     setPhase('error');
+//     Toast.show({ type: 'error', text1: response?.message });
+//   }
+// } catch (err) {
+//   setPhase('error');
+//   Toast.show({ type: 'error', text1: err });
+// }
 }, [
   current?.id,
   isStandardReceipt,
@@ -3482,12 +3493,12 @@ const rightEnabled =
               style={[
                 styles.inspectTd,
                 styles.inspectTdMid,
-                isCompleted && { color: '#168035', fontWeight: '700' },
-                !isCompleted && { color: '#111827' },
+                decision=='Accepted' && { color: '#168035', fontWeight: '700' },
+                decision=='Rejected' && { color: '#991B1B' },
               ]}
               numberOfLines={1}
             >
-              {isCompleted ? decision : '-'}
+              {decision}
             </Text>
 
             <View style={styles.inspectTdRightWrap}>
