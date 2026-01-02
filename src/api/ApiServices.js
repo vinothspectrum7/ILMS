@@ -53,6 +53,17 @@ export const GetLotDetails = async(lot_id)=>{
   }
 }
 
+export const GetInspectLineDetails = async(po_no,recId,po_line_no)=>{
+  try {
+    const response = await api.get(API_ENDPOINTS.GET_FUSION_INSPECT_LINE_DATA(po_no,recId,po_line_no));
+        console.log("Response Data:lotdetails", response);
+    return response.data;
+  }catch (error) {
+    console.error("Get lotdetails Error:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
 export const GetPoItems = async(org_id)=>{
   try {
     const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_DATA(org_id));

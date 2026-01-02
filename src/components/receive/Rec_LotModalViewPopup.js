@@ -49,6 +49,8 @@ export default function Rec_LotModalViewPopup({
     [lots],
   );
 
+  console.log('lotslotslotslotslotslotslotslotslots',lineQty)
+
   if (!visible) return null;
 
   const qtySelectedActive = totalQty > 0;

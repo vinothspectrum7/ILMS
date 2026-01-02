@@ -33,6 +33,8 @@ export default function Rec_InspectPutawayView({
     itemName = '',
     itemCode = '',
     uom = '',
+    qty = '',
+    putAwayQty ='',
     transactionId,
     existingLotData = [], 
     subInventory = '',
@@ -46,22 +48,22 @@ export default function Rec_InspectPutawayView({
     const [totalQty, setTotalQty] = useState(0);
     const [apiError, setApiError] = useState(false);
 
-              const [showPutAwayUI, setShowPutAwayUI] = useState(true);
-              const [lotSerialVisible, setLotSerialVisible] = useState(false);
+    const [showPutAwayUI, setShowPutAwayUI] = useState(true);
+    const [lotSerialVisible, setLotSerialVisible] = useState(false);
             
     const displayData = useMemo(() => {
         if (!rowData) return null;
         
         return {
-            qty: safeNum(rowData?.qty || 0),
+            // qty: safeNum(rowData?.qty || 0),
             lotNumber: rowData?.lotNumber || `Lot ${rowData?.lotIndex + 1}`,
             lotIndex: rowData?.lotIndex || 0,
             itemName: rowData?.itemName || itemName || 'N/A',
             itemCode: rowData?.itemCode || itemCode || 'N/A',
             uom: rowData?.uom || uom || 'Qty',
-            subInventory: rowData?.subInventory || 'Not Set',
+            // subInventory: rowData?.subInventory || 'Not Set',
             targetLocator: rowData?.targetLocator || 'Not Set',
-            putAwayQty: safeNum(rowData?.putAwayQty || rowData?.qty || 0),
+            // putAwayQty: safeNum(rowData?.putAwayQty || rowData?.qty || 0),
             mfgDate: rowData?.mfgDate,
             expDate: rowData?.expDate,
             status: rowData?.status || 'Pending',
@@ -238,8 +240,8 @@ export default function Rec_InspectPutawayView({
                                 <View style={styles.qtyBox}>
                                     <Text style={styles.qtyLabel}>Qty</Text>
                                     <Text style={styles.qtyValue}>
-                                        {displayData.qty}
-                                        {displayData.uom ? ` ${displayData.uom}` : ''}
+                                        {qty}
+                                        {uom ? ` ${uom}` : ''}
                                     </Text>
                                 </View>
                             </View>
@@ -257,7 +259,7 @@ export default function Rec_InspectPutawayView({
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Put Away Quantity</Text>
                                 <Text style={styles.infoValue}>
-                                    {displayData.putAwayQty} {displayData.uom}
+                                    {putAwayQty} {uom}
                                 </Text>
                             </View>
 
@@ -323,14 +325,15 @@ export default function Rec_InspectPutawayView({
                         </View>
                     </View>
                       )}
-                       <Rec_LotModalViewPopup
-            visible={lotSerialVisible}
-            onClose={handleLotSerialClose}
-            itemName={displayData?.itemName || ''}
-            itemCode={displayData?.itemid || displayData?.itemCode || ''}
-            lineQty={displayData?.qty || 0}
-            initialLots={apiLotData}
-        />
+                      <Rec_LotModalViewPopup
+                                 visible={lotSerialVisible}
+                                onClose={handleLotSerialClose}
+                                itemName={displayData.itemName}
+                                itemCode={displayData.itemid}
+                                lineQty={qty}
+                                // lineLabel={displayData.lineLabel}
+                                initialLots={apiLotData}
+                              />
                 </ScrollView>
             </View>
         </Modal>

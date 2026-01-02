@@ -264,6 +264,7 @@ const ReceivedSummaryScreen = () => {
       const receivedqty = Number(it?.receivedQty ?? 0);
       const subInventory = it?.sub_inv_name ?? it?.subInventory ?? '';
       const lotTransactionId = it?.lot_transaction_id ?? it?.lotTransactionId ?? null;
+      const receiptNo = sourceId;
       const s = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : null;
       const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
 
@@ -317,6 +318,9 @@ const ReceivedSummaryScreen = () => {
 
         lotTransactionId,
         lot_transaction_id: lotTransactionId,
+
+        receiptNo,
+        receiptNo: receiptNo,
       };
     });
 

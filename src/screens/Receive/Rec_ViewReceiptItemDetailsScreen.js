@@ -30,7 +30,7 @@ import Rec_LotSerialModalPopup from '../../components/receive/Rec_LotSerialModal
 import Rec_SerialModalPopup from '../../components/receive/Rec_SerialModalPopup';
 import Rec_InspectSerialModalPopup from '../../components/receive/Rec_InspectSerialModalPopup';
 import { useReceivingStore } from '../../store/receivingStore';
-import { GetItemImage, GetLocatorsData, LPNList, GetLotDetails } from '../../api/ApiServices';
+import { GetItemImage, GetLocatorsData, LPNList, GetLotDetails, GetInspectLineDetails } from '../../api/ApiServices';
 import ReceiveItemBoxIcon from '../../assets/icons/receiveitemboxicon.svg';
 import ReceiveQtyIcon from '../../assets/icons/receiveqtyicon.svg';
 import ReceiveLocationIcon from '../../assets/icons/receivelocationicon.svg';
@@ -190,6 +190,9 @@ const [inspectPutawayViewModalVisible, setInspectPutawayViewModalVisible] = useS
 
   const [putAwayRowsMap, setPutAwayRowsMap] = useState({});
   const [putAwayRowModalVisible, setPutAwayRowModalVisible] = useState(false);
+
+  const [InspectputAwayRowModalVisible, setInspectPutAwayRowModalVisible] = useState(false); 
+
   const [selectedPutAwayRow, setSelectedPutAwayRow] = useState(null);
 
   const makePutAwayRowId = () => `${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -199,6 +202,7 @@ const [inspectPutawayViewModalVisible, setInspectPutawayViewModalVisible] = useS
   const [lotRowsMap, setLotRowsMap] = useState({});
 
   const [receivedLotsMap, setReceivedLotsMap] = useState({});
+  const [inspectedLinesMap, setinspectedLinesMap] = useState([]);
 
   const [LpnListData, setLPNoption] = useState([]);
   const [serialRowsMap, setSerialRowsMap] = useState({});
@@ -219,6 +223,8 @@ const [inspectPutawayViewModalVisible, setInspectPutawayViewModalVisible] = useS
 
   const allItems = mergedItems;
   const current = useMemo(() => allItems[index] || null, [allItems, index]);
+
+  console.log('Fetching lot details for current:', current);
 
   const currentStoreLine = useMemo(() => {
     if (!current) return null;
@@ -781,10 +787,7 @@ const openPutAwayViewModal = (item) => {
     if (index < allItems.length - 1) scrollToIndex(index + 1);
   }, [index, allItems.length, scrollToIndex]);
 
-  const handleCancelNav = useCallback(() => {
-    if (returnTo) navigation.navigate(returnTo);
-    else navigation.goBack();
-  }, [navigation, returnTo]);
+  const handleCancelNav = useCallback(() => {() => navigation.goBack()})
 
   const handleSubInvChange = (itemId, subInvId) => {
     setEdited(prev => ({
@@ -1305,12 +1308,30 @@ const openPutAwayViewModal = (item) => {
       current?.lotTransactionId ??
       current?.lot_txn_id ??
       null;
+    const poNumber =
+      current?.poNumber ??
+      null;
+    const receiptNo =
+      current?.receiptNo ??
+      null;
+    const po_line_number =
+      current?.po_line_number ??
+      null;
+
+
 
     if (!itemId || !lotTxnId) return;
 
     if (receivedLotsMap[itemId]?.rows?.length) return;
 
+    if (inspectedLinesMap?.length) return;
+
     setReceivedLotsMap(prev => ({
+      ...prev,
+      [itemId]: { loading: true, rows: prev[itemId]?.rows ?? [] },
+    }));
+
+    setinspectedLinesMap(prev => ({
       ...prev,
       [itemId]: { loading: true, rows: prev[itemId]?.rows ?? [] },
     }));
@@ -1347,6 +1368,48 @@ const openPutAwayViewModal = (item) => {
       } catch (e) {
         if (!mounted) return;
         setReceivedLotsMap(prev => ({
+          ...prev,
+          [itemId]: { loading: false, rows: [] },
+        }));
+      }
+    })();
+
+    (async () => {
+      try {
+        const resp = await GetInspectLineDetails(poNumber,receiptNo,po_line_number);
+        const rows = Array.isArray(resp)
+          ? resp.map((x, index) => ({
+            inspection_status: String(x?.inspection_status ?? ''),            
+            quantity: Number(x?.sub_inventories[0].quantity ?? 0),
+            sub_inv_code: String(x?.sub_inventories[0].sub_inventory_code ?? ''),            
+            lot_transaction_id: Number(x?.sub_inventories[0].lot_transaction_id ?? 0),
+          }))
+          : [];
+
+        if (!mounted) return;
+        console.log('asdfgnhhnhnhnhgnhgnhgnhgnhnhgnhnhg',rows);
+        setinspectedLinesMap(rows);
+
+        // setinspectedLinesMap(prev => ({
+        //   ...prev,
+        //   [itemId]: { loading: false, rows },
+        // }));
+
+        if (rows.length) {
+          mergePatchIntoReceiveItems({
+            id: String(itemId),
+            inspectionData: rows.map(r => ({
+              inspection_status: r.inspection_status,              
+              quantity: Number(r.quantity) || 0,
+              sub_inv_code: r.sub_inv_code,
+              lot_transaction_id: Number(r.lot_transaction_id) || 0,
+            })),
+            inspectedTotalQty: rows.reduce((s, r) => s + (Number(r.inspected_qty) || 0), 0),
+          });
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setinspectedLinesMap(prev => ({
           ...prev,
           [itemId]: { loading: false, rows: [] },
         }));
@@ -1406,6 +1469,12 @@ const openPutAwayViewModal = (item) => {
     const rows = putAwayRowsMap[current.id];
     return Array.isArray(rows) ? rows : [];
   }, [putAwayRowsMap, current?.id]);
+
+  const currentinspectedLinesMap = useMemo(() => {
+    if (!current) return [];
+    const rows = inspectedLinesMap;
+    return Array.isArray(rows) ? rows : [];
+  }, [inspectedLinesMap, current?.id]);
 
   const completedPutAwayQty = useMemo(() => {
     return currentPutAwayRows.reduce((sum, r) => {
@@ -2084,6 +2153,33 @@ const openPutAwayViewModal = (item) => {
     setPutAwayRowModalVisible(true);
   }, [current?.id, isStandardReceipt, isInspectionRequired, putAwayRowsMap]);
 
+  const openInspectPutAwayRowModalForPending = useCallback(() => {
+    if (!current) return;
+    if (!(isStandardReceipt || isInspectionRequired)) return;
+
+    const rows = Array.isArray(putAwayRowsMap[current.id]) ? putAwayRowsMap[current.id] : [];
+    const pending = rows.find(r => !r.isCompleted);
+
+    if (!pending) {
+      Toast.show({ type: 'info', text1: 'Put Away already completed' });
+      return;
+    }
+
+    const pendingQty = Number(pending.qty ?? 0);
+    if (!pendingQty || pendingQty <= 0) {
+      Toast.show({ type: 'error', text1: 'No pending qty to put away' });
+      return;
+    }
+
+    setSelectedPutAwayRow({ ...pending });
+
+    const rowId = pending.id;
+    const key = `${current.id}-${rowId}`;
+    const putAwayData = putAwayDataMap[key] || {};
+
+    setInspectPutAwayRowModalVisible(true);
+  }, [current?.id, isStandardReceipt, isInspectionRequired, putAwayRowsMap]);
+
   const handlePutAwayRowComplete = useCallback(
     payload => {
       if (!current) return;
@@ -2595,7 +2691,7 @@ const openPutAwayViewModal = (item) => {
     </View>
 
     <View style={styles.inspectTableBody}>
-      {MOCK_INSPECTION.map((inspection, index) => {
+      {currentinspectedLinesMap.map((inspection, index) => {
         const inspectionStatus = inspection.inspection_status; 
         const quantity = inspection.quantity;
         
@@ -3478,7 +3574,7 @@ const openPutAwayViewModal = (item) => {
 
         <View style={styles.quantityInfoCol}>
           <Text style={styles.quantityValue}>
-            {putAwayTargetQty} <Text style={styles.quantityUom}>Qty</Text>
+            {current?.receivedQty} <Text style={styles.quantityUom}>Qty</Text>
           </Text>
         </View>
       </View>
@@ -3506,7 +3602,7 @@ const openPutAwayViewModal = (item) => {
       </View>
 
       <View style={styles.putAwayTableBody}>
-        {MOCK_INSPECTION.map((item, index) => {
+        {currentinspectedLinesMap.map((item, index) => {
           const putAwayStatus = item.put_away_status || item.inspection_status || "PENDING"; 
           const quantity = item.quantity;
           
@@ -3560,7 +3656,7 @@ const openPutAwayViewModal = (item) => {
                                 setSelectedPutAwayRow({
                                   ...item,
                                 });
-                                setPutAwayRowModalVisible(true);
+                                setInspectPutAwayRowModalVisible(true);
                               }}
                 >
                   <Text style={styles.putAwayActionButtonText}>
@@ -3726,7 +3822,7 @@ const openPutAwayViewModal = (item) => {
       <View style={styles.backButtonContainer}>
         <SingleFooterBtnComponent
           label="Back"
-          onPress={handleCancelNav}
+          onPress={() => navigation.goBack()}
           enabled={true}
           containerStyle={styles.backButtonWrapper}
           buttonStyle={styles.backButtonStyle}
@@ -3771,17 +3867,21 @@ const openPutAwayViewModal = (item) => {
             lineLabel={lineLabel}
             initialLots={currentLotSerialLines}
           />
-<Rec_InspectPutawayView
-  visible={inspectPutawayViewModalVisible}
-  onClose={() => {
-    setInspectPutawayViewModalVisible(false);
-    setTimeout(() => setSelectedPutAwayItem(null), 200);
-  }}
-  putAwayData={selectedPutAwayItem}
-  itemName={current?.itemName}
-  itemCode={current?.itemid || current?.itemCode || '-'}
-  uom={current?.uom || ''}
-/>
+          <Rec_InspectPutawayView
+            visible={InspectputAwayRowModalVisible}
+            onClose={() => {
+              setInspectPutAwayRowModalVisible(false);
+              setTimeout(() => setSelectedPutAwayItem(null), 200);
+            }}
+            existingLotData={selectedPutAwayRow}
+            itemName={current?.itemName}
+            itemCode={current?.itemid || current?.itemCode || '-'}
+            uom={current?.uom || ''}
+            qty={current?.receivedQty}
+            putAwayQty={selectedPutAwayRow?.quantity}
+            subInventory={current?.sub_inv_code || ''}
+            transactionId={current?.lot_transaction_id}
+          />
           <Modal
             visible={showScanner}
             animationType="slide"
@@ -3796,10 +3896,17 @@ const openPutAwayViewModal = (item) => {
                   }, 150);
                   return;
                 }
-                if (current && (isStandardReceipt || isInspectionRequired) && activeTab === 'PutAway') {
+                if (current && (isStandardReceipt) && activeTab === 'PutAway') {
                   setShowScanner(false);
                   setTimeout(() => {
                     openPutAwayRowModalForPending();
+                  }, 150);
+                  return;
+                }
+                if (current && (isInspectionRequired) && activeTab === 'PutAway') {
+                  setShowScanner(false);
+                  setTimeout(() => {
+                    openInspectPutAwayRowModalForPending();
                   }, 150);
                   return;
                 }
@@ -3924,6 +4031,34 @@ const openPutAwayViewModal = (item) => {
               return putAwayDataMap[key] || null;
             })()}
           />
+
+          <Rec_InspectPutawayView
+            visible={InspectputAwayRowModalVisible}
+            subInventory={current?.sub_inv_name}
+            transactionId={current?.lot_transaction_id}
+            onClose={() => {
+              setInspectPutAwayRowModalVisible(false);
+              setTimeout(() => setSelectedPutAwayRow(null), 200);
+            }}
+
+            rowData={selectedPutAwayRow}            
+            lotNumber={selectedPutAwayRow?.lotNumber}
+            lotIndex={selectedPutAwayRow?.lotIndex}
+            itemName={current?.itemName}
+            itemCode={current?.itemid || current?.itemCode || '-'}
+            uom={current?.uom || ''}            
+            qty={current?.receivedQty}
+            putAwayQty={selectedPutAwayRow?.quantity}
+            // subInventory={current?.sub_inv_code || ''}
+            // transactionId={current?.lot_transaction_id}
+
+            existingPutAwayData={(() => {
+              if (!current || !selectedPutAwayRow?.lotIndex) return null;
+              const key = `${current.id}-${selectedPutAwayRow.lotIndex}`;
+              return putAwayDataMap[key] || null;
+            })()}
+          />
+
 
           <Rec_PutAwaySerialModalPopup
             visible={putAwaySerialModalVisible}
