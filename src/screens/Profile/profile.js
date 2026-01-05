@@ -22,6 +22,7 @@ import ShieldIcon from '../../assets/icons/security_icon.svg';
 import HelpIcon from '../../assets/icons/support_icon.svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
+import ProfileHeader from '../../components/ProfileHeader';
 
 const BG = '#FFFFFF';
 const { width } = Dimensions.get('window');
@@ -84,7 +85,7 @@ const SettingsScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <GlobalHeaderComponent
+      <ProfileHeader
         organizationName={OrgData?.selectedOrgCode}
         screenTitle="Settings"
         notificationCount={0}
@@ -130,7 +131,7 @@ const SettingsScreen = () => {
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={styles.versionText}>Version 25120520</Text>
+        <Text style={styles.versionText}>Version 25121921</Text>
       </ScrollView>
         {/* Log Out Button (Fixed SafeArea Padding + Bottom Alignment) */}
         <View style={styles.logoutContainer}>

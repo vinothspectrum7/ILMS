@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import CustomNumericInput from '../components/CustomNumericInput';
+import Enterdetailsicon from '../assets/icons/enter_details.svg';
+import Viewdetailsicon from '../assets/icons/Viewdetailsicon.svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -108,9 +110,11 @@ const formatDate = (dateStr) => {
 
 
   return (
-    <View style={styles.cardwrapper}>
-      <View style={styles.rowContainer}>
-        <View style={styles.section1}>
+<View style={styles.cardwrapper}>
+  <View style={styles.rowContainer}>
+
+    {/* LEFT CHECKBOX */}
+    <View style={styles.section1}>
           <TouchableOpacity
             style={RNStyleSheet.absoluteFill}
             onPress={() => onCheckToggle(item)}
@@ -134,137 +138,200 @@ const formatDate = (dateStr) => {
             lineWidth={Platform.OS === 'ios' ? 1.5 : undefined}
             disabled={item.openQty==0}
           />
-        </View>
-
-        <View style={styles.section2}>
-          <Text style={styles.itemName}>{item.name}</Text>
-          <View style={styles.qtyBreakdownRow}>
-            <Text style={styles.metaText}>Ordered Qty: {item.orderedQty}</Text>
-            <View style={styles.vertDivider} />
-            <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
-          </View>
-          <TouchableOpacity onPress={() => onViewDetails?.(item, index)}>
-            <Text style={styles.viewDetails}>View Details</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section3}>
-          {/* <Text style={styles.itemName}></Text>
-          <Text style={styles.itemName}></Text> */}
-          <View style={styles.numericInputWrapper}>
-            <CustomNumericInput
-              value={item.qtyToReceive ?? 0}
-              setValue={(v) => {
-                if (!touched && isSelected) setTouched(true);
-                onQtyChange(item.id, v);
-              }}
-              min={0}
-              max={item.max_open_qty}
-              step={1}
-              width={s(80)}
-              height={s(28)}
-              isSelected={isSelected}
-              disabledinput={item.openQty==0?true:false}
-              onLimit={() => {}}
-            />
-          </View>
-          <Text style={styles.uomText}>{item.uom}</Text>
-          <View style={styles.dateRow}>
-            <Text style={styles.dateLabel}>Promised Date: </Text>
-            <Text style={styles.dateValue}>{formatDate(item.promisedDate)}</Text>
-          </View>
-          <View style={styles.dateRow}>
-            <Text style={styles.dateLabel}>Need By Date: </Text>
-            <Text style={styles.dateValue}>{formatDate(item.needByDate)}</Text>
-          </View>
-        </View>
-      </View>
     </View>
+
+    {/* MAIN CONTENT */}
+    <View style={styles.content}>
+
+      {/* TOP ROW */}
+{/* <View style={styles.topRow}> */}
+
+  {/* ROW 1 */}
+  <View style={styles.rowBetween}>
+    <Text style={styles.itemName}>{item.name}</Text>
+
+    <CustomNumericInput
+      value={item.qtyToReceive ?? 0}
+      setValue={(v) => onQtyChange(item.id, v)}
+      min={0}
+      max={item.max_open_qty}
+      width={s(72)}
+      height={s(28)}
+      disabledinput={item.openQty === 0}
+    />
+  </View>
+
+  {/* ROW 2 */}
+  <View style={styles.qtyRow}>
+    <Text style={styles.metaText}>Ordered Qty: {item.orderedQty}</Text>
+
+    <View style={styles.vertDivider} />
+
+    <Text style={styles.metaText}>Open Qty: {item.openQty}</Text>
+
+
+    <Text style={styles.uomText}>{item.uom}</Text>
+  </View>
+
+{/* </View> */}
+
+
+      {/* ENTER DETAILS (DOTTED) */}
+      <TouchableOpacity
+        style={[
+  styles.enterDetailsBox,
+  item.qtyToReceive>0
+    ? { borderWidth:0,backgroundColor:'#ECF1F7' }
+    : { borderStyle: 'dashed', borderColor: '#D9E4EE' },
+]}
+
+        onPress={() => onViewDetails?.(item, index)}
+        activeOpacity={0.8}
+      >
+          {item.qtyToReceive==0?(<View style={{flexDirection:'row'}}>
+            <Enterdetailsicon name="edit" size={14}  />
+        <Text style={styles.enterDetailsText}>Enter Details</Text>
+        </View>):(
+        <View style={{flexDirection:'row'}}>
+            <Viewdetailsicon name="view" height={14} />
+        <Text style={styles.enterDetailsText}>View Details</Text>
+        </View>)}
+        <View style={styles.datesRight}>
+          <Text style={styles.dateValue}>
+            Promised Date: {formatDate(item.promisedDate)}
+          </Text>
+          <Text style={styles.dateValue}>
+            Need By Date: {formatDate(item.needByDate)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+    </View>
+  </View>
+</View>
+
   );
 };
 
 const styles = StyleSheet.create({
   cardwrapper: {
-    paddingRight: s(12),
-    paddingLeft: 0,
-    marginRight: s(15),
-    marginLeft: s(15),
+    marginHorizontal: s(15),
     height: s(110),
-    backgroundColor: '#FBFBFB',
+    backgroundColor: '#FFFFFF',
+    borderRadius: s(10),
     borderWidth: 1,
     borderColor: '#E5E5E5',
-    borderRadius: s(10),
   },
-    uomText: {
-    fontSize: s(8),
-    color: '#595A5C',
-    marginTop: s(-6),
-    marginBottom: s(10),
-    marginRight: s(2),
+  rowBetween: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+},
+
+qtyRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: s(4),
+  // paddingBottom:5,
+  // borderBottomWidth: 1,
+  // borderColor: '#BFD3FF',
+  // borderStyle: 'dashed',
+},
+
+  rowContainer: {
+    flexDirection: 'row',
+    height: '100%',
   },
-  rowContainer: { flexDirection: 'row', height: '100%' },
+
   section1: {
+    width: s(30),
+    backgroundColor: '#ECF1F7',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ECF1F7',
-    width: s(35),
-    height: '100%',
-    borderRadius: s(10),
-    borderBottomEndRadius: 0,
-    borderTopRightRadius: 0,
-    position: 'relative',
+    borderTopLeftRadius: s(10),
+    borderBottomLeftRadius: s(10),
   },
+
   checkbox: {
-    width: s(16),
-    height: s(16),
-    transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }],
-    marginLeft: -s(15),
+    transform: [{ scale: 0.8 }],
   },
-  section2: {
+
+  content: {
     flex: 1,
-    alignItems: 'flex-start',
-    justifyContent: 'space-around',
-    // marginTop:s(12),
-    marginBottom:s(10),
-    paddingLeft: s(12),
-    paddingTop: s(8),
-    minWidth: 0,
+    padding: s(10),
   },
-  section3: {
+
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+
+  },
+
+  rightTop: {
     alignItems: 'flex-end',
-    justifyContent: 'center',
-    paddingLeft: s(8),
-    minWidth: s(110),
   },
+
   itemName: {
     fontSize: fs(12),
     fontWeight: '700',
     color: '#111827',
   },
-  numericInputWrapper: {
-    marginBottom: s(10),
+
+  qtyBreakdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: s(4),
+  },
+
+  metaText: {
+    fontSize: fs(9),
+    color: '#595A5C',
+  },
+
+  vertDivider: {
+    width: 1,
+    height: s(14),
+    backgroundColor: '#CCCED2',
+    marginHorizontal: s(8),
+  },
+
+  uomText: {
+    fontSize: fs(9),
+    color: '#6B7280',
+    // marginTop: s(5),
+    marginLeft:'auto'
+  },
+
+  /* 🔹 DOTTED ENTER DETAILS */
+  enterDetailsBox: {
+    marginTop: s(8),
+    padding: s(6),
+    borderWidth: 1,
+    // borderColor: '#D9E4EE',
+    // borderStyle: 'dashed',
+    borderRadius: s(6),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  qtyBreakdownRow: { flexDirection: 'row', alignItems: 'center' },
-  vertDivider: {
-    width: Math.max(StyleSheet.hairlineWidth, s(1)),
-    height: s(18),
-    backgroundColor: '#DADADA',
-    marginHorizontal: s(12),
-    borderRadius: s(0.5),
-    opacity: 0.9,
+
+  enterDetailsText: {
+    fontSize: fs(11),
+    color: '#145DA0',
+    fontWeight: '500',
+    letterSpacing:0.1,
+    marginLeft:5
   },
-  metaText: { fontSize: fs(8), color: '#6B7280' },
-  viewDetails: {
-    
-    fontSize: fs(9),
-    color: '#033EFF',
-    textDecorationLine: 'underline',
-    textDecorationColor: '#033EFF',
+
+  datesRight: {
+    alignItems: 'flex-end',
   },
-  dateRow: { flexDirection: 'row', marginTop: s(2) },
-  dateLabel: { fontSize: fs(8), color: '#6C6C6C' },
-  dateValue: { fontSize: fs(8), color: '#6C6C6C', fontWeight: '500' },
+
+  dateValue: {
+    fontSize: fs(8),
+    color: '#595A5C',
+  },
 });
+
 
 export default LineItemListCardComponent;

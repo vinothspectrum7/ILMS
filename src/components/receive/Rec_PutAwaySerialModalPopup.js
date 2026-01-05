@@ -36,21 +36,20 @@ const normalizeSerialArray = list => {
     .filter(Boolean);
 };
 
-export default function Rec_InspectSerialModalPopup({
+export default function Rec_PutAwaySerialModalPopup({
   visible,
   onClose,
-  inspectionQty = 0,
+  putawayQty = 0,
   savedSerials = [],
   initialSelectedSerials = [],
   onConfirm,
-  requireValidationAgainstSaved = false,
+  requireValidationAgainstSaved = true,
 }) {
   const [rows, setRows] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [scannerVisible, setScannerVisible] = useState(false);
   const [invalidIds, setInvalidIds] = useState([]);
   const [addSerialText, setAddSerialText] = useState('');
-
   const scanTargetRef = useRef({ type: 'row', rowId: null });
 
   const clearError = useCallback(() => {
@@ -60,19 +59,18 @@ export default function Rec_InspectSerialModalPopup({
 
   const savedSerialsNormalized = useMemo(() => normalizeSerialArray(savedSerials), [savedSerials]);
 
-  const qty = Number(inspectionQty || 0);
+  const qty = Number(putawayQty || 0);
 
-  const isFullInspection =
+  const isFullPutAway =
     qty > 0 && qty === savedSerialsNormalized.length && savedSerialsNormalized.length > 0;
 
   const canAddRow = useMemo(() => qty > 0 && rows.length < qty, [rows.length, qty]);
 
   const trimmedAddText = useMemo(() => String(addSerialText || '').trim(), [addSerialText]);
 
-  const canAddByTyping = useMemo(() => {
-    if (!canAddRow) return false;
-    return trimmedAddText.length > 0;
-  }, [canAddRow, trimmedAddText]);
+  const canAddByTyping = useMemo(() => canAddRow && trimmedAddText.length > 0, [canAddRow, trimmedAddText]);
+
+  const isRowLocked = useCallback(row => row?.source === 'auto' || row?.source === 'scan', []);
 
   useEffect(() => {
     if (!visible) return;
@@ -86,16 +84,14 @@ export default function Rec_InspectSerialModalPopup({
         id: makeId(),
         entry: i + 1,
         serial: s,
-        editable: true,
         source: 'manual',
       }));
-    } else if (isFullInspection) {
+    } else if (isFullPutAway) {
       const takeCount = Math.min(qty, savedSerialsNormalized.length);
       nextRows = savedSerialsNormalized.slice(0, takeCount).map((s, i) => ({
         id: makeId(),
         entry: i + 1,
         serial: s,
-        editable: false,
         source: 'auto',
       }));
     } else if (qty > 0) {
@@ -104,7 +100,6 @@ export default function Rec_InspectSerialModalPopup({
           id: makeId(),
           entry: 1,
           serial: '',
-          editable: true,
           source: 'manual',
         },
       ];
@@ -116,7 +111,7 @@ export default function Rec_InspectSerialModalPopup({
     setAddSerialText('');
     scanTargetRef.current = { type: 'row', rowId: null };
     setScannerVisible(false);
-  }, [visible, qty, initialSelectedSerials, savedSerialsNormalized, isFullInspection]);
+  }, [visible, qty, initialSelectedSerials, savedSerialsNormalized, isFullPutAway]);
 
   const computeDupIds = useCallback(list => {
     const map = new Map();
@@ -155,42 +150,6 @@ export default function Rec_InspectSerialModalPopup({
     [clearError],
   );
 
-  const addManualRow = useCallback(() => {
-    clearError();
-    if (!canAddRow) return;
-    setRows(prev => [
-      ...prev,
-      {
-        id: makeId(),
-        entry: prev.length + 1,
-        serial: '',
-        editable: true,
-        source: 'manual',
-      },
-    ]);
-  }, [clearError, canAddRow]);
-
-  const addRowFromTyping = useCallback(() => {
-    clearError();
-    if (!canAddByTyping) return;
-    if (!canAddRow) return;
-
-    const v = trimmedAddText;
-
-    setRows(prev => [
-      ...prev,
-      {
-        id: makeId(),
-        entry: prev.length + 1,
-        serial: v,
-        editable: true,
-        source: 'added',
-      },
-    ]);
-
-    setAddSerialText('');
-  }, [clearError, canAddByTyping, canAddRow, trimmedAddText]);
-
   const openScannerForRow = useCallback(
     rowId => {
       clearError();
@@ -217,55 +176,72 @@ export default function Rec_InspectSerialModalPopup({
 
       if (target.type === 'addbar') {
         if (!canAddRow) return;
-        setRows(prev => [
-          ...prev,
-          {
-            id: makeId(),
-            entry: prev.length + 1,
-            serial: v,
-            editable: false,
-            source: 'scan',
-          },
-        ]);
+        setRows(prev => {
+          const next = [
+            ...prev,
+            {
+              id: makeId(),
+              entry: prev.length + 1,
+              serial: v,
+              source: 'scan',
+            },
+          ];
+          return next.map((r, idx) => ({ ...r, entry: idx + 1 }));
+        });
         scanTargetRef.current = { type: 'row', rowId: null };
         return;
       }
 
       setRows(prev =>
-        prev.map(r =>
-          r.id === target.rowId
-            ? { ...r, serial: v, editable: false, source: 'scan' }
-            : r,
-        ),
+        prev.map(r => (r.id === target.rowId ? { ...r, serial: v, source: 'scan' } : r)),
       );
-
       scanTargetRef.current = { type: 'row', rowId: null };
     },
     [canAddRow],
   );
 
+  const addRowFromTyping = useCallback(() => {
+    clearError();
+    if (!canAddByTyping) return;
+
+    const v = trimmedAddText;
+    setRows(prev => {
+      const next = [
+        ...prev,
+        {
+          id: makeId(),
+          entry: prev.length + 1,
+          serial: v,
+          source: 'added',
+        },
+      ];
+      return next.map((r, idx) => ({ ...r, entry: idx + 1 }));
+    });
+    setAddSerialText('');
+  }, [clearError, canAddByTyping, trimmedAddText]);
+
   const validateAndGetSerials = useCallback(() => {
     const result = { ok: false, msg: '', serials: [], invalidIds: [] };
 
     if (!qty || qty <= 0) {
-      result.msg = 'Invalid inspection quantity';
+      result.msg = 'Invalid putaway quantity';
       return result;
     }
 
     if (!rows.length) {
-      result.msg = 'Add Serial to inspect';
+      result.msg = 'Add Serial to Put Away';
       return result;
     }
 
     const serials = rows.map(r => (r.serial || '').trim());
 
     if (serials.some(s => !s)) {
-      result.msg = 'Add Serial to inspect';
+      result.msg = 'Add Serial to Put Away';
       return result;
     }
 
     if (rows.length !== qty) {
-      result.msg = 'Add Serial to inspect';
+      result.msg = 'Add Serial to Put Away';
       return result;
     }
 
@@ -276,25 +252,25 @@ export default function Rec_InspectSerialModalPopup({
       return result;
     }
 
-    const savedSet = new Set(savedSerialsNormalized);
-    const invalids = [];
-    rows.forEach(r => {
-      const v = (r.serial || '').trim();
-      if (v && !savedSet.has(v)) {
-        invalids.push(r.id);
-      }
-    });
+    if (requireValidationAgainstSaved) {
+      const savedSet = new Set(savedSerialsNormalized);
+      const invalids = [];
+      rows.forEach(r => {
+        const v = (r.serial || '').trim();
+        if (v && !savedSet.has(v)) invalids.push(r.id);
+      });
 
-    if (invalids.length > 0) {
-      result.msg = 'Invalid Serial added';
-      result.invalidIds = invalids;
-      return result;
+      if (invalids.length > 0) {
+        result.msg = 'Invalid Serial added';
+        result.invalidIds = invalids;
+        return result;
+      }
     }
 
     result.ok = true;
     result.serials = serials;
     return result;
-  }, [qty, rows, computeDupIds, savedSerialsNormalized]);
+  }, [qty, rows, computeDupIds, savedSerialsNormalized, requireValidationAgainstSaved]);
 
   const handleConfirm = useCallback(() => {
     setInvalidIds([]);
@@ -306,7 +282,7 @@ export default function Rec_InspectSerialModalPopup({
     }
     setErrorMsg('');
     setInvalidIds([]);
-    if (onConfirm) onConfirm(v.serials);
+    onConfirm?.(v.serials);
   }, [validateAndGetSerials, onConfirm]);
 
   if (!visible) return null;
@@ -372,10 +348,10 @@ export default function Rec_InspectSerialModalPopup({
                 <View style={styles.tableHeaderInner}>
                   <Text style={styles.tableHeaderTxt}>Serial Numbers</Text>
                   <TouchableOpacity
-                    onPress={canAddByTyping ? addRowFromTyping : addManualRow}
+                    onPress={addRowFromTyping}
                     activeOpacity={0.85}
-                    disabled={!canAddRow}
-                    style={[styles.headerAddIconBtn, !canAddRow && styles.headerAddIconDisabled]}
+                    disabled={!canAddByTyping}
+                    style={[styles.headerAddIconBtn, !canAddByTyping && styles.headerAddIconDisabled]}
                   >
                     <LotSerialAddIcon width={rs(18)} height={rs(18)} />
                   </TouchableOpacity>
@@ -389,31 +365,36 @@ export default function Rec_InspectSerialModalPopup({
               </View>
 
               {rows.map(r => {
+                const locked = isRowLocked(r);
                 const isInvalid = dupIds.has(r.id) || invalidIds.includes(r.id);
-                const locked = !r.editable;
+
                 return (
                   <View key={r.id} style={styles.rowWrap}>
                     <Text style={styles.rowEntryText}>#{r.entry}</Text>
+
                     <View style={styles.inputWrap}>
-                      <View style={[styles.inputBox, isInvalid && styles.inputBoxError]}>
+                      <View style={[styles.inputBox, locked && styles.inputBoxLocked, isInvalid && styles.inputBoxError]}>
                         <TextInput
                           value={r.serial}
                           onChangeText={txt => setRowSerial(r.id, txt)}
                           placeholder="Enter Serial"
                           placeholderTextColor="#91A3B3"
-                          style={styles.serialInput}
-                          editable={r.editable}
+                          style={[styles.serialInput, locked && styles.serialInputLocked]}
+                          editable={!locked}
+                          autoCapitalize="characters"
                         />
                       </View>
+
                       <TouchableOpacity
                         onPress={() => openScannerForRow(r.id)}
                         activeOpacity={0.85}
                         disabled={locked}
-                        style={styles.scanBtn}
+                        style={[styles.scanBtn, locked && styles.scanBtnDisabled]}
                       >
                         <BarcodeIcon width={rs(18)} height={rs(18)} />
                       </TouchableOpacity>
                     </View>
+
                     <TouchableOpacity onPress={() => deleteRow(r.id)} activeOpacity={0.85} style={styles.deleteBtn}>
                       <SerialDeleteIcon width={rs(18)} height={rs(18)} />
                     </TouchableOpacity>
@@ -626,6 +607,9 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  inputBoxLocked: {
+    backgroundColor: '#F6F8FA',
+  },
   inputBoxError: {
     borderColor: '#D32F2F',
   },
@@ -635,6 +619,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     paddingRight: rs(40),
   },
+  serialInputLocked: {
+    color: '#3B4B59',
+  },
   scanBtn: {
     position: 'absolute',
     right: rs(10),
@@ -642,6 +629,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  scanBtnDisabled: {
+    opacity: 0.4,
   },
   deleteBtn: {
     width: rs(36),

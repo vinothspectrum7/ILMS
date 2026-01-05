@@ -203,13 +203,14 @@ const ReceiveSummaryScreen = () => {
   );
 
   const mapConfirmData = data => {
+    console.log(data,"mapconfirmdata");
     return data.map(backend => ({
       po_id: currentPO,
       po_line_id: backend?.po_line_id,
       item_id: backend?.item_id,
       org_id: backend?.org_id,
-      sub_inv_id: backend?.subInventory,
-      locator_id: backend.locator ? backend?.locator : null,
+      sub_inv_id: backend.subInventory?backend?.subInventory?.id:null,
+      locator_id: backend.locator ? backend?.locator?.id : null,
       lot_number: '',
       expiry_date: formatToday(),
       received_qty: Number(backend?.qtyToReceive),
@@ -217,7 +218,7 @@ const ReceiveSummaryScreen = () => {
       received_type: 'purchase_order',
       asn_header_uuid: null,
             // new fields
-      lpn_number: "string",
+      lpn_number: backend.lpn ? backend?.lpn?.id : null,
       failed_qty: 0,
       on_hold_qty: 0,
       lot_enabled: false,
@@ -540,7 +541,7 @@ const ReceiveSummaryScreen = () => {
         />
 
         <View style={styles.itemcontainer}>
-          <Text style={styles.itemName}>Item Summary</Text>
+          <Text style={styles.itemName}>Items Summary</Text>
 
           <View style={styles.tableHeader}>
             <SummaryTabHdrComponent />
