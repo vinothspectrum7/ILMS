@@ -2678,7 +2678,7 @@ const openPutAwayViewModal = (item) => {
         style={styles.scanBox}
       >
         <Text style={styles.scanPlaceholder}>
-          {pendingInspectRow ? 'Scan Item' : 'Inspection Completed'}
+          {'Scan Item'}
         </Text>
         <Barcodescanner width={18} height={18} />
       </TouchableOpacity>
@@ -3492,7 +3492,7 @@ const openPutAwayViewModal = (item) => {
                       style={styles.scanBox}
                     >
                       <Text style={styles.scanPlaceholder}>
-                        {pendingPutAwayRow ? 'Scan Item' : 'Put Away Completed'}
+                        {'Scan Item'}
                       </Text>
                       <Barcodescanner width={18} height={18} />
                     </TouchableOpacity>
@@ -3588,7 +3588,7 @@ const openPutAwayViewModal = (item) => {
           style={styles.scanBox}
         >
           <Text style={styles.scanPlaceholder}>
-            {pendingPutAwayRow ? 'Scan Item' : 'Put Away Completed'}
+            {'Scan Item'}
           </Text>
           <Barcodescanner width={18} height={18} />
         </TouchableOpacity>
@@ -3653,6 +3653,7 @@ const openPutAwayViewModal = (item) => {
                   style={styles.putAwayActionButton}
                   activeOpacity={0.8}
                    onPress={() => {
+                    console.log(item,"ITEMDETEETETTE")
                                 setSelectedPutAwayRow({
                                   ...item,
                                 });
@@ -3867,7 +3868,7 @@ const openPutAwayViewModal = (item) => {
             lineLabel={lineLabel}
             initialLots={currentLotSerialLines}
           />
-          <Rec_InspectPutawayView
+          {/* <Rec_InspectPutawayView
             visible={InspectputAwayRowModalVisible}
             onClose={() => {
               setInspectPutAwayRowModalVisible(false);
@@ -3879,9 +3880,9 @@ const openPutAwayViewModal = (item) => {
             uom={current?.uom || ''}
             qty={current?.receivedQty}
             putAwayQty={selectedPutAwayRow?.quantity}
-            subInventory={current?.sub_inv_code || ''}
-            transactionId={current?.lot_transaction_id}
-          />
+            subInventory={selectedPutAwayRow?.sub_inv_code || ''}
+            transactionId={selectedPutAwayRow?.lot_transaction_id}
+          /> */}
           <Modal
             visible={showScanner}
             animationType="slide"
@@ -4034,8 +4035,8 @@ const openPutAwayViewModal = (item) => {
 
           <Rec_InspectPutawayView
             visible={InspectputAwayRowModalVisible}
-            subInventory={current?.sub_inv_name}
-            transactionId={current?.lot_transaction_id}
+            subInventory={selectedPutAwayRow?.sub_inv_code}
+            transactionId={selectedPutAwayRow?.lot_transaction_id}
             onClose={() => {
               setInspectPutAwayRowModalVisible(false);
               setTimeout(() => setSelectedPutAwayRow(null), 200);

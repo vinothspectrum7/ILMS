@@ -357,7 +357,7 @@ const formatDateToYMD = (dateStr) => {
 
         org_id: backend?.org_id,
         org_code: backend?.org_code,
-        business_unit: backend?.business_name,
+        business_unit: OrgData?.BusinessName,
         supplier_name: poHeader?.supplier,
 
         uom_code: backend?.uomCode,

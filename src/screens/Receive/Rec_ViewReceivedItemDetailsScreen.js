@@ -2683,7 +2683,7 @@ const rightEnabled =
                     style={styles.scanBox}
                   >
                     <Text style={styles.scanPlaceholder}>
-                      {pendingInspectRow ? 'Scan Item' : 'Inspection Completed'}
+                      {'Scan Item'}
                     </Text>
                     <Barcodescanner width={18} height={18} />
                   </TouchableOpacity>
@@ -3441,7 +3441,7 @@ const rightEnabled =
         style={styles.scanBox}
       >
         <Text style={styles.scanPlaceholder}>
-          {pendingPutAwayRow ? 'Scan Item' : 'Put Away Completed'}
+          {'Scan Item'}
         </Text>
         <Barcodescanner width={18} height={18} />
       </TouchableOpacity>

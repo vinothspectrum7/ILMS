@@ -61,7 +61,7 @@ export default function Rec_InspectPutawayView({
             itemName: rowData?.itemName || itemName || 'N/A',
             itemCode: rowData?.itemCode || itemCode || 'N/A',
             uom: rowData?.uom || uom || 'Qty',
-            // subInventory: rowData?.subInventory || 'Not Set',
+            subInventory: rowData?.subInventory || 'Not Set',
             targetLocator: rowData?.targetLocator || 'Not Set',
             // putAwayQty: safeNum(rowData?.putAwayQty || rowData?.qty || 0),
             mfgDate: rowData?.mfgDate,
@@ -92,7 +92,7 @@ export default function Rec_InspectPutawayView({
         setApiError(false);
         
         try {
-            console.log('Fetching lot details for transaction:', transactionId);
+            console.log('Fetching lot details for transaction:', transactionId,subInventory);
             
             const response = await GetLotDetails(transactionId);
             
