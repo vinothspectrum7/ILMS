@@ -2731,9 +2731,9 @@ const rightEnabled =
                       <TouchableOpacity
                         key={r.id}
                         activeOpacity={0.85}
-                        disabled={isCompleted}
+                        // disabled={isCompleted}
                         onPress={() => {
-                          if (isCompleted) return;
+                          // if (isCompleted) return;
                           setSelectedInspectRow({ ...r });
                           setInspectRowModalVisible(true);
                         }}
@@ -3479,9 +3479,9 @@ const rightEnabled =
           <TouchableOpacity
             key={r.id}
             activeOpacity={0.85}
-            disabled={isCompleted}
+            // disabled={isCompleted}
             onPress={() => {
-              if (isCompleted) return;
+              // if (isCompleted) return;
               setSelectedPutAwayRow({ ...r });
               setPutAwayRowModalVisible(true);
             }}
@@ -3794,6 +3794,8 @@ const rightEnabled =
             itemName={current?.itemName}
             itemCode={current?.itemid || current?.itemCode || '-'}
             onComplete={handleInspectRowComplete}
+            Inspectionstatus={selectedInspectRow?.status}
+            Inspectionquality={selectedInspectRow?.quality}
           />
 
           <Rec_PutAwayLotSerialModalPopup
@@ -3822,10 +3824,7 @@ const rightEnabled =
               }))
             : [];
         }}
-        initialPutAwayData={(() => {
-          const key = current?.id != null ? `${current.id}-${selectedPutAwayLotIndex}` : '';
-          return key ? putAwayDataMap[key] : null;
-        })()}      
+        initialPutAwayData={selectedPutAwayRow}      
             // IMPORTANT: PutAway rules are based on target qty:
             // - Standard receipt => received qty
             // - Inspection required => inspected qty

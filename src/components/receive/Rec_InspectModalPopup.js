@@ -38,6 +38,8 @@ export default function Rec_InspectModalPopup({
   itemName,
   itemCode,
   onComplete,
+  Inspectionstatus,
+  Inspectionquality
 }) {
   const [inspectQty, setInspectQty] = useState(0);
   const [status, setStatus] = useState(null);
@@ -48,13 +50,14 @@ export default function Rec_InspectModalPopup({
 
   useEffect(() => {
     if (!visible) return;
-    setInspectQty(0);
-    setStatus(null);
-    setQuality(null);
+    setInspectQty(rowQty);
+    console.log(Inspectionstatus,"inspeceifneihefeueuegefef")
+    setStatus(Inspectionstatus);
+    setQuality(Inspectionquality);
     setNotes('');
     setImages([]);
     setErrorMsg('');
-  }, [visible, rowId]);
+  }, [visible, rowId,Inspectionstatus]);
 
   const statusOptions = useMemo(
     () => [
