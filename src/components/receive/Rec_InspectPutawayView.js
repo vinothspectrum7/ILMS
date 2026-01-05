@@ -319,9 +319,7 @@ export default function Rec_InspectPutawayView({
                                         </LinearGradient>
                                     )}
                                 </TouchableOpacity>
-                            </View>
-
-                    
+                            </View>                    
                         </View>
                     </View>
                       )}
