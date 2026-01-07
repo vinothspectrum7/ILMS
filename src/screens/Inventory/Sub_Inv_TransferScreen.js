@@ -25,6 +25,7 @@ import {
 import { useReceivingStore } from '../../store/receivingStore';
 import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg';
 import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
+import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -58,12 +59,20 @@ export default function Sub_Inv_TransferScreen() {
   const [uom, setUom] = useState(existingItem?.uom || null);
   const [qty, setQty] = useState(existingItem?.qty || 0);
   const [notes, setNotes] = useState(existingItem?.notes || '');
-  const [lotStatus, setLotStatus] = useState(existingItem?.lotStatus || null);
+  // const [lotStatus, setLotStatus] = useState(existingItem?.lotStatus || null);
+  const [status, setStatus] = useState(
+  controlType === 'Lot'
+    ? existingItem?.lotStatus || null
+    : existingItem?.serialStatus || null
+);
+
   const [lotModalVisible, setLotModalVisible] = useState(false);
+  const [serialModalVisible, setserialModalVisible] = useState(false);
   const [persistedIndex, setPersistedIndex] = useState(editIndex);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
+  const [controlType,setControlType] = useState(null);
 
   const availableLocatorsFrom = useMemo(() => {
     if (!fromSub) return [];
@@ -82,35 +91,55 @@ export default function Sub_Inv_TransferScreen() {
     return `Line ${idx + 1}`;
   }, [persistedIndex, subInvTransferItems.length]);
 
-  const handlePersistMainLine = () => {
-    const existingLots =
+const handlePersistMainLine = () => {
+  let existingLots = [];
+  let existingSerials = [];
+
+  if (controlType === 'Lot') {
+    existingLots =
       persistedIndex != null
         ? subInvTransferItems[persistedIndex]?.lots || []
         : existingItem?.lots || [];
+  }
 
-    const payload = {
-      item: selectedItem,
-      fromSub,
-      fromLocator,
-      toSub,
-      toLocator,
-      uom,
-      qty,
-      notes,
+  if (controlType === 'Serial') {
+    existingSerials =
+      persistedIndex != null
+        ? subInvTransferItems[persistedIndex]?.serials || []
+        : existingItem?.serials || [];
+  }
+
+  const payload = {
+    item: selectedItem,
+    fromSub,
+    fromLocator,
+    toSub,
+    toLocator,
+    uom,
+    qty,
+    notes,
+    ...(controlType === 'Lot' && {
       lots: existingLots,
-      lotStatus,
-    };
+      status,
+    }),
+    ...(controlType === 'Serial' && {
+      serials: existingSerials,
+      status,
+    }),
 
-    if (persistedIndex != null) {
-      editSubInvTransferItem(payload, persistedIndex);
-      return persistedIndex;
-    }
-
-    addSubInvTransferItem(payload);
-    const newIndex = subInvTransferItems.length;
-    setPersistedIndex(newIndex);
-    return newIndex;
   };
+
+  if (persistedIndex != null) {
+    editSubInvTransferItem(payload, persistedIndex);
+    return persistedIndex;
+  }
+
+  addSubInvTransferItem(payload);
+  const newIndex = subInvTransferItems.length;
+  setPersistedIndex(newIndex);
+  return newIndex;
+};
+
 
   const lineValid =
     !!selectedItem &&
@@ -123,23 +152,32 @@ export default function Sub_Inv_TransferScreen() {
 
   const qtyExceeds = !!selectedItem && qty > itemAvailableQty;
 
-  const canOpenLot = lineValid && !qtyExceeds;
 
   const canUseFooterButtons =
     lineValid &&
-    !!lotStatus &&
-    lotStatus.totalQty === qty &&
+    !!status &&
+    status.totalQty === qty &&
     !qtyExceeds;
 
   const currentLots =
     persistedIndex != null
       ? subInvTransferItems[persistedIndex]?.lots || []
       : [];
+  const currentSerials =
+    persistedIndex != null
+      ? subInvTransferItems[persistedIndex]?.serials || []
+      : [];
 
   const handleOpenLotModal = () => {
     const idx = handlePersistMainLine();
     setPersistedIndex(idx);
     setLotModalVisible(true);
+  };
+
+  const handleOpenSerialModal = () => {
+    const idx = handlePersistMainLine();
+    setPersistedIndex(idx);
+    setserialModalVisible(true);
   };
 
   const handleSaveLots = (lots, totalQty) => {
@@ -160,9 +198,30 @@ export default function Sub_Inv_TransferScreen() {
       },
     };
     editSubInvTransferItem(updated, persistedIndex);
-    setLotStatus({ count: lots.length, totalQty });
+    setStatus({ count: lots.length, totalQty });
   };
 
+  const handleSaveSerials = (serials, totalQty) => {
+    if (persistedIndex == null) return;
+    const updated = {
+      item: selectedItem,
+      fromSub,
+      fromLocator,
+      toSub,
+      toLocator,
+      uom,
+      qty,
+      notes,
+      serials,
+      serialStatus: {
+        count: serials.length,
+        totalQty,
+      },
+    };
+    editSubInvTransferItem(updated, persistedIndex);
+    setStatus({ count: serials.length, totalQty });
+    setserialModalVisible(false);
+  };
   const handleAdd = () => {
     if (!canUseFooterButtons) return;
     handlePersistMainLine();
@@ -222,8 +281,6 @@ export default function Sub_Inv_TransferScreen() {
     );
   }
 
-  const addLotEnabled = canOpenLot;
-
   return (
     <View style={styles.root}>
       <Inv_HeaderComponent
@@ -265,6 +322,7 @@ export default function Sub_Inv_TransferScreen() {
                 if (item && qty > item.openQty) {
                   setQty(item.openQty);
                 }
+                setControlType(item.controlType);
               }}
               items={MOCK_ITEMS}
               displayValue={it => it.name}
@@ -380,7 +438,7 @@ export default function Sub_Inv_TransferScreen() {
               </View>
             </View>
 
-            {addLotEnabled && (
+            {controlType=='Lot' && (
               <View style={styles.lotRow}>
                 <Text style={styles.fieldLabel}>
                   Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
@@ -388,9 +446,24 @@ export default function Sub_Inv_TransferScreen() {
                 </Text>
 
                 <TouchableAddLot
-                  enabled={addLotEnabled}
-                  lotStatus={lotStatus}
+                  enabled={lineValid}
+                  lotStatus={status}
                   onPress={handleOpenLotModal}
+                />
+              </View>
+            )}
+
+            {controlType=='Serial' && (
+              <View style={styles.lotRow}>
+                <Text style={styles.fieldLabel}>
+                  Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
+                  <Text style={styles.linkText}>(Serial Controlled)</Text>
+                </Text>
+
+                <TouchableAddSerial
+                  enabled={lineValid}
+                  SerialStatus={status}
+                  onPress={handleOpenSerialModal}
                 />
               </View>
             )}
@@ -439,6 +512,18 @@ export default function Sub_Inv_TransferScreen() {
         lineLabel={baseLineLabel}
       />
 
+      <Inv_SerialModalPopup
+        visible={serialModalVisible}
+        onClose={() => setserialModalVisible(false)}
+        onSave={handleSaveSerials}
+        itemName={selectedItem?.name}
+        itemCode={selectedItem?.itemid}
+        lineQty={qty}
+        lineLabel={baseLineLabel}
+        initialSerials={currentSerials}
+        // initialMode={serialMode}
+      />
+
       <ConfirmModal
         visible={confirmVisible}
         onCancel={() => setConfirmVisible(false)}
@@ -453,7 +538,7 @@ export default function Sub_Inv_TransferScreen() {
   );
 }
 
-function TouchableAddLot({ enabled, lotStatus, onPress }) {
+function TouchableAddLot({enabled,lotStatus, onPress }) {
   const hasLots = !!(lotStatus && lotStatus.count > 0);
 
   if (!enabled) {
@@ -479,6 +564,38 @@ function TouchableAddLot({ enabled, lotStatus, onPress }) {
           {hasLots && lotStatus
             ? `${lotStatus.count}LOTS - ${lotStatus.totalQty} QTY`
             : 'Add Lot'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function TouchableAddSerial({ enabled, SerialStatus, onPress }) {
+  const hasSerials = !!(SerialStatus && SerialStatus.count > 0);
+
+  if (!enabled) {
+    return (
+      <View style={[styles.addLotBase, styles.addLotDisabled]}>
+        <Text style={[styles.addLotText, styles.addLotTextDisabled]}>
+          {hasSerials && SerialStatus
+            ? `${SerialStatus.count}Serials Added - ${SerialStatus.totalQty} QTY`
+            : 'Add Serial'}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={hasSerials ? styles.addLotStatusWrapper : styles.addLotGradientWrapper}
+    >
+      <View style={hasSerials ? styles.addLotStatusInner : styles.addLotGradientInner}>
+        <Text style={hasSerials ? styles.addLotStatusText : styles.addLotText}>
+          {hasSerials && SerialStatus
+            ? `${SerialStatus.count}Serials Added - ${SerialStatus.totalQty} QTY`
+            : 'Add Serial'}
         </Text>
       </View>
     </TouchableOpacity>
