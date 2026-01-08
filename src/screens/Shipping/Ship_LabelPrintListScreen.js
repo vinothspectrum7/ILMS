@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Dimensions } from 'react-native';
 import Toast from 'react-native-toast-message';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import SearchIcon from '../../assets/icons/search_receivelist.svg';
 import { MOCK_SHIPPING_DATA } from '../../data/shippingMockData';
+import Ship_ConfirmModalComponent from '../../components/shipping/Ship_ConfirmModalComponent';
 
 const BRAND_BG = '#233E55';
 const NAV_BG = '#5D768B';
@@ -17,10 +18,12 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const scale = size => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
+ 
 
 export default function Ship_LabelPrintListScreen() {
     const navigation = useNavigation();
   const [searchText, setSearchText] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
 
   const data = MOCK_SHIPPING_DATA?.labelPrintList || [];
 
@@ -47,10 +50,15 @@ export default function Ship_LabelPrintListScreen() {
   const handleBack = () => {navigation.goBack()};
 
   const handleLabelPrint = () => {
+    setModalVisible(true);
     Toast.show({
       type: 'success',
       text1: 'Label printing',
     });
+  };
+
+  const handleCancel = () => {
+    setModalVisible(false);
   };
 
   const renderCard = ({ item }) => {
@@ -103,9 +111,10 @@ export default function Ship_LabelPrintListScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent screenTitle="Label Printing" onBack={handleBack} />
 
+      <ScrollView contentContainerStyle={styles.contentContainer}>
       <View style={styles.searchWrap}>
         <TextInput
           value={searchText}
@@ -128,7 +137,15 @@ export default function Ship_LabelPrintListScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       />
-    </View>
+      </ScrollView>
+      <Ship_ConfirmModalComponent
+            visible={modalVisible}
+            title=""
+            message="Are you sure want to Print this Label?"
+            confirmAction={handleLabelPrint}
+            onCancel={handleCancel}            
+          />
+    </SafeAreaView>
   );
 }
 

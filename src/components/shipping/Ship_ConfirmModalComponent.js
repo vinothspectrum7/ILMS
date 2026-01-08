@@ -9,28 +9,23 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import PoSuccess from '../assets/icons/PoSuccess.svg';
-// import ConfirmSuccess from '../assets/icons/ConfirmSuccess.svg';
-// import cancel from '../assets/icons/cancel.svg';
-import PoFailure from '../assets/icons/PoFailure.svg';
-// import ConfirmIcon from '../assets/icons/confirm.svg';
-// import CancelIcon from '../assets/icons/cancel.svg';
 import LinearGradient from 'react-native-linear-gradient';
+import PoSuccess from '../../assets/icons/PoSuccess.svg';
+import PoFailure from '../../assets/icons/PoFailure.svg';
+import CloseIcon from '../../assets/icons/close.svg';
 
 const { width } = Dimensions.get('window');
+
 const BRAND = '#233E55';
 const WHITE = '#FFFFFF';
 
 const RADIUS = 42;
 const HEIGHT = 48;
 
-
 const Ship_ConfirmModalComponent = ({
   visible,
-  title = 'Confirmation',
+  title = '',
   message = 'Are you sure?',
-  confirmColor = 'green',
-  cancelColor = 'red',
   backdropColor = 'rgba(0,0,0,0.3)',
   headerBg = '#ECF1F7',
   widthRatio = 0.85,
@@ -44,9 +39,9 @@ const Ship_ConfirmModalComponent = ({
   FailureIcon = PoFailure,
   autoDismissMsSuccess = 1000,
   autoDismissMsFailure = 1500,
-  buttonSize = 50,
 }) => {
   const [phase, setPhase] = useState('confirm');
+  const [failureText, setFailureText] = useState(failureMessage);
 
   const modalWidth = useMemo(
     () => Math.max(280, Math.min(520, width * widthRatio)),
@@ -54,8 +49,11 @@ const Ship_ConfirmModalComponent = ({
   );
 
   useEffect(() => {
-    if (visible) setPhase('confirm');
-  }, [visible]);
+    if (visible) {
+      setPhase('confirm');
+      setFailureText(failureMessage);
+    }
+  }, [visible, failureMessage]);
 
   useEffect(() => {
     if (phase === 'success' && autoDismissMsSuccess > 0) {
@@ -73,30 +71,26 @@ const Ship_ConfirmModalComponent = ({
       }, autoDismissMsFailure);
       return () => clearTimeout(t);
     }
-  }, [
-    phase,
-    // autoDismissMsSuccess,
-    // autoDismissMsFailure,
-    // onCancel,
-    // onSuccess,
-    // onFailure,
-  ]);
+  }, [phase, autoDismissMsSuccess, autoDismissMsFailure, onCancel, onSuccess, onFailure]);
 
   const handleYes = async () => {
     if (!confirmAction) return;
-    setPhase('loading');
 
+    setPhase('loading');
     try {
       const res = await Promise.resolve(confirmAction());
-      console.log(res,"reserererererererrergrefegfregrrgefef")
-      const ok = typeof res === 'object' ? !!res.success : !!res;
-      console.log(ok,"OKOKOKOKOKOKOKOKO")
+      const ok = typeof res === 'object' ? !!res?.success : !!res;
+
       if (!ok) {
-  failureMessage = res.message;
-}
-      setPhase(ok?"success":"failure");
-      console.log(phase,"OKADSNDIIDIH")
+        const msg = typeof res === 'object' && res?.message ? String(res.message) : failureMessage;
+        setFailureText(msg);
+      } else {
+        setFailureText(failureMessage);
+      }
+
+      setPhase(ok ? 'success' : 'failure');
     } catch {
+      setFailureText(failureMessage);
       setPhase('failure');
     }
   };
@@ -114,65 +108,72 @@ const Ship_ConfirmModalComponent = ({
         onPress={phase === 'confirm' ? onCancel : undefined}
       >
         <Pressable style={[styles.modalBox, { width: modalWidth }]} onPress={() => {}}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={phase === 'confirm' ? handleNo : undefined}
+            style={styles.closeBtn}
+            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+          >
+            <CloseIcon width={16} height={16} />
+          </TouchableOpacity>
+
           {phase === 'confirm' && (
             <>
               <View style={[styles.modalHeader, { backgroundColor: headerBg }]}>
                 <Text style={styles.modalTitle}>{title}</Text>
               </View>
 
-              <View style={styles.modalBody}>
+              <View style={[styles.modalBody,{ backgroundColor: headerBg }]}>
                 <Text style={styles.modalMessage}>{message}</Text>
+
                 <View style={styles.buttonRow}>
-      <TouchableOpacity
-        onPress={handleNo}
-        activeOpacity={0.85}
-        style={[styles.buttonBase, styles.half, styles.left]}
-      >
-        <LinearGradient
-          colors={['rgba(255,255,255,0.70)', '#EBF7F6']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.fillGradient}
-        />
-        <Text style={[styles.label, { color: '#233E55' }]}>Cancel</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={handleYes}
-        activeOpacity={0.85}
-        // disabled={!rightEnabled}
-        style={[styles.buttonBase, styles.half, styles.right]}
-      >
-        {/* {rightEnabled ? ( */}
-          <View style={styles.fillSolidBrand} />
-        {/* ) : ( */}
-        {/* )} */}
+                  <TouchableOpacity
+                    onPress={handleNo}
+                    activeOpacity={0.85}
+                    style={[styles.buttonBase, styles.half, styles.leftBtn]}
+                  >
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0.70)', '#EBF7F6']}
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={[styles.fillGradient, styles.leftFill]}
+                    />
+                    <Text style={[styles.label, { color: BRAND }]}>Manual</Text>
+                  </TouchableOpacity>
 
-        <LinearGradient
-          colors={['rgba(255,255,255,0.53)', 'rgba(255,255,255,0)']}
-          locations={[0, 1]}
-          start={{ x: 0.5, y: 0.5 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.topGloss}
-        />
+                  <TouchableOpacity
+                    onPress={handleYes}
+                    activeOpacity={0.85}
+                    style={[styles.buttonBase, styles.half, styles.rightBtn]}
+                  >
+                    <View style={[styles.fillSolidBrand, styles.rightFill]} />
 
-        <LinearGradient
-          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.23)']}
-          locations={[0.55, 1]}
-          start={{ x: 0.5, y: 0.55 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.bottomInnerShadow}
-        />
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0.53)', 'rgba(255,255,255,0)']}
+                      locations={[0, 1]}
+                      start={{ x: 0.5, y: 0.5 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={[styles.topGloss, styles.rightFill]}
+                    />
 
-        <LinearGradient
-          colors={['rgba(0,0,0,0.16)', 'transparent', 'transparent', 'rgba(0,0,0,0.16)']}
-          locations={[0, 0.2, 0.8, 1]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={styles.sideVignette}
-        />
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.23)']}
+                      locations={[0.55, 1]}
+                      start={{ x: 0.5, y: 0.55 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={[styles.bottomInnerShadow, styles.rightFill]}
+                    />
 
-        <Text style={[styles.label, { color: '#FFFFFF' }]}>Confirm</Text>
-      </TouchableOpacity>
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.16)', 'transparent', 'transparent', 'rgba(0,0,0,0.16)']}
+                      locations={[0, 0.2, 0.8, 1]}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={[styles.sideVignette, styles.rightFill]}
+                    />
+
+                    <Text style={[styles.label, { color: WHITE }]}>Yes</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </>
@@ -187,7 +188,7 @@ const Ship_ConfirmModalComponent = ({
 
           {phase === 'success' && (
             <View style={styles.statusBody}>
-              <SuccessIcon width={96} height={96}  />
+              <SuccessIcon width={96} height={96} />
               <Text style={styles.statusText}>{successMessage}</Text>
             </View>
           )}
@@ -195,7 +196,7 @@ const Ship_ConfirmModalComponent = ({
           {phase === 'failure' && (
             <View style={styles.statusBody}>
               <FailureIcon width={96} height={96} />
-              <Text style={styles.statusText}>{failureMessage}</Text>
+              <Text style={styles.statusText}>{failureText}</Text>
             </View>
           )}
         </Pressable>
@@ -215,55 +216,128 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
     overflow: 'hidden',
+    padding: 5,
   },
+
+  closeBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 34,
+    height: 34,
+    overflow:'visible',
+    borderRadius: 17,
+    backgroundColor: '#FBE9EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+
   modalHeader: {
     padding: 20,
     alignItems: 'flex-start',
   },
-  buttonBase: {
-    height: HEIGHT,
-    borderRadius: RADIUS,
-    overflow: 'hidden',
-    // marginBottom: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-    sideVignette: {
-      ...StyleSheet.absoluteFillObject,
-      borderRadius: RADIUS,
-      zIndex: 1,
-    },
-  fillGradient: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#242424',
-    fontFamily:'Mulish'
+    fontFamily: 'Mulish',
   },
+
   modalBody: {
     padding: 20,
-    // alignItems: 'center',
   },
   modalMessage: {
     fontSize: 18,
-    textAlign: 'flex-start',
+    textAlign: 'center',
     marginBottom: 20,
     color: '#595A5C',
-    fontFamily:'Mulish'
+    fontFamily: 'Mulish',
   },
+
   buttonRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    // width: '40%',
-    alignItems:'center'
   },
-  circleButton: {
+
+  buttonBase: {
+    height: HEIGHT,
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    // borderWidth: 2,
-    backgroundColor: 'white',
+    position: 'relative',
   },
+
+  half: { width: '50%' },
+
+  leftBtn: {
+    borderTopLeftRadius: RADIUS,
+    borderBottomLeftRadius: RADIUS,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+    borderWidth: 1,
+    borderColor: BRAND,
+    backgroundColor: WHITE,
+  },
+  rightBtn: {
+    borderTopRightRadius: RADIUS,
+    borderBottomRightRadius: RADIUS,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    marginRight: -1,
+  },
+
+  leftFill: {
+    borderTopLeftRadius: RADIUS,
+    borderBottomLeftRadius: RADIUS,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  rightFill: {
+    borderTopRightRadius: RADIUS,
+    borderBottomRightRadius: RADIUS,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+
+  label: {
+    zIndex: 5,
+    fontWeight: '700',
+    fontFamily: 'Mulish',
+    fontSize: 16,
+  },
+
+  fillGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  fillSolidBrand: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: BRAND,
+  },
+
+  topGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 2,
+    right: 2,
+    height: '52%',
+    zIndex: 2,
+  },
+  bottomInnerShadow: {
+    position: 'absolute',
+    left: 2,
+    right: 2,
+    bottom: 0,
+    height: '36%',
+    zIndex: 1,
+  },
+  sideVignette: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+
   statusBody: {
     paddingVertical: 28,
     paddingHorizontal: 24,
@@ -275,30 +349,6 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
   },
-  half: { width: '48%' },
-  label: { zIndex: 5, fontWeight: '700',fontFamily:'Mulish', fontSize: 16 },
-  left: { marginRight:5,borderWidth: 1, borderColor: BRAND, backgroundColor: WHITE },
-    topGloss: {
-    position: 'absolute',
-    top: 0,
-    left: 2,
-    right: 2,
-    height: '52%',
-    borderTopLeftRadius: RADIUS,
-    borderTopRightRadius: RADIUS,
-    zIndex: 2,
-  },
-  bottomInnerShadow: {
-    position: 'absolute',
-    left: 2,
-    right: 2,
-    bottom: 0,
-    height: '36%',
-    borderBottomLeftRadius: RADIUS,
-    borderBottomRightRadius: RADIUS,
-    zIndex: 1,
-  },
-  fillSolidBrand: { ...StyleSheet.absoluteFillObject, borderRadius: RADIUS, backgroundColor: BRAND },
 });
 
 export default Ship_ConfirmModalComponent;
