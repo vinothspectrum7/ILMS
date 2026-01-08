@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
 
@@ -30,11 +30,13 @@ const Inv_Menu = ()=>{
   const onBack = useCallback(() => navigation.navigate('Home'), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
 
-    useEffect(() => {
+      useFocusEffect(
+        useCallback(() => {
       removeOrgTransferDetails();
       resetOrgnaizationTransferItems();
       resetSubInvTransfer();
-    }, []);
+        }, [])
+      );
 
   return (
     <View style={styles.safe}>
