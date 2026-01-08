@@ -285,6 +285,10 @@ function capitalizeFirstLetter(str) {
       navigation.navigate('Inventory');
       return;
     }
+    if (name === 'Shipping') {
+      navigation.navigate('Ship_LabelPrintListScreen');
+      return;
+    }
     Toast.show({ type: 'info', text1: name, text2: 'Navigation will be added soon.', position: 'top', visibilityTime: 1200 });
   };
 

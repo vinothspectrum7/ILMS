@@ -45,6 +45,7 @@ import SettingsScreen from './src/screens/Profile/profile';
 import ChangePassword from './src/screens/Profile/ChangePassword';
 import Sub_Inv_TransferSummaryScreen from './src/screens/Inventory/Sub_Inv_TransferSummaryScreen';
 import Rec_ViewItemDetailsScreen from './src/screens/Receive/Rec_ViewItemDetailsScreen';
+import Ship_LabelPrintListScreen from './src/screens/Shipping/Ship_LabelPrintListScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -269,6 +270,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="Rec_ViewItemDetailsScreen"
 component={Rec_ViewItemDetailsScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Shipping"
+component={Ship_LabelPrintListScreen}
 options={{ headerShown: false }}
 />
 </Stack.Navigator>
