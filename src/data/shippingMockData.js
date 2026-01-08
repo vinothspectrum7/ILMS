@@ -31,6 +31,98 @@ export const MOCK_SHIP_LABEL_PRINT_LIST = [
   },
 ];
 
+export const MOCK_SHIP_DELIVERY_LIST = [
+  {
+    id: 'DEL001',
+    name: 'DN01213',
+    deliveryId: '1100002',
+    deliveryNumber: 'DN01213',
+    scacCode: '1234',
+    palletOrBoxNumber: '9877',
+    packageWeight: '120 kgs',
+    itemNumber: 'IT13543',
+    consignee: 'IT13543',
+    countryOfOrigin: 'Lorem Ipsum',
+    finalDestination: 'Atlanta, GA',
+    totalLpnWeight: '150 kgs',
+  },
+  {
+    id: 'DEL002',
+    name: 'DN04567',
+    deliveryId: '2200003',
+    deliveryNumber: 'DN04567',
+    scacCode: '5678',
+    palletOrBoxNumber: '4455',
+    packageWeight: '95 kgs',
+    itemNumber: 'IT24680',
+    consignee: 'Consignee A',
+    countryOfOrigin: 'India',
+    finalDestination: 'Dallas, TX',
+    totalLpnWeight: '130 kgs',
+  },
+  {
+    id: 'DEL003',
+    name: 'DN07890',
+    deliveryId: '3300004',
+    deliveryNumber: 'DN07890',
+    scacCode: '9012',
+    palletOrBoxNumber: '7788',
+    packageWeight: '60 kgs',
+    itemNumber: 'IT97531',
+    consignee: 'Consignee B',
+    countryOfOrigin: 'UAE',
+    finalDestination: 'New York, NY',
+    totalLpnWeight: '85 kgs',
+  },
+  {
+    id: 'DEL004',
+    name: 'DN09991',
+    deliveryId: '4400005',
+    deliveryNumber: 'DN09991',
+    scacCode: '3456',
+    palletOrBoxNumber: '1122',
+    packageWeight: '150 kgs',
+    itemNumber: 'IT86420',
+    consignee: 'Consignee C',
+    countryOfOrigin: 'USA',
+    finalDestination: 'Seattle, WA',
+    totalLpnWeight: '170 kgs',
+  },
+  {
+    id: 'DEL005',
+    name: 'DN10001',
+    deliveryId: '5500006',
+    deliveryNumber: 'DN10001',
+    scacCode: '7890',
+    palletOrBoxNumber: '3344',
+    packageWeight: '110 kgs',
+    itemNumber: 'IT11223',
+    consignee: 'Consignee D',
+    countryOfOrigin: 'Germany',
+    finalDestination: 'Chicago, IL',
+    totalLpnWeight: '140 kgs',
+  },
+];
+
+export const MOCK_SHIP_LABEL_TYPE_LIST = [
+  { id: 'LT001', name: 'Template 1' },
+  { id: 'LT002', name: 'Template 2' },
+  { id: 'LT003', name: 'Template 3' },
+  { id: 'LT004', name: 'Template 4' },
+  { id: 'LT005', name: 'Template 5' },
+];
+
+export const MOCK_SHIP_PRINTABLE_SELECTION_LIST = [
+  { id: 'PS001', name: 'Print 1' },
+  { id: 'PS002', name: 'Print 2' },
+  { id: 'PS003', name: 'Print 3' },
+  { id: 'PS004', name: 'Print All' },
+  { id: 'PS005', name: 'Print Selected' },
+];
+
 export const MOCK_SHIPPING_DATA = {
   labelPrintList: MOCK_SHIP_LABEL_PRINT_LIST,
+  deliveryList: MOCK_SHIP_DELIVERY_LIST,
+  labelTypeList: MOCK_SHIP_LABEL_TYPE_LIST,
+  printableSelectionList: MOCK_SHIP_PRINTABLE_SELECTION_LIST,
 };

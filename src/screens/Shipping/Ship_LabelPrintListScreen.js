@@ -1,14 +1,22 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigation, useRoute, StackActions, useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Dimensions } from 'react-native';
-import Toast from 'react-native-toast-message';
+import React, { useMemo, useState, useCallback } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  SafeAreaView,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import SearchIcon from '../../assets/icons/search_receivelist.svg';
 import { MOCK_SHIPPING_DATA } from '../../data/shippingMockData';
-import Ship_ConfirmModalComponent from '../../components/shipping/Ship_ConfirmModalComponent';
+import Ship_LabelPrintModalPopUp from '../../components/shipping/Ship_LabelPrintModalPopUp';
 
 const BRAND_BG = '#233E55';
-const NAV_BG = '#5D768B';
 const LABEL_COLOR = '#9D9FA3';
 const VALUE_COLOR = '#595A5C';
 const CARD_BG = '#FFFFFF';
@@ -18,11 +26,14 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const scale = size => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
- 
 
 export default function Ship_LabelPrintListScreen() {
-    const navigation = useNavigation();
-  const [searchText, setSearchText] = useState('');  
+  const navigation = useNavigation();
+  const [searchText, setSearchText] = useState('');
+  const [isLabelModalVisible, setIsLabelModalVisible] = useState(false);
+  const [prefillDeliveryId, setPrefillDeliveryId] = useState(null);
+  const [prefillCopies, setPrefillCopies] = useState(null);
+
   const data = MOCK_SHIPPING_DATA?.labelPrintList || [];
 
   const filteredData = useMemo(() => {
@@ -45,16 +56,23 @@ export default function Ship_LabelPrintListScreen() {
     });
   }, [data, searchText]);
 
-  const handleBack = () => {navigation.goBack()};
+  const handleBack = () => navigation.goBack();
 
-  const handleLabelPrint = () => {    
-    Toast.show({
-      type: 'success',
-      text1: 'Label printing',
-    });
-  };
+  const openLabelPrintModal = useCallback(item => {
+    const did = String(item?.deliveryId ?? '');
+    const copies = Number(item?.noOfCopies ?? 0);
+    setPrefillDeliveryId(did || null);
+    setPrefillCopies(Number.isFinite(copies) ? copies : 0);
+    setIsLabelModalVisible(true);
+  }, []);
 
-  
+  const closeLabelPrintModal = useCallback(() => {
+    setIsLabelModalVisible(false);
+    setPrefillDeliveryId(null);
+    setPrefillCopies(null);
+  }, []);
+
+  const handlePrintComplete = useCallback(() => {}, []);
 
   const renderCard = ({ item }) => {
     return (
@@ -98,7 +116,11 @@ export default function Ship_LabelPrintListScreen() {
           <Text style={styles.copiesValue}>{String(item.noOfCopies ?? 0)}</Text>
         </View>
 
-        <TouchableOpacity activeOpacity={0.9} onPress={handleLabelPrint} style={styles.printBtn}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => openLabelPrintModal(item)}
+          style={styles.printBtn}
+        >
           <Text style={styles.printBtnText}>Label Print</Text>
         </TouchableOpacity>
       </View>
@@ -110,29 +132,37 @@ export default function Ship_LabelPrintListScreen() {
       <GlobalHeaderComponent screenTitle="Label Printing" onBack={handleBack} />
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
-      <View style={styles.searchWrap}>
-        <TextInput
-          value={searchText}
-          onChangeText={setSearchText}
-          placeholder="Search"
-          placeholderTextColor="#9AA3AB"
-          style={styles.searchInput}
-          returnKeyType="search"
-        />
-        <View style={styles.searchIconWrap}>
-          <SearchIcon width={ms(18)} height={ms(18)} />
+        <View style={styles.searchWrap}>
+          <TextInput
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Search"
+            placeholderTextColor="#9AA3AB"
+            style={styles.searchInput}
+            returnKeyType="search"
+          />
+          <View style={styles.searchIconWrap}>
+            <SearchIcon width={ms(18)} height={ms(18)} />
+          </View>
         </View>
-      </View>
 
-      <FlatList
-        data={filteredData}
-        keyExtractor={item => String(item.id)}
-        renderItem={renderCard}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        <FlatList
+          data={filteredData}
+          keyExtractor={item => String(item.id)}
+          renderItem={renderCard}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
+      </ScrollView>
+
+      <Ship_LabelPrintModalPopUp
+        isVisible={isLabelModalVisible}
+        onClose={closeLabelPrintModal}
+        onPrintComplete={handlePrintComplete}
+        initialDeliveryId={prefillDeliveryId}
+        initialCopies={prefillCopies}
       />
-      </ScrollView>      
     </SafeAreaView>
   );
 }
