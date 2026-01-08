@@ -22,9 +22,7 @@ const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 export default function Ship_LabelPrintListScreen() {
     const navigation = useNavigation();
-  const [searchText, setSearchText] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
-
+  const [searchText, setSearchText] = useState('');  
   const data = MOCK_SHIPPING_DATA?.labelPrintList || [];
 
   const filteredData = useMemo(() => {
@@ -49,17 +47,14 @@ export default function Ship_LabelPrintListScreen() {
 
   const handleBack = () => {navigation.goBack()};
 
-  const handleLabelPrint = () => {
-    setModalVisible(true);
+  const handleLabelPrint = () => {    
     Toast.show({
       type: 'success',
       text1: 'Label printing',
     });
   };
 
-  const handleCancel = () => {
-    setModalVisible(false);
-  };
+  
 
   const renderCard = ({ item }) => {
     return (
@@ -137,14 +132,7 @@ export default function Ship_LabelPrintListScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       />
-      </ScrollView>
-      <Ship_ConfirmModalComponent
-            visible={modalVisible}
-            title=""
-            message="Are you sure want to Print this Label?"
-            confirmAction={handleLabelPrint}
-            onCancel={handleCancel}            
-          />
+      </ScrollView>      
     </SafeAreaView>
   );
 }
