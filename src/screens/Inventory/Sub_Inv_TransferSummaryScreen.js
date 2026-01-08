@@ -1,6 +1,6 @@
 // src/screens/Inventory/Sub_Inv_TransferSummaryScreen.js
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,8 @@ import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg'
 import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
 import SummaryDividerIcon from '../../assets/icons/summarydivider.svg';
 import SummaryViewEyeIcon from '../../assets/icons/summaryvieweye.svg';
+import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
+import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -25,16 +27,28 @@ const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
 
 export default function Sub_Inv_TransferSummaryScreen() {
   const navigation = useNavigation();
-  const { OrgData, subInvTransferItems, editSubInvTransferItem } = useReceivingStore();
+  const { OrgData, subInvTransferItems, editSubInvTransferItem,resetSubInvTransfer } = useReceivingStore();
 
   const [lotModalVisible, setLotModalVisible] = useState(false);
   const [activeLineIndex, setActiveLineIndex] = useState(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
+  const [serialModalVisible,setserialModalVisible] = useState(false);
+  const [lotserialModalVisible,setLotserialModalVisible] = useState(false);
 
   const handleOpenLot = index => {
     setActiveLineIndex(index);
     setLotModalVisible(true);
+  };
+
+  const handleOpenSerial = index => {
+    setActiveLineIndex(index);
+    setserialModalVisible(true);
+  };
+
+  const handleOpenLotSerial = index => {
+    setActiveLineIndex(index);
+    setLotserialModalVisible(true);
   };
 
   const handleSaveLots = (lots, totalQty) => {
@@ -50,6 +64,39 @@ export default function Sub_Inv_TransferSummaryScreen() {
       },
     };
     editSubInvTransferItem(updated, activeLineIndex);
+    setLotModalVisible(false);
+  };
+
+    const handleSaveSerials = (serials, totalQty) => {
+    if (activeLineIndex == null) return;
+    const currentLine = subInvTransferItems[activeLineIndex];
+    if (!currentLine) return;
+    const updated = {
+      ...currentLine,
+      serials,
+      serialStatus: {
+        count: serials.length,
+        totalQty,
+      },
+    };
+    editSubInvTransferItem(updated, activeLineIndex);
+    setserialModalVisible(false);
+  };
+    const handleSaveLotSerials = (lotSerials, totalQty,meta) => {
+      console.log(activeLineIndex,"activeLineIndex")
+    if (activeLineIndex == null) return;
+    const currentLine = subInvTransferItems[activeLineIndex];
+    if (!currentLine) return;
+    const updated = {
+      ...currentLine,
+      lotSerials,
+      serialStatus: {
+        count: lotSerials.length,
+        totalQty,
+      },
+    };
+    editSubInvTransferItem(updated, activeLineIndex);
+    setLotserialModalVisible(false);
   };
 
   const handleAddMore = () => {
@@ -66,10 +113,15 @@ export default function Sub_Inv_TransferSummaryScreen() {
     console.log('SUB_INV_TRANSFER_SUBMIT', subInvTransferItems);
     setSuccessVisible(true);
     setTimeout(() => {
+      resetSubInvTransfer();
       setSuccessVisible(false);
       navigation.navigate('Inventory');
     }, 1500);
   };
+
+  useEffect(()=>{
+    console.log(subInvTransferItems,"hasLineshasLineshasLineshasLines")
+  },[hasLines])
 
   const hasLines = subInvTransferItems && subInvTransferItems.length > 0;
   const activeLine =
@@ -151,13 +203,27 @@ export default function Sub_Inv_TransferSummaryScreen() {
                   </View>
                 </View>
 
-                <TouchableOpacity
+                {line?.controlType=='Lot' && (<TouchableOpacity
                   style={styles.viewLotBtn}
                   onPress={() => handleOpenLot(index)}
                 >
                   <SummaryViewEyeIcon width={rs(18)} height={rs(18)} />
                   <Text style={styles.viewLotText}>View LOT</Text>
-                </TouchableOpacity>
+                </TouchableOpacity>)}
+                {line?.controlType=='Serial' && (<TouchableOpacity
+                  style={styles.viewLotBtn}
+                  onPress={() => handleOpenSerial(index)}
+                >
+                  <SummaryViewEyeIcon width={rs(18)} height={rs(18)} />
+                  <Text style={styles.viewLotText}>View Serial</Text>
+                </TouchableOpacity>)}
+                {line?.controlType=='Lot+Serial' && (<TouchableOpacity
+                  style={styles.viewLotBtn}
+                  onPress={() => handleOpenLotSerial(index)}
+                >
+                  <SummaryViewEyeIcon width={rs(18)} height={rs(18)} />
+                  <Text style={styles.viewLotText}>View Lot+Serial</Text>
+                </TouchableOpacity>)}
               </View>
             </View>
           ))}
@@ -180,6 +246,29 @@ export default function Sub_Inv_TransferSummaryScreen() {
         initialLots={activeLine?.lots || []}
         onSave={handleSaveLots}
         lineLabel={activeLineIndex != null ? `Line ${activeLineIndex + 1}` : undefined}
+      />
+
+      <Inv_SerialModalPopup
+        visible={serialModalVisible}
+        onClose={() => setserialModalVisible(false)}
+        onSave={handleSaveSerials}
+        itemName={activeLine?.item?.name}
+        itemCode={activeLine?.item?.id}
+        lineQty={activeLine?.qty || 0}
+        lineLabel={activeLineIndex != null ? `Line ${activeLineIndex + 1}` : undefined}
+        initialSerials={activeLine?.serials}
+        // initialMode={serialMode}
+      />
+
+      <Inv_LotSerialModalPopup
+        visible={lotserialModalVisible}
+        onClose={() => setLotserialModalVisible(false)}
+        onSave={handleSaveLotSerials}
+        itemName={activeLine?.item?.name}
+        itemCode={activeLine?.item?.id}
+        lineQty={activeLine?.qty || 0}
+        lineLabel={activeLineIndex != null ? `Line ${activeLineIndex + 1}` : undefined}
+        initialLots={activeLine?.lotSerials}
       />
 
       <ConfirmModal
