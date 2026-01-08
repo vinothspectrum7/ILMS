@@ -107,7 +107,7 @@ const Ship_ConfirmModalComponent = ({
         style={[styles.modalOverlay, { backgroundColor: backdropColor }]}
         onPress={phase === 'confirm' ? onCancel : undefined}
       >
-        <Pressable style={[styles.modalBox, { width: modalWidth }]} onPress={() => {}}>
+        <Pressable style={[styles.modalWrapper, { width: modalWidth }]} onPress={() => {}}>
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={phase === 'confirm' ? handleNo : undefined}
@@ -117,88 +117,90 @@ const Ship_ConfirmModalComponent = ({
             <CloseIcon width={16} height={16} />
           </TouchableOpacity>
 
-          {phase === 'confirm' && (
-            <>
-              <View style={[styles.modalHeader, { backgroundColor: headerBg }]}>
-                <Text style={styles.modalTitle}>{title}</Text>
-              </View>
-
-              <View style={[styles.modalBody,{ backgroundColor: headerBg }]}>
-                <Text style={styles.modalMessage}>{message}</Text>
-
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity
-                    onPress={handleNo}
-                    activeOpacity={0.85}
-                    style={[styles.buttonBase, styles.half, styles.leftBtn]}
-                  >
-                    <LinearGradient
-                      colors={['rgba(255,255,255,0.70)', '#EBF7F6']}
-                      start={{ x: 0.5, y: 0 }}
-                      end={{ x: 0.5, y: 1 }}
-                      style={[styles.fillGradient, styles.leftFill]}
-                    />
-                    <Text style={[styles.label, { color: BRAND }]}>Manual</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={handleYes}
-                    activeOpacity={0.85}
-                    style={[styles.buttonBase, styles.half, styles.rightBtn]}
-                  >
-                    <View style={[styles.fillSolidBrand, styles.rightFill]} />
-
-                    <LinearGradient
-                      colors={['rgba(255,255,255,0.53)', 'rgba(255,255,255,0)']}
-                      locations={[0, 1]}
-                      start={{ x: 0.5, y: 0.5 }}
-                      end={{ x: 0.5, y: 1 }}
-                      style={[styles.topGloss, styles.rightFill]}
-                    />
-
-                    <LinearGradient
-                      colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.23)']}
-                      locations={[0.55, 1]}
-                      start={{ x: 0.5, y: 0.55 }}
-                      end={{ x: 0.5, y: 1 }}
-                      style={[styles.bottomInnerShadow, styles.rightFill]}
-                    />
-
-                    <LinearGradient
-                      colors={['rgba(0,0,0,0.16)', 'transparent', 'transparent', 'rgba(0,0,0,0.16)']}
-                      locations={[0, 0.2, 0.8, 1]}
-                      start={{ x: 0, y: 0.5 }}
-                      end={{ x: 1, y: 0.5 }}
-                      style={[styles.sideVignette, styles.rightFill]}
-                    />
-
-                    <Text style={[styles.label, { color: WHITE }]}>Yes</Text>
-                  </TouchableOpacity>
+          <View style={styles.modalBox}>
+            {phase === 'confirm' && (
+              <>
+                <View style={[styles.modalHeader, { backgroundColor: headerBg }]}>
+                  <Text style={styles.modalTitle}>{title}</Text>
                 </View>
+
+                <View style={[styles.modalBody, { backgroundColor: headerBg }]}>
+                  <Text style={styles.modalMessage}>{message}</Text>
+
+                  <View style={styles.buttonGroup}>
+                    <TouchableOpacity
+                      onPress={handleNo}
+                      activeOpacity={0.85}
+                      style={[styles.buttonBase, styles.half]}
+                    >
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.70)', '#EBF7F6']}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.fillGradient}
+                      />
+                      <Text style={[styles.label, { color: BRAND }]}>Manual</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleYes}
+                      activeOpacity={0.85}
+                      style={[styles.buttonBase, styles.half]}
+                    >
+                      <View style={styles.fillSolidBrand} />
+
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.53)', 'rgba(255,255,255,0)']}
+                        locations={[0, 1]}
+                        start={{ x: 0.5, y: 0.5 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.topGloss}
+                      />
+
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.23)']}
+                        locations={[0.55, 1]}
+                        start={{ x: 0.5, y: 0.55 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.bottomInnerShadow}
+                      />
+
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0.16)', 'transparent', 'transparent', 'rgba(0,0,0,0.16)']}
+                        locations={[0, 0.2, 0.8, 1]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.sideVignette}
+                      />
+
+                      <Text style={[styles.label, { color: WHITE }]}>Yes</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </>
+            )}
+
+            {phase === 'loading' && (
+              <View style={styles.statusBody}>
+                <ActivityIndicator size="large" />
+                <Text style={styles.statusText}>Loading...</Text>
               </View>
-            </>
-          )}
+            )}
 
-          {phase === 'loading' && (
-            <View style={styles.statusBody}>
-              <ActivityIndicator size="large" />
-              <Text style={styles.statusText}>Loading...</Text>
-            </View>
-          )}
+            {phase === 'success' && (
+              <View style={styles.statusBody}>
+                <SuccessIcon width={96} height={96} />
+                <Text style={styles.statusText}>{successMessage}</Text>
+              </View>
+            )}
 
-          {phase === 'success' && (
-            <View style={styles.statusBody}>
-              <SuccessIcon width={96} height={96} />
-              <Text style={styles.statusText}>{successMessage}</Text>
-            </View>
-          )}
-
-          {phase === 'failure' && (
-            <View style={styles.statusBody}>
-              <FailureIcon width={96} height={96} />
-              <Text style={styles.statusText}>{failureText}</Text>
-            </View>
-          )}
+            {phase === 'failure' && (
+              <View style={styles.statusBody}>
+                <FailureIcon width={96} height={96} />
+                <Text style={styles.statusText}>{failureText}</Text>
+              </View>
+            )}
+          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -212,6 +214,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
   },
+
+  modalWrapper: {
+    position: 'relative',
+    overflow: 'visible',
+  },
+
   modalBox: {
     backgroundColor: 'white',
     borderRadius: 10,
@@ -221,16 +229,16 @@ const styles = StyleSheet.create({
 
   closeBtn: {
     position: 'absolute',
-    top: 14,
-    right: 14,
+    top: -18,
+    right: -10,
     width: 34,
     height: 34,
-    overflow:'visible',
     borderRadius: 17,
     backgroundColor: '#FBE9EA',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
+    zIndex: 50,
+    elevation: 8,
   },
 
   modalHeader: {
@@ -250,15 +258,20 @@ const styles = StyleSheet.create({
   modalMessage: {
     fontSize: 18,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 40,
     color: '#595A5C',
     fontFamily: 'Mulish',
   },
 
-  buttonRow: {
+  buttonGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BRAND,
+    borderRadius: RADIUS,
+    overflow: 'hidden',
+    backgroundColor: WHITE,
   },
 
   buttonBase: {
@@ -270,36 +283,6 @@ const styles = StyleSheet.create({
   },
 
   half: { width: '50%' },
-
-  leftBtn: {
-    borderTopLeftRadius: RADIUS,
-    borderBottomLeftRadius: RADIUS,
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
-    borderWidth: 1,
-    borderColor: BRAND,
-    backgroundColor: WHITE,
-  },
-  rightBtn: {
-    borderTopRightRadius: RADIUS,
-    borderBottomRightRadius: RADIUS,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-    marginRight: -1,
-  },
-
-  leftFill: {
-    borderTopLeftRadius: RADIUS,
-    borderBottomLeftRadius: RADIUS,
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  rightFill: {
-    borderTopRightRadius: RADIUS,
-    borderBottomRightRadius: RADIUS,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-  },
 
   label: {
     zIndex: 5,
