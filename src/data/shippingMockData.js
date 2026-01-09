@@ -116,8 +116,8 @@ export const MOCK_SHIP_PRINTABLE_SELECTION_LIST = [
   { id: 'PS001', name: 'Print 1' },
   { id: 'PS002', name: 'Print 2' },
   { id: 'PS003', name: 'Print 3' },
-  { id: 'PS004', name: 'Print All' },
-  { id: 'PS005', name: 'Print Selected' },
+  { id: 'PS004', name: 'Print 4' },
+  { id: 'PS005', name: 'Print 5' },
 ];
 
 export const MOCK_SHIPPING_DATA = {

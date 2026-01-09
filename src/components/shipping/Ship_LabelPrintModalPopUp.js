@@ -151,7 +151,7 @@ const Ship_LabelPrintModalPopUp = ({
               <Ship_DropDown
                 label="Delivery Number"
                 required
-                placeholder="Select"
+                placeholder="Select Delivery Number"
                 value={selectedDelivery}
                 onChange={handleDeliveryChange}
                 items={deliveryItems}
@@ -162,7 +162,7 @@ const Ship_LabelPrintModalPopUp = ({
               <Ship_DropDown
                 label="Label Type"
                 required
-                placeholder="Select"
+                placeholder="Select Label Type"
                 value={selectedLabelType}
                 onChange={setSelectedLabelType}
                 items={labelTypeItems}
@@ -173,7 +173,7 @@ const Ship_LabelPrintModalPopUp = ({
               <Ship_DropDown
                 label="Printable Selection"
                 required
-                placeholder="Select"
+                placeholder="Select Printable"
                 value={selectedPrintableSelection}
                 onChange={setSelectedPrintableSelection}
                 items={printableItems}
