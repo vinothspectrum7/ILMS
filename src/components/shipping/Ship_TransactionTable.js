@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     },
 
     pickText: {
-        fontSize: 10,
+        fontSize: 8,
         fontWeight: '700',
         color: '#145DA0',
         textAlign: 'center',
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
 
     readyText: {
         color: '#188038',
-        fontSize: 10,
+        fontSize: 8,
         fontWeight: '700',
     },
 
