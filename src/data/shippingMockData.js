@@ -1,3 +1,5 @@
+// src/data/shippingMockData.js
+
 export const MOCK_SHIP_LABEL_PRINT_LIST = [
   {
     id: 'SHIP001',
@@ -126,6 +128,7 @@ export const MOCK_SHIPPING_DATA = {
   labelTypeList: MOCK_SHIP_LABEL_TYPE_LIST,
   printableSelectionList: MOCK_SHIP_PRINTABLE_SELECTION_LIST,
 };
+
 export const SHIPPING_TABLE_DATA = [
   {
     deliveryId: 'D1234',
@@ -281,6 +284,7 @@ export const SHIPPING_TABLE_DATA = [
     exception: 'Delayed',
     itemType: 'Lot',
   },
+
   {
     deliveryId: 'D1202',
     salesOrderNo: 'SO2332',
@@ -309,7 +313,93 @@ export const SHIPPING_TABLE_DATA = [
     exception: 'None',
     itemType: 'Lot',
   },
+
+  {
+    deliveryId: 'D1204',
+    salesOrderNo: 'SO2337',
+    customer: 'XYZ Corp',
+    carrier: 'DHL',
+    lines: 6,
+    quantity: 26,
+    pickSlipNo: 'PS3476',
+    status: 'Ready To Ship',
+    organization: 'ENV',
+    items: ['Item B', 'Item E'],
+    exception: 'None',
+    itemType: 'Lot',
+  },
+  {
+    deliveryId: 'D1205',
+    salesOrderNo: 'SO2338',
+    customer: 'XYZ Corp',
+    carrier: 'DHL',
+    lines: 9,
+    quantity: 34,
+    pickSlipNo: 'PS3477',
+    status: 'Ready To Ship',
+    organization: 'ENV',
+    items: ['Item C', 'Item A'],
+    exception: 'None',
+    itemType: 'Lot+Serial',
+  },
+  {
+    deliveryId: 'D1206',
+    salesOrderNo: 'SO2339',
+    customer: 'EFG Solutions',
+    carrier: 'FedEx',
+    lines: 7,
+    quantity: 41,
+    pickSlipNo: 'PS3478',
+    status: 'Ready To Ship',
+    organization: 'ENV',
+    items: ['Item A', 'Item D'],
+    exception: 'None',
+    itemType: 'Serial',
+  },
+  {
+    deliveryId: 'D1207',
+    salesOrderNo: 'SO2340',
+    customer: 'QRS Ltd',
+    carrier: 'TNT',
+    lines: 5,
+    quantity: 19,
+    pickSlipNo: 'PS3479',
+    status: 'Ready To Ship',
+    organization: 'ORG2',
+    items: ['Item F', 'Item B'],
+    exception: 'None',
+    itemType: 'Lot',
+  },
+  {
+    deliveryId: 'D1208',
+    salesOrderNo: 'SO2341',
+    customer: 'ABC Customer',
+    carrier: 'UPS',
+    lines: 8,
+    quantity: 44,
+    pickSlipNo: 'PS3480',
+    status: 'Ready To Ship',
+    organization: 'ENV',
+    items: ['Item A', 'Item C', 'Item E'],
+    exception: 'None',
+    itemType: 'Lot',
+  },
+  {
+    deliveryId: 'D1209',
+    salesOrderNo: 'SO2342',
+    customer: 'PQR Co',
+    carrier: 'Loomis',
+    lines: 4,
+    quantity: 16,
+    pickSlipNo: 'PS3481',
+    status: 'Ready To Ship',
+    organization: 'ORG1',
+    items: ['Item C', 'Item D'],
+    exception: 'None',
+    itemType: 'Lot',
+  },
 ];
+
 export const PICK_TABLE_DATA = [
   {
     item: 'Item A',
@@ -370,57 +460,56 @@ export const PICK_TABLE_DATA = [
     uom: 'Each',
     status: 'Pending',
     itemType: 'Serial',
-
   },
   {
-    item: 'Item F',
-    itemCode: '99123',
+    item: 'Item G',
+    itemCode: '99192',
     subInventory: 'UVW',
     location: 'UVW',
-    quantity: 150,
+    quantity: 180,
     uom: 'Each',
     status: 'Pending',
     itemType: 'Serial',
-
   },
-]
+];
+
 export const AUTOPACK_MOCK_DATA = [
   {
-    item: "Item A",
+    item: 'Item A',
     quantity: 100,
-    code: "01234",
-    status: "Picked"
+    code: '01234',
+    status: 'Picked',
   },
   {
-    item: "Item B",
+    item: 'Item B',
     quantity: 200,
-    code: "01236",
-    status: "Picked"
+    code: '01236',
+    status: 'Picked',
   },
   {
-    item: "Item C",
+    item: 'Item C',
     quantity: 150,
-    code: "01238",
-    status: "Picked"
+    code: '01238',
+    status: 'Picked',
   },
   {
-    item: "Item D",
+    item: 'Item D',
     quantity: 300,
-    code: "01237",
-    status: "Picked"
+    code: '01237',
+    status: 'Picked',
   },
   {
-    item: "Item E",
+    item: 'Item E',
     quantity: 250,
-    code: "01238",
-    status: "Picked"
+    code: '01238',
+    status: 'Picked',
   },
   {
-    item: "Item F",
+    item: 'Item F',
     quantity: 400,
-    code: "01239",
-    status: "Picked"
-  }
+    code: '01239',
+    status: 'Picked',
+  },
 ];
 
 export const ITEM_TABLE_DATA = [
