@@ -74,41 +74,26 @@ export default function HomeScreen({ navigation }) {
     setOrgCode(org.org_code);
   };
 
-useEffect(() => {
-  if (!Defaultorg) return;
-  setLoadingRecent(true);
-  setloadingPriority(true);
-  const loadinventrydata = async () => {
-    try {
-      const inventrydata = await GetInventryData(Defaultorg);
-      if (inventrydata) {
-        const inventoryList = inventrydata.map(d => ({
-          id: d.sub_inv_id,
-          name: d.sub_inv_name,
-          enabled: d.sub_inv_enabled,
-          is_default: d.is_default
-        }));
-
-        setInventoryList(inventoryList);
-        const di = inventoryList.find(o => o.is_default);
-        Setdefaultinventory(di);   // ✔ set the new default inventory
-    setOrgData({
-    selectedOrg: Defaultorg,
-    selectedinventory: di,
-    selectedOrgCode: OrgCode
-  });
-      } else {
-    Setdefaultinventory(null);
-    setOrgData({
-    selectedOrg: Defaultorg,
-    selectedinventory: null,
-    selectedOrgCode: OrgCode
-  });
+  useEffect(() => {
+    if (!Defaultorg) return;
+    setLoadingRecent(true);
+    setloadingPriority(true);
+    const loadinventrydata = async () => {
+      try {
+        const inventrydata = await GetInventryData(Defaultorg);
+        if (inventrydata) {
+          const inventoryList = inventrydata.map(d => ({ id: d.sub_inv_id, name: d.sub_inv_name, enabled: d.sub_inv_enabled, is_default: d.is_default }));
+          setInventoryList(inventoryList);
+          const di = inventrydata.find(o => o.is_default);
+          loadlocatordata(defaultinventory);
+          Setdefaultinventory(di?.sub_inv_id ?? inventrydata[0]?.sub_inv_id);
+        } else {
+          Setdefaultinventory(null);
+        }
+      } catch (err) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories. Please try again.', position: 'top', visibilityTime: 5000 });
       }
-    } catch (err) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInventories.' });
-    }
-  };
+    };
     const loadrecentactivity = async () => {
       setRecentList([]);
       try {
@@ -150,18 +135,11 @@ useEffect(() => {
         Toast.show({ type: 'error', text1: 'Error', text2: err, position: 'top', visibilityTime: 5000 });
       }
     };
-  loadinventrydata();
-  loadrecentactivity();
-  loadpriorityList();
-
-}, [Defaultorg, OrgCode, setInventoryList, setOrgData]);
-
-useEffect(() => {
-  if (defaultinventory) {
-    loadlocatordata(defaultinventory);
-  }
-}, [defaultinventory]);
-
+    setOrgData({ selectedOrg: Defaultorg, selectedinventory: defaultinventory, selectedOrgCode: OrgCode });
+    loadinventrydata();
+    loadrecentactivity();
+    loadpriorityList();
+  }, [Defaultorg, OrgCode, defaultinventory, setInventoryList, setOrgData]);
 
   // helper function
 function getTimeAgo(isoTime) {
@@ -185,15 +163,14 @@ function capitalizeFirstLetter(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
-  const loadlocatordata = async sub_inv => {
-    if (!sub_inv) return;
+  const loadlocatordata = async sub_id => {
+    if (!sub_id) return;
     try {
-      const locdata = await GetLocatorsData(sub_inv?.id);
+      const locdata = await GetLocatorsData(sub_id);
       if (locdata) {
         const LocatorList = locdata.map(d => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
         setLocatorList(LocatorList);
-        console.log(LocatorList,"LocatorList")
-        setLocatorInCache(sub_inv?.id, LocatorList);
+        setLocatorInCache(sub_id, LocatorList);
       }
     } catch (err) {
       Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators. Please try again.', position: 'top', visibilityTime: 5000 });
@@ -285,10 +262,10 @@ function capitalizeFirstLetter(str) {
       navigation.navigate('Inventory');
       return;
     }
-    if (name === 'Shipping') {
-      navigation.navigate('Ship_LabelPrintListScreen');
-      return;
-    }
+  console.log('Navigation card clicked:', screen);
+  navigation.navigate(screen);
+  
+
     Toast.show({ type: 'info', text1: name, text2: 'Navigation will be added soon.', position: 'top', visibilityTime: 1200 });
   };
 
@@ -300,7 +277,15 @@ function capitalizeFirstLetter(str) {
         onOrganizationChange={handleOrganizationChange}
         Defaultorg={v => setDefaultorg(v)}
         OrgCode={v => setOrgCode(v)}
-        onCardPress={screen => navigation.navigate(screen)}
+        // onCardPress={screen => navigation.navigate(screen)}
+         onCardPress={(screen) => {
+    console.log('Navigation card clicked:', screen);
+    if (screen === 'Shipping') {
+      navigation.navigate('Ship_Entry'); 
+    } else {
+      navigation.navigate(screen); 
+    }
+  }}
         onMenuSelect={handleHeaderMenuSelect}
         menuVersion="25102918"
       />
