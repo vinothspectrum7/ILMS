@@ -5,6 +5,7 @@ import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
 import Ship_SingleFooterBtnComponent from '../../components/shipping/Ship_SingleFooterBtnComponent';
 import Ship_CustomNumericInput from '../../components/shipping/Ship_CustomNumericInput';
 import Ship_DropDown from '../../components/shipping/Ship_DropDown';
+import Ship_PrintPreviewModalPopUp from '../../components/shipping/Ship_PrintPreviewModalPopUp';
 import { MOCK_SHIPPING_DATA } from '../../data/shippingMockData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -219,26 +220,14 @@ const Ship_LabelPrintModalPopUp = ({
         </View>
       </Modal>
 
-      <Modal visible={previewVisible} transparent animationType="fade" onRequestClose={() => setShowPreview(false)}>
-        <View style={styles.previewOverlay}>
-          <View style={styles.previewCard}>
-            <TouchableOpacity onPress={() => setShowPreview(false)} style={styles.previewClose}>
-              <CloseIcon width={rs(16)} height={rs(16)} />
-            </TouchableOpacity>
-
-            <View style={styles.previewInner}>
-              {previewRows.map((row, idx) => (
-                <View key={`${row.label}_${idx}`} style={styles.previewRow}>
-                  <Text style={styles.previewLabel}>{row.label}</Text>
-                  <Text style={styles.previewValue} numberOfLines={2}>
-                    {row.value}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <Ship_PrintPreviewModalPopUp
+        isVisible={previewVisible}
+        onClose={() => setShowPreview(false)}
+        rows={previewRows}
+        pulseWidth={rs(10)}
+        pulseHeight={rs(18)}
+        cardWidth={rs(372)}
+      />
 
       <Modal visible={successVisible} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.successOverlay}>
@@ -333,51 +322,6 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     marginStart: 0,
   },
-
-  previewOverlay: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewCard: {
-    width: rs(372),
-    borderRadius: rs(4),
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingVertical: rs(18),
-    paddingHorizontal: rs(18),
-  },
-  previewClose: {
-    position: 'absolute',
-    right: rs(14),
-    top: rs(14),
-    padding: rs(10),
-    zIndex: 10,
-  },
-  previewInner: {
-    paddingTop: rs(18),
-  },
-  previewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: rs(10),
-  },
-  previewLabel: {
-    width: '52%',
-    color: '#7A7D80',
-    fontSize: rs(14),
-    fontWeight: '500',
-  },
-  previewValue: {
-    width: '45%',
-    color: '#1E1E1E',
-    fontSize: rs(16),
-    fontWeight: '700',
-    textAlign: 'left',
-  },
-
   successOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',

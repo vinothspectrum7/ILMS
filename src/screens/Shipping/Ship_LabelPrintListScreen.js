@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   value: {
     marginTop: ms(4),
     color: VALUE_COLOR,
-    fontSize: ms(16),
+    fontSize: ms(14),
     fontWeight: '700',
   },
 
