@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -8,15 +9,20 @@ import {
 } from 'react-native';
 import CloseRedIcon from '../../assets/icons/Ship_Icons/CloseRedIcon.svg';
 import LinearGradient from 'react-native-linear-gradient';
-
+import Ship_ConfirmModalComponent from '../../components/shipping/Ship_ConfirmModalComponent';
 
 function Ship_PickPopupConfirmation({
   visible,
   onClose,
-  onManual,
   onYes,
   deliveryId,
 }) {
+  const navigation = useNavigation(); 
+  const handleManualPress = () => {
+    onClose();
+    navigation.navigate('ManualPick', { deliveryId });
+  };
+
   return (
     <Modal
       visible={visible}
@@ -24,62 +30,19 @@ function Ship_PickPopupConfirmation({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.popupWrapper}>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={onClose}
-          >
-            <CloseRedIcon width={12} height={12} />
-          </TouchableOpacity>
-          <View style={styles.outerPopup}>
-            <View style={styles.innerPopup}>
-              <Text style={styles.message}>
-                Would you like to proceed express pick and pack for delivery ID{' '}
-                <Text style={styles.boldText}>{deliveryId}</Text>
-              </Text>
-
-              <LinearGradient
-                colors={['rgba(255,255,255,0.7)', '#EBF7F6']}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={styles.footerContainer}
-              >
-                <TouchableOpacity
-                  style={styles.manualButton}
-                  onPress={onManual}
-                >
-                  <Text style={styles.manualText}>Manual</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.yesButtonWrapper}
-                  onPress={onYes}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={[
-                      'rgba(255,255,255,0.53)',
-                      'rgba(255,255,255,0)',
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.yesGradient}
-                  >
-                    <Text style={styles.yesText}>Yes</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-
-              </LinearGradient>
-
-            </View>
-          </View>
-
-        </View>
-      </View>
+      <Ship_ConfirmModalComponent
+        visible={visible}
+        title=""
+        message={`Would you like to proceed express pick and pack for delivery ID ${deliveryId}?`}
+        confirmAction={onYes}
+        onCancel={handleManualPress} 
+        cancelText="Manual" 
+        confirmText="Yfdses" 
+      />
     </Modal>
   );
 }
+
 
 const styles = StyleSheet.create({
   overlay: {
@@ -124,24 +87,35 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 
+  messageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 10,
+  },
+
   message: {
-    marginTop: 24,
     fontSize: 16,
     lineHeight: 25,
     color: '#233E55',
     textAlign: 'center',
+    paddingHorizontal: 10,
   },
 
   boldText: {
     fontWeight: '700',
   },
 
-  buttonRow: {
+  footerContainer: {
+    width: 268,
+    height: 42,
     flexDirection: 'row',
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
+    borderRadius: 30.24,
+    borderWidth: 0.72,
     borderColor: '#233E55',
+    overflow: 'hidden',
+    alignSelf: 'center',
+    marginTop: 10,
   },
 
   manualButton: {
@@ -153,24 +127,9 @@ const styles = StyleSheet.create({
     borderRightWidth: 0.72,
     borderRightColor: '#233E55',
   },
+
   manualText: {
     color: '#233E55',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
-
-  yesButton: {
-    width: '50%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#233E55',
-  },
-
-
-  yesText: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -180,24 +139,25 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#233E55',
   },
+
   yesGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-
-  footerContainer: {
-    width: 268,
-    height: 42,
-    flexDirection: 'row',
-    borderRadius: 30.24,
-    borderWidth: 0.72,
-    borderColor: '#233E55',
-    overflow: 'hidden',
-    alignSelf: 'center',
+  yesButton: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
+  yesText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
 
 export default Ship_PickPopupConfirmation;

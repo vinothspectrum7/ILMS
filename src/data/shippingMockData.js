@@ -11,6 +11,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ENV',
     items: ['Item A', 'Item B'],
     exception: 'None',
+    itemType: 'Lot',
   },
   {
     deliveryId: 'D1235',
@@ -24,6 +25,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ENV',
     items: ['Item C'],
     exception: 'Damaged',
+    itemType: 'Lot',
   },
   {
     deliveryId: 'D1236',
@@ -37,6 +39,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ORG1',
     items: ['Item D', 'Item E'],
     exception: 'Missing',
+    itemType: 'Serial',
   },
   {
     deliveryId: 'D1237',
@@ -50,6 +53,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ORG2',
     items: ['Item F'],
     exception: 'None',
+    itemType: 'Lot',
   },
   {
     deliveryId: 'D1238',
@@ -63,6 +67,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ENV',
     items: ['Item A'],
     exception: 'Delayed',
+    itemType: 'Lot+Serial',
   },
   {
     deliveryId: 'D1239',
@@ -76,6 +81,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ORG1',
     items: ['Item B', 'Item C'],
     exception: 'None',
+    itemType: 'Lot',
   },
   {
     deliveryId: 'D1240',
@@ -89,6 +95,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ENV',
     items: ['Item D'],
     exception: 'Damaged',
+    itemType: 'Lot',
   },
   {
     deliveryId: 'D1241',
@@ -102,6 +109,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ORG2',
     items: ['Item E', 'Item F'],
     exception: 'None',
+    itemType: 'Lot',
   },
   {
     deliveryId: 'D1242',
@@ -115,6 +123,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ENV',
     items: ['Item A', 'Item B', 'Item C'],
     exception: 'Missing',
+    itemType: 'Lot',
   },
   {
     deliveryId: 'D1243',
@@ -128,6 +137,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ORG1',
     items: ['Item D'],
     exception: 'None',
+    itemType: 'Lot',
   },
   {
     deliveryId: 'D1244',
@@ -141,6 +151,7 @@ export const SHIPPING_TABLE_DATA = [
     organization: 'ENV',
     items: ['Item E'],
     exception: 'Delayed',
+    itemType: 'Lot',
   },
 ];
 export const PICK_TABLE_DATA = [
@@ -245,4 +256,105 @@ export const AUTOPACK_MOCK_DATA = [
     code: "01239",
     status: "Picked"
   }
+];
+
+export const ITEM_TABLE_DATA = [
+  {
+    itemId: 'ITM-001',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1293',
+  },
+  {
+    itemId: 'ITM-002',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1294',
+  },
+  {
+    itemId: 'ITM-003',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1295',
+  },
+  {
+    itemId: 'ITM-004',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1296',
+  },
+  {
+    itemId: 'ITM-005',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1297',
+  },
+  {
+    itemId: 'ITM-006',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1298',
+  },
+  {
+    itemId: 'ITM-007',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1299',
+  },
+  {
+    itemId: 'ITM-008',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1300',
+  },
+  {
+    itemId: 'ITM-009',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1301',
+  },
+  {
+    itemId: 'ITM-010',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1302',
+  },
+  {
+    itemId: 'ITM-011',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1303',
+  },
+  {
+    itemId: 'ITM-012',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1304',
+  },
+  {
+    itemId: 'ITM-013',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1305',
+  },
+  {
+    itemId: 'ITM-014',
+    description: 'Widget A',
+    salesOrderNo: 'SO8400',
+    quantity: 100,
+    unitNumber: 'LN1306',
+  },
 ];

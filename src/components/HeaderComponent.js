@@ -219,7 +219,7 @@ export default function HeaderComponent({
       <View style={styles.navigationCardsRow}>
         <NavigationCard title="Receiving" icon={ReceiveIcon} onPress={() => onCardPress('Receive')} />
         <NavigationCard title="Inventory" icon={InventoryIcon} onPress={() => onCardPress('Inventory')} />
-        <NavigationCard title="Shipping" icon={ShippingIcon} onPress={() => onCardPress('Shipping')} />
+        <NavigationCard title="Shipping" icon={ShippingIcon} onPress={() => onCardPress('Ship_Entry')} />
       </View>
 
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>

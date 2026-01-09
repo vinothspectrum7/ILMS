@@ -46,7 +46,7 @@ const CONFIRM_DATA = [
 
 const Ship_ConfirmPack = () => {
   const navigation = useNavigation();
-  const [showConfirmModal, setShowConfirmModal] = useState(false); 
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleConfirm = () => {
     setShowConfirmModal(true);
@@ -128,7 +128,6 @@ const InfoBlock = ({ label, value }) => (
 
 export default Ship_ConfirmPack;
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -159,6 +158,11 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     marginBottom: 14,
     overflow: 'hidden',
+    shadowColor: '#00000040',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 1,
+    elevation: 2,
   },
 
   itemHeader: {
@@ -171,15 +175,21 @@ const styles = StyleSheet.create({
   },
 
   headerLabel: {
+    fontFamily: 'Mulish',
+    fontWeight: '600',
     fontSize: 12,
     color: '#233E55',
-    fontWeight: '600',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 
   headerValue: {
+    fontFamily: 'Mulish',
+    fontWeight: '700',
     fontSize: 12,
     color: '#233E55',
-    fontWeight: '700',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 
   itemBody: {
@@ -198,15 +208,24 @@ const styles = StyleSheet.create({
   },
 
   infoLabel: {
+    fontFamily: 'Mulish',
+    fontWeight: '400',
     fontSize: 12,
     color: '#6B7280',
     marginBottom: 4,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 
   infoValue: {
-    fontSize: 14,
+    fontFamily: 'Mulish',
     fontWeight: '700',
+    fontSize: 10,
+    lineHeight: 10,
+    letterSpacing: 0,
     color: '#233E55',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 
   footer: {

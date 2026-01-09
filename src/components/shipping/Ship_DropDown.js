@@ -11,7 +11,7 @@ import {
     Keyboard,
     Dimensions,
 } from 'react-native';
-import DropdownIcon from '../../assets/icons/Ship_Icons/DropdownIcon.svg';
+import DropDown from '../../assets/icons/Ship_Icons/DropDown.svg';
 import SearchIcon from '../../assets/icons/Ship_Icons/SearchIcon.svg';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -173,7 +173,7 @@ export default function Ship_DropDown({
                         {selectedLabel || placeholder}
                     </Text>
 
-                    <DropdownIcon width={rs(14)} height={rs(14)} />
+                    <DropDown width={rs(14)} height={rs(14)} />
                 </TouchableOpacity>
 
                 {error && errorMessage ? (
@@ -223,7 +223,7 @@ export default function Ship_DropDown({
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
                         renderItem={({ item }) => {
-                            const isSelected = value && (value.id === item.id || value.value === item.value);
+                            const isSelected = value?.id === item.id;
 
                             return (
                                 <TouchableOpacity
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
         borderColor: '#D9E4EE',
         backgroundColor: '#FFFFFF',
         paddingHorizontal: rs(12),
-        height: rs(44),
+        height: rs(36),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
         borderColor: '#E53935',
     },
     inputText: {
-        fontSize: rs(14),
+        fontSize: rs(12),
         color: '#233E55',
         flex: 1,
         marginRight: rs(8),
@@ -354,8 +354,7 @@ const styles = StyleSheet.create({
     },
     row: {
         paddingVertical: rs(12),
-        borderBottomWidth: 1,
-        borderBottomColor: '#EFEFF0',
+
     },
     rowSelected: {
         backgroundColor: '#ECF1F7',

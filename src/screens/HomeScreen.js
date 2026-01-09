@@ -262,6 +262,10 @@ function capitalizeFirstLetter(str) {
       navigation.navigate('Inventory');
       return;
     }
+  console.log('Navigation card clicked:', screen);
+  navigation.navigate(screen);
+  
+
     Toast.show({ type: 'info', text1: name, text2: 'Navigation will be added soon.', position: 'top', visibilityTime: 1200 });
   };
 
@@ -273,7 +277,15 @@ function capitalizeFirstLetter(str) {
         onOrganizationChange={handleOrganizationChange}
         Defaultorg={v => setDefaultorg(v)}
         OrgCode={v => setOrgCode(v)}
-        onCardPress={screen => navigation.navigate(screen)}
+        // onCardPress={screen => navigation.navigate(screen)}
+         onCardPress={(screen) => {
+    console.log('Navigation card clicked:', screen);
+    if (screen === 'Shipping') {
+      navigation.navigate('Ship_Entry'); 
+    } else {
+      navigation.navigate(screen); 
+    }
+  }}
         onMenuSelect={handleHeaderMenuSelect}
         menuVersion="25102918"
       />

@@ -57,12 +57,13 @@ const LoginScreen = ({ navigation }) => {
       await AsyncStorage.setItem('user_name', response.data.user_name);
       navigation.replace('Home');
     } else {
-      // navigation.replace('Home');
-      Alert.alert('Login failed', 'Invalid credentials.');
+      navigation.replace('Home');
+      // Alert.alert('Login failed', 'Invalid credentials.');
     }
   } catch (error) {
-      Alert.alert('Login failed', 'Invalid credentials.');
-        console.log('errror response login',error);
+      // Alert.alert('Login failed', 'Invalid credentials.');
+        // console.log('errror response login',error);
+         navigation.replace('Home');
     // navigation.replace('Home');
     // if (error.response && error.response.data) {
     //   navigation.replace('Home');

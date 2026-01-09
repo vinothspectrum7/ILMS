@@ -10,6 +10,7 @@ import {
 import FilterIcon from '../../assets/icons/Ship_Icons/FilterIcon.svg';
 import DropdownIcon from '../../assets/icons/Ship_Icons/DropdownIcon.svg';
 import Ship_DropDown from './Ship_DropDown';
+import DropDown from '../../assets/icons/Ship_Icons/DropDown.svg';
 
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
@@ -34,10 +35,7 @@ function FilterBar({ filters, onFilterChange }) {
         { id: 12, name: 'PS3467' },
     ];
 
-    const statusItems = [
-        { id: 1, name: 'Pick' },
-        { id: 2, name: 'Ready To Pack' },
-    ];
+    const statusOptions = ['Picked', 'Pending', 'Completed', 'Unreleased', 'Released'];
 
     const itemItems = [
         { id: 1, name: 'Item A' },
@@ -62,15 +60,7 @@ function FilterBar({ filters, onFilterChange }) {
     ];
 
     const getResponsiveWidth = () => {
-        if (screenWidth < 375) return screenWidth - 16;
-        if (screenWidth < 414) return screenWidth - 20;
-        return Math.min(screenWidth - 24, 412);
-    };
-
-    const getDropdownWidth = () => {
-        if (screenWidth < 375) return screenWidth - 16;
-        if (screenWidth < 414) return screenWidth - 20;
-        return Math.min(screenWidth - 24, 412);
+        return screenWidth - 16;
     };
 
     const getChipLayout = () => {
@@ -85,21 +75,38 @@ function FilterBar({ filters, onFilterChange }) {
     };
 
     const getDropdownPadding = () => {
-        if (screenWidth < 375) return 10;
-        if (screenWidth < 414) return 12;
-        return 14;
+        if (screenWidth < 375) return 12;
+        if (screenWidth < 414) return 14;
+        return 16;
+    };
+
+    const getItemWidth = (header) => {
+        const baseWidth = 20;
+        const iconWidth = 20;
+        const charWidth = 8;
+
+        const textWidth = header.length * charWidth;
+        const totalWidth = baseWidth + iconWidth + textWidth;
+
+        const minWidth = 90;
+        const maxWidth = 150;
+
+        return Math.max(minWidth, Math.min(totalWidth, maxWidth));
     };
 
     const responsiveStyles = {
         containerWidth: getResponsiveWidth(),
-        dropdownWidth: getDropdownWidth(),
         chipLayout: getChipLayout(),
         chipGap: getChipGap(),
         dropdownPadding: getDropdownPadding(),
     };
 
-    const handleStatusChange = (value) => {
-        onFilterChange('selectedStatus', value);
+    const handleStatusChange = (status) => {
+        if (filters.selectedStatus === status) {
+            onFilterChange('selectedStatus', null);
+        } else {
+            onFilterChange('selectedStatus', status);
+        }
         setActiveDropdown(null);
     };
 
@@ -127,7 +134,6 @@ function FilterBar({ filters, onFilterChange }) {
         onFilterChange('pickType', type);
         if (type !== 'Pick Slip Number') {
             onFilterChange('selectedPickSlip', null);
-            setActiveDropdown(null);
         }
     };
 
@@ -160,7 +166,6 @@ function FilterBar({ filters, onFilterChange }) {
                     <View style={[
                         styles.pickDropdown,
                         {
-                            width: responsiveStyles.dropdownWidth,
                             padding: responsiveStyles.dropdownPadding
                         }
                     ]}>
@@ -179,7 +184,6 @@ function FilterBar({ filters, onFilterChange }) {
                                     style={[
                                         styles.pickChip,
                                         filters.pickType === type && styles.pickChipActive,
-                                        responsiveStyles.chipLayout === 'column' && styles.verticalChip,
                                     ]}
                                     onPress={() => handlePickTypeChange(type)}
                                 >
@@ -209,7 +213,7 @@ function FilterBar({ filters, onFilterChange }) {
                                 <Text style={styles.selectText} numberOfLines={1}>
                                     Select {filters.pickType}
                                 </Text>
-                                <DropdownIcon width={14} height={14} />
+                                <DropDown width={14} height={14} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -220,21 +224,32 @@ function FilterBar({ filters, onFilterChange }) {
                     <View style={[
                         styles.pickDropdown,
                         {
-                            width: responsiveStyles.dropdownWidth,
                             padding: responsiveStyles.dropdownPadding
                         }
                     ]}>
                         <Text style={styles.pickHeading}>Status</Text>
-                        <View style={styles.dropdownContainer}>
-                            <Ship_DropDown
-                                placeholder="Select Status"
-                                value={filters.selectedStatus}
-                                onChange={handleStatusChange}
-                                items={statusItems}
-                                showSearch={true}
-                                containerStyle={{ marginBottom: 0 }}
-                                inputStyle={styles.customDropdownInput}
-                            />
+                        
+                        <View style={[
+                            styles.pickRow,
+                            {
+                                flexDirection: responsiveStyles.chipLayout,
+                                gap: responsiveStyles.chipGap
+                            }
+                        ]}>
+                            {statusOptions.map((status) => (
+                                <TouchableOpacity
+                                    key={status}
+                                    style={[
+                                        styles.pickChip,
+                                        filters.selectedStatus === status && styles.pickChipActive,
+                                    ]}
+                                    onPress={() => handleStatusChange(status)}
+                                >
+                                    <Text style={styles.pickChipText} numberOfLines={1}>
+                                        {status}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
                         </View>
                     </View>
                 );
@@ -244,7 +259,6 @@ function FilterBar({ filters, onFilterChange }) {
                     <View style={[
                         styles.pickDropdown,
                         {
-                            width: responsiveStyles.dropdownWidth,
                             padding: responsiveStyles.dropdownPadding
                         }
                     ]}>
@@ -268,7 +282,6 @@ function FilterBar({ filters, onFilterChange }) {
                     <View style={[
                         styles.pickDropdown,
                         {
-                            width: responsiveStyles.dropdownWidth,
                             padding: responsiveStyles.dropdownPadding
                         }
                     ]}>
@@ -292,7 +305,6 @@ function FilterBar({ filters, onFilterChange }) {
                     <View style={[
                         styles.pickDropdown,
                         {
-                            width: responsiveStyles.dropdownWidth,
                             padding: responsiveStyles.dropdownPadding
                         }
                     ]}>
@@ -316,9 +328,20 @@ function FilterBar({ filters, onFilterChange }) {
         }
     };
 
+    const handleCloseDropdown = () => {
+        setActiveDropdown(null);
+    };
+
+    const getTotalItemsWidth = () => {
+        return headers.reduce((total, header) => {
+            return total + getItemWidth(header) + 6;
+        }, 0);
+    };
+
     return (
         <View style={styles.wrapper}>
-            <View style={[styles.container, { width: responsiveStyles.containerWidth }]}>
+            <View style={styles.container}>
+
                 <View style={styles.filterIconContainer}>
                     <FilterIcon width={25} height={26} />
                 </View>
@@ -329,12 +352,20 @@ function FilterBar({ filters, onFilterChange }) {
                     horizontal
                     showsHorizontalScrollIndicator={false}
                     style={styles.scrollView}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        { minWidth: Math.min(getTotalItemsWidth(), screenWidth - 50) }
+                    ]}
                 >
                     {headers.map((item) => (
                         <TouchableOpacity
                             key={item}
                             style={[
                                 styles.dropdown,
+                                {
+                                    width: getItemWidth(item),
+                                    minWidth: getItemWidth(item),
+                                },
                                 isFilterActive(item) && styles.dropdownFiltered,
                                 activeDropdown === item && styles.dropdownActive,
                             ]}
@@ -342,24 +373,41 @@ function FilterBar({ filters, onFilterChange }) {
                                 setActiveDropdown(activeDropdown === item ? null : item)
                             }
                         >
-                            <Text style={styles.dropdownText} numberOfLines={1}>
+                            <Text
+                                style={styles.dropdownText}
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                                adjustsFontSizeToFit={false}
+                            >
                                 {item}
                             </Text>
-                            <DropdownIcon width={14} height={14} />
+                            <DropdownIcon
+                                width={14}
+                                height={14}
+                                style={{
+                                    transform: [
+                                        { rotate: activeDropdown === item ? '180deg' : '0deg' }
+                                    ],
+                                }}
+                            />
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
             </View>
+
             {activeDropdown && (
-                <TouchableOpacity
-                    activeOpacity={1}
-                    style={styles.overlay}
-                    onPress={() => setActiveDropdown(null)}
-                >
-                    <View>
-                        {renderDropdownContent()}
+                <>
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        style={styles.overlay}
+                        onPress={handleCloseDropdown}
+                    />
+                    <View style={styles.fullScreenDropdownWrapper}>
+                        <View style={styles.fullScreenDropdownContainer}>
+                            {renderDropdownContent()}
+                        </View>
                     </View>
-                </TouchableOpacity>
+                </>
             )}
         </View>
     );
@@ -367,146 +415,193 @@ function FilterBar({ filters, onFilterChange }) {
 
 const styles = StyleSheet.create({
     wrapper: {
-        alignItems: 'center',
         marginTop: -15,
         position: 'relative',
-        zIndex: 1,
+        zIndex: 100,
     },
     container: {
         flexDirection: 'row',
         alignItems: 'center',
         height: 48,
-        paddingHorizontal: 10,
+        width: '100%',
+        paddingHorizontal: 8,
         backgroundColor: '#ECF1F7',
-        borderRadius: 8,
-        shadowColor: '#00000040',
+        borderRadius: 0,
+        shadowColor: '#000000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 1,
+        shadowOpacity: 0.15,
         shadowRadius: 2,
         elevation: 3,
     },
+    overlay: {
+        position: 'absolute',
+        top: 48,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
+        zIndex: 998,
+    },
     filterIconContainer: {
-        width: 32,
+        width: 30,
         alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
     },
     divider: {
         width: 0.5,
-        height: 26,
+        height: 24,
         backgroundColor: '#B1CADE',
-        marginHorizontal: 8,
+        marginHorizontal: 6,
+        flexShrink: 0,
     },
     scrollView: {
         flex: 1,
+        overflow: 'visible',
+    },
+    scrollContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingRight: 8,
+        flexGrow: 1,
     },
     dropdown: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
         borderRadius: 8,
-        paddingHorizontal: Math.max(8, screenWidth * 0.02),
-        height: 36,
-        marginRight: 8,
-        minWidth: Math.max(80, screenWidth * 0.2),
+        paddingHorizontal: 10,
+        height: 34,
+        marginRight: 6,
         justifyContent: 'space-between',
+        shadowColor: '#00000040',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 1,
+        shadowRadius: 1,
+        elevation: 2,
+        flexShrink: 0,
     },
     dropdownActive: {
         backgroundColor: '#B1CADE',
+        borderColor: '#233E55',
     },
     dropdownFiltered: {
-        backgroundColor: '#B1CADE', 
+        backgroundColor: '#B1CADE',
     },
     dropdownText: {
-        fontSize: Math.max(10, screenWidth * 0.03),
-        color: '#233E55',
-        marginRight: 4,
-        flexShrink: 1,
+        fontFamily: 'Mulish',
+        fontWeight: '700',
+        fontSize: 12,
+        color: '#242424',
+        marginRight: 6,
+        flex: 1,
+        textAlign: 'left',
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+        lineHeight: 12,
     },
-
+    fullScreenDropdownWrapper: {
+        position: 'absolute',
+        top: 48,
+        left: 0,
+        right: 0,
+        width: '100%',
+        zIndex: 999,
+        elevation: 6,
+    },
+    fullScreenDropdownContainer: {
+        width: '100%',
+        paddingHorizontal: 8,
+    },
     pickDropdown: {
         backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        borderBottomLeftRadius: 8,
-        borderBottomRightRadius: 8,
-        marginTop: 6,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: '#D9E4EE',
+        width: '100%',
         shadowColor: '#00000040',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 1,
-        shadowRadius: 2,
-        elevation: 5,
-        zIndex: 1000,
-        position: 'absolute',
-        top: 54,
-        left: (screenWidth - (Math.min(screenWidth - 24, 412))) / 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 8,
     },
     pickHeading: {
-        fontSize: Math.max(12, screenWidth * 0.035),
-        fontWeight: '600',
-        marginBottom: 10,
+        fontFamily: 'Mulish',
+        fontWeight: '700',
+        fontSize: 12,
         color: '#233E55',
+        marginBottom: 12,
+        lineHeight: 12,
+        letterSpacing: 0,
     },
     pickRow: {
-        marginBottom: 12,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 16,
     },
     pickChip: {
         borderWidth: 1,
         borderColor: '#D9E4EE',
         borderRadius: 4,
-        paddingVertical: Math.max(6, screenHeight * 0.008),
-        paddingHorizontal: Math.max(8, screenWidth * 0.03),
+        paddingVertical: 6,
+        paddingHorizontal: 10,
         backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    verticalChip: {
-        width: '100%',
+        minHeight: 32,
     },
     pickChipActive: {
         backgroundColor: '#ECF1F7',
-        borderColor: '#EFEFF0',
+        borderColor: '#D9E4EE',
+        borderWidth: 1,
     },
     pickChipText: {
-        fontSize: Math.max(10, screenWidth * 0.03),
+        fontFamily: 'Mulish',
+        fontWeight: '700',
+        fontSize: 10,
         color: '#233E55',
         textAlign: 'center',
+        lineHeight: 12,
+        letterSpacing: 0,
     },
     selectField: {
-        height: Math.max(36, screenHeight * 0.05),
+        height: 36,
         borderWidth: 1,
         borderColor: '#EFEFF0',
-        borderRadius: 4,
-        paddingHorizontal: Math.max(10, screenWidth * 0.03),
+        borderRadius: 8,
+        paddingHorizontal: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: '#FFFFFF',
+        width: '100%',
     },
     selectText: {
-        fontSize: Math.max(11, screenWidth * 0.032),
-        color: '#7A7A7A',
+        fontFamily: 'Mulish',
+        fontWeight: '400',
+        fontSize: 12,
+        color: '#595A5C',
         flex: 1,
         marginRight: 8,
+        lineHeight: 14,
     },
     dropdownContainer: {
         marginTop: 8,
+        width: '100%',
     },
     customDropdownInput: {
         height: 36,
         borderColor: '#EFEFF0',
         borderWidth: 1,
-        borderRadius: 4,
-        paddingHorizontal: 10,
-    },
-
-    overlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 999,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        backgroundColor: '#FFFFFF',
+        fontFamily: 'Mulish',
+        fontWeight: '400',
+        fontSize: 12,
+        color: '#595A5C',
+        width: '100%',
     },
 });
 

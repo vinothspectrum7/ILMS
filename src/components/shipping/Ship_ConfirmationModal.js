@@ -41,8 +41,9 @@ const ShipConfirmationModal = ({
 
     const handleShippingConfirmYes = () => {
         setShowLabelPrintedModal(false);
-        navigation.navigate('ShippingConfirm');
+        navigation.navigate('ShipConfirmShipment');
     };
+
 
     return (
         <>
@@ -56,17 +57,17 @@ const ShipConfirmationModal = ({
                     <View style={styles.confirmationModal}>
 
                         <View style={styles.iconWrapper}>
-                            <ConfirmTickIcon width={120} height={120} />
+                            <ConfirmTickIcon width={160} height={160} />
                         </View>
 
                         {isConfirmPack ? (
                             <Text style={styles.successText}>
-                                <Text style={styles.boldText}>{displayCount}</Text> items packed successfully
+                                No. of item <Text style={styles.boldText}>{displayCount}</Text>{'\n'}packed successfully
                             </Text>
                         ) : (
                             <>
-                                <Text style={styles.successText}>
-                                    Totally <Text style={styles.boldText}>{displayCount}</Text> lines items
+                                <Text style={styles.successText2}>
+                                    Totally <Text style={styles.boldText}>{displayCount} lines</Text> items
                                 </Text>
                                 <Text style={[styles.successText, styles.successTextBottom]}>
                                     have picked successfully.
@@ -133,7 +134,7 @@ const ShipConfirmationModal = ({
                                 <View style={styles.questionContainer}>
                                     <Text style={styles.questionText}>Would you like to proceed</Text>
                                     <Text style={styles.questionText}>
-                                        "Shipping Confirm"
+                                        <Text style={styles.boldText}>"Shipping Confirm"</Text>
                                     </Text>
                                 </View>
 
@@ -191,6 +192,14 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 24,
         marginBottom: 16,
+    },
+    successText2: {
+        fontSize: 18,
+        color: '#233E55',
+        textAlign: 'center',
+        lineHeight: 24,
+        // marginBottom: 16,
+
     },
 
     successTextBottom: {

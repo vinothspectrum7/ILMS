@@ -8,8 +8,9 @@ import {
   TextInput,
 } from 'react-native';
 import CloseIcon from '../../assets/icons/close.svg';
+import DropDown from '../../assets/icons/Ship_Icons/DropDown.svg';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
-import CustomNumericInput from '../../components/CustomNumericInput';
+import Rec_CustomNumericInput from '../../components/receive/Rec_CustomNumericInput';
 
 const Ship_PrintLabels = ({ isVisible, onClose, onPrintComplete }) => {
   const [copies, setCopies] = useState(1);
@@ -19,20 +20,21 @@ const Ship_PrintLabels = ({ isVisible, onClose, onPrintComplete }) => {
 
   const labelTypes = ['Template 1', 'Template 2', 'Template 3', 'Template 4'];
   const printOptions = ['Print 1', 'Print 2', 'Print 3', 'Print All'];
-const handlePrint = () => {
-  console.log('Printing:', {
-    deliveryNumber,
-    labelType: selectedLabelType,
-    printOption: selectedPrintOption,
-    copies,
-  });
-  
-  if (onPrintComplete) {
-    onPrintComplete();
-  } else {
-    onClose();
-  }
-};
+
+  const handlePrint = () => {
+    console.log('Printing:', {
+      deliveryNumber,
+      labelType: selectedLabelType,
+      printOption: selectedPrintOption,
+      copies,
+    });
+    
+    if (onPrintComplete) {
+      onPrintComplete();
+    } else {
+      onClose();
+    }
+  };
 
   return (
     <Modal
@@ -68,7 +70,7 @@ const handlePrint = () => {
               <View style={styles.dropdownContainer}>
                 <TouchableOpacity style={styles.dropdown}>
                   <Text style={styles.dropdownText}>{selectedLabelType}</Text>
-                  <Text style={styles.dropdownArrow}>▼</Text>
+                  <DropDown width={12} height={12} style={styles.dropdownIcon} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -78,7 +80,7 @@ const handlePrint = () => {
               <View style={styles.dropdownContainer}>
                 <TouchableOpacity style={styles.dropdown}>
                   <Text style={styles.dropdownText}>{selectedPrintOption}</Text>
-                  <Text style={styles.dropdownArrow}>▼</Text>
+                  <DropDown width={12} height={12} style={styles.dropdownIcon} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -86,7 +88,7 @@ const handlePrint = () => {
             <View style={styles.formGroup}>
               <Text style={styles.label}>No. Of Copies*</Text>
               <View style={styles.numericInputWrapper}>
-                <CustomNumericInput
+                <Rec_CustomNumericInput
                   value={copies}
                   setValue={setCopies}
                   min={1}
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
 
   popup: {
     width: 372,
-    height: 580,
+    height: 480, 
     borderRadius: 4,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
@@ -145,15 +147,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderTopLeftRadius: 4,
     borderTopRightRadius: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#D1D9E6',
   },
 
   headerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#233E55',
     fontFamily: 'Mulish',
+    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 16,
+    letterSpacing: 0,
+    color: '#233E55',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 
   closeButton: {
@@ -163,17 +167,18 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     flex: 1,
+    justifyContent: 'space-between', 
   },
 
   formGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
 
   label: {
     fontSize: 14,
     fontWeight: '400',
     color: '#233E55',
-    marginBottom: 8,
+    marginBottom: 6,
     fontFamily: 'Mulish',
   },
 
@@ -214,8 +219,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Mulish',
   },
 
-  dropdownArrow: {
-    fontSize: 12,
+  dropdownIcon: {
     color: '#6C757D',
   },
 
@@ -224,7 +228,7 @@ const styles = StyleSheet.create({
   },
 
   printButtonContainer: {
-    marginTop: 20,
+    marginTop: 0, 
     alignItems: 'center',
   },
 

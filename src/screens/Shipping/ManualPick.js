@@ -9,6 +9,7 @@ import {
     Modal,
     FlatList,
 } from 'react-native';
+import CheckBox from '@react-native-community/checkbox';
 
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import Barcodescanner from '../../assets/icons/barcodescanner.svg';
@@ -18,11 +19,16 @@ import BarcodeScanner from '../BarCodeScanner';
 import { PICK_TABLE_DATA } from '../../data/shippingMockData';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import ConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
+// import Ship_LotPopupModal from '../../components/shipping/Ship_LotPopupModal';
 
-function Pick({ route, navigation }) {
+function ManualPick({ route, navigation }) {
     const [scannedBarcode, setScannedBarcode] = useState('');
     const [showScanner, setShowScanner] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [checkedItems, setCheckedItems] = useState({});
+    const [allSelected, setAllSelected] = useState(false);
+    const [showLotPopup, setShowLotPopup] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
 
     const handleBarcodeScan = (barcode) => {
         console.log('Scanned barcode:', barcode);
@@ -51,44 +57,108 @@ function Pick({ route, navigation }) {
         setShowConfirmation(false);
     };
 
-    const renderPickItem = ({ item, index }) => (
-        <View style={styles.itemContainer} key={index}>
-            <View style={styles.fullWidthDottedLine} />
-            
-            <View style={styles.itemContent}>
-                <View style={styles.leftSection}>
-                    <View style={styles.itemInfo}>
-                        <Text style={styles.itemText}>{item.item}</Text>
-                        <Text style={styles.itemCodeText}>{item.itemCode}</Text>
+    const toggleCheckbox = (itemCode) => {
+        setCheckedItems(prev => ({
+            ...prev,
+            [itemCode]: !prev[itemCode]
+        }));
+    };
+
+    const toggleAllCheckboxes = () => {
+        if (allSelected) {
+            setCheckedItems({});
+        } else {
+            const allChecked = {};
+            PICK_TABLE_DATA.forEach(item => {
+                allChecked[item.itemCode] = true;
+            });
+            setCheckedItems(allChecked);
+        }
+        setAllSelected(!allSelected);
+    };
+
+    const handleDetailsPress = (item) => {
+        setSelectedItem(item);
+        setShowLotPopup(true);
+    };
+
+    const closeLotPopup = () => {
+        setShowLotPopup(false);
+        setSelectedItem(null);
+    };
+
+    const renderPickItem = ({ item, index }) => {
+        const isChecked = checkedItems[item.itemCode] || false;
+        
+        return (
+            <View style={styles.itemContainer} key={index}>
+                <View style={styles.fullWidthDottedLine} />
+                
+                <View style={styles.itemContent}>
+                    <View style={styles.greyBackgroundArea}>
+                        <CheckBox
+                            value={isChecked}
+                            onValueChange={() => toggleCheckbox(item.itemCode)}
+                            tintColors={{ true: '#145DA0', false: '#667085' }}
+                            boxType="square"
+                            style={styles.checkbox}
+                        />
                     </View>
 
-                    <View style={styles.locationContainer}>
-                        <Text style={styles.locationLabel}>Sub Inventory:</Text>
-                        <Text style={styles.locationValue}>{item.subInventory}</Text>
-                        <View style={styles.spacer} />
-                        <Text style={styles.locationLabel}>Locator:</Text>
-                        <Text style={styles.locationValue}>{item.location}</Text>
-                    </View>
-                </View>
+                    <View style={styles.contentArea}>
+                        <View style={styles.itemInfoRow}>
+                            <View style={styles.itemInfo}>
+                                <Text style={styles.itemText}>{item.item}</Text>
+                                <Text style={styles.itemCodeText}>{item.itemCode}</Text>
+                            </View>
+                            
+                            <View style={styles.rightContent}>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.detailsContainer,
+                                        isChecked ? styles.detailsContainerSelected : styles.detailsContainerNormal
+                                    ]}
+                                    activeOpacity={0.7}
+                                    onPress={() => handleDetailsPress(item)}
+                                >
+                                    {isChecked && (
+                                        <BlueTickIcon 
+                                            width={12} 
+                                            height={12} 
+                                            style={styles.tickIcon} 
+                                        />
+                                    )}
+                                    <Text style={[
+                                        styles.detailsText,
+                                        isChecked ? styles.detailsTextSelected : styles.detailsTextNormal
+                                    ]}>
+                                        Details
+                                    </Text>
+                                </TouchableOpacity>
 
-                <View style={styles.rightSection}>
-                    <View style={styles.detailsQuantityRow}>
-                        <View style={styles.detailsContainer}>
-                            <BlueTickIcon width={12} height={12} style={styles.tickIcon} />
-                            <Text style={styles.detailsText}>Details</Text>
+                                <View style={styles.quantitySection}>
+                                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                                    <Text style={styles.eachText}>{item.uom}</Text>
+                                </View>
+                            </View>
                         </View>
 
-                        <View style={styles.quantitySection}>
-                            <Text style={styles.quantityText}>{item.quantity}</Text>
-                            <Text style={styles.eachText}>{item.uom}</Text>
+                        <View style={styles.locationRow}>
+                            <View style={styles.locationContainer}>
+                                <Text style={styles.locationLabel}>Sub Inventory:</Text>
+                                <Text style={styles.locationValue}>{item.subInventory}</Text>
+                                <View style={styles.spacer} />
+                                <Text style={styles.locationLabel}>Locator:</Text>
+                                <Text style={styles.locationValue}>{item.location}</Text>
+                            </View>
+                            
+                            <Text style={styles.pendingText}>{item.status}</Text>
                         </View>
                     </View>
-                    
-                    <Text style={styles.pendingText}>{item.status}</Text>
                 </View>
             </View>
-        </View>
-    );
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -141,6 +211,17 @@ function Pick({ route, navigation }) {
                     </TouchableOpacity>
 
                     <View style={styles.tableHeader}>
+                        {/* Header checkbox in grey area */}
+                        <View style={styles.headerGreyArea}>
+                            <CheckBox
+                                value={allSelected}
+                                onValueChange={toggleAllCheckboxes}
+                                tintColors={{ true: '#145DA0', false: '#667085' }}
+                                boxType="square"
+                                style={styles.headerCheckbox}
+                            />
+                        </View>
+                        
                         <View style={[styles.headerColumn, styles.leftColumn]}>
                             <Text style={styles.headerText}>Items</Text>
                         </View>
@@ -192,11 +273,21 @@ function Pick({ route, navigation }) {
                 onYes={handleConfirmationYes}
                 onNo={handleConfirmationNo}
             />
+
+            {/* {selectedItem && (
+                <Ship_LotPopupModal
+                    visible={showLotPopup}
+                    onClose={closeLotPopup}
+                    item={selectedItem}
+                    pickedQuantity={0} // Initial picked quantity is 0
+                    totalQuantity={selectedItem.quantity} // Total quantity from item
+                />
+            )} */}
         </View>
     );
 }
 
-export default Pick;
+export default ManualPick;
 
 const styles = StyleSheet.create({
     container: {
@@ -284,21 +375,34 @@ const styles = StyleSheet.create({
     },
 
     tableHeader: {
-        width: 325,
+        width: 346,
         height: 31.26,
         backgroundColor: 'rgba(93, 118, 139, 0.05)',
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 12,
         borderRadius: 4,
         marginBottom: 12,
         alignSelf: 'center',
+        overflow: 'hidden',
+    },
+    headerGreyArea: {
+        width: 40,
+        height: '100%',
+        backgroundColor: '#F5F5F6',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        paddingLeft: 8,
+    },
+    headerCheckbox: {
+        width: 18,
+        height: 18,
+        transform: [{ translateX: -5 }],
     },
     headerColumn: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
+        paddingHorizontal: 12,
     },
     leftColumn: {
         justifyContent: 'flex-start',
@@ -324,44 +428,63 @@ const styles = StyleSheet.create({
     },
 
     itemContainer: {
-        width: 325,
-        height: 80,
+        width: 346,
+        height: 70,
         borderRadius: 8,
         borderWidth: 0.2,
         borderColor: '#CCCED2',
         backgroundColor: '#FFFFFF',
         alignSelf: 'center',
         position: 'relative',
+        marginBottom: 8,
+        overflow: 'hidden',
     },
 
-    
     fullWidthDottedLine: {
         position: 'absolute',
-        bottom: 24,
-        left: 0,
+        bottom: 20,
+        left: 38,
         right: 0,
         height: 1,
         borderBottomWidth: 1,
         borderBottomColor: '#EFEFF0',
         borderStyle: 'dotted',
-        marginHorizontal: 12, 
     },
 
     itemContent: {
         flex: 1,
         flexDirection: 'row',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
     },
 
-    leftSection: {
-        flex: 1.5,
-        justifyContent: 'space-between',
-        paddingRight: 8,
-        paddingBottom: 4, 
+    greyBackgroundArea: {
+        width: 40,
+        height: '100%',
+        backgroundColor: '#F5F5F6',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        paddingLeft: 8,
     },
-    itemInfo: {
+    checkbox: {
+        width: 18,
+        height: 18,
+        transform: [{ translateX: -5 }],
+    },
+
+    contentArea: {
+        flex: 1,
+        padding: 12,
+        justifyContent: 'space-between',
+    },
+
+    itemInfoRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
         marginBottom: 8,
+    },
+
+    itemInfo: {
+        flex: 1,
     },
     itemText: {
         fontFamily: 'Mulish',
@@ -375,11 +498,73 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#667085',
     },
+
+    rightContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    detailsContainer: {
+        width: 64,
+        height: 22,
+        borderRadius: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+        paddingHorizontal: 8,
+        borderWidth: 1, 
+    },
+    detailsContainerNormal: {
+        backgroundColor: '#FFFFFF',
+        borderColor: '#D9E4EE', 
+    },
+    detailsContainerSelected: {
+        backgroundColor: '#D9E4EE',
+        borderColor: '#D9E4EE',
+    },
+    tickIcon: {
+        marginRight: 4,
+    },
+    detailsText: {
+        fontFamily: 'Mulish',
+        fontWeight: '600',
+        fontSize: 10,
+        lineHeight: 10,
+    },
+    detailsTextNormal: {
+        color: '#145DA0',
+    },
+    detailsTextSelected: {
+        color: '#145DA0',
+    },
+
+    quantitySection: {
+        alignItems: 'flex-end',
+    },
+    quantityText: {
+        fontFamily: 'Mulish',
+        fontWeight: '700',
+        fontSize: 15,
+        color: '#233E55',
+        marginBottom: 2,
+    },
+    eachText: {
+        fontFamily: 'Mulish',
+        fontSize: 12,
+        color: '#667085',
+    },
+
+    locationRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+    },
+
     locationContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flexWrap: 'wrap',
-        marginTop: 8, 
+        flex: 1,
     },
     locationLabel: {
         fontFamily: 'Mulish',
@@ -397,61 +582,13 @@ const styles = StyleSheet.create({
     spacer: {
         width: 12,
     },
-
-    rightSection: {
-        flex: 1,
-        alignItems: 'flex-end',
-        justifyContent: 'space-between',
-        paddingLeft: 8,
-        paddingBottom: 4, 
-    },
-    detailsQuantityRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-    },
-    detailsContainer: {
-        width: 64,
-        height: 22,
-        backgroundColor: '#D9E4EE',
-        borderRadius: 4,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-        paddingHorizontal: 8,
-    },
-    tickIcon: {
-        marginRight: 4,
-    },
-    detailsText: {
-        fontFamily: 'Mulish',
-        fontWeight: '600',
-        fontSize: 10,
-        color: '#145DA0',
-    },
-    quantitySection: {
-        alignItems: 'flex-end',
-    },
-    quantityText: {
-        fontFamily: 'Mulish',
-        fontWeight: '700',
-        fontSize: 15,
-        color: '#233E55',
-        marginBottom: 2,
-    },
-    eachText: {
-        fontFamily: 'Mulish',
-        fontSize: 12,
-        color: '#667085',
-    },
     pendingText: {
         fontFamily: 'Mulish',
         fontWeight: '600',
         fontSize: 10,
         color: '#F06000',
         textAlign: 'right',
-        marginTop: 10, 
+        marginLeft: 8,
     },
 
     itemSeparator: {
@@ -461,7 +598,7 @@ const styles = StyleSheet.create({
     buttonContainer: {
         paddingHorizontal: 16,
         paddingBottom: 12,
-        paddingTop: 12, 
+        paddingTop: 12,
         backgroundColor: '#F4F6F8',
         borderTopWidth: 1,
         borderTopColor: '#E5E7EB',

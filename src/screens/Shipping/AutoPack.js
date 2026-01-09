@@ -17,7 +17,7 @@ import RadioGlossyUnselected from '../../assets/icons/RadioGlossyUnselected.svg'
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import { AUTOPACK_MOCK_DATA } from '../../data/shippingMockData';
 import ShipConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
-import DropdownIcon from '../../assets/icons/dropdown.svg'; // You'll need this SVG
+import DropdownIcon from '../../assets/icons/dropdown.svg'; 
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -76,7 +76,7 @@ const AutoPack = () => {
         style={styles.radioContainer}
         onPress={() => setSelectedOption(option.label)}
       >
-        <RadioIcon width={20} height={20} />
+        <RadioIcon width={16} height={16} />
         <Text style={[
           styles.radioLabel,
           isSelected && styles.radioLabelSelected
@@ -88,17 +88,20 @@ const AutoPack = () => {
   };
 
   const renderTableRow = (item, index) => {
+    if (!item || !item.item) return null;
+    
     return (
       <View key={`${item.item}-${index}`} style={styles.rowCard}>
         <View style={styles.tableRow}>
           <View style={styles.itemCell}>
-            <Text style={styles.itemName}>{item.item}</Text>
-            <Text style={styles.itemCode}>{item.code}</Text>
+            <Text style={styles.itemName}>{item.item || ''}</Text>
+            <Text style={styles.itemCode}>{item.code || ''}</Text>
           </View>
 
           <View style={styles.qtyCell}>
-            <Text style={styles.qtyText}>{item.quantity}</Text>
-            <Text style={styles.statusText}>{item.status}</Text>
+            <Text style={styles.qtyText}>{item.quantity || ''}</Text>
+            <Text style={styles.eachText}>Each</Text>
+            <Text style={styles.statusText}>{item.status || ''}</Text>
           </View>
         </View>
       </View>
@@ -165,7 +168,7 @@ const AutoPack = () => {
           >
             <View style={styles.circleOuter}>
               <Animated.View style={{ transform: [{ rotate: rotateIcon }] }}>
-                <DropdownIcon width={9} height={9} />
+                <DropdownIcon width={16} height={16} />
               </Animated.View>
             </View>
           </TouchableOpacity>
@@ -211,6 +214,7 @@ const AutoPack = () => {
           containerStyle={styles.buttonWrapper}
         />
       </View>
+      
       <ShipConfirmationModal
         visible={showConfirmPackModal}
         type="CONFIRM_PACK"
@@ -285,17 +289,17 @@ const styles = StyleSheet.create({
 
   toggleCircle: {
     position: 'absolute',
-    right: -8.5,
+    right: -10,
     top: '50%',
-    marginTop: -8.5,
+    marginTop: -10,
     zIndex: 10,
   },
 
   circleOuter: {
-    width: 17,
-    height: 17,
+    width: 20,
+    height: 20,
     backgroundColor: '#D9E4EE',
-    borderRadius: 8.5,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -303,12 +307,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 1,
     elevation: 3,
-  },
-
-  arrowIcon: {
-    width: 5.2785,
-    height: 6.4047,
-    backgroundColor: '#FFFFFF',
   },
 
   label: {
@@ -352,7 +350,7 @@ const styles = StyleSheet.create({
 
   radioGroupHorizontal: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     width: '100%',
   },
@@ -360,18 +358,25 @@ const styles = StyleSheet.create({
   radioContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 3,
   },
 
   radioLabel: {
-    fontSize: 14,
+    fontFamily: 'Mulish',
+    fontWeight: '300',
+    fontSize: 10,
+    lineHeight: 10,
+    letterSpacing: 0,
     color: '#6C757D',
-    fontWeight: '500',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+        marginRight: 20,
+
   },
 
   radioLabelSelected: {
     color: '#233E55',
-    fontWeight: '600',
+    fontWeight: '300',
   },
 
   tableHeader: {
@@ -467,6 +472,10 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     width: '100%',
   },
+  eachText:{
+     fontSize: 12,
+    color: '#595A5C',
+  }
 });
 
 export default AutoPack;

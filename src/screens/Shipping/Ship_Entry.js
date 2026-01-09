@@ -11,54 +11,76 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 
-import SubInvIcon from '../../assets/icons/sub_inv_transfer.svg';
+import ShippingTransactionsIcon from '../../assets/icons/Ship_Icons/ShippingTransactionsIcon.svg';
 import PickIcon from '../../assets/icons/Ship_Icons/PickIcon.svg';
 import PackIcon from '../../assets/icons/Ship_Icons/PackIcon.svg';
-import ArrowRightIcon from '../../assets/icons/Ship_Icons/ArrowRightIcon.svg';
-import CardDecor from '../../assets/icons/Inv_Menu_bg.svg';
+import LabelPrintingIcon from '../../assets/icons/Ship_Icons/LabelPrintingIcon.svg';
+import ShipConfirmIcon from '../../assets/icons/Ship_Icons/ShipConfirmIcon.svg';
 
-const BG = '#FFFFFF';
-const CARD_BG = '#F5F5F6';
-const TEXT_DARK = '#233E55';
+const BG = '#F5F5F6';
+const TEXT_DARK = '#242424';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BASE_WIDTH = 375;
-const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
-const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
-const CARD_RADIUS = 18;
 
 function ShipEntry() {
     const navigation = useNavigation();
 
-    const MENU = [
+    const MENU_ITEMS = [
         {
-            title: 'Shipping Transactions',
+            id: 1,
+            title: 'Shipping\nTransactions',
             route: 'ShipDashboard',
-            Icon: SubInvIcon,
+            Icon: ShippingTransactionsIcon,
         },
         {
+            id: 2,
             title: 'Pick',
             route: 'Pick',
             Icon: PickIcon,
         },
         {
+            id: 3,
             title: 'Pack',
             route: 'AutoPack',
             Icon: PackIcon,
         },
         {
-            title: 'Label Printing',
+            id: 4,
+            title: 'Label\nPrinting',
             route: null,
-            Icon: PackIcon,
+            Icon: LabelPrintingIcon,
         },
         {
-            title: 'Ship Confirm',
+            id: 5,
+            title: 'Ship\nConfirm',
             route: null,
-            Icon: PackIcon,
+            Icon: ShipConfirmIcon,
         },
     ];
 
-    const CARD_WIDTH = Math.min(372, SCREEN_WIDTH - ms(32));
+    const CARD_WIDTH = 118;
+    const CARD_HEIGHT = 89;
+
+    const renderCard = (item) => (
+        <TouchableOpacity
+            key={item.id}
+            style={styles.card}
+            onPress={() => {
+                if (item.route) {
+                    navigation.navigate(item.route);
+                }
+            }}
+            activeOpacity={0.7}
+        >
+            <View style={styles.iconContainer}>
+                <item.Icon width={22.32} height={22.32} />
+            </View>
+
+            <Text style={styles.cardTitle}>
+                {item.title}
+            </Text>
+        </TouchableOpacity>
+    );
 
     return (
         <View style={styles.safe}>
@@ -73,38 +95,20 @@ function ShipEntry() {
             </View>
 
             <ScrollView
-                contentContainerStyle={styles.content}
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {MENU.map((item, index) => (
-                    <TouchableOpacity
-                        key={index}
-                        style={[styles.card, { width: CARD_WIDTH }]}
-                        onPress={() => {
-                            if (item.route) {
-                                navigation.navigate(item.route);
-                            }
-                        }}
-                        activeOpacity={0.7}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Open ${item.title}`}
-                        hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                    >
-                        <View style={styles.leftIcon}>
-                            <item.Icon width={scale(24)} height={scale(24)} />
-                        </View>
+                <View style={styles.container}>
+                    <View style={[styles.row, { marginBottom: 20 }]}>
+                        {MENU_ITEMS.slice(0, 3).map(renderCard)}
+                    </View>
 
-                        <Text style={styles.title}>{item.title}</Text>
+                    <View style={styles.row}>
+                        {MENU_ITEMS.slice(3, 5).map(renderCard)}
 
-                        <View style={styles.arrowContainer}>
-                            <ArrowRightIcon width={20} height={20} />
-                        </View>
-
-                        <View style={styles.decorWrap} pointerEvents="none">
-                            <CardDecor width="100%" height={scale(22)} />
-                        </View>
-                    </TouchableOpacity>
-                ))}
+                        <View style={styles.emptyCard} />
+                    </View>
+                </View>
             </ScrollView>
         </View>
     );
@@ -117,53 +121,50 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: BG
     },
-    content: {
-        paddingHorizontal: ms(16),
-        paddingVertical: ms(12),
-        gap: ms(16),
-        alignItems: 'center',
+    scrollContent: {
+        flexGrow: 1,
+        paddingTop: 40,
+    },
+    container: {
+        paddingHorizontal: 22,
+        marginTop: 20,
+    },
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
     },
     card: {
-        backgroundColor: CARD_BG,
-        borderRadius: CARD_RADIUS,
-        paddingVertical: ms(18),
-        paddingHorizontal: ms(16),
-        overflow: 'hidden',
-        flexDirection: 'row',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 2,
-        position: 'relative',
-    },
-    leftIcon: {
-        width: ms(44),
-        height: ms(44),
+        width: 118,
+        height: 89,
+        backgroundColor: '#FFFFFF',
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: ms(12),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    emptyCard: {
+        width: 118,
+        height: 89,
         backgroundColor: 'transparent',
     },
-    title: {
-        flex: 1,
-        color: TEXT_DARK,
+    iconContainer: {
+        marginBottom: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cardTitle: {
         fontFamily: 'Mulish',
-        fontWeight: '800',
-        fontSize: ms(16),
-        letterSpacing: 0.2,
-    },
-    arrowContainer: {
-        marginLeft: ms(8),
-    },
-    decorWrap: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        resizeMode: 'stretch',
-        marginBottom: -5,
+        fontWeight: '700',
+        fontSize: 11,
+        lineHeight: 13,
+        letterSpacing: 0,
+        textAlign: 'center',
+        color: TEXT_DARK,
+        paddingHorizontal: 2,
     },
 });

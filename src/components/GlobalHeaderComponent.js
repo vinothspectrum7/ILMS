@@ -63,11 +63,12 @@ export default function GlobalHeaderComponent({
   screenTitle = 'Receive',
   contextInfo = '',
   notificationCount = 0,
-  onBack = () => {},
-  onMenu = () => {},
-  onNotificationPress = () => {},
-  onMenuSelect = () => {},
+  onBack = () => { },
+  onMenu = () => { },
+  onNotificationPress = () => { },
+  onMenuSelect = () => { },
   menuVersion = '25121921',
+  navRowStyle,
 }) {
   const title = `${org3(organizationName)} – ${screenTitle}${contextInfo ? `(${contextInfo})` : ''}`;
   const showDot = Number(notificationCount) > 0;
@@ -75,29 +76,29 @@ export default function GlobalHeaderComponent({
   const navigation = useNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
 
-    const loadUserName = useCallback(async () => {
-        const raw = await AsyncStorage.getItem('user_name');
-        if(raw){
-          const initials = getInitials(raw);
-          setprofileName(initials);
-        }
-    }, []);
-  
-    useEffect(() => {
+  const loadUserName = useCallback(async () => {
+    const raw = await AsyncStorage.getItem('user_name');
+    if (raw) {
+      const initials = getInitials(raw);
+      setprofileName(initials);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserName();
+  }, [loadUserName]);
+
+  useFocusEffect(
+    React.useCallback(() => {
       loadUserName();
-    }, [loadUserName]);
-  
-    useFocusEffect(
-      React.useCallback(() => {
-        loadUserName();
-      }, [loadUserName])
-    );
-    const profilePress = async()=>{
-      navigation.navigate("settings");
-    }
-    const NotificationPress = async()=>{
-      navigation.navigate("Notification");
-    }
+    }, [loadUserName])
+  );
+  const profilePress = async () => {
+    navigation.navigate("settings");
+  }
+  const NotificationPress = async () => {
+    navigation.navigate("Notification");
+  }
 
   const toggleMenu = () => {
     onMenu?.();
@@ -136,7 +137,7 @@ export default function GlobalHeaderComponent({
         </View>
       </View>
 
-      <View style={styles.navRow}>
+      <View style={[styles.navRow, navRowStyle]}>
         <View style={styles.navLeft}>
           <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.backBtn}>
             <BackLeftArrow width={scale(20)} height={scale(20)} />
