@@ -47,7 +47,7 @@ function ShipEntry() {
         {
             id: 4,
             title: 'Label\nPrinting',
-            route: null,
+            route: 'Ship_LabelPrintListScreen',
             Icon: LabelPrintingIcon,
         },
         {

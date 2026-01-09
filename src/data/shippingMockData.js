@@ -130,8 +130,8 @@ export const SHIPPING_TABLE_DATA = [
   {
     deliveryId: 'D1234',
     salesOrderNo: 'SO2345',
-    customer: 'ABC Customer', 
-    carrier: 'UPS',           
+    customer: 'ABC Customer',
+    carrier: 'UPS',
     lines: 5,
     quantity: 30,
     pickSlipNo: 'PS3456',
@@ -291,6 +291,7 @@ export const PICK_TABLE_DATA = [
     quantity: 100,
     uom: 'Each',
     status: 'Pending',
+    itemType: 'Lot',
   },
   {
     item: 'Item B',
@@ -300,6 +301,7 @@ export const PICK_TABLE_DATA = [
     quantity: 200,
     uom: 'Each',
     status: 'Pending',
+    itemType: 'Lot',
   },
   {
     item: 'Item C',
@@ -309,6 +311,7 @@ export const PICK_TABLE_DATA = [
     quantity: 300,
     uom: 'Each',
     status: 'Pending',
+    itemType: 'Lot',
   },
   {
     item: 'Item D',
@@ -318,6 +321,7 @@ export const PICK_TABLE_DATA = [
     quantity: 400,
     uom: 'Each',
     status: 'Pending',
+    itemType: 'Serial',
   },
   {
     item: 'Item E',
@@ -327,6 +331,7 @@ export const PICK_TABLE_DATA = [
     quantity: 500,
     uom: 'Each',
     status: 'Pending',
+    itemType: 'Serial',
   },
   {
     item: 'Item F',
@@ -336,6 +341,8 @@ export const PICK_TABLE_DATA = [
     quantity: 600,
     uom: 'Each',
     status: 'Pending',
+    itemType: 'Serial',
+
   },
   {
     item: 'Item F',
@@ -345,6 +352,8 @@ export const PICK_TABLE_DATA = [
     quantity: 150,
     uom: 'Each',
     status: 'Pending',
+    itemType: 'Serial',
+
   },
 ]
 export const AUTOPACK_MOCK_DATA = [
