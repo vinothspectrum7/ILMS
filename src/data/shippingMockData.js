@@ -292,6 +292,7 @@ export const PICK_TABLE_DATA = [
     uom: 'Each',
     status: 'Pending',
     itemType: 'Lot',
+    lot_transaction_id: '56789890',
   },
   {
     item: 'Item B',
@@ -301,7 +302,7 @@ export const PICK_TABLE_DATA = [
     quantity: 200,
     uom: 'Each',
     status: 'Pending',
-    itemType: 'Lot',
+    itemType: 'Serial',
   },
   {
     item: 'Item C',
@@ -311,7 +312,7 @@ export const PICK_TABLE_DATA = [
     quantity: 300,
     uom: 'Each',
     status: 'Pending',
-    itemType: 'Lot',
+    itemType: 'Lot+Serial',
   },
   {
     item: 'Item D',
@@ -341,7 +342,7 @@ export const PICK_TABLE_DATA = [
     quantity: 600,
     uom: 'Each',
     status: 'Pending',
-    itemType: 'Serial',
+    itemType: 'Lot+Serial',
 
   },
   {
@@ -352,7 +353,7 @@ export const PICK_TABLE_DATA = [
     quantity: 150,
     uom: 'Each',
     status: 'Pending',
-    itemType: 'Serial',
+    itemType: 'Lot+Serial',
 
   },
 ]
@@ -495,3 +496,71 @@ export const ITEM_TABLE_DATA = [
     unitNumber: 'LN1306',
   },
 ];
+export const LOT_DATA = [
+  {
+    lot_transaction_id: '56789890',
+    itemCode: '01234',
+    lotNumber: 'LOT251113-528',
+    mfgDate: '23/09/2025',
+    expDate: '23/09/2026',
+    qty: 10,
+  },
+  {
+    lot_transaction_id: '56789890',
+    itemCode: '01234',
+    lotNumber: 'LOT251113-529',
+    mfgDate: '23/09/2025',
+    expDate: '24/09/2026',
+    qty: 10,
+  },
+  {
+    lot_transaction_id: '56789890',
+    itemCode: '56789',
+    lotNumber: 'LOT888888',
+    mfgDate: '01/01/2025',
+    expDate: '01/01/2026',
+    qty: 20,
+  },
+];
+export const MOCK_SERIALS = [
+    { id: 1, serialNo: 'SN001' },
+    { id: 2, serialNo: 'SN002' },
+    { id: 3, serialNo: 'SN003' },
+    { id: 4, serialNo: 'SN004' },
+    { id: 5, serialNo: 'SN005' },
+    { id: 6, serialNo: 'SN006' },
+    { id: 7, serialNo: 'SN007' },
+    { id: 8, serialNo: 'SN008' },
+    { id: 9, serialNo: 'SN009' },
+    { id: 10, serialNo: 'SN010' },
+    { id: 11, serialNo: 'SN011' },
+];
+export const LOTSERIAL = [
+  {
+    lot_transaction_id: '56789890',
+    itemCode: '67890',
+    lotNumber: 'LOT251113-528',
+    mfgDate: '23/09/2025',
+    expDate: '23/09/2026',
+    qty: 10,
+    serials: [
+      { id: 1, serialNo: 'SN001' },
+      { id: 2, serialNo: 'SN002' },
+      { id: 3, serialNo: 'SN003' },
+    ]
+  },
+  {
+    lot_transaction_id: '56789891',
+    itemCode: '99123',
+    lotNumber: 'LOT251113-529',
+    mfgDate: '23/09/2025',
+    expDate: '24/09/2026',
+    qty: 10,
+    serials: [
+      { id: 4, serialNo: 'SN004' },
+      { id: 5, serialNo: 'SN005' },
+      { id: 6, serialNo: 'SN006' },
+    ]
+  },
+];
+
