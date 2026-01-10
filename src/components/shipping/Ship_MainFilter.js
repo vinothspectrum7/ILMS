@@ -35,7 +35,8 @@ function FilterBar({ filters, onFilterChange }) {
         { id: 12, name: 'PS3467' },
     ];
 
-    const statusOptions = ['Picked', 'Pending', 'Completed', 'Unreleased', 'Released'];
+    // const statusOptions = ['Picked', 'Pending', 'Completed', 'Unreleased', 'Released'];
+    const statusOptions = ['Pick', 'Ready To Pack', 'Ready To Ship'];
 
     const itemItems = [
         { id: 1, name: 'Item A' },
