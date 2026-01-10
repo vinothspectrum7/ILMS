@@ -31,19 +31,19 @@ function ShipEntry() {
       title: 'Shipping\nTransactions',
       route: 'ShipDashboard',
       Icon: ShippingTransactionsIcon,
-      status: 'Pick',
+      status: 'All',
     },
     {
       id: 2,
       title: 'Pick',
-      route: 'Pick',
+      route: 'ShipDashboard',
       Icon: PickIcon,
       status: 'Pick',
     },
     {
       id: 3,
       title: 'Pack',
-      route: 'AutoPack',
+      route: 'ShipDashboard',
       Icon: PackIcon,
       status: 'Ready to Pack',
     },
@@ -58,7 +58,7 @@ function ShipEntry() {
       title: 'Ship\nConfirm',
       route: 'ShipDashboard',
       Icon: ShipConfirmIcon,
-      status: 'Ready to Ship',
+      status: 'Ready To Ship',
     },
   ];
 

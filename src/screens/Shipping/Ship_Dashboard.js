@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   StatusBar,
   ScrollView,
 } from 'react-native';
-// import { useNavigation, useRoute } from '@react-navigation/native';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import GrowthIcon from '../../assets/icons/Ship_Icons/GrowthIcon.svg';
 import ReleasedIcon from '../../assets/icons/Ship_Icons/ReleasedIcon.svg';
@@ -20,9 +19,9 @@ import SearchIcon from '../../assets/icons/Ship_Icons/SearchIcon.svg';
 import PrintIcon from '../../assets/icons/Ship_Icons/PrintIcon.svg';
 import Ship_PickPopupConfirmation from '../../components/shipping/Ship_PickPopupConfirmation';
 
-function Ship_Dashboard({ navigation, route }) {  
+function Ship_Dashboard({ navigation, route }) {
   const status = route?.params?.status;
-  console.log('statusstatusstatusstatusstatus', status)
+
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filters, setFilters] = useState({
@@ -33,6 +32,21 @@ function Ship_Dashboard({ navigation, route }) {
     selectedException: null,
     selectedOrganization: null,
   });
+
+  useEffect(() => {
+    if (!status) return;
+
+    const incoming = String(status).trim();
+    const desiredSelectedStatus =
+      incoming === 'All' ? null : incoming;
+
+    setFilters(prev => {
+      if (prev.selectedStatus === desiredSelectedStatus) {
+        return prev;
+      }
+      return { ...prev, selectedStatus: desiredSelectedStatus };
+    });
+  }, [status]);
 
   const handlePickPress = order => {
     setSelectedOrder(order);
@@ -172,20 +186,21 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
 
-growthBox: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#233E55',
-  padding: 8, 
-  borderRadius: 8,
-  shadowColor: '#ffffffff', 
-  shadowOffset: { width: 0, height: 4 }, 
-  shadowOpacity: 1, 
-  shadowRadius: 4,
-  elevation: 4,
-  alignSelf: 'flex-start',
-  elevation: 8,  
-},
+  growthBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#233E55',
+    padding: 8,
+    borderRadius: 8,
+    shadowColor: '#ffffffff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 4,
+    alignSelf: 'flex-start',
+    elevation: 8,
+  },
+
   growthText: {
     color: '#FFF',
     fontWeight: '700',
