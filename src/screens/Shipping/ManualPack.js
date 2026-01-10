@@ -23,7 +23,7 @@ import Ship_SerialPopupModal from '../../components/shipping/Ship_SerialPopupMod
 import Ship_LotSerialPopup from '../../components/shipping/Ship_LotSerialPopup'; 
 import ManPickConfirmPopup from '../../components/shipping/Ship_ManPickConfirmPopup';
 
-function ManualPick({ route, navigation }) {
+function ManualPack({ route, navigation }) {
     const [scannedBarcode, setScannedBarcode] = useState('');
     const [showScanner, setShowScanner] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
@@ -683,4 +683,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ManualPick;
+export default ManualPack;

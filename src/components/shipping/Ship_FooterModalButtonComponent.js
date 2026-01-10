@@ -35,7 +35,7 @@ const Ship_FooterModalButtonComponent = memo(({
         onPress={leftEnabled ? handleLeft : undefined}
         activeOpacity={leftEnabled ? 0.85 : 1}
         disabled={!leftEnabled}
-        style={[styles.buttonBaseleft, styles.half, styles.left, leftButtonStyle, !leftEnabled && styles.leftDisabledBorder]}
+        style={[styles.buttonBaseLeft, styles.half, styles.left, leftButtonStyle, !leftEnabled && styles.leftDisabledBorder]}
       >
         <LinearGradient
           colors={leftEnabled ? ['rgba(255,255,255,0.70)', '#EBF7F6'] : ['rgba(255,255,255,0.55)', '#EBF7F6']}
