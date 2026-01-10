@@ -7,6 +7,7 @@ import {
   StatusBar,
   ScrollView,
 } from 'react-native';
+// import { useNavigation, useRoute } from '@react-navigation/native';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import GrowthIcon from '../../assets/icons/Ship_Icons/GrowthIcon.svg';
 import ReleasedIcon from '../../assets/icons/Ship_Icons/ReleasedIcon.svg';
@@ -19,7 +20,9 @@ import SearchIcon from '../../assets/icons/Ship_Icons/SearchIcon.svg';
 import PrintIcon from '../../assets/icons/Ship_Icons/PrintIcon.svg';
 import Ship_PickPopupConfirmation from '../../components/shipping/Ship_PickPopupConfirmation';
 
-function Ship_Dashboard({ navigation }) {
+function Ship_Dashboard({ navigation, route }) {  
+  const status = route?.params?.status;
+  console.log('statusstatusstatusstatusstatus', status)
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filters, setFilters] = useState({
