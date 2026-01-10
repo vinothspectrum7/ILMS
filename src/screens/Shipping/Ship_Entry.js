@@ -45,7 +45,7 @@ function ShipEntry() {
       title: 'Pack',
       route: 'ShipDashboard',
       Icon: PackIcon,
-      status: 'Ready to Pack',
+      status: 'Ready To Pack',
     },
     {
       id: 4,

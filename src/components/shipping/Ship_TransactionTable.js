@@ -6,10 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { SHIPPING_TABLE_DATA } from '../../data/shippingMockData';
 import LinearGradient from 'react-native-linear-gradient';
+import { useShippingStore } from '../../store/shippingStore';
 
 function Ship_TransactionTable({ onPickPress, filters }) {
+  const navigation = useNavigation();
+  const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
+
   const filteredData = useMemo(() => {
     return SHIPPING_TABLE_DATA.filter(item => {
       if (filters?.selectedPickSlip) {
@@ -73,6 +78,25 @@ function Ship_TransactionTable({ onPickPress, filters }) {
   const handlePickButtonPress = item => {
     if (onPickPress) {
       onPickPress(item);
+    }
+  };
+
+  const handleStatusPillPress = item => {
+    setSelectedTransaction(item);
+    console.log('ShippingStore Selected Transaction Payload:', item);
+
+    if (item?.status === 'Pick') {
+      handlePickButtonPress(item);
+      return;
+    }
+
+    if (item?.status === 'Ready To Pack') {
+      navigation.navigate('AutoPack', { order: item, status: item.status });
+      return;
+    }
+
+    if (item?.status === 'Ready To Ship') {
+      navigation.navigate('ShipConfirmShipment', { order: item, status: item.status });
     }
   };
 
@@ -163,11 +187,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
                       styles.pickBtn,
                       item.status === 'Ready To Pack' && styles.readyBtn,
                     ]}
-                    onPress={() => {
-                      if (item.status === 'Pick') {
-                        handlePickButtonPress(item);
-                      }
-                    }}
+                    onPress={() => handleStatusPillPress(item)}
                   >
                     <Text
                       style={[
