@@ -14,9 +14,14 @@ import { useShippingStore } from '../../store/shippingStore';
 function Ship_TransactionTable({ onPickPress, filters }) {
   const navigation = useNavigation();
   const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
+  const transactionStatusMap = useShippingStore(s => s.transactionStatusMap);
 
   const filteredData = useMemo(() => {
     return SHIPPING_TABLE_DATA.filter(item => {
+      const effectiveStatus =
+        (transactionStatusMap && transactionStatusMap[String(item.deliveryId)]) ||
+        item.status;
+
       if (filters?.selectedPickSlip) {
         const filterPickSlip = filters.selectedPickSlip.name?.trim();
         const itemPickSlip = item.pickSlipNo?.trim();
@@ -33,7 +38,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
             : filters.selectedStatus?.name;
 
         const filterStatus = filterStatusRaw?.trim();
-        const itemStatus = item.status?.trim();
+        const itemStatus = String(effectiveStatus || '').trim();
 
         if (filterStatus && itemStatus !== filterStatus) {
           return false;
@@ -44,9 +49,10 @@ function Ship_TransactionTable({ onPickPress, filters }) {
         const filterItem = filters.selectedItem.name?.toLowerCase();
         const itemItems = item.items || [];
 
-        const hasMatchingItem = itemItems.some(itemName =>
-          itemName.toLowerCase().includes((filterItem || '').toLowerCase())
-        );
+        const hasMatchingItem = itemItems.some(itemObj => {
+          const name = itemObj?.item ?? itemObj?.name ?? '';
+          return String(name).toLowerCase().includes((filterItem || '').toLowerCase());
+        });
 
         if (!hasMatchingItem) {
           return false;
@@ -73,7 +79,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
 
       return true;
     });
-  }, [filters]);
+  }, [filters, transactionStatusMap]);
 
   const handlePickButtonPress = item => {
     if (onPickPress) {
@@ -82,21 +88,27 @@ function Ship_TransactionTable({ onPickPress, filters }) {
   };
 
   const handleStatusPillPress = item => {
-    setSelectedTransaction(item);
-    console.log('ShippingStore Selected Transaction Payload:', item);
+    const effectiveStatus =
+      (transactionStatusMap && transactionStatusMap[String(item.deliveryId)]) ||
+      item.status;
 
-    if (item?.status === 'Pick') {
-      handlePickButtonPress(item);
+    const payload = { ...item, status: effectiveStatus };
+
+    setSelectedTransaction(payload);
+    console.log('ShippingStore Selected Transaction Payload:', payload);
+
+    if (payload?.status === 'Pick') {
+      handlePickButtonPress(payload);
       return;
     }
 
-    if (item?.status === 'Ready To Pack') {
-      navigation.navigate('AutoPack', { order: item, status: item.status });
+    if (payload?.status === 'Ready To Pack') {
+      navigation.navigate('AutoPack', { order: payload, status: payload.status });
       return;
     }
 
-    if (item?.status === 'Ready To Ship') {
-      navigation.navigate('ShipConfirmShipment', { order: item, status: item.status });
+    if (payload?.status === 'Ready To Ship') {
+      navigation.navigate('Ship_ConfirmPack', { order: payload, status: payload.status });
     }
   };
 
@@ -148,60 +160,66 @@ function Ship_TransactionTable({ onPickPress, filters }) {
 
         <View style={styles.tableContainer}>
           <ScrollView showsVerticalScrollIndicator={false} style={styles.tableScroll}>
-            {filteredData.map(item => (
-              <View key={item.deliveryId} style={styles.dataRow}>
-                <View style={styles.colDelivery}>
-                  <Text style={styles.cellBold} numberOfLines={1}>
-                    {item.deliveryId}
-                  </Text>
-                  <Text style={styles.cellSmall} numberOfLines={1}>
-                    {item.customer}
-                  </Text>
-                </View>
+            {filteredData.map(item => {
+              const effectiveStatus =
+                (transactionStatusMap && transactionStatusMap[String(item.deliveryId)]) ||
+                item.status;
 
-                <View style={styles.colSales}>
-                  <Text style={styles.cellBold} numberOfLines={1}>
-                    {item.salesOrderNo}
-                  </Text>
-                  <Text style={styles.cellSmall} numberOfLines={1}>
-                    {item.carrier}
-                  </Text>
-                </View>
-
-                <View style={styles.colLines}>
-                  <Text style={styles.cellSmall} numberOfLines={1}>
-                    Total Lines - {item.lines}
-                  </Text>
-                  <Text style={styles.cellSmall} numberOfLines={1}>
-                    Total Qty - {item.quantity}
-                  </Text>
-                </View>
-
-                <View style={[styles.colPick, styles.centerColumn]}>
-                  <Text style={[styles.cellBold, styles.centerText]} numberOfLines={1}>
-                    {item.pickSlipNo}
-                  </Text>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.pickBtn,
-                      item.status === 'Ready To Pack' && styles.readyBtn,
-                    ]}
-                    onPress={() => handleStatusPillPress(item)}
-                  >
-                    <Text
-                      style={[
-                        styles.pickText,
-                        item.status === 'Ready To Pack' && styles.readyText,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {item.status}
+              return (
+                <View key={item.deliveryId} style={styles.dataRow}>
+                  <View style={styles.colDelivery}>
+                    <Text style={styles.cellBold} numberOfLines={1}>
+                      {item.deliveryId}
                     </Text>
-                  </TouchableOpacity>
+                    <Text style={styles.cellSmall} numberOfLines={1}>
+                      {item.customer}
+                    </Text>
+                  </View>
+
+                  <View style={styles.colSales}>
+                    <Text style={styles.cellBold} numberOfLines={1}>
+                      {item.salesOrderNo}
+                    </Text>
+                    <Text style={styles.cellSmall} numberOfLines={1}>
+                      {item.carrier}
+                    </Text>
+                  </View>
+
+                  <View style={styles.colLines}>
+                    <Text style={styles.cellSmall} numberOfLines={1}>
+                      Total Lines - {item.lines}
+                    </Text>
+                    <Text style={styles.cellSmall} numberOfLines={1}>
+                      Total Qty - {item.quantity}
+                    </Text>
+                  </View>
+
+                  <View style={[styles.colPick, styles.centerColumn]}>
+                    <Text style={[styles.cellBold, styles.centerText]} numberOfLines={1}>
+                      {item.pickSlipNo}
+                    </Text>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.pickBtn,
+                        String(effectiveStatus) === 'Ready To Pack' && styles.readyBtn,
+                      ]}
+                      onPress={() => handleStatusPillPress(item)}
+                    >
+                      <Text
+                        style={[
+                          styles.pickText,
+                          String(effectiveStatus) === 'Ready To Pack' && styles.readyText,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {effectiveStatus}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </ScrollView>
         </View>
       </View>

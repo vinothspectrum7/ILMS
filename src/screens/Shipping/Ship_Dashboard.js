@@ -18,9 +18,11 @@ import Ship_TransactionTable from '../../components/shipping/Ship_TransactionTab
 import SearchIcon from '../../assets/icons/Ship_Icons/SearchIcon.svg';
 import PrintIcon from '../../assets/icons/Ship_Icons/PrintIcon.svg';
 import Ship_PickPopupConfirmation from '../../components/shipping/Ship_PickPopupConfirmation';
+import { useShippingStore } from '../../store/shippingStore';
 
 function Ship_Dashboard({ navigation, route }) {
   const status = route?.params?.status;
+  const resetShippingStore = useShippingStore(s => s.resetShippingStore);
 
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -37,8 +39,7 @@ function Ship_Dashboard({ navigation, route }) {
     if (!status) return;
 
     const incoming = String(status).trim();
-    const desiredSelectedStatus =
-      incoming === 'All' ? null : incoming;
+    const desiredSelectedStatus = incoming === 'All' ? null : incoming;
 
     setFilters(prev => {
       if (prev.selectedStatus === desiredSelectedStatus) {
@@ -71,6 +72,11 @@ function Ship_Dashboard({ navigation, route }) {
     setFilters(prev => ({ ...prev, [filterType]: value }));
   };
 
+  const handleBack = () => {
+    resetShippingStore();
+    navigation.goBack();
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#233E55" barStyle="light-content" />
@@ -78,7 +84,7 @@ function Ship_Dashboard({ navigation, route }) {
       <GlobalHeaderComponent
         screenTitle="Shipping"
         organizationName="ENV"
-        onBack={() => navigation.goBack()}
+        onBack={handleBack}
         navRowStyle={{ backgroundColor: '#233E55' }}
       />
 
