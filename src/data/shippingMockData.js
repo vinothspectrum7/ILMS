@@ -1,5 +1,3 @@
-// src/data/shippingMockData.js
-
 export const MOCK_SHIP_LABEL_PRINT_LIST = [
   {
     id: 'SHIP001',
@@ -143,7 +141,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item A',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-001',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -152,14 +150,12 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item B',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-002',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -169,12 +165,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item C',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-003',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -184,9 +179,31 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234701',
+        deliveryNo: '1100002',
+        customer: 'ABC Customer',
+        carrier: 'UPS',
+        packNo: '1100101',
+      },
+      {
+        lpn: '1234702',
+        deliveryNo: '1100002',
+        customer: 'ABC Customer',
+        carrier: 'UPS',
+        packNo: '1100102',
+      },
+      {
+        lpn: '1234703',
+        deliveryNo: '1100002',
+        customer: 'ABC Customer',
+        carrier: 'UPS',
+        packNo: '1100103',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -213,9 +230,7 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
@@ -230,7 +245,6 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
@@ -245,9 +259,24 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234711',
+        deliveryNo: '1100003',
+        customer: 'XYZ Corp',
+        carrier: 'DHL',
+        packNo: '1100111',
+      },
+      {
+        lpn: '1234712',
+        deliveryNo: '1100003',
+        customer: 'XYZ Corp',
+        carrier: 'DHL',
+        packNo: '1100112',
+      },
     ],
     exception: 'Damaged',
     itemType: 'Lot',
@@ -265,7 +294,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item D',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-004',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -275,12 +304,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'OPQ',
         quantity: 400,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
       },
       {
         item: 'Item E',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-005',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -290,12 +318,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'RST',
         quantity: 500,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
       },
       {
         item: 'Item F',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-006',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -305,9 +332,31 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UVW',
         quantity: 600,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234721',
+        deliveryNo: '1100004',
+        customer: 'LMN Inc',
+        carrier: 'FedEx',
+        packNo: '1100121',
+      },
+      {
+        lpn: '1234722',
+        deliveryNo: '1100004',
+        customer: 'LMN Inc',
+        carrier: 'FedEx',
+        packNo: '1100122',
+      },
+      {
+        lpn: '1234723',
+        deliveryNo: '1100004',
+        customer: 'LMN Inc',
+        carrier: 'FedEx',
+        packNo: '1100123',
+      },
     ],
     exception: 'Missing',
     itemType: 'Serial',
@@ -334,9 +383,7 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
@@ -351,7 +398,6 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
@@ -366,9 +412,24 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234731',
+        deliveryNo: '1100005',
+        customer: 'QRS Ltd',
+        carrier: 'TNT',
+        packNo: '1100131',
+      },
+      {
+        lpn: '1234732',
+        deliveryNo: '1100005',
+        customer: 'QRS Ltd',
+        carrier: 'TNT',
+        packNo: '1100132',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -397,7 +458,30 @@ export const SHIPPING_TABLE_DATA = [
         quantity: 300,
         uom: 'Each',
         itemType: 'Lot+Serial',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234741',
+        deliveryNo: '1100006',
+        customer: 'JKL Group',
+        carrier: 'Post NL',
+        packNo: '1100141',
+      },
+      {
+        lpn: '1234742',
+        deliveryNo: '1100006',
+        customer: 'JKL Group',
+        carrier: 'Post NL',
+        packNo: '1100142',
+      },
+      {
+        lpn: '1234743',
+        deliveryNo: '1100006',
+        customer: 'JKL Group',
+        carrier: 'Post NL',
+        packNo: '1100143',
+      },
     ],
     exception: 'Delayed',
     itemType: 'Lot+Serial',
@@ -425,7 +509,6 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
@@ -440,9 +523,31 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234751',
+        deliveryNo: '1100007',
+        customer: 'PQR Co',
+        carrier: 'Loomis',
+        packNo: '1100151',
+      },
+      {
+        lpn: '1234752',
+        deliveryNo: '1100007',
+        customer: 'PQR Co',
+        carrier: 'Loomis',
+        packNo: '1100152',
+      },
+      {
+        lpn: '1234753',
+        deliveryNo: '1100007',
+        customer: 'PQR Co',
+        carrier: 'Loomis',
+        packNo: '1100153',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -460,7 +565,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item A',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-001',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -469,14 +574,12 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item B',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-002',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -486,12 +589,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item C',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-003',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -501,9 +603,24 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234761',
+        deliveryNo: '1100008',
+        customer: 'TUV LLC',
+        carrier: 'UPS',
+        packNo: '1100161',
+      },
+      {
+        lpn: '1234762',
+        deliveryNo: '1100008',
+        customer: 'TUV LLC',
+        carrier: 'UPS',
+        packNo: '1100162',
+      },
     ],
     exception: 'Damaged',
     itemType: 'Lot',
@@ -521,7 +638,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item A',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-001',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -530,14 +647,12 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item B',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-002',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -547,12 +662,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item C',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-003',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -562,9 +676,31 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234771',
+        deliveryNo: '1100009',
+        customer: 'MNO Enterprises',
+        carrier: 'DHL',
+        packNo: '1100171',
+      },
+      {
+        lpn: '1234772',
+        deliveryNo: '1100009',
+        customer: 'MNO Enterprises',
+        carrier: 'DHL',
+        packNo: '1100172',
+      },
+      {
+        lpn: '1234773',
+        deliveryNo: '1100009',
+        customer: 'MNO Enterprises',
+        carrier: 'DHL',
+        packNo: '1100173',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -592,7 +728,6 @@ export const SHIPPING_TABLE_DATA = [
         location: 'OPQ',
         quantity: 400,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
       },
       {
@@ -607,7 +742,6 @@ export const SHIPPING_TABLE_DATA = [
         location: 'RST',
         quantity: 500,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
       },
       {
@@ -622,9 +756,24 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UVW',
         quantity: 600,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234781',
+        deliveryNo: '1100010',
+        customer: 'EFG Solutions',
+        carrier: 'FedEx',
+        packNo: '1100181',
+      },
+      {
+        lpn: '1234782',
+        deliveryNo: '1100010',
+        customer: 'EFG Solutions',
+        carrier: 'FedEx',
+        packNo: '1100182',
+      },
     ],
     exception: 'Missing',
     itemType: 'Serial',
@@ -651,9 +800,7 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
@@ -668,7 +815,6 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
@@ -683,9 +829,31 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234791',
+        deliveryNo: '1100011',
+        customer: 'HIJ Systems',
+        carrier: 'TNT',
+        packNo: '1100191',
+      },
+      {
+        lpn: '1234792',
+        deliveryNo: '1100011',
+        customer: 'HIJ Systems',
+        carrier: 'TNT',
+        packNo: '1100192',
+      },
+      {
+        lpn: '1234793',
+        deliveryNo: '1100011',
+        customer: 'HIJ Systems',
+        carrier: 'TNT',
+        packNo: '1100193',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -703,7 +871,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item D',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-004',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -713,12 +881,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'OPQ',
         quantity: 400,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
       },
       {
         item: 'Item E',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-005',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -728,12 +895,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'RST',
         quantity: 500,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
       },
       {
         item: 'Item F',
-        status: 'Picked',
+        status: 'Pending',
         itemId: 'ITM-006',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -743,14 +909,28 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UVW',
         quantity: 600,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234801',
+        deliveryNo: '1100012',
+        customer: 'KLM Tech',
+        carrier: 'Post NL',
+        packNo: '1100201',
+      },
+      {
+        lpn: '1234802',
+        deliveryNo: '1100012',
+        customer: 'KLM Tech',
+        carrier: 'Post NL',
+        packNo: '1100202',
+      },
     ],
     exception: 'Delayed',
     itemType: 'Serial',
   },
-
   {
     deliveryId: 'D1202',
     salesOrderNo: 'SO2332',
@@ -764,7 +944,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item A',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-001',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -773,14 +953,12 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item B',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-002',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -790,12 +968,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item C',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-003',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -805,9 +982,31 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234811',
+        deliveryNo: '1100013',
+        customer: 'HIJ Systems',
+        carrier: 'TNT',
+        packNo: '1100211',
+      },
+      {
+        lpn: '1234812',
+        deliveryNo: '1100013',
+        customer: 'HIJ Systems',
+        carrier: 'TNT',
+        packNo: '1100212',
+      },
+      {
+        lpn: '1234813',
+        deliveryNo: '1100013',
+        customer: 'HIJ Systems',
+        carrier: 'TNT',
+        packNo: '1100213',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -825,7 +1024,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item A',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-001',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -834,14 +1033,12 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item B',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-002',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -851,12 +1048,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item C',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-003',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -866,14 +1062,28 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234821',
+        deliveryNo: '1100014',
+        customer: 'KLM Tech',
+        carrier: 'Post NL',
+        packNo: '1100221',
+      },
+      {
+        lpn: '1234822',
+        deliveryNo: '1100014',
+        customer: 'KLM Tech',
+        carrier: 'Post NL',
+        packNo: '1100222',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
   },
-
   {
     deliveryId: 'D1204',
     salesOrderNo: 'SO2337',
@@ -887,7 +1097,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item A',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-001',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -896,14 +1106,12 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item B',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-002',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -913,12 +1121,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item C',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-003',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -928,9 +1135,31 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234831',
+        deliveryNo: '1100015',
+        customer: 'XYZ Corp',
+        carrier: 'DHL',
+        packNo: '1100231',
+      },
+      {
+        lpn: '1234832',
+        deliveryNo: '1100015',
+        customer: 'XYZ Corp',
+        carrier: 'DHL',
+        packNo: '1100232',
+      },
+      {
+        lpn: '1234833',
+        deliveryNo: '1100015',
+        customer: 'XYZ Corp',
+        carrier: 'DHL',
+        packNo: '1100233',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -948,7 +1177,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item G',
-        status: 'Pending',
+        status: 'Packed',
         itemId: 'ITM-008',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -959,7 +1188,23 @@ export const SHIPPING_TABLE_DATA = [
         quantity: 300,
         uom: 'Each',
         itemType: 'Lot+Serial',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234841',
+        deliveryNo: '1100016',
+        customer: 'XYZ Corp',
+        carrier: 'DHL',
+        packNo: '1100241',
+      },
+      {
+        lpn: '1234842',
+        deliveryNo: '1100016',
+        customer: 'XYZ Corp',
+        carrier: 'DHL',
+        packNo: '1100242',
+      },
     ],
     exception: 'None',
     itemType: 'Lot+Serial',
@@ -977,7 +1222,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item D',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-004',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -987,12 +1232,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'OPQ',
         quantity: 400,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
       },
       {
         item: 'Item E',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-005',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1002,12 +1246,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'RST',
         quantity: 500,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
       },
       {
         item: 'Item F',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-006',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1017,8 +1260,30 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UVW',
         quantity: 600,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Serial',
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234851',
+        deliveryNo: '1100017',
+        customer: 'EFG Solutions',
+        carrier: 'FedEx',
+        packNo: '1100251',
+      },
+      {
+        lpn: '1234852',
+        deliveryNo: '1100017',
+        customer: 'EFG Solutions',
+        carrier: 'FedEx',
+        packNo: '1100252',
+      },
+      {
+        lpn: '1234853',
+        deliveryNo: '1100017',
+        customer: 'EFG Solutions',
+        carrier: 'FedEx',
+        packNo: '1100253',
       },
     ],
     exception: 'None',
@@ -1037,7 +1302,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item A',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-001',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1046,14 +1311,12 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item B',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-002',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1063,12 +1326,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item C',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-003',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1078,9 +1340,24 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234861',
+        deliveryNo: '1100018',
+        customer: 'QRS Ltd',
+        carrier: 'TNT',
+        packNo: '1100261',
+      },
+      {
+        lpn: '1234862',
+        deliveryNo: '1100018',
+        customer: 'QRS Ltd',
+        carrier: 'TNT',
+        packNo: '1100262',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -1098,7 +1375,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item A',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-001',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1107,14 +1384,12 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item B',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-002',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1124,12 +1399,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item C',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-003',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1139,9 +1413,31 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234871',
+        deliveryNo: '1100019',
+        customer: 'ABC Customer',
+        carrier: 'UPS',
+        packNo: '1100271',
+      },
+      {
+        lpn: '1234872',
+        deliveryNo: '1100019',
+        customer: 'ABC Customer',
+        carrier: 'UPS',
+        packNo: '1100272',
+      },
+      {
+        lpn: '1234873',
+        deliveryNo: '1100019',
+        customer: 'ABC Customer',
+        carrier: 'UPS',
+        packNo: '1100273',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -1159,7 +1455,7 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item A',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-001',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1168,14 +1464,12 @@ export const SHIPPING_TABLE_DATA = [
         itemCode: '01234',
         subInventory: 'UK',
         location: 'UK',
-        quantity: 100,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item B',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-002',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1185,12 +1479,11 @@ export const SHIPPING_TABLE_DATA = [
         location: 'UK',
         quantity: 200,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
       },
       {
         item: 'Item C',
-        status: 'Picked',
+        status: 'Packed',
         itemId: 'ITM-003',
         description: 'Widget A',
         salesOrderNo: 'SO8400',
@@ -1200,9 +1493,24 @@ export const SHIPPING_TABLE_DATA = [
         location: 'LMM',
         quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot',
-      }
+      },
+    ],
+    confirm_data: [
+      {
+        lpn: '1234881',
+        deliveryNo: '1100020',
+        customer: 'PQR Co',
+        carrier: 'Loomis',
+        packNo: '1100281',
+      },
+      {
+        lpn: '1234882',
+        deliveryNo: '1100020',
+        customer: 'PQR Co',
+        carrier: 'Loomis',
+        packNo: '1100282',
+      },
     ],
     exception: 'None',
     itemType: 'Lot',
@@ -1223,7 +1531,6 @@ export const PICK_TABLE_DATA = [
   },
   {
     item: 'Item B',
-    status: 'Picked',
     itemId: 'ITM-002',
     description: 'Widget A',
     salesOrderNo: 'SO8400',
@@ -1238,7 +1545,6 @@ export const PICK_TABLE_DATA = [
   },
   {
     item: 'Item C',
-    status: 'Picked',
     itemId: 'ITM-003',
     description: 'Widget A',
     salesOrderNo: 'SO8400',
@@ -1253,7 +1559,6 @@ export const PICK_TABLE_DATA = [
   },
   {
     item: 'Item D',
-    status: 'Picked',
     itemId: 'ITM-004',
     description: 'Widget A',
     salesOrderNo: 'SO8400',
@@ -1268,7 +1573,6 @@ export const PICK_TABLE_DATA = [
   },
   {
     item: 'Item E',
-    status: 'Picked',
     itemId: 'ITM-005',
     description: 'Widget A',
     salesOrderNo: 'SO8400',
@@ -1283,7 +1587,6 @@ export const PICK_TABLE_DATA = [
   },
   {
     item: 'Item F',
-    status: 'Picked',
     itemId: 'ITM-006',
     description: 'Widget A',
     salesOrderNo: 'SO8400',
@@ -1295,7 +1598,6 @@ export const PICK_TABLE_DATA = [
     uom: 'Each',
     status: 'Pending',
     itemType: 'Lot+Serial',
-    itemType: 'Serial',
   },
   {
     item: 'Item G',
@@ -1311,37 +1613,37 @@ export const PICK_TABLE_DATA = [
 
 export const AUTOPACK_MOCK_DATA = [
   {
-    item: "Item A",
+    item: 'Item A',
     quantity: 100,
-    code: "01234",
-    status: "Picked"
+    code: '01234',
+    status: 'Picked',
   },
   {
-    item: "Item B",
+    item: 'Item B',
     quantity: 200,
-    code: "01236",
-    status: "Picked"
+    code: '01236',
+    status: 'Picked',
   },
   {
-    item: "Item C",
+    item: 'Item C',
     quantity: 150,
-    code: "01238",
-    status: "Picked"
+    code: '01238',
+    status: 'Picked',
   },
   {
-    item: "Item D",
+    item: 'Item D',
     quantity: 300,
-    code: "01237",
-    status: "Picked"
+    code: '01237',
+    status: 'Picked',
   },
   {
-    item: "Item E",
+    item: 'Item E',
     quantity: 250,
-    code: "01238",
-    status: "Picked"
+    code: '01238',
+    status: 'Picked',
   },
   {
-    item: "Item F",
+    item: 'Item F',
     quantity: 400,
     code: '01239',
     status: 'Picked',
@@ -1479,6 +1781,7 @@ export const ITEM_TABLE_DATA = [
     unitNumber: 'LN1306',
   },
 ];
+
 export const LOT_DATA = [
   {
     lot_transaction_id: '56789890',
@@ -1505,19 +1808,21 @@ export const LOT_DATA = [
     qty: 20,
   },
 ];
+
 export const MOCK_SERIALS = [
-    { id: 1, serialNo: 'SN001' },
-    { id: 2, serialNo: 'SN002' },
-    { id: 3, serialNo: 'SN003' },
-    { id: 4, serialNo: 'SN004' },
-    { id: 5, serialNo: 'SN005' },
-    { id: 6, serialNo: 'SN006' },
-    { id: 7, serialNo: 'SN007' },
-    { id: 8, serialNo: 'SN008' },
-    { id: 9, serialNo: 'SN009' },
-    { id: 10, serialNo: 'SN010' },
-    { id: 11, serialNo: 'SN011' },
+  { id: 1, serialNo: 'SN001' },
+  { id: 2, serialNo: 'SN002' },
+  { id: 3, serialNo: 'SN003' },
+  { id: 4, serialNo: 'SN004' },
+  { id: 5, serialNo: 'SN005' },
+  { id: 6, serialNo: 'SN006' },
+  { id: 7, serialNo: 'SN007' },
+  { id: 8, serialNo: 'SN008' },
+  { id: 9, serialNo: 'SN009' },
+  { id: 10, serialNo: 'SN010' },
+  { id: 11, serialNo: 'SN011' },
 ];
+
 export const LOTSERIAL = [
   {
     lot_transaction_id: '56789890',
@@ -1530,7 +1835,7 @@ export const LOTSERIAL = [
       { id: 1, serialNo: 'SN001' },
       { id: 2, serialNo: 'SN002' },
       { id: 3, serialNo: 'SN003' },
-    ]
+    ],
   },
   {
     lot_transaction_id: '56789891',
@@ -1543,7 +1848,6 @@ export const LOTSERIAL = [
       { id: 4, serialNo: 'SN004' },
       { id: 5, serialNo: 'SN005' },
       { id: 6, serialNo: 'SN006' },
-    ]
+    ],
   },
 ];
-
