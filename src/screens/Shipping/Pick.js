@@ -15,7 +15,7 @@ import Barcodescanner from '../../assets/icons/barcodescanner.svg';
 import BlueTickIcon from '../../assets/icons/Ship_Icons/BlueTickIcon.svg';
 import LinearGradient from 'react-native-linear-gradient';
 import BarcodeScanner from '../BarCodeScanner';
-import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
+import SingleFooterBtnComponent from '../../components/shipping/Ship_SingleFooterBtnComponent';
 import ConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
 import { useShippingStore } from '../../store/shippingStore';
 
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   },
 
   tableHeader: {
-    width: 325,
+    width: '100%',
     height: 31.26,
     backgroundColor: 'rgba(93, 118, 139, 0.05)',
     flexDirection: 'row',
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
 
   itemContainer: {
-    width: 325,
+    width: '100%',
     height: 80,
     borderRadius: 8,
     borderWidth: 0.2,
