@@ -53,6 +53,8 @@ import Ship_ConfirmPack from './src/components/shipping/Ship_ConfirmPack';
 import Ship_ConfirmShippment from './src/screens/Shipping/Ship_ConfirmShippment';
 import ManualPick from './src/screens/Shipping/ManualPick';
 import Ship_LabelPrintListScreen from './src/screens/Shipping/Ship_LabelPrintListScreen';
+import ManualPack from './src/screens/Shipping/ManualPack';
+import Ship_ManConfirmPack from './src/components/shipping/Ship_ManConfirmPack';
 
 
 const Stack = createNativeStackNavigator();
@@ -315,10 +317,22 @@ options={{ headerShown: false }}
   options={{ headerShown: false }}
 />
 <Stack.Screen
+name="ManualPack"
+component={ManualPack}
+options={{ headerShown: false }}
+/>
+ <Stack.Screen
+    name="Ship_ManConfirmPack"
+    component={Ship_ManConfirmPack}
+    options={{ headerShown: false }}
+  />
+
+<Stack.Screen
 name="Ship_LabelPrintListScreen"
 component={Ship_LabelPrintListScreen}
 options={{ headerShown: false }}
 />
+
 
 </Stack.Navigator>
       <Toast config={toastConfig} />

@@ -17,10 +17,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import BarcodeScanner from '../BarCodeScanner';
 import { PICK_TABLE_DATA } from '../../data/shippingMockData';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
-import ConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
 import Ship_LotPopupModal from '../../components/shipping/Ship_LotPopupModal';
 import Ship_SerialPopupModal from '../../components/shipping/Ship_SerialPopupModal';
-import Ship_LotSerialPopup from '../../components/shipping/Ship_LotSerialPopup'; 
+import Ship_LotSerialPopup from '../../components/shipping/Ship_LotSerialPopup';
 import ManPickConfirmPopup from '../../components/shipping/Ship_ManPickConfirmPopup';
 
 function ManualPick({ route, navigation }) {
@@ -31,12 +30,11 @@ function ManualPick({ route, navigation }) {
     const [allSelected, setAllSelected] = useState(false);
     const [showLotPopup, setShowLotPopup] = useState(false);
     const [showSerialPopup, setShowSerialPopup] = useState(false);
-    const [showLotSerialPopup, setShowLotSerialPopup] = useState(false); 
+    const [showLotSerialPopup, setShowLotSerialPopup] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [confirmedItems, setConfirmedItems] = useState({});
-const selectedCount = Object.values(checkedItems).filter(Boolean).length;
+    const selectedCount = Object.values(checkedItems).filter(Boolean).length;
     const handleBarcodeScan = (barcode) => {
-        console.log('Scanned barcode:', barcode);
         setScannedBarcode(barcode);
         setShowScanner(false);
     };
@@ -87,20 +85,19 @@ const selectedCount = Object.values(checkedItems).filter(Boolean).length;
         if (item.itemType === 'Lot') {
             setShowLotPopup(true);
             setShowSerialPopup(false);
-            setShowLotSerialPopup(false); 
+            setShowLotSerialPopup(false);
         } else if (item.itemType === 'Serial') {
             setShowSerialPopup(true);
             setShowLotPopup(false);
-            setShowLotSerialPopup(false); 
+            setShowLotSerialPopup(false);
         } else if (item.itemType === 'Lot+Serial') {
-            setShowLotSerialPopup(true); 
+            setShowLotSerialPopup(true);
             setShowLotPopup(false);
             setShowSerialPopup(false);
         }
-    }; 
+    };
 
     const handleLotConfirm = (item) => {
-        console.log('Lot confirmed for item:', item.itemCode);
         setConfirmedItems(prev => ({
             ...prev,
             [item.itemCode]: true
@@ -113,7 +110,6 @@ const selectedCount = Object.values(checkedItems).filter(Boolean).length;
     };
 
     const handleSerialConfirm = (itemWithSerials) => {
-        console.log('Serial confirmed for item:', itemWithSerials.itemCode);
         setConfirmedItems(prev => ({
             ...prev,
             [itemWithSerials.itemCode]: true
@@ -125,7 +121,6 @@ const selectedCount = Object.values(checkedItems).filter(Boolean).length;
         closeSerialPopup();
     };
     const handleLotSerialConfirm = (itemWithData) => {
-        console.log('Lot & Serial confirmed for item:', itemWithData.itemCode);
         setConfirmedItems(prev => ({
             ...prev,
             [itemWithData.itemCode]: true
@@ -155,8 +150,6 @@ const selectedCount = Object.values(checkedItems).filter(Boolean).length;
     const renderPickItem = ({ item, index }) => {
         const isChecked = checkedItems[item.itemCode] || false;
         const isConfirmed = confirmedItems[item.itemCode] || false;
-        console.log(`Item: ${item.itemCode}, Checked: ${isChecked}, Confirmed: ${isConfirmed}`);
-
         return (
             <View style={styles.itemContainer} key={index}>
                 <View style={styles.fullWidthDottedLine} />
@@ -339,17 +332,16 @@ const selectedCount = Object.values(checkedItems).filter(Boolean).length;
                 onYes={handleConfirmationYes}
                 onNo={handleConfirmationNo}
             /> */}
-
-<ManPickConfirmPopup
-  visible={showConfirmation}
-  onCancel={() => setShowConfirmation(false)}
-  onConfirm={() => {
-    setShowConfirmation(false);
-  }}
-        selectedCount={selectedCount}
-
-/>
-
+            <ManPickConfirmPopup
+                visible={showConfirmation}
+                selectedCount={selectedCount}
+                onCancel={() => setShowConfirmation(false)}
+                onNo={() => setShowConfirmation(false)}
+                onYes={() => {
+                    setShowConfirmation(false);
+                    navigation.navigate('ManualPack');
+                }}
+            />
             {selectedItem && selectedItem.itemType === 'Lot' && (
                 <Ship_LotPopupModal
                     visible={showLotPopup}

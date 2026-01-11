@@ -4,6 +4,7 @@ import {
     Text,
     StyleSheet,
     Modal,
+    TouchableOpacity,
 } from 'react-native';
 import ManDeliveryIcon from '../../assets/icons/Ship_Icons/ManDeliveryIcon';
 import ConfirmationTickIcon from '../../assets/icons/Ship_Icons/ConfirmationTickIcon.svg';
@@ -12,38 +13,33 @@ import Ship_FooterModalButtonComponent from '../../components/shipping/Ship_Foot
 const ManPickConfirmPopup = ({
     visible,
     onCancel,
-    onConfirm,
     selectedCount,
+    onYes,
+    onNo,
 }) => {
-    const [step, setStep] = useState('confirm'); // confirm | success | packingConfirm
+
+    const [step, setStep] = useState('confirm');
     const [showPackingConfirm, setShowPackingConfirm] = useState(false);
 
     const handleConfirm = () => {
-        onConfirm?.();
         setStep('success');
-
-        // Show packing confirmation after success
-        setTimeout(() => {
-            setStep('confirm');
-            setShowPackingConfirm(true);
-        }, 1500);
+        setShowPackingConfirm(true);
     };
 
     const handlePackingConfirm = (proceed) => {
         setShowPackingConfirm(false);
+                console.log(showPackingConfirm, "yes")
+        setStep('confirm');
+        onCancel?.();
+
         if (proceed) {
-            // Handle proceeding to packing
-            console.log('Proceeding to packing...');
+            onYes?.();
         } else {
-            // Handle not proceeding
-            console.log('Not proceeding to packing...');
-            onCancel?.();
+            onNo?.();
         }
     };
-
     return (
         <>
-            {/* Main Pick Confirmation Modal */}
             <Modal
                 visible={visible}
                 transparent
@@ -52,8 +48,6 @@ const ManPickConfirmPopup = ({
             >
                 <View style={styles.overlay}>
                     <View style={styles.popupContainer}>
-
-                        {/* ================= CONFIRM VIEW ================= */}
                         {step === 'confirm' && (
                             <>
                                 <View style={styles.topBlueSection}>
@@ -80,8 +74,6 @@ const ManPickConfirmPopup = ({
                                 </View>
                             </>
                         )}
-
-                        {/* ================= SUCCESS VIEW ================= */}
                         {step === 'success' && (
                             <View style={styles.successContainer}>
                                 <ConfirmationTickIcon width={160} height={160} />
@@ -96,55 +88,51 @@ const ManPickConfirmPopup = ({
                 </View>
             </Modal>
 
-            {/* Packing Confirmation Modal */}
-          <Modal
-    visible={showPackingConfirm}
-    transparent
-    animationType="fade"
-    onRequestClose={() => setShowPackingConfirm(false)}
->
-    <View style={styles.overlay}>
-        <View style={[styles.popupContainer, { height: 373 }]}>
-            <View style={styles.successContainer}>
-                <ConfirmationTickIcon width={160} height={160} />
-                
-                <Text style={styles.successText}>
-                    Items picked successfully
-                </Text>
-                
-                {/* Add this spacing view */}
-                <View style={{ height: 40 }} />
-            </View>
-            
-            {/* FOOTER SECTION */}
-            <View style={styles.packingFooter}>
-                <View style={styles.packingFooterContent}>
-                    <View style={styles.packingQuestionContainer}>
-                        <Text style={styles.packingQuestionText}>
-                            Would you proceed the next to packing
-                        </Text>
-                    </View>
-                    
-                    <View style={styles.packingButtonContainer}>
-                        <TouchableOpacity 
-                            style={[styles.packingButton, styles.noButton]}
-                            onPress={() => handlePackingConfirm(false)}
-                        >
-                            <Text style={styles.noButtonText}>No</Text>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity 
-                            style={[styles.packingButton, styles.yesButton]}
-                            onPress={() => handlePackingConfirm(true)}
-                        >
-                            <Text style={styles.yesButtonText}>Yes</Text>
-                        </TouchableOpacity>
+            <Modal
+                visible={showPackingConfirm}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowPackingConfirm(false)}
+            >
+                <View style={styles.overlay}>
+                    <View style={[styles.popupContainer, { height: 373 }]}>
+                        <View style={styles.successContainer}>
+                            <ConfirmationTickIcon width={160} height={160} />
+
+                            <Text style={styles.successText}>
+                                Items picked successfully
+                            </Text>
+                            <View style={{ height: 40 }} />
+                        </View>
+
+                        <View style={styles.packingFooter}>
+                            <View style={styles.packingFooterContent}>
+                                <View style={styles.packingQuestionContainer}>
+                                    <Text style={styles.packingQuestionText}>
+                                        Would you proceed the next to packing
+                                    </Text>
+                                </View>
+
+                                <View style={styles.packingButtonContainer}>
+                                    <TouchableOpacity
+                                        style={[styles.packingButton, styles.noButton]}
+                                        onPress={() => handlePackingConfirm(false)}
+                                    >
+                                        <Text style={styles.noButtonText}>No</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.packingButton, styles.yesButton]}
+                                        onPress={() => handlePackingConfirm(true)}
+                                    >
+                                        <Text style={styles.yesButtonText}>Yes</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
                     </View>
                 </View>
-            </View>
-        </View>
-    </View>
-</Modal>
+            </Modal>
         </>
     );
 };
@@ -201,7 +189,6 @@ const styles = StyleSheet.create({
         width: '100%',
     },
 
-    /* SUCCESS */
     successContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -218,9 +205,7 @@ const styles = StyleSheet.create({
         color: '#233E55',
         textAlign: 'center',
     },
- 
 
-    /* PACKING CONFIRM FOOTER */
     packingFooter: {
         position: 'absolute',
         bottom: 0,
@@ -249,6 +234,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#233E55',
         lineHeight: 21,
+        fontFamily: 'Mulish',
     },
 
     packingButtonContainer: {
@@ -279,12 +265,14 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '600',
+        fontFamily: 'Mulish',
     },
 
     noButtonText: {
         color: '#5F6B7A',
         fontSize: 14,
         fontWeight: '600',
+        fontFamily: 'Mulish',
     },
 });
 
