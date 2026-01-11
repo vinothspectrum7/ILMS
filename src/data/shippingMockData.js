@@ -206,6 +206,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -279,6 +280,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'Damaged',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -432,6 +434,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -485,6 +488,7 @@ export const SHIPPING_TABLE_DATA = [
     ],
     exception: 'Delayed',
     itemType: 'Lot+Serial',
+    
   },
   {
     deliveryId: 'D1239',
@@ -550,6 +554,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -623,6 +628,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'Damaged',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -703,6 +709,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -856,6 +863,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -1009,6 +1017,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -1082,6 +1091,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -1162,6 +1172,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -1208,6 +1219,7 @@ export const SHIPPING_TABLE_DATA = [
     ],
     exception: 'None',
     itemType: 'Lot+Serial',
+    lot_transaction_id: '56789891',
   },
   {
     deliveryId: 'D1206',
@@ -1360,6 +1372,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -1440,6 +1453,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
   {
@@ -1513,6 +1527,7 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
+    lot_transaction_id: '56789890',
     itemType: 'Lot',
   },
 ];
@@ -1825,8 +1840,8 @@ export const MOCK_SERIALS = [
 
 export const LOTSERIAL = [
   {
-    lot_transaction_id: '56789890',
-    itemCode: '67890',
+    lot_transaction_id: '56789891',
+    itemCode: '99192',
     lotNumber: 'LOT251113-528',
     mfgDate: '23/09/2025',
     expDate: '23/09/2026',
@@ -1839,7 +1854,7 @@ export const LOTSERIAL = [
   },
   {
     lot_transaction_id: '56789891',
-    itemCode: '99123',
+    itemCode: '99192',
     lotNumber: 'LOT251113-529',
     mfgDate: '23/09/2025',
     expDate: '24/09/2026',
