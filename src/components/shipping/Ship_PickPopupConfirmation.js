@@ -37,7 +37,7 @@ function Ship_PickPopupConfirmation({
         confirmAction={onYes}
         onCancel={handleManualPress} 
         cancelText="Manual" 
-        confirmText="Yfdses" 
+        confirmText="Yes" 
       />
     </Modal>
   );
