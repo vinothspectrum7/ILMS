@@ -386,12 +386,16 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item G',
+        status: 'Pending',
+        itemId: 'ITM-008',
+        description: 'Widget A',
+        salesOrderNo: 'SO8400',
+        unitNumber: 'LN1300',
         itemCode: '99192',
         subInventory: 'UVW',
         location: 'UVW',
-        quantity: 180,
+        quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot+Serial',
       }
     ],
@@ -944,12 +948,16 @@ export const SHIPPING_TABLE_DATA = [
     items: [
       {
         item: 'Item G',
+        status: 'Pending',
+        itemId: 'ITM-008',
+        description: 'Widget A',
+        salesOrderNo: 'SO8400',
+        unitNumber: 'LN1300',
         itemCode: '99192',
         subInventory: 'UVW',
         location: 'UVW',
-        quantity: 180,
+        quantity: 300,
         uom: 'Each',
-        status: 'Pending',
         itemType: 'Lot+Serial',
       }
     ],
