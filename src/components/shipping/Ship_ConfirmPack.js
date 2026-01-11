@@ -11,38 +11,9 @@ import { useNavigation } from '@react-navigation/native';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import ShipConfirmationModal from './Ship_ConfirmationModal';
+import CONFIRM_DATA from '../../data/shippingMockData'; 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-const CONFIRM_DATA = [
-  {
-    lpn: '1234677',
-    deliveryNo: '1100002',
-    customer: 'ABC PVT LTD',
-    carrier: 'Freight',
-    packNo: '1100002',
-  },
-  {
-    lpn: '1234678',
-    deliveryNo: '1100003',
-    customer: 'XYZ CORP',
-    carrier: 'Freight',
-    packNo: '1100003',
-  },
-  {
-    lpn: '1234679',
-    deliveryNo: '1100004',
-    customer: 'DEF INC',
-    carrier: 'Shipping Cost',
-    packNo: '1100003',
-  },
-  {
-    lpn: '1234680',
-    deliveryNo: '1100054',
-    customer: 'GHI LLC',
-    carrier: 'Delivery Fee',
-    packNo: '1100005',
-  },
-];
 
 const Ship_ConfirmPack = () => {
   const navigation = useNavigation();

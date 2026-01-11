@@ -1348,6 +1348,37 @@ export const AUTOPACK_MOCK_DATA = [
   },
 ];
 
+export const CONFIRM_DATA = [
+  {
+    lpn: '1234677',
+    deliveryNo: '1100002',
+    customer: 'ABC PVT LTD',
+    carrier: 'Freight',
+    packNo: '1100002',
+  },
+  {
+    lpn: '1234678',
+    deliveryNo: '1100003',
+    customer: 'XYZ CORP',
+    carrier: 'Freight',
+    packNo: '1100003',
+  },
+  {
+    lpn: '1234679',
+    deliveryNo: '1100004',
+    customer: 'DEF INC',
+    carrier: 'Shipping Cost',
+    packNo: '1100003',
+  },
+  {
+    lpn: '1234680',
+    deliveryNo: '1100054',
+    customer: 'GHI LLC',
+    carrier: 'Delivery Fee',
+    packNo: '1100005',
+  },
+];
+
 export const ITEM_TABLE_DATA = [
   {
     itemId: 'ITM-001',
