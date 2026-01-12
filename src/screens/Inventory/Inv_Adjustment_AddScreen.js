@@ -1,404 +1,1030 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
-import { View, StyleSheet, Dimensions, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView, Text } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import Toast from "react-native-toast-message";
-import Inv_HeaderComponent from "../../components/inventory/Inv_HeaderComponent";
-import Inv_SingleFooterBtnComponent from "../../components/inventory/Inv_SingleFooterBtnComponent";
-import Inv_CustomNumericInput from "../../components/inventory/Inv_CustomNumericInput";
-import Inv_CustomDropdown from "../../components/inventory/Inv_CustomDropdown";
-import BarcodeScanner from "../../components/inventory/Inv_BarCodeScanner";
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  Modal,
+  TouchableOpacity,
+} from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
+import FooterButtonsComponent from '../../components/FooterButtonsComponent';
+import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
+import Inv_Dropdown from '../../components/inventory/Inv_Dropdown';
+import Inv_CustomNumericInput from '../../components/inventory/Inv_CustomNumericInput';
+import Inv_LotModalPopup from '../../components/inventory/Inv_LotModalPopup';
+import BarcodeScanner from '../../screens/BarCodeScanner';
+import {
+  MOCK_ITEMS,
+  MOCK_SUB_INVENTORIES,
+  MOCK_LOCATORS,
+  MOCK_UOMS,
+} from '../../data/inventoryMockData';
+import { useReceivingStore } from '../../store/receivingStore';
+import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg';
+import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
+import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
+import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
 import RadioGlossySelected from "../../assets/icons/RadioGlossySelected.svg";
 import RadioGlossyUnselected from "../../assets/icons/RadioGlossyUnselected.svg";
-import BarcodeScannerIcon from "../../assets/icons/barcodescanner.svg";
-import { useReceivingStore } from "../../store/receivingStore";
-import { ItemsList, LocatorList, SubInventoryList } from "../../api/ApiServices";
 
-const BG = "#F6F8FA";
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
-const scale = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
-const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
-const H_PADDING = ms(16);
-const INVENTORY_MENU_WIDTH = SCREEN_WIDTH;
-const QTY_W = scale(110);
-const UOM_FIELD_W = SCREEN_WIDTH - 2 * H_PADDING - ms(12) - QTY_W;
-
-const mkOpts = (arr, labelKey, idKey) => arr.map((o) => ({ label: o[labelKey], value: o[idKey] }));
-const findOption = (options, value) => options.find((o) => String(o.value) === String(value));
-const labelOf = (options, value) => findOption(options, value)?.label ?? null;
-
-const DROPDOWN_ID = { ITEM: "item", FROM_SUB: "from_sub", FROM_LOC: "from_loc", TO_SUB: "to_sub", TO_LOC: "to_loc", UOM: "uom" };
+const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
 
 export default function Inv_Adjustment_Add() {
   const navigation = useNavigation();
+  const route = useRoute();
+  const editIndex = route.params?.editIndex ?? null;
+  const isAddMore = route.params?.isAddMore === true;
+
+  const {
+    OrgData,
+    InvAdjustmentItems,
+    addInvAdjustmentItem,
+    editInvAdjustmentItem,
+  } = useReceivingStore();
+
+  const [initialStoreCount] = useState(InvAdjustmentItems.length);
+
+  const showCartForHeader = isAddMore || initialStoreCount > 0;
+  const useSingleFooter = isAddMore || initialStoreCount > 0;
+
+  const existingItem = editIndex != null ? InvAdjustmentItems[editIndex] : null;
+
   const [adjustType, setAdjustType] = useState("Issue");
-  const [showScanner, setShowScanner] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState(null);
-  const { addSubInvTransferItem, OrgData, resetSubInvTransfer } = useReceivingStore();
+  const [selectedItem, setSelectedItem] = useState(existingItem?.item || null);
+  const [fromSub, setFromSub] = useState(existingItem?.fromSub || null);
+  const [fromLocator, setFromLocator] = useState(existingItem?.fromLocator || null);
+  const [toSub, setToSub] = useState(existingItem?.toSub || null);
+  const [toLocator, setToLocator] = useState(existingItem?.toLocator || null);
+  const [uom, setUom] = useState(existingItem?.uom || null);
+  const [qty, setQty] = useState(existingItem?.qty || 0);
+  const [notes, setNotes] = useState(existingItem?.notes || '');
+  // const [lotStatus, setLotStatus] = useState(existingItem?.lotStatus || null);
+  const [status, setStatus] = useState(
+  controlType === 'Lot'
+    ? existingItem?.lotStatus || null
+    :controlType === 'Serial'
+    ? existingItem?.serialStatus || null:existingItem?.lotSerialStatus || null
+);
 
-  const [itemOptions, setItemOptions] = useState([]);
-  const [allItemsData, setAllItemsData] = useState([]);
+  const [lotModalVisible, setLotModalVisible] = useState(false);
+  const [serialModalVisible, setserialModalVisible] = useState(false);
+  const [lotserialModalVisible, setLotserialModalVisible] = useState(false);
+  const [persistedIndex, setPersistedIndex] = useState(editIndex);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [controlType,setControlType] = useState(null);
 
-  const [fromSubOptions, setFromSubOptions] = useState([]);
-  const [toSubOptions, setToSubOptions] = useState([]);
-  const [fromLocatorOptions, setFromLocatorOptions] = useState([]);
-  const [toLocatorOptions, setToLocatorOptions] = useState([]);
-  const [UOMOptions, setUOMOptions] = useState([]);
+  const availableLocatorsFrom = useMemo(() => {
+    if (!fromSub) return [];
+    return MOCK_LOCATORS.filter(l => l.subInventoryId === fromSub.id);
+  }, [fromSub]);
 
-  const [issueFields, setIssueFields] = useState({ itemId: null, fromSubId: null, fromLocId: null, uomId: null, qty: 0, maxQty: 0 });
-  const [receiptFields, setReceiptFields] = useState({ itemId: null, toSubId: null, toLocId: null, uomId: null, qty: 0, maxQty: 0 });
+  const availableLocatorsTo = useMemo(() => {
+    if (!toSub) return [];
+    return MOCK_LOCATORS.filter(l => l.subInventoryId === toSub.id);
+  }, [toSub]);
 
-  const isIssue = adjustType === "Issue";
-  const activeFields = isIssue ? issueFields : receiptFields;
+  const itemAvailableQty = selectedItem?.openQty ?? 0;
 
-  const handleDropdownToggle = useCallback((id, isOpen) => setOpenDropdownId(isOpen ? id : null), []);
-  const resetIssue = () => setIssueFields({ itemId: null, fromSubId: null, fromLocId: null, uomId: null, qty: 0, maxQty: 0 });
-  const resetReceipt = () => setReceiptFields({ itemId: null, toSubId: null, toLocId: null, uomId: null, qty: 0, maxQty: 0 });
+  const baseLineLabel = useMemo(() => {
+    const idx = persistedIndex != null ? persistedIndex : InvAdjustmentItems.length;
+    return `Line ${idx + 1}`;
+  }, [persistedIndex, InvAdjustmentItems.length]);
 
-  useEffect(() => {
-    if (!OrgData?.selectedOrg) return;
-    const loadItems = async () => {
-      try {
-        const data = await ItemsList(OrgData.selectedOrg);
-        setAllItemsData(data);
-        setItemOptions(mkOpts(data, "item_code", "item_id"));
-      } catch {
-        Toast.show({ type: "error", text1: "Error", text2: "Failed to load Items.", position: "top" });
-      }
-    };
-    loadItems();
-  }, [OrgData?.selectedOrg]);
+const handlePersistMainLine = () => {
+  let existingLots = [];
+  let existingSerials = [];
+  let existingLotSerials = [];
 
-  useEffect(() => {
-    const selectedItem = allItemsData.find((it) => String(it.item_id) === String(activeFields.itemId));
-    const formattedUOM = (selectedItem?.UOM || []).map((u) => ({ label: u, value: u }));
-    setUOMOptions(formattedUOM);
-  }, [activeFields.itemId, allItemsData, adjustType]);
+  if (controlType === 'Lot') {
+    existingLots =
+      persistedIndex != null
+        ? InvAdjustmentItems[persistedIndex]?.lots || []
+        : existingItem?.lots || [];
+  }
 
-  useEffect(() => {
-    if (!activeFields.itemId || !OrgData?.selectedOrg) return;
-    const fetchSubInv = async () => {
-      try {
-        const data = await SubInventoryList(OrgData.selectedOrg, activeFields.itemId);
-        const formatted = mkOpts(data, "subinventory_name", "subinventory_id");
-        setFromSubOptions(formatted);
-        setToSubOptions(formatted);
-      } catch {
-        Toast.show({ type: "error", text1: "Error", text2: "Failed to load Sub Inventories.", position: "top" });
-      }
-    };
-    fetchSubInv();
-  }, [activeFields.itemId, OrgData?.selectedOrg]);
+  if (controlType === 'Serial') {
+    existingSerials =
+      persistedIndex != null
+        ? InvAdjustmentItems[persistedIndex]?.serials || []
+        : existingItem?.serials || [];
+  }
 
-  useEffect(() => {
-    if (isIssue) {
-      if (!issueFields.itemId || !issueFields.fromSubId) return;
-      const fetchLocator = async () => {
-        try {
-          const data = await LocatorList(OrgData.selectedOrg, issueFields.itemId, issueFields.fromSubId);
-          const formatted = data.map((d) => ({ label: d.locator_name, value: d.locator_id, on_hand_qty: Number(d.on_hand_qty ?? 0) }));
-          setFromLocatorOptions(formatted);
-        } catch {
-          Toast.show({ type: "error", text1: "Error", text2: "Failed to load From Locators.", position: "top" });
-        }
-      };
-      fetchLocator();
-    } else {
-      if (!receiptFields.itemId || !receiptFields.toSubId) return;
-      const fetchLocator = async () => {
-        try {
-          const data = await LocatorList(OrgData.selectedOrg, receiptFields.itemId, receiptFields.toSubId);
-          const formatted = data.map((d) => ({ label: d.locator_name, value: d.locator_id }));
-          setToLocatorOptions(formatted);
-        } catch {
-          Toast.show({ type: "error", text1: "Error", text2: "Failed to load To Locators.", position: "top" });
-        }
-      };
-      fetchLocator();
-    }
-  }, [issueFields.itemId, issueFields.fromSubId, receiptFields.itemId, receiptFields.toSubId, isIssue, OrgData?.selectedOrg]);
+  if (controlType === 'Lot+Serial') {
+    existingLotSerials =
+      persistedIndex != null
+        ? InvAdjustmentItems[persistedIndex]?.lotSerials || []
+        : existingItem?.lotSerials || [];
+  }
 
-  const handleScan = useCallback(
-    (value) => {
-      const code = String(value).trim().toUpperCase();
-      const match = itemOptions.find((p) => String(p.label).toUpperCase() === code);
-      if (match) {
-        if (isIssue) resetReceipt();
-        else resetIssue();
-        setShowScanner(false);
-        if (isIssue) setIssueFields((prev) => ({ ...prev, itemId: match.value }));
-        else setReceiptFields((prev) => ({ ...prev, itemId: match.value }));
-        Toast.show({ type: "success", text1: "Item found", text2: match.label, position: "top" });
-      } else {
-        Toast.show({ type: "error", text1: "Item not found", text2: `Scanned value ${code} not found`, position: "top" });
-        setShowScanner(false);
-      }
-    },
-    [itemOptions, isIssue]
-  );
+  const payload = {
+    item: selectedItem,
+    fromSub,
+    fromLocator,
+    toSub,
+    toLocator,
+    uom,
+    qty,
+    notes,
+    status,
+    adjustType,
+    ...(controlType === 'Lot' && { lots: existingLots }),
+    ...(controlType === 'Serial' && { serials: existingSerials }),
+    ...(controlType === 'Lot+Serial' && { lotSerials: existingLotSerials }),
+  };
+  if (persistedIndex != null) {
+    editInvAdjustmentItem(payload, persistedIndex);
+    return persistedIndex;
+  }
 
-  const onSelectFromLocator = (id) => {
-    const opt = findOption(fromLocatorOptions, id);
-    const nextMax = Number(opt?.on_hand_qty ?? 0);
-    setIssueFields((prev) => ({ ...prev, fromLocId: id, maxQty: nextMax, qty: Math.min(prev.qty, nextMax) }));
+  addInvAdjustmentItem(payload);
+  const newIndex = InvAdjustmentItems.length;
+  setPersistedIndex(newIndex);
+  return newIndex;
+};
+
+
+
+const lineValid =
+  !!selectedItem &&
+  !!uom &&
+  qty > 0 &&
+  (adjustType === 'Issue'
+    ? !!fromSub && !!fromLocator
+    : !!toSub && !!toLocator);
+
+
+  const qtyExceeds = !!selectedItem && qty > itemAvailableQty;
+
+
+  const canUseFooterButtons = lineValid;
+
+  const currentLots =
+    persistedIndex != null
+      ? InvAdjustmentItems[persistedIndex]?.lots || []
+      : [];
+  const currentSerials =
+    persistedIndex != null
+      ? InvAdjustmentItems[persistedIndex]?.serials || []
+      : [];
+    const currentLotSerials =
+    persistedIndex != null
+      ? InvAdjustmentItems[persistedIndex]?.lotSerials || []
+      : [];
+
+  const handleOpenLotModal = () => {
+    const idx = handlePersistMainLine();
+    setPersistedIndex(idx);
+    setLotModalVisible(true);
   };
 
-  const isAddEnabled = useMemo(() => {
-    if (isIssue) {
-      const f = issueFields;
-      return !!(f.itemId && f.fromSubId && f.fromLocId && f.uomId && f.qty > 0);
-    } else {
-      const f = receiptFields;
-      return !!(f.itemId && f.toSubId && f.toLocId && f.uomId && f.qty > 0);
-    }
-  }, [issueFields, receiptFields, isIssue]);
+  const handleOpenSerialModal = () => {
+    const idx = handlePersistMainLine();
+    setPersistedIndex(idx);
+    setserialModalVisible(true);
+  };
 
-  const payloadForAdd = useMemo(() => {
-    const selectedItemId = isIssue ? issueFields.itemId : receiptFields.itemId;
-    const fromSubId = isIssue ? issueFields.fromSubId : null;
-    const fromLocId = isIssue ? issueFields.fromLocId : null;
-    const toSubId = isIssue ? null : receiptFields.toSubId;
-    const toLocId = isIssue ? null : receiptFields.toLocId;
-    const uomId = isIssue ? issueFields.uomId : receiptFields.uomId;
-    const qty = isIssue ? issueFields.qty : receiptFields.qty;
+  const handleOpenLotSerialModal = () => {
+    const idx = handlePersistMainLine();
+    setPersistedIndex(idx);
+    setLotserialModalVisible(true);
+  };
 
-    const itemLabel = labelOf(itemOptions, selectedItemId);
-    const fromSubLabel = labelOf(fromSubOptions, fromSubId);
-    const fromLocLabel = labelOf(fromLocatorOptions, fromLocId);
-    const toSubLabel = labelOf(toSubOptions, toSubId);
-    const toLocLabel = labelOf(toLocatorOptions, toLocId);
-    const uomLabel = labelOf(UOMOptions, uomId);
-
-    return {
-      item_id: selectedItemId,
-      item_code: itemLabel ?? null,
-      from_sub: isIssue ? fromSubId : null,
-      from_sub_name: isIssue ? fromSubLabel ?? null : null,
-      from_locator: isIssue ? fromLocId : null,
-      from_locator_name: isIssue ? fromLocLabel ?? null : null,
-      to_sub: !isIssue ? toSubId : null,
-      to_sub_name: !isIssue ? toSubLabel ?? null : null,
-      to_locator: !isIssue ? toLocId : null,
-      to_locator_name: !isIssue ? toLocLabel ?? null : null,
-      uom: uomId,
-      uom_label: uomLabel ?? null,
-      qty: Number(qty),
-      adjustmentType: adjustType,
+  const handleSaveLots = (lots, totalQty) => {
+    if (persistedIndex == null) return;
+    const updated = {
+      item: selectedItem,
+      fromSub,
+      fromLocator,
+      toSub,
+      toLocator,
+      uom,
+      qty,
+      notes,
+      lots,
+      controlType,
+      lotStatus: {
+        count: lots.length,
+        totalQty,
+      },
     };
-  }, [
-    isIssue,
-    issueFields,
-    receiptFields,
-    itemOptions,
-    fromSubOptions,
-    fromLocatorOptions,
-    toSubOptions,
-    toLocatorOptions,
-    UOMOptions,
-    adjustType,
-  ]);
+    editInvAdjustmentItem(updated, persistedIndex);
+    setStatus({ count: lots.length, totalQty });
+  };
 
-  const onAdd = useCallback(() => {
-    addSubInvTransferItem(payloadForAdd);
-    navigation.navigate("Inv_Adj_SummaryScreen", { adjustmentType: adjustType });
-  }, [addSubInvTransferItem, payloadForAdd, navigation, adjustType]);
+  const handleSaveSerials = (serials, totalQty) => {
+    if (persistedIndex == null) return;
+    const updated = {
+      item: selectedItem,
+      fromSub,
+      fromLocator,
+      toSub,
+      toLocator,
+      uom,
+      qty,
+      notes,
+      serials,
+      controlType,
+      serialStatus: {
+        count: serials.length,
+        totalQty,
+      },
+    };
+    editInvAdjustmentItem(updated, persistedIndex);
+    setStatus({ count: serials.length, totalQty });
+    setserialModalVisible(false);
+  };
 
-  const renderRadio = (label) => {
+  const handleSaveLotSerials = (lotSerials, totalQty,meta) => {
+    if (persistedIndex == null) return;
+    const updated = {
+      item: selectedItem,
+      fromSub,
+      fromLocator,
+      toSub,
+      toLocator,
+      uom,
+      qty,
+      notes,
+      lotSerials,
+      controlType,
+      lotSerialStatus: {
+        count: lotSerials.length,
+        totalQty,
+      },
+    };
+    editInvAdjustmentItem(updated, persistedIndex);
+    setStatus({ count: lotSerials.length, totalQty });
+    setLotserialModalVisible(false);
+  };
+
+  const handleAdd = () => {
+    if (!canUseFooterButtons) return;
+    handlePersistMainLine();
+    navigation.navigate('Inv_Adj_SummaryScreen');
+  };
+
+    const renderRadio = (label) => {
     const selected = adjustType === label;
     const Icon = selected ? RadioGlossySelected : RadioGlossyUnselected;
     return (
       <TouchableOpacity
-        style={styles.radioRow}
+          style={[
+    styles.radioRow,
+    isAddMore && styles.disabledRow
+  ]}
         onPress={() => {
           setAdjustType(label);
-          if (label === "Issue") resetReceipt();
-          else resetIssue();
+          // if (label === "Issue") resetReceipt();
+          // else resetIssue();
 
-          resetSubInvTransfer();
+          // resetSubInvTransfer();
         }}
+        disabled={isAddMore}
       >
-        <Icon width={ms(20)} height={ms(20)} />
-        <Text style={styles.radioText}>{label}</Text>
+        <Icon width={rs(20)} height={rs(20)} />
+        <Text     
+        style={[
+      styles.radioText,
+      isAddMore && styles.disabledText
+    ]}>{label}</Text>
       </TouchableOpacity>
     );
   };
 
-  const renderLayout = () => {
-    const f = activeFields;
-    return (
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.itemRow}>
-          <Inv_CustomDropdown
-            dropdownId={DROPDOWN_ID.ITEM}
-            openDropdownId={openDropdownId}
-            onToggleOpen={handleDropdownToggle}
-            placeholder="Select Item*"
-            value={f.itemId}
-            onChange={(id) => {
-              if (isIssue) setIssueFields({ itemId: id, fromSubId: null, fromLocId: null, uomId: null, qty: 0, maxQty: 0 });
-              else setReceiptFields({ itemId: id, toSubId: null, toLocId: null, uomId: null, qty: 0, maxQty: 0 });
-            }}
-            options={itemOptions}
-            idKey="value"
-            nameKey="label"
-            disabled={false}
-            selectedwidth={SCREEN_WIDTH - 2 * H_PADDING - ms(44)}
-            menuWidth={INVENTORY_MENU_WIDTH}
-          />
-          <TouchableOpacity style={styles.scanBtn} onPress={() => setShowScanner(true)}>
-            <BarcodeScannerIcon width={ms(30)} height={ms(30)} />
-          </TouchableOpacity>
-        </View>
-
-        {isIssue ? (
-          <>
-            <View style={styles.dropdown}>
-              <Inv_CustomDropdown
-                dropdownId={DROPDOWN_ID.FROM_SUB}
-                openDropdownId={openDropdownId}
-                onToggleOpen={handleDropdownToggle}
-                placeholder="From Sub*"
-                value={f.fromSubId}
-                onChange={(id) => setIssueFields((prev) => ({ ...prev, fromSubId: id, fromLocId: null, maxQty: 0 }))}
-                options={fromSubOptions}
-                idKey="value"
-                nameKey="label"
-                disabled={!f.itemId}
-                selectedwidth={SCREEN_WIDTH - 2 * H_PADDING}
-                menuWidth={INVENTORY_MENU_WIDTH}
-              />
-            </View>
-            <View style={styles.dropdown}>
-              {!!f.fromSubId && (
-                <Inv_CustomDropdown
-                  dropdownId={DROPDOWN_ID.FROM_LOC}
-                  openDropdownId={openDropdownId}
-                  onToggleOpen={handleDropdownToggle}
-                  placeholder="From Locator*"
-                  value={f.fromLocId}
-                  onChange={onSelectFromLocator}
-                  options={fromLocatorOptions}
-                  idKey="value"
-                  nameKey="label"
-                  disabled={!f.fromSubId}
-                  selectedwidth={SCREEN_WIDTH - 2 * H_PADDING}
-                  menuWidth={INVENTORY_MENU_WIDTH}
-                />
-              )}
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={styles.dropdown}>
-              <Inv_CustomDropdown
-                dropdownId={DROPDOWN_ID.TO_SUB}
-                openDropdownId={openDropdownId}
-                onToggleOpen={handleDropdownToggle}
-                placeholder="To Sub*"
-                value={f.toSubId}
-                onChange={(id) => setReceiptFields((prev) => ({ ...prev, toSubId: id, toLocId: null }))}
-                options={toSubOptions}
-                idKey="value"
-                nameKey="label"
-                disabled={!f.itemId}
-                selectedwidth={SCREEN_WIDTH - 2 * H_PADDING}
-                menuWidth={INVENTORY_MENU_WIDTH}
-              />
-            </View>
-            <View style={styles.dropdown}>
-              {!!f.toSubId && (
-                <Inv_CustomDropdown
-                  dropdownId={DROPDOWN_ID.TO_LOC}
-                  openDropdownId={openDropdownId}
-                  onToggleOpen={handleDropdownToggle}
-                  placeholder="To Locator*"
-                  value={f.toLocId}
-                  onChange={(id) => setReceiptFields((prev) => ({ ...prev, toLocId: id }))}
-                  options={toLocatorOptions}
-                  idKey="value"
-                  nameKey="label"
-                  disabled={!f.toSubId}
-                  selectedwidth={SCREEN_WIDTH - 2 * H_PADDING}
-                  menuWidth={INVENTORY_MENU_WIDTH}
-                />
-              )}
-            </View>
-          </>
-        )}
-
-        <View style={styles.uomRow}>
-          <Inv_CustomDropdown
-            dropdownId={DROPDOWN_ID.UOM}
-            openDropdownId={openDropdownId}
-            onToggleOpen={handleDropdownToggle}
-            placeholder="Select UOM*"
-            value={f.uomId}
-            onChange={(id) => {
-              if (isIssue) setIssueFields((prev) => ({ ...prev, uomId: id }));
-              else setReceiptFields((prev) => ({ ...prev, uomId: id }));
-            }}
-            options={UOMOptions}
-            idKey="value"
-            nameKey="label"
-            disabled={isIssue ? !f.fromLocId : !f.toLocId}
-            selectedwidth={UOM_FIELD_W}
-            menuWidth={INVENTORY_MENU_WIDTH}
-          />
-          <View style={styles.qtyCol}>
-            <Inv_CustomNumericInput
-              value={f.qty}
-              setValue={(v) => {
-                if (isIssue) setIssueFields((prev) => ({ ...prev, qty: v }));
-                else setReceiptFields((prev) => ({ ...prev, qty: v }));
-              }}
-              width={QTY_W}
-              height={ms(40)}
-              disabledinput={!f.uomId}
-              min={0}
-              max={f.maxQty || 999999}
-              step={1}
-            />
-          </View>
-        </View>
-
-        <View style={{ height: ms(24) }} />
-      </ScrollView>
-    );
+  const handleTransfer = () => {
+    if (!canUseFooterButtons) return;
+    handlePersistMainLine();
+    setConfirmVisible(true);
   };
 
+  const handleConfirmTransfer = () => {
+    setConfirmVisible(false);
+    setSuccessVisible(true);
+    setTimeout(() => {
+      setSuccessVisible(false);
+      navigation.navigate('Inventory');
+    }, 1500);
+  };
+
+  const handleBarcodePress = () => {
+    setScannerVisible(true);
+  };
+
+  const handleBarcodeScanned = codeString => {
+    const scanned = String(codeString || '').trim().toLowerCase();
+    if (!scanned) {
+      setScannerVisible(false);
+      return;
+    }
+
+    const matchedItem =
+      MOCK_ITEMS.find(
+        it => String(it.code || '').trim().toLowerCase() === scanned,
+      ) || null;
+
+    if (!matchedItem) {
+      setScannerVisible(false);
+      return;
+    }
+
+    setSelectedItem(matchedItem);
+    const maxQty = matchedItem.openQty ?? 0;
+    if (qty > maxQty) {
+      setQty(maxQty);
+    }
+    setScannerVisible(false);
+  };
+
+  if (scannerVisible) {
+    return (
+      <BarcodeScanner
+        onScan={handleBarcodeScanned}
+        onClose={() => setScannerVisible(false)}
+      />
+    );
+  }
+
   return (
-    <View style={styles.safe}>
-      <Inv_HeaderComponent organizationName={OrgData?.selectedOrgCode} screenTitle="Inventory Adjustments" notificationCount={0} onBack={() => navigation.goBack()} onMenu={() => navigation.toggleDrawer?.()} />
+    <View style={styles.root}>
+      <Inv_HeaderComponent
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
+        screenTitle="Inventory Adjustments"
+        onBack={() => navigation.goBack()}
+        showCartIcon={showCartForHeader}
+        cartCount={InvAdjustmentItems.length}
+        onCartPress={() => navigation.navigate('Inv_Adj_SummaryScreen')}
+      />
       <View style={styles.adjustTypeRow}>
         <Text style={styles.adjustLabel}>Select Adjustment Type</Text>
-        <View style={styles.radioGroup}>
+      <View style={styles.radioGroup}>
           {renderRadio("Issue")}
           {renderRadio("Receipt")}
         </View>
       </View>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: "padding", android: undefined })}>
-        {renderLayout()}
-      </KeyboardAvoidingView>
-      <Inv_SingleFooterBtnComponent rightLabel="Add" enabled={isAddEnabled} onRightPress={onAdd} />
-      <Modal visible={showScanner} animationType="slide" onRequestClose={() => setShowScanner(false)}>
-        <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
-      </Modal>
-      <Toast />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: rs(120) }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {qtyExceeds && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>
+              Insufficient Stock: Quantity exceeds available stock
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.cardWrapper}>
+          <View style={styles.lineBadgeFloating}>
+            <View style={styles.lineBadge}>
+              <Text style={styles.lineBadgeText}>{baseLineLabel}</Text>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Inv_Dropdown
+              label="Select Item"
+              required
+              value={selectedItem}
+              onChange={item => {
+                setSelectedItem(item);
+                if (item && qty > item.openQty) {
+                  setQty(item.openQty);
+                }
+                setControlType(item.controlType);
+              }}
+              items={MOCK_ITEMS}
+              displayValue={it => it.name}
+              renderCode={it => it.code}
+              showBarcodeIcon
+              onBarcodePress={handleBarcodePress}
+            />
+
+            {selectedItem ? (
+              <View style={styles.itemInfoStrip}>
+                <View style={styles.infoCol}>
+                  <Text style={styles.infoLabel}>Available Stock</Text>
+                  <Text style={styles.infoValue}>
+                    {selectedItem.availableStock} {selectedItem.availableUom}
+                  </Text>
+                </View>
+                <View style={styles.infoCol}>
+                  <Text style={styles.infoLabel}>Item Code</Text>
+                  <Text style={styles.infoValue}>{selectedItem.code}</Text>
+                </View>
+                <View style={styles.infoCol}>
+                  <Text style={styles.infoLabel}>Control Type</Text>
+                  <Text style={styles.infoValue}>{selectedItem.controlType}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {adjustType =="Issue" && (<View style={styles.rowSplit}>
+              <View style={styles.colHalf}>
+                <Inv_Dropdown
+                  label="From Sub"
+                  required
+                  value={fromSub}
+                  onChange={it => {
+                    setFromSub(it);
+                    setFromLocator(null);
+                  }}
+                  items={MOCK_SUB_INVENTORIES}
+                  displayValue={it => it.name}
+                  renderCode={it => it.code}
+                />
+              </View>
+              {fromSub ? (
+                <View style={styles.colHalf}>
+                  <Inv_Dropdown
+                    label="From Locator"
+                    required
+                    value={fromLocator}
+                    onChange={setFromLocator}
+                    items={availableLocatorsFrom}
+                    displayValue={it => it.name}
+                    renderCode={it => it.code}
+                  />
+                </View>
+              ) : null}
+            </View>)}
+
+            {adjustType =="Receipt"&&(<View style={styles.rowSplit}>
+              <View style={styles.colHalf}>
+                <Inv_Dropdown
+                  label="To Sub"
+                  required
+                  value={toSub}
+                  onChange={it => {
+                    setToSub(it);
+                    setToLocator(null);
+                  }}
+                  items={MOCK_SUB_INVENTORIES}
+                  displayValue={it => it.name}
+                  renderCode={it => it.code}
+                />
+              </View>
+              {toSub ? (
+                <View style={styles.colHalf}>
+                  <Inv_Dropdown
+                    label="To Locator"
+                    required
+                    value={toLocator}
+                    onChange={setToLocator}
+                    items={availableLocatorsTo}
+                    displayValue={it => it.name}
+                    renderCode={it => it.code}
+                  />
+                </View>
+              ) : null}
+            </View>)}
+
+            <View style={styles.rowSplit}>
+              <View style={styles.colHalf}>
+                <Inv_Dropdown
+                  label="Select UOM"
+                  required
+                  value={uom}
+                  onChange={setUom}
+                  items={MOCK_UOMS}
+                  displayValue={it => it.name}
+                  renderCode={it => it.code}
+                />
+              </View>
+              <View style={styles.colHalf}>
+                <Text style={styles.fieldLabel}>
+                  Select QTY<Text style={styles.required}>*</Text>
+                </Text>
+                <Inv_CustomNumericInput
+                  value={qty}
+                  setValue={setQty}
+                  min={0}
+                  max={itemAvailableQty}
+                  disabledinput={!selectedItem}
+                  width="100%"
+                  height={rs(44)}
+                />
+              </View>
+            </View>
+
+            {controlType=='Lot' && (
+              <View style={styles.lotRow}>
+                <Text style={styles.fieldLabel}>
+                  Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
+                  <Text style={styles.linkText}>(Lot Controlled)</Text>
+                </Text>
+
+                <TouchableAddLot
+                  enabled={lineValid}
+                  lotStatus={status}
+                  onPress={handleOpenLotModal}
+                />
+              </View>
+            )}
+
+            {controlType=='Serial' && (
+              <View style={styles.lotRow}>
+                <Text style={styles.fieldLabel}>
+                  Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
+                  <Text style={styles.linkText}>(Serial Controlled)</Text>
+                </Text>
+
+                <TouchableAddSerial
+                  enabled={lineValid}
+                  SerialStatus={status}
+                  onPress={handleOpenSerialModal}
+                />
+              </View>
+            )}
+
+            {controlType=='Lot+Serial' && (
+              <View style={styles.lotRow}>
+                <Text style={styles.fieldLabel}>
+                  Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
+                  <Text style={styles.linkText}>(Lot+Serial Controlled)</Text>
+                </Text>
+
+                <TouchableAddLotSerial
+                  enabled={lineValid}
+                  lotSerialStatus={status}
+                  onPress={handleOpenLotSerialModal}
+                />
+              </View>
+            )}
+
+            <View style={styles.notesWrapper}>
+              <Text style={styles.fieldLabel}>
+                Notes <Text style={styles.optional}>(Optional)</Text>
+              </Text>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Maximum 100 characters"
+                multiline
+                maxLength={100}
+                value={notes}
+                onChangeText={setNotes}
+              />
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {useSingleFooter ? (
+        <SingleFooterBtnComponent
+          label="Add"
+          onPress={handleAdd}
+          enabled={canUseFooterButtons}
+        />
+      ) : (
+        <FooterButtonsComponent
+          leftLabel="Add"
+          rightLabel="Transfer"
+          onLeftPress={handleAdd}
+          onRightPress={handleTransfer}
+          leftEnabled={!!canUseFooterButtons}
+          rightEnabled={!!canUseFooterButtons}
+        />
+      )}
+
+      <Inv_LotModalPopup
+        visible={lotModalVisible}
+        onClose={() => setLotModalVisible(false)}
+        lineQty={qty}
+        itemName={selectedItem?.name}
+        initialLots={currentLots}
+        onSave={handleSaveLots}
+        lineLabel={baseLineLabel}
+      />
+
+      <Inv_SerialModalPopup
+        visible={serialModalVisible}
+        onClose={() => setserialModalVisible(false)}
+        onSave={handleSaveSerials}
+        itemName={selectedItem?.name}
+        itemCode={selectedItem?.itemid}
+        lineQty={qty}
+        lineLabel={baseLineLabel}
+        initialSerials={currentSerials}
+        // initialMode={serialMode}
+      />
+
+      <Inv_LotSerialModalPopup
+        visible={lotserialModalVisible}
+        onClose={() => setLotserialModalVisible(false)}
+        onSave={handleSaveLotSerials}
+        itemName={selectedItem?.name}
+        itemCode={selectedItem?.itemid}
+        lineQty={qty}
+        lineLabel={baseLineLabel}
+        initialLots={currentLotSerials}
+      />
+
+
+      <ConfirmModal
+        visible={confirmVisible}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={handleConfirmTransfer}
+      />
+
+      <SuccessModal
+        visible={successVisible}
+        onClose={() => setSuccessVisible(false)}
+      />
     </View>
   );
 }
 
+function TouchableAddLot({enabled,lotStatus, onPress }) {
+  const hasLots = !!(lotStatus && lotStatus.count > 0);
+
+  if (!enabled) {
+    return (
+      <View style={[styles.addLotBase, styles.addLotDisabled]}>
+        <Text style={[styles.addLotText, styles.addLotTextDisabled]}>
+          {hasLots && lotStatus
+            ? `${lotStatus.count}LOTS - ${lotStatus.totalQty} QTY`
+            : 'Add Lot'}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={hasLots ? styles.addLotStatusWrapper : styles.addLotGradientWrapper}
+    >
+      <View style={hasLots ? styles.addLotStatusInner : styles.addLotGradientInner}>
+        <Text style={hasLots ? styles.addLotStatusText : styles.addLotText}>
+          {hasLots && lotStatus
+            ? `${lotStatus.count}LOTS - ${lotStatus.totalQty} QTY`
+            : 'Add Lot'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function TouchableAddSerial({ enabled, SerialStatus, onPress }) {
+  const hasSerials = !!(SerialStatus && SerialStatus.count > 0);
+
+  if (!enabled) {
+    return (
+      <View style={[styles.addLotBase, styles.addLotDisabled]}>
+        <Text style={[styles.addLotText, styles.addLotTextDisabled]}>
+          {hasSerials && SerialStatus
+            ? `${SerialStatus.count}Serials Added - ${SerialStatus.totalQty} QTY`
+            : 'Add Serial'}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={hasSerials ? styles.addLotStatusWrapper : styles.addLotGradientWrapper}
+    >
+      <View style={hasSerials ? styles.addLotStatusInner : styles.addLotGradientInner}>
+        <Text style={hasSerials ? styles.addLotStatusText : styles.addLotText}>
+          {hasSerials && SerialStatus
+            ? `${SerialStatus.count}Serials Added - ${SerialStatus.totalQty} QTY`
+            : 'Add Serial'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function TouchableAddLotSerial({ enabled, lotSerialStatus, onPress }) {
+  const hasSerials = !!(lotSerialStatus && lotSerialStatus.count > 0);
+
+  if (!enabled) {
+    return (
+      <View style={[styles.addLotBase, styles.addLotDisabled]}>
+        <Text style={[styles.addLotText, styles.addLotTextDisabled]}>
+          {hasSerials && lotSerialStatus
+            ? `${lotSerialStatus.count}Serials Added - ${lotSerialStatus.totalQty} QTY`
+            : 'Add Lot+Serial'}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={hasSerials ? styles.addLotStatusWrapper : styles.addLotGradientWrapper}
+    >
+      <View style={hasSerials ? styles.addLotStatusInner : styles.addLotGradientInner}>
+        <Text style={hasSerials ? styles.addLotStatusText : styles.addLotText}>
+          {hasSerials && lotSerialStatus
+            ? `${lotSerialStatus.count} Lots + ${lotSerialStatus.totalQty} Serials Added - ${lotSerialStatus.totalQty} QTY`
+            : 'Add Lot + Serial'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function ConfirmModal({ visible, onCancel, onConfirm }) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalTop}>
+            <ConfirmSubInventoryIcon width={rs(80)} height={rs(80)} />
+          </View>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitle}>Confirmation</Text>
+            <Text style={styles.modalText}>
+              Are you sure want to transfer this Inventory
+            </Text>
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancel]}
+                onPress={onCancel}
+              >
+                <Text style={[styles.modalButtonText, styles.modalCancelText]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalConfirm]}
+                onPress={onConfirm}
+              >
+                <Text style={[styles.modalButtonText, styles.modalConfirmText]}>
+                  Confirm
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function SuccessModal({ visible, onClose }) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalTop}>
+            <InventorySuccessIcon width={rs(80)} height={rs(80)} />
+          </View>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitle}>
+              Sub Inventory Transfer created successfully
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  content: { paddingHorizontal: ms(2), paddingTop: ms(12) },
-  dropdown: { marginTop: ms(10) },
-  itemRow: { flexDirection: "row", alignItems: "center", marginTop: ms(10) },
-  scanBtn: { height: ms(40), width: ms(40), backgroundColor: "#EFEFF0", borderRadius: ms(4), alignItems: "center", justifyContent: "center", marginLeft: ms(-10), marginTop: ms(12) },
-  uomRow: { flexDirection: "row", alignItems: "center", marginTop: ms(20) },
-  qtyCol: { alignItems: "flex-end", justifyContent: "flex-end", marginRight: ms(8), marginTop: ms(10) },
-  adjustTypeRow: { backgroundColor: "#E4E9EF", paddingVertical: ms(12), paddingHorizontal: ms(16), flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  adjustLabel: { fontSize: ms(14), color: "#233E55", fontWeight: "600" },
-  radioGroup: { flexDirection: "row", gap: ms(20), alignItems: "center" },
-  radioRow: { flexDirection: "row", alignItems: "center", gap: ms(6) },
-  radioText: { fontSize: ms(14), color: "#233E55" },
+  root: { flex: 1, backgroundColor: '#F5F6F8' },
+  scroll: { flex: 1 },
+
+  errorBanner: {
+    marginHorizontal: rs(16),
+    marginTop: rs(12),
+    marginBottom: rs(4),
+    paddingVertical: rs(10),
+    paddingHorizontal: rs(12),
+    borderRadius: rs(24),
+    backgroundColor: '#FDE3E3',
+  },
+  errorBannerText: {
+    color: '#D32F2F',
+    fontSize: rs(13),
+    fontWeight: '600',
+  },
+
+  cardWrapper: {
+    marginHorizontal: rs(16),
+    marginTop: rs(30),
+    marginBottom: rs(16),
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: rs(0),
+    padding: rs(16),
+    paddingTop: rs(10),
+    marginTop: rs(10),
+  },
+  lineBadgeFloating: {
+    position: 'absolute',
+    top: -15,
+    left: rs(0),
+    zIndex: 2,
+  },
+  lineBadge: {
+    backgroundColor: '#5D768B',
+    borderTopLeftRadius: rs(6),
+    borderTopRightRadius: rs(6),
+    borderBottomRightRadius: rs(0),
+    paddingVertical: rs(4),
+    paddingHorizontal: rs(16),
+  },
+  lineBadgeText: {
+    color: '#FFFFFF',
+    fontSize: rs(13),
+    fontWeight: '600',
+  },
+
+  itemInfoStrip: {
+    flexDirection: 'row',
+    backgroundColor: '#E6EEF7',
+    borderRadius: rs(8),
+    paddingVertical: rs(10),
+    paddingHorizontal: rs(12),
+    marginBottom: rs(16),
+    marginTop: rs(8),
+  },
+  infoCol: { flex: 1 },
+  infoLabel: { fontSize: rs(11), color: '#555555' },
+  infoValue: {
+    fontSize: rs(13),
+    color: '#233E55',
+    fontWeight: '600',
+    marginTop: rs(2),
+  },
+  rowSplit: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    columnGap: rs(12),
+  },
+  colHalf: {
+    flex: 1,
+  },
+  fieldLabel: {
+    fontSize: rs(12),
+    color: '#555555',
+    marginBottom: rs(4),
+  },
+  required: { color: '#E53935' },
+  lotRow: {
+    marginTop: rs(16),
+  },
+  linkText: {
+    color: '#1E88E5',
+    fontSize: rs(12),
+  },
+  notesWrapper: {
+    marginTop: rs(16),
+  },
+  optional: { color: '#888888' },
+  notesInput: {
+    marginTop: rs(4),
+    minHeight: rs(80),
+    borderRadius: rs(8),
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    padding: rs(10),
+    fontSize: rs(13),
+    textAlignVertical: 'top',
+  },
+
+  addLotBase: {
+    marginTop: rs(8),
+    alignSelf: 'stretch',
+    borderRadius: rs(4),
+    paddingVertical: rs(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addLotGradientWrapper: {
+    marginTop: rs(8),
+    alignSelf: 'stretch',
+  },
+  addLotGradientInner: {
+    borderRadius: rs(8),
+    paddingVertical: rs(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#7392AA',
+  },
+  addLotStatusWrapper: {
+    marginTop: rs(8),
+    alignSelf: 'stretch',
+  },
+  addLotStatusInner: {
+    borderRadius: rs(4),
+    paddingVertical: rs(8),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#73B386',
+  },
+  addLotText: {
+    color: '#FFFFFF',
+    fontSize: rs(13),
+    fontWeight: '500',
+  },
+  addLotStatusText: {
+    color: '#FFFFFF',
+    fontSize: rs(13),
+    fontWeight: '500',
+  },
+  addLotDisabled: {
+    backgroundColor: '#CCCCCC',
+  },
+  addLotTextDisabled: {
+    color: '#777777',
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: rs(24),
+  },
+  modalCard: {
+    width: '100%',
+    borderRadius: rs(16),
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  modalTop: {
+    backgroundColor: '#ECF1F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: rs(24),
+  },
+  modalBody: {
+    paddingHorizontal: rs(20),
+    paddingVertical: rs(20),
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: rs(16),
+    fontWeight: '700',
+    color: '#233E55',
+    textAlign: 'center',
+  },
+  modalText: {
+    marginTop: rs(8),
+    fontSize: rs(14),
+    color: '#555555',
+    textAlign: 'center',
+  },
+  modalButtonsRow: {
+    marginTop: rs(20),
+    flexDirection: 'row',
+    columnGap: rs(12),
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    height: rs(44),
+    borderRadius: rs(30),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancel: {
+    borderWidth: 1,
+    borderColor: '#233E55',
+    backgroundColor: '#FFFFFF',
+  },
+  modalConfirm: {
+    backgroundColor: '#233E55',
+  },
+  modalButtonText: {
+    fontSize: rs(14),
+    fontWeight: '600',
+  },
+  modalCancelText: {
+    color: '#233E55',
+  },
+  modalConfirmText: {
+    color: '#FFFFFF',
+  },
+  radioGroup: { flexDirection: "row", gap: rs(20), alignItems: "center" },
+  radioRow: { flexDirection: "row", alignItems: "center", gap: rs(6) },
+  disabledRow: {
+    opacity: 0.5,
+  },
+  disabledText: {
+    color: '#515050ff',
+  },
+  radioText: { fontSize: rs(14), color: "#233E55" },
+  adjustTypeRow: { backgroundColor: "#E4E9EF", paddingVertical: rs(12), paddingHorizontal: rs(16), flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  adjustLabel: { fontSize: rs(14), color: "#233E55", fontWeight: "600" },
 });

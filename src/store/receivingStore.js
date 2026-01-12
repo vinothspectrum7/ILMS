@@ -281,6 +281,31 @@ export const useReceivingStore = create((set, get) => ({
 
   resetOrgnaizationTransferItems: () =>
     set({ OrgnaizationTransferItems: [] }),
+// Inventory Adjustment Store
+    InvAdjustmentItems: [],
+  addInvAdjustmentItem: item =>
+    set(state => ({
+      InvAdjustmentItems: [...state.InvAdjustmentItems, item],
+    })),
+
+  editInvAdjustmentItem: (updatedItem, editIndex) =>
+    set(state => {
+      const list = [...state.InvAdjustmentItems];
+      if (editIndex !== null && editIndex >= 0 && editIndex < list.length) {
+        list[editIndex] = { ...list[editIndex], ...updatedItem };
+      }
+      return { InvAdjustmentItems: list };
+    }),
+
+  setInvAdjustmentItems: items =>
+    set({ InvAdjustmentItems: Array.isArray(items) ? items : [] }),
+
+  removeInvAdjustmentItem: index =>
+    set(state => ({
+      InvAdjustmentItems: state.InvAdjustmentItems.filter((_, i) => i !== index),
+    })),
+
+  resetInvAdjustment: () => set({ InvAdjustmentItems: [] }),
 
   Orgtransferdetails: null,
   addOrgTransferDetails: org_details => set({ Orgtransferdetails: org_details }),

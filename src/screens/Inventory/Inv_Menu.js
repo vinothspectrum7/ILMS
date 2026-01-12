@@ -22,7 +22,7 @@ const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 
 const Inv_Menu = ()=>{
-  const { OrgData,removeOrgTransferDetails,resetOrgnaizationTransferItems,resetSubInvTransfer } = useReceivingStore();
+  const { OrgData,removeOrgTransferDetails,resetOrgnaizationTransferItems,resetSubInvTransfer,resetInvAdjustment } = useReceivingStore();
   const navigation = useNavigation();
   const goHome = useCallback(() => navigation.navigate('SubInvTransfer'), [navigation]);
   const goOrgTransfer = useCallback(() => navigation.navigate('orgTransfer'), [navigation]);
@@ -35,6 +35,7 @@ const Inv_Menu = ()=>{
       removeOrgTransferDetails();
       resetOrgnaizationTransferItems();
       resetSubInvTransfer();
+      resetInvAdjustment();
         }, [])
       );
 

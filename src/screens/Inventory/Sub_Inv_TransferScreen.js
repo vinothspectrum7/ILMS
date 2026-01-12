@@ -328,7 +328,7 @@ const handlePersistMainLine = () => {
   return (
     <View style={styles.root}>
       <Inv_HeaderComponent
-        organizationName={OrgData?.org_name || 'EnnVee'}
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         screenTitle="Sub Inventory Transfer"
         onBack={() => navigation.goBack()}
         showCartIcon={showCartForHeader}
