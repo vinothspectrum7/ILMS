@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  Pressable,
 } from 'react-native';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import GrowthIcon from '../../assets/icons/Ship_Icons/GrowthIcon.svg';
@@ -23,7 +24,7 @@ import { useShippingStore } from '../../store/shippingStore';
 function Ship_Dashboard({ navigation, route }) {
   const status = route?.params?.status;
   const resetShippingStore = useShippingStore(s => s.resetShippingStore);
-
+  const [showPrintMenu, setShowPrintMenu] = useState(false);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filters, setFilters] = useState({
@@ -77,6 +78,20 @@ function Ship_Dashboard({ navigation, route }) {
     navigation.goBack();
   };
 
+  const handleLabelPrint = () => {
+    setShowPrintMenu(false);
+    console.log('Label Print pressed');
+    // Add your Label Print navigation or logic here
+    // Example: navigation.navigate('Ship_LabelPrint');
+  };
+
+  const handlePrintDocument = () => {
+    setShowPrintMenu(false);
+    console.log('Print Document pressed - Navigating to Ship_PrintDocument');
+    // Navigate to Ship_PrintDocument screen
+    navigation.navigate('Ship_PrintDocumentScreen');
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#233E55" barStyle="light-content" />
@@ -118,9 +133,39 @@ function Ship_Dashboard({ navigation, route }) {
             <TouchableOpacity style={styles.iconButton}>
               <SearchIcon width={20} height={20} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <PrintIcon width={20} height={20} />
-            </TouchableOpacity>
+            
+            <View style={styles.printWrapper}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setShowPrintMenu(prev => !prev)}
+              >
+                <PrintIcon width={20} height={20} />
+              </TouchableOpacity>
+
+              {showPrintMenu && (
+                <View style={styles.printDropdown}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.printOption,
+                      pressed && styles.printOptionPressed,
+                    ]}
+                    onPress={handleLabelPrint}
+                  >
+                    <Text style={styles.printText}>Label Print</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.printOption,
+                      pressed && styles.printOptionPressed,
+                    ]}
+                    onPress={handlePrintDocument}
+                  >
+                    <Text style={styles.printText}>Print Document</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
@@ -139,7 +184,6 @@ function Ship_Dashboard({ navigation, route }) {
           filters={filters}
           onPickPress={handlePickPress}
         />
-        <View style={{ height: 80 }} />
       </ScrollView>
 
       <Ship_PickPopupConfirmation
@@ -204,7 +248,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
     alignSelf: 'flex-start',
-    elevation: 8,
   },
 
   growthText: {
@@ -232,12 +275,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
 
   cardTitle: {
     fontSize: 9,
     color: '#595A5C',
-    marginTop: 4
+    marginTop: 4,
+    textAlign: 'center',
+    fontWeight: '600',
   },
 
   cardValue: {
@@ -251,6 +300,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 21,
     marginBottom: 16,
+    alignItems: 'center',
   },
 
   shippingTransactionTitle: {
@@ -261,11 +311,53 @@ const styles = StyleSheet.create({
 
   transactionIcons: {
     flexDirection: 'row',
-    gap: 12
+    gap: 12,
+    alignItems: 'center',
   },
 
   iconButton: {
     padding: 8
+  },
+
+  printWrapper: {
+    position: 'relative',
+  },
+
+  printDropdown: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    width: 173,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 8,
+    zIndex: 1000,
+  },
+
+  printOption: {
+    width: '100%',
+    height: 36,
+    borderRadius: 4,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 4,
+  },
+
+  printText: {
+    fontFamily: 'Mulish',
+    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 12,
+    color: '#233E55',
+  },
+
+  printOptionPressed: {
+    backgroundColor: '#ECF1F7',
   },
 
   tableScrollView: {
