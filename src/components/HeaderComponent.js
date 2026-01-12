@@ -73,11 +73,10 @@ export default function HeaderComponent({
   onOrganizationChange,
   Defaultorg,
   OrgCode,
-  BusinessName,
   notificationCount = 0,
   onCardPress = () => {},
   onMenuSelect = () => {},
-  menuVersion = '26010506',
+  menuVersion = '25121921',
 }) {
   const [openOrgDropdown, setOpenOrgDropdown] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -99,12 +98,10 @@ export default function HeaderComponent({
             setSelectedOrganization(OrgData?.selectedOrg);
             Defaultorg?.(OrgData?.selectedOrg);
             OrgCode?.(OrgData?.selectedOrgCode);
-            BusinessName?.(OrgData?.BusinessName);
           } else {
             Defaultorg?.(defaultOrg?.value ?? orgformatdata[0]?.value);
             OrgCode?.(defaultOrg?.org_code ?? orgformatdata[0]?.org_code);
             setSelectedOrganization(defaultOrg?.value ?? orgformatdata[0]?.value);
-            BusinessName?.(defaultOrg?.business_unit_name ?? orgformatdata[0]?.business_unit_name);
           }
         } else {
           setOrganizations([]);
@@ -120,7 +117,6 @@ export default function HeaderComponent({
     data.map(element => ({
       label: element.org_code,
       value: element.org_uuid,
-      business_unit_name:element.business_unit_name,
       org_code: element.org_code,
       is_default: element.is_default,
     }));
@@ -223,7 +219,7 @@ export default function HeaderComponent({
       <View style={styles.navigationCardsRow}>
         <NavigationCard title="Receiving" icon={ReceiveIcon} onPress={() => onCardPress('Receive')} />
         <NavigationCard title="Inventory" icon={InventoryIcon} onPress={() => onCardPress('Inventory')} />
-        <NavigationCard title="Shipping" icon={ShippingIcon} onPress={() => onCardPress('Shipping')} />
+        <NavigationCard title="Shipping" icon={ShippingIcon} onPress={() => onCardPress('Ship_Entry')} />
       </View>
 
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
