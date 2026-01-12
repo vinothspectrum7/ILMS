@@ -72,29 +72,31 @@ const Ship_ConfirmPack = () => {
         onBack={() => navigation.goBack()}
       />
 
-      <View style={[styles.mainCard, { width: mainCardWidth, maxHeight: screenHeight * 0.72 }]}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.mainCardContent}>
-          {confirmList.map((item, index) => (
-            <View key={index} style={[styles.itemCard, { width: itemCardWidth }]}>
-              <View style={styles.itemHeader}>
-                <Text style={styles.headerLabel}>LPN</Text>
-                <Text style={styles.headerValue}>{item.lpn}</Text>
-              </View>
-
-              <View style={styles.itemBody}>
-                <View style={styles.twoColRow}>
-                  <InfoBlock label="Delivery Number" value={item.deliveryNo} />
-                  <InfoBlock label="Customer Name" value={item.customer} />
+      <View style={styles.content}>
+        <View style={[styles.mainCard, { width: mainCardWidth, maxHeight: screenHeight * 0.72 }]}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.mainCardContent}>
+            {confirmList.map((item, index) => (
+              <View key={index} style={[styles.itemCard, { width: itemCardWidth }]}>
+                <View style={styles.itemHeader}>
+                  <Text style={styles.headerLabel}>LPN</Text>
+                  <Text style={styles.headerValue}>{item.lpn}</Text>
                 </View>
 
-                <View style={styles.twoColRow}>
-                  <InfoBlock label="Carrier" value={item.carrier} />
-                  <InfoBlock label="Pack Number" value={item.packNo} />
+                <View style={styles.itemBody}>
+                  <View style={styles.twoColRow}>
+                    <InfoBlock label="Delivery Number" value={item.deliveryNo} />
+                    <InfoBlock label="Customer Name" value={item.customer} />
+                  </View>
+
+                  <View style={styles.twoColRow}>
+                    <InfoBlock label="Carrier" value={item.carrier} />
+                    <InfoBlock label="Pack Number" value={item.packNo} />
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
-        </ScrollView>
+            ))}
+          </ScrollView>
+        </View>
       </View>
 
       <View style={styles.footer}>
@@ -127,6 +129,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F6F8',
   },
 
+  content: {
+    flex: 1,
+  },
+
   mainCard: {
     alignSelf: 'center',
     marginTop: 16,
@@ -141,6 +147,7 @@ const styles = StyleSheet.create({
 
   mainCardContent: {
     paddingVertical: 14,
+    paddingBottom: 14,
   },
 
   itemCard: {

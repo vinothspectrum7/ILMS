@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Modal,
   View,
@@ -8,111 +8,29 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
-
-const ITEM_TABLE_DATA = [
-  {
-    itemId: 'ITM-001',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1293',
-  },
-  {
-    itemId: 'ITM-002',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1294',
-  },
-  {
-    itemId: 'ITM-003',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1295',
-  },
-  {
-    itemId: 'ITM-004',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1296',
-  },
-  {
-    itemId: 'ITM-005',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1297',
-  },
-  {
-    itemId: 'ITM-006',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1298',
-  },
-  {
-    itemId: 'ITM-007',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1299',
-  },
-  {
-    itemId: 'ITM-008',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1300',
-  },
-  {
-    itemId: 'ITM-009',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1301',
-  },
-  {
-    itemId: 'ITM-010',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1302',
-  },
-  {
-    itemId: 'ITM-011',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1303',
-  },
-  {
-    itemId: 'ITM-012',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1304',
-  },
-  {
-    itemId: 'ITM-013',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1305',
-  },
-  {
-    itemId: 'ITM-014',
-    description: 'Widget A',
-    salesOrderNo: 'SO8400',
-    quantity: 100,
-    unitNumber: 'LN1306',
-  },
-];
+import { useShippingStore } from '../../store/shippingStore';
 
 const { width, height } = Dimensions.get('window');
 
 const Ship_ViewDetails = ({ visible, onClose }) => {
+  const selectedTransaction = useShippingStore(s => s.selectedTransaction);
+
+  const items = useMemo(() => {
+    const list = selectedTransaction?.items;
+    return Array.isArray(list) ? list : [];
+  }, [selectedTransaction]);
+
+  const rows = useMemo(() => {
+    return items.map((it, idx) => ({
+      key: `${it?.itemId || it?.itemCode || it?.code || 'ITEM'}-${idx}`,
+      itemId: it?.itemId || it?.itemCode || it?.code || '-',
+      description: it?.description || '-',
+      salesOrderNo: it?.salesOrderNo || '-',
+      quantity: it?.quantity ?? '-',
+      unitNumber: it?.unitNumber || '-',
+    }));
+  }, [items]);
+
   return (
     <Modal
       visible={visible}
@@ -146,27 +64,26 @@ const Ship_ViewDetails = ({ visible, onClose }) => {
             </View>
 
             <ScrollView style={styles.tableBody} showsVerticalScrollIndicator={false}>
-              {ITEM_TABLE_DATA.map(item => (
-                <View key={item.itemId} style={styles.itemBlock}>
-
+              {rows.map(row => (
+                <View key={row.key} style={styles.itemBlock}>
                   <View style={styles.tableRow}>
                     <View style={styles.cell}>
-                      <Text style={styles.itemIdText}>{item.itemId}</Text>
+                      <Text style={styles.itemIdText}>{row.itemId}</Text>
                     </View>
                     <View style={styles.cell}>
-                      <Text style={styles.cellText}>{item.description}</Text>
+                      <Text style={styles.cellText}>{row.description}</Text>
                     </View>
                     <View style={styles.cell}>
-                      <Text style={styles.cellText}>{item.salesOrderNo}</Text>
+                      <Text style={styles.cellText}>{row.salesOrderNo}</Text>
                     </View>
                     <View style={styles.cell}>
-                      <Text style={styles.quantityText}>{item.quantity}</Text>
+                      <Text style={styles.quantityText}>{row.quantity}</Text>
                     </View>
                   </View>
 
                   <View style={styles.unitRow}>
                     <View style={styles.cell}>
-                      <Text style={styles.unitText}>{item.unitNumber}</Text>
+                      <Text style={styles.unitText}>{row.unitNumber}</Text>
                     </View>
                     <View style={styles.cell} />
                     <View style={styles.cell} />
@@ -176,7 +93,6 @@ const Ship_ViewDetails = ({ visible, onClose }) => {
                   <View style={styles.rowDivider} />
                 </View>
               ))}
-
             </ScrollView>
           </View>
         </View>
@@ -244,7 +160,6 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-
     backgroundColor: 'rgba(93, 118, 139, 0.05)',
     paddingVertical: 10,
   },
@@ -312,8 +227,6 @@ const styles = StyleSheet.create({
     minHeight: 52,
     justifyContent: 'center',
   },
-
-
 });
 
 export default Ship_ViewDetails;
