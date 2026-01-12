@@ -6,7 +6,7 @@ import {
   Modal,
 } from 'react-native';
 import SipBoxIcon from '../../assets/icons/Ship_Icons/SipBoxIcon.svg';
-import FooterButtonsComponent from '../../components/FooterButtonsComponent';
+import FooterButtonsComponent from '../../components/shipping/Ship_FooterModalButtonComponent';
 
 const Ship_ShipConfirmPopupModal = ({ visible, onClose, onConfirm, deliveryNumber }) => {
   

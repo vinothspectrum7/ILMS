@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,16 +11,52 @@ import { useNavigation } from '@react-navigation/native';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import ShipConfirmationModal from './Ship_ConfirmationModal';
-import CONFIRM_DATA from '../../data/shippingMockData'; 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+import { useShippingStore } from '../../store/shippingStore';
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const Ship_ConfirmPack = () => {
   const navigation = useNavigation();
+
+  const selectedTransaction = useShippingStore(s => s.selectedTransaction);
+  const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
+  const setTransactionStatus = useShippingStore(s => s.setTransactionStatus);
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  const confirmList = useMemo(() => {
+    const list = selectedTransaction?.confirm_data;
+    return Array.isArray(list) ? list : [];
+  }, [selectedTransaction]);
+
   const handleConfirm = () => {
+    const items = Array.isArray(selectedTransaction?.items) ? selectedTransaction.items : [];
+    const updatedItems = items.map(it => ({ ...it, status: 'Packed' }));
+
+    const updatedTransaction = {
+      ...(selectedTransaction || {}),
+      items: updatedItems,
+      status: 'Ready To Ship',
+    };
+
+    setSelectedTransaction(updatedTransaction);
+
+    if (updatedTransaction?.deliveryId) {
+      setTransactionStatus(updatedTransaction.deliveryId, 'Ready To Ship');
+    }
+
     setShowConfirmModal(true);
+  };
+
+  const handleConfirmNo = () => {
+    setShowConfirmModal(false);
+
+    const deliveryId = selectedTransaction?.deliveryId;
+    if (deliveryId) {
+      setTransactionStatus(deliveryId, 'Ready To Ship');
+    }
+
+    navigation.navigate('ShipDashboard', { status: 'All' });
   };
 
   const mainCardWidth = Math.min(372, screenWidth - 42);
@@ -36,21 +72,10 @@ const Ship_ConfirmPack = () => {
         onBack={() => navigation.goBack()}
       />
 
-      <View
-        style={[
-          styles.mainCard,
-          { width: mainCardWidth, maxHeight: screenHeight * 0.72 },
-        ]}
-      >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.mainCardContent}
-        >
-          {CONFIRM_DATA.map((item, index) => (
-            <View
-              key={index}
-              style={[styles.itemCard, { width: itemCardWidth }]}
-            >
+      <View style={[styles.mainCard, { width: mainCardWidth, maxHeight: screenHeight * 0.72 }]}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.mainCardContent}>
+          {confirmList.map((item, index) => (
+            <View key={index} style={[styles.itemCard, { width: itemCardWidth }]}>
               <View style={styles.itemHeader}>
                 <Text style={styles.headerLabel}>LPN</Text>
                 <Text style={styles.headerValue}>{item.lpn}</Text>
@@ -73,18 +98,15 @@ const Ship_ConfirmPack = () => {
       </View>
 
       <View style={styles.footer}>
-        <SingleFooterBtnComponent
-          label="Confirm pack"
-          onPress={handleConfirm}
-          enabled
-        />
+        <SingleFooterBtnComponent label="Confirm pack" onPress={handleConfirm} enabled />
       </View>
 
       <ShipConfirmationModal
         visible={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
+        onNo={handleConfirmNo}
         type="CONFIRM_PACK"
-        itemCount={CONFIRM_DATA.length}
+        itemCount={confirmList.length}
       />
     </View>
   );

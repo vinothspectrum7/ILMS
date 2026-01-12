@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   Dimensions,
   ScrollView,
   TouchableOpacity,
-  Animated
+  Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -15,29 +15,34 @@ import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import RadioGlossySelected from '../../assets/icons/RadioGlossySelected.svg';
 import RadioGlossyUnselected from '../../assets/icons/RadioGlossyUnselected.svg';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
-import { AUTOPACK_MOCK_DATA } from '../../data/shippingMockData';
 import ShipConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
-import DropdownIcon from '../../assets/icons/dropdown.svg'; 
+import DropdownIcon from '../../assets/icons/dropdown.svg';
+import { useShippingStore } from '../../store/shippingStore';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const AutoPack = () => {
   const navigation = useNavigation();
+  const selectedTransaction = useShippingStore(s => s.selectedTransaction);
 
   const cardWidth = screenWidth - 42;
   const newCardWidth = Math.min(372, screenWidth - 42);
   const newCardLeft = (screenWidth - newCardWidth) / 2;
+
   const [showConfirmPackModal, setShowConfirmPackModal] = useState(false);
   const [selectedOption, setSelectedOption] = useState('Auto Pack');
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
   const [animation] = useState(new Animated.Value(0));
 
-  const pickItems = AUTOPACK_MOCK_DATA || [];
+  const pickItems = useMemo(() => {
+    const list = selectedTransaction?.items;
+    return Array.isArray(list) ? list : [];
+  }, [selectedTransaction]);
 
   const packOptions = [
     { id: 'lpn', label: 'Pack with LPN' },
     { id: 'box', label: 'Pack with Box S/N' },
-    { id: 'auto', label: 'Auto Pack' }
+    { id: 'auto', label: 'Auto Pack' },
   ];
 
   const toggleHeader = () => {
@@ -66,21 +71,30 @@ const AutoPack = () => {
     navigation.navigate('Ship_ConfirmPack');
   };
 
-  const renderRadioButton = (option) => {
+  const renderRadioButton = option => {
     const isSelected = selectedOption === option.label;
+    const isEnabled = option.label === 'Auto Pack';
     const RadioIcon = isSelected ? RadioGlossySelected : RadioGlossyUnselected;
 
     return (
       <TouchableOpacity
         key={option.id}
         style={styles.radioContainer}
-        onPress={() => setSelectedOption(option.label)}
+        disabled={!isEnabled}
+        activeOpacity={0.8}
+        onPress={() => {
+          if (!isEnabled) return;
+          setSelectedOption(option.label);
+        }}
       >
         <RadioIcon width={16} height={16} />
-        <Text style={[
-          styles.radioLabel,
-          isSelected && styles.radioLabelSelected
-        ]}>
+        <Text
+          style={[
+            styles.radioLabel,
+            isSelected && styles.radioLabelSelected,
+            !isEnabled && { opacity: 0.35 },
+          ]}
+        >
           {option.label}
         </Text>
       </TouchableOpacity>
@@ -89,19 +103,24 @@ const AutoPack = () => {
 
   const renderTableRow = (item, index) => {
     if (!item || !item.item) return null;
-    
+
+    const code = item.code ?? item.itemCode ?? '';
+    const qty = item.quantity ?? '';
+    const uom = item.uom ?? 'Each';
+    const status = item.status ?? '';
+
     return (
       <View key={`${item.item}-${index}`} style={styles.rowCard}>
         <View style={styles.tableRow}>
           <View style={styles.itemCell}>
             <Text style={styles.itemName}>{item.item || ''}</Text>
-            <Text style={styles.itemCode}>{item.code || ''}</Text>
+            <Text style={styles.itemCode}>{code}</Text>
           </View>
 
           <View style={styles.qtyCell}>
-            <Text style={styles.qtyText}>{item.quantity || ''}</Text>
-            <Text style={styles.eachText}>Each</Text>
-            <Text style={styles.statusText}>{item.status || ''}</Text>
+            <Text style={styles.qtyText}>{qty}</Text>
+            <Text style={styles.eachText}>{uom}</Text>
+            <Text style={styles.statusText}>{status}</Text>
           </View>
         </View>
       </View>
@@ -121,10 +140,7 @@ const AutoPack = () => {
       <View style={styles.mainContent}>
         <View style={[styles.cardContainerWrapper, { width: cardWidth }]}>
           <Animated.View style={[styles.cardContainer, { height: cardHeight }]}>
-            <LinearGradient
-              colors={['#F5F5F6', '#D9E4EE']}
-              style={styles.gradientBackground}
-            >
+            <LinearGradient colors={['#F5F5F6', '#D9E4EE']} style={styles.gradientBackground}>
               <View style={styles.topRow}>
                 <View style={styles.topLeft}>
                   <Text style={styles.label}>Customer Name</Text>
@@ -136,6 +152,7 @@ const AutoPack = () => {
                   <Text style={styles.value}>1100002</Text>
                 </View>
               </View>
+
               <Animated.View
                 style={[
                   styles.bottomRow,
@@ -145,7 +162,7 @@ const AutoPack = () => {
                       inputRange: [0, 1],
                       outputRange: [0, 40],
                     }),
-                  }
+                  },
                 ]}
               >
                 <View style={styles.bottomLeft}>
@@ -161,11 +178,7 @@ const AutoPack = () => {
             </LinearGradient>
           </Animated.View>
 
-          <TouchableOpacity
-            style={styles.toggleCircle}
-            onPress={toggleHeader}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={styles.toggleCircle} onPress={toggleHeader} activeOpacity={0.8}>
             <View style={styles.circleOuter}>
               <Animated.View style={{ transform: [{ rotate: rotateIcon }] }}>
                 <DropdownIcon width={16} height={16} />
@@ -174,13 +187,7 @@ const AutoPack = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={[
-          styles.newCard,
-          {
-            width: newCardWidth,
-            marginLeft: newCardLeft,
-          }
-        ]}>
+        <View style={[styles.newCard, { width: newCardWidth, marginLeft: newCardLeft }]}>
           <ScrollView
             style={styles.cardContent}
             showsVerticalScrollIndicator={false}
@@ -199,9 +206,7 @@ const AutoPack = () => {
               </View>
             </View>
 
-            <View style={styles.tableBody}>
-              {pickItems.map((item, index) => renderTableRow(item, index))}
-            </View>
+            <View style={styles.tableBody}>{pickItems.map((item, index) => renderTableRow(item, index))}</View>
           </ScrollView>
         </View>
       </View>
@@ -214,7 +219,7 @@ const AutoPack = () => {
           containerStyle={styles.buttonWrapper}
         />
       </View>
-      
+
       <ShipConfirmationModal
         visible={showConfirmPackModal}
         type="CONFIRM_PACK"
@@ -370,8 +375,7 @@ const styles = StyleSheet.create({
     color: '#6C757D',
     includeFontPadding: false,
     textAlignVertical: 'center',
-        marginRight: 20,
-
+    marginRight: 20,
   },
 
   radioLabelSelected: {
@@ -472,10 +476,11 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     width: '100%',
   },
-  eachText:{
-     fontSize: 12,
+
+  eachText: {
+    fontSize: 12,
     color: '#595A5C',
-  }
+  },
 });
 
 export default AutoPack;
