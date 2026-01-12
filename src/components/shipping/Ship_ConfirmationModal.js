@@ -23,7 +23,8 @@ const ShipConfirmationModal = ({
   const [showLabelPrintedModal, setShowLabelPrintedModal] = useState(false);
 
   const isConfirmPack = type === 'CONFIRM_PACK';
-  const displayCount = isConfirmPack ? itemCount : 7;
+const displayCount = itemCount;
+
 
   const handleYes = () => {
     if (onYes) {

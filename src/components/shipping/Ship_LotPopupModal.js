@@ -13,7 +13,7 @@ import {
 import CloseIcon from '../../assets/icons/close.svg';
 import SummaryIcon from '../../assets/icons/Ship_Icons/SummaryIcon';
 import LotsAdd from '../../assets/icons/Ship_Icons/LotsAdd';
-import DropdownIcon from '../../assets/icons/Ship_Icons/DropdownIcon';
+import DropdownIcon from '../../assets/icons/Ship_Icons/Whitedropdown.svg';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import { LOT_DATA } from '../../data/shippingMockData';
 import BarcodeScanner from '../../screens/BarCodeScanner';
@@ -156,7 +156,7 @@ function Ship_LotPopupModal({
                                     <View>
                                         <Text style={styles.qtyLabel}>Qty Selected</Text>
                                         <Text style={styles.qtyValue}>
-                                            {pickedQuantity}/{totalQuantity}
+                                            {totalQuantity}/{totalQuantity}
                                         </Text>
                                     </View>
                                 </View>
@@ -182,9 +182,10 @@ function Ship_LotPopupModal({
                                     </TouchableOpacity>
                                 </View>
 
-                                {
-                                    filteredLots.map((lot, index) => (
-                                        <View key={lot.lotNumber} style={styles.lotCard}>
+                                {showLotCard &&
+  filteredLots.map((lot, index) => (
+    <View key={lot.lotNumber} style={styles.lotCard}>
+
                                             <Text style={styles.fieldLabel}>Lot Number*</Text>
                                             <TouchableOpacity
                                                 style={styles.lotNumberBox}

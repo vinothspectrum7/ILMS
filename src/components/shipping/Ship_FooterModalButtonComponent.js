@@ -119,7 +119,7 @@ const Ship_FooterModalButtonComponent = memo(({
 
 const styles = StyleSheet.create({
   footerContainer: {
-    backgroundColor: '#F6F8FA',
+    // backgroundColor: '#F6F8FA',
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 10,

@@ -203,13 +203,14 @@ function Pick({ navigation }) {
         />
       </Modal>
 
-      <ConfirmationModal
-        visible={showConfirmation}
-        onClose={handleConfirmationNo}
-        onYes={handleConfirmationYes}
-        onNo={handleConfirmationNo}
-        type="CONFIRM_PICK"
-      />
+     <ConfirmationModal
+  visible={showConfirmation}
+  onClose={handleConfirmationNo}
+  onYes={handleConfirmationYes}
+  onNo={handleConfirmationNo}
+  type="CONFIRM_PICK"
+  itemCount={pickLines.length}   
+/>
     </View>
   );
 }

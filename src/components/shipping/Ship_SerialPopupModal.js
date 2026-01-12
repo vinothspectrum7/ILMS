@@ -11,7 +11,7 @@ import {
     TextInput,
 } from 'react-native';
 import LotsAdd from '../../assets/icons/Ship_Icons/LotsAdd';
-import DropdownIcon from '../../assets/icons/Ship_Icons/DropdownIcon';
+import DropdownIcon from '../../assets/icons/Ship_Icons/Whitedropdown.svg';
 import CloseIcon from '../../assets/icons/close.svg';
 import SerialUpIcon from '../../assets/icons/serialupicon.svg';
 import SerialDownIcon from '../../assets/icons/serialdownicon.svg';
@@ -22,6 +22,8 @@ import EditIcon from '../../assets/icons/Ship_Icons/EditIcon';
 import BarcodeScanner from '../../screens/BarCodeScanner';
 import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
 import { MOCK_SERIALS } from '../../data/shippingMockData';
+import CloseRedIcon from '../../assets/icons/Ship_Icons/CloseRedIcon.svg';
+
 
 const { width: SCREEN_WIDTH, height } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -183,6 +185,19 @@ function Ship_SerialPopupModal({
         }
     };
 
+    const deleteSerialRow = (id) => {
+        setSerialsData(prev => prev.filter(serial => serial.id !== id));
+
+        setSelectedSerials(prev =>
+            prev.filter(s => s !== serialsData.find(x => x.id === id)?.serialNo)
+        );
+
+        if (editingSerialId === id) {
+            setEditingSerialId(null);
+        }
+    };
+
+
     return (
         <Modal visible={visible} transparent animationType="none">
             {scannerVisible ? (
@@ -289,20 +304,33 @@ function Ship_SerialPopupModal({
                                                         {editingSerialId === serial.id ? '' : serial.serialNo}
                                                     </Text>
                                                 </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={styles.editButton}
-                                                    onPress={() =>
-                                                        editingSerialId === serial.id
-                                                            ? onScannerIconPress(serial.id)
-                                                            : onEditIconPress(serial.id)
-                                                    }
-                                                >
+                                                <View style={styles.serialActionContainer}>
                                                     {editingSerialId === serial.id ? (
-                                                        <BarcodeScannerIcon width={18} height={18} />
+                                                        <>
+                                                            <TouchableOpacity
+                                                                style={styles.actionIcon}
+                                                                onPress={() => onScannerIconPress(serial.id)}
+                                                            >
+                                                                <BarcodeScannerIcon width={18} height={18} />
+                                                            </TouchableOpacity>
+
+                                                            <TouchableOpacity
+                                                                style={styles.actionIcon}
+                                                                onPress={() => deleteSerialRow(serial.id)}
+                                                            >
+                                                                <CloseRedIcon width={16} height={16} />
+                                                            </TouchableOpacity>
+                                                        </>
                                                     ) : (
-                                                        <EditIcon width={16} height={16} />
+                                                        <TouchableOpacity
+                                                            style={styles.actionIcon}
+                                                            onPress={() => onEditIconPress(serial.id)}
+                                                        >
+                                                            <EditIcon width={16} height={16} />
+                                                        </TouchableOpacity>
                                                     )}
-                                                </TouchableOpacity>
+                                                </View>
+
                                             </View>
                                         ))}
                                     </View>
@@ -636,6 +664,16 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 14,
     },
+    serialActionContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+
+    actionIcon: {
+        padding: 4,
+    },
+
 });
 
 export default Ship_SerialPopupModal;
