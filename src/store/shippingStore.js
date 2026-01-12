@@ -4,6 +4,7 @@ export const useShippingStore = create(set => ({
   selectedTransaction: null,
   pickItemsData: null,
   transactionStatusMap: {},
+  shipConfirmPayload: null,
 
   setSelectedTransaction: payload => set({ selectedTransaction: payload }),
 
@@ -17,12 +18,19 @@ export const useShippingStore = create(set => ({
       },
     })),
 
-  clearSelectedTransaction: () => set({ selectedTransaction: null }),
+  setShipConfirmPayload: payload => set({ shipConfirmPayload: payload }),
+
+  clearSelectedTransaction: () =>
+    set({
+      selectedTransaction: null,
+      shipConfirmPayload: null,
+    }),
 
   resetShippingStore: () =>
     set({
       selectedTransaction: null,
       pickItemsData: null,
       transactionStatusMap: {},
+      shipConfirmPayload: null,
     }),
 }));

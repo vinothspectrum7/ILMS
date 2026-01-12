@@ -27,7 +27,7 @@ const ManualPack = () => {
 
   const cardWidth = screenWidth - 42;
   const newCardWidth = Math.min(372, screenWidth - 42);
-  const newCardLeft = (screenWidth - newCardWidth) / 2;
+  const newCardLeft = (screenWidth - cardWidth) / 2;
   const [showConfirmPackModal, setShowConfirmPackModal] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
@@ -213,7 +213,7 @@ const ManualPack = () => {
         <View style={[
           styles.newCard,
           {
-            width: newCardWidth,
+            width: cardWidth,
             marginLeft: newCardLeft,
           }
         ]}>
