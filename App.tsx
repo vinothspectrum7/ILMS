@@ -47,7 +47,16 @@ import Sub_Inv_TransferSummaryScreen from './src/screens/Inventory/Sub_Inv_Trans
 import Rec_ViewItemDetailsScreen from './src/screens/Receive/Rec_ViewItemDetailsScreen';
 import Rec_ViewReceiptItemDetailsScreen from './src/screens/Receive/Rec_ViewReceiptItemDetailsScreen';
 import Rec_ViewReceivedItemDetailsScreen from './src/screens/Receive/Rec_ViewReceivedItemDetailsScreen';
-
+import Ship_Entry from './src/screens/Shipping/Ship_Entry';
+import Ship_Dashboard from './src/screens/Shipping/Ship_Dashboard';
+import Pick from './src/screens/Shipping/Pick';
+import AutoPack from './src/screens/Shipping/AutoPack';
+import Ship_ConfirmPack from './src/components/shipping/Ship_ConfirmPack';
+import Ship_ConfirmShippment from './src/screens/Shipping/Ship_ConfirmShippment';
+import ManualPick from './src/screens/Shipping/ManualPick';
+import Ship_LabelPrintListScreen from './src/screens/Shipping/Ship_LabelPrintListScreen';
+import ManualPack from './src/screens/Shipping/ManualPack';
+import Ship_ManConfirmPack from './src/components/shipping/Ship_ManConfirmPack';
 
 const Stack = createNativeStackNavigator();
 
@@ -283,6 +292,58 @@ name="Rec_ViewReceivedItemDetailsScreen"
 component={Rec_ViewReceivedItemDetailsScreen}
 options={{ headerShown: false }}
 />
+<Stack.Screen
+name="Ship_Entry"
+component={Ship_Entry}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="ShipDashboard"
+component={Ship_Dashboard}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Pick"
+component={Pick}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="AutoPack"
+component={AutoPack}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Ship_ConfirmPack"
+component={Ship_ConfirmPack}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+  name="ShipConfirmShipment"
+  component={Ship_ConfirmShippment}
+  options={{ headerShown: false }}
+/>
+<Stack.Screen
+  name="ManualPick"
+  component={ManualPick}
+  options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="ManualPack"
+component={ManualPack}
+options={{ headerShown: false }}
+/>
+ <Stack.Screen
+    name="Ship_ManConfirmPack"
+    component={Ship_ManConfirmPack}
+    options={{ headerShown: false }}
+  />
+
+<Stack.Screen
+name="Ship_LabelPrintListScreen"
+component={Ship_LabelPrintListScreen}
+options={{ headerShown: false }}
+/>
+
 </Stack.Navigator>
       <Toast config={toastConfig} />
 </NavigationContainer>

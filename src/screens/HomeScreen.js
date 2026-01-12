@@ -311,7 +311,16 @@ function capitalizeFirstLetter(str) {
         Defaultorg={v => setDefaultorg(v)}
         OrgCode={v => setOrgCode(v)}
         BusinessName={v=>setBusinessName(v)}
-        onCardPress={screen => navigation.navigate(screen)}
+        // onCardPress={screen => navigation.navigate(screen)}
+          onCardPress={(screen) => {
+    // console.log('Navigation card clicked:', screen);
+    if (screen === 'Shipping') {
+      navigation.navigate('Ship_Entry'); 
+      
+    } else {
+      navigation.navigate(screen); 
+    }
+  }}
         onMenuSelect={handleHeaderMenuSelect}
         menuVersion="25102918"
       />
