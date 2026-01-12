@@ -1,5 +1,7 @@
 // Fusion API
 export const BASE_URL ='http://3.17.31.222:7002';
+// export const BASE_URL ='http://3.17.31.222:7003';
+
 // Local AWS
 // export const BASE_URL ='http://3.17.31.222:8000';
 // export const BASE_URL ='http://10.72.180.16:8000';
