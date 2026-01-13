@@ -35,6 +35,7 @@ function Ship_SerialPopupModal({
     onConfirm,
     item,
     totalQuantity = 0,
+        lotTransactionId,
 }) {
     const slideAnim = useState(new Animated.Value(height))[0];
     const [selectedSerials, setSelectedSerials] = useState([]);
@@ -46,15 +47,12 @@ function Ship_SerialPopupModal({
     const [fromValue, setFromValue] = useState("");
     const [toValue, setToValue] = useState('');
 
-    const [serialsData, setSerialsData] = useState(() => {
-        if (MOCK_SERIALS && MOCK_SERIALS.length > 0) {
-            return MOCK_SERIALS;
-        }
-        return Array.from({ length: totalQuantity }, (_, i) => ({
-            id: `serial-${i + 1}`,
-            serialNo: `SR-${item?.itemCode || 'ITEM'}-${i + 1}`,
-        }));
-    });
+  const filteredSerials = MOCK_SERIALS.filter(
+        serial => 
+            serial.itemCode === item?.itemCode && 
+            serial.lot_transaction_id === lotTransactionId
+    );
+     const [serialsData, setSerialsData] = useState(filteredSerials);
 
     const [reallocateVisible, setReallocateVisible] = useState(false);
     const [startNumberText, setStartNumberText] = useState('');
@@ -118,22 +116,20 @@ function Ship_SerialPopupModal({
     };
 
     const handleSerialScanned = (codeString) => {
-        const scannedRaw = String(codeString || '').trim();
+    const scannedRaw = String(codeString || '').trim();
 
-        if (scannedRaw && scanTargetId) {
-            setSerialsData(prev =>
-                prev.map(serial =>
-                    serial.id === scanTargetId
-                        ? { ...serial, serialNo: scannedRaw }
-                        : serial
-                )
-            );
-        }
+    if (scannedRaw && scanTargetId) {
+        const updatedSerials = filteredSerials.map(serial =>
+            serial.id === scanTargetId
+                ? { ...serial, serialNo: scannedRaw }
+                : serial
+        );
+    }
 
-        setScannerVisible(false);
-        setScanTargetId(null);
-        setEditingSerialId(null);
-    };
+    setScannerVisible(false);
+    setScanTargetId(null);
+    setEditingSerialId(null);
+};
 
     const onEditIconPress = (id) => {
         setEditingSerialId(id);

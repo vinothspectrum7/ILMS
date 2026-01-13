@@ -60,9 +60,15 @@ function Ship_Dashboard({ navigation, route }) {
     setSelectedOrder(null);
   };
 
+  const setSelectedTransaction =
+    useShippingStore(s => s.setSelectedTransaction);
+
   const handleManualPick = () => {
     setIsPopupVisible(false);
+    setSelectedTransaction(selectedOrder);
+    navigation.navigate('ManualPick');
   };
+
 
   const handleExpressPick = () => {
     setIsPopupVisible(false);
@@ -80,15 +86,12 @@ function Ship_Dashboard({ navigation, route }) {
 
   const handleLabelPrint = () => {
     setShowPrintMenu(false);
-    console.log('Label Print pressed');
-    // Add your Label Print navigation or logic here
-    // Example: navigation.navigate('Ship_LabelPrint');
+
   };
 
   const handlePrintDocument = () => {
     setShowPrintMenu(false);
-    console.log('Print Document pressed - Navigating to Ship_PrintDocument');
-    // Navigate to Ship_PrintDocument screen
+
     navigation.navigate('Ship_PrintDocumentScreen');
   };
 
@@ -133,7 +136,7 @@ function Ship_Dashboard({ navigation, route }) {
             <TouchableOpacity style={styles.iconButton}>
               <SearchIcon width={20} height={20} />
             </TouchableOpacity>
-            
+
             <View style={styles.printWrapper}>
               <TouchableOpacity
                 style={styles.iconButton}

@@ -14,44 +14,22 @@ import SingleFooterBtnComponent from '../SingleFooterBtnComponent';
 import ShipConfirmationModal from './Ship_ConfirmationModal';
 import SipBoxIcon from '../../assets/icons/Ship_Icons/SipBoxIcon.svg';
 import Ship_FooterModalButtonComponent from '../../components/shipping/Ship_FooterModalButtonComponent';
+import { useShippingStore } from '../../store/shippingStore';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-const CONFIRM_DATA = [
-  {
-    lpn: '1234677',
-    deliveryNo: '1100002',
-    customer: 'ABC PVT LTD',
-    carrier: 'Freight',
-    packNo: '1100002',
-  },
-  {
-    lpn: '1234678',
-    deliveryNo: '1100003',
-    customer: 'XYZ CORP',
-    carrier: 'Freight',
-    packNo: '1100003',
-  },
-  {
-    lpn: '1234679',
-    deliveryNo: '1100004',
-    customer: 'DEF INC',
-    carrier: 'Shipping Cost',
-    packNo: '1100003',
-  },
-  {
-    lpn: '1234680',
-    deliveryNo: '1100054',
-    customer: 'GHI LLC',
-    carrier: 'Delivery Fee',
-    packNo: '1100005',
-  },
-];
 
 const Ship_ManConfirmPack = () => {
   const navigation = useNavigation();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSecondPopup, setShowSecondPopup] = useState(false);
+  const selectedTransaction = useShippingStore(s => s.selectedTransaction);
+
+  const confirmList = React.useMemo(() => {
+    const list = selectedTransaction?.confirm_data;
+    return Array.isArray(list) ? list : [];
+  }, [selectedTransaction]);
+
 
   const handleConfirm = () => {
     setShowSecondPopup(true);
@@ -89,7 +67,7 @@ const Ship_ManConfirmPack = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.mainCardContent}
         >
-          {CONFIRM_DATA.map((item, index) => (
+          {confirmList.map((item, index) => (
             <View
               key={index}
               style={[styles.itemCard, { width: itemCardWidth }]}
@@ -167,7 +145,7 @@ const Ship_ManConfirmPack = () => {
         visible={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         type="CONFIRM_PACK"
-        itemCount={CONFIRM_DATA.length}
+        itemCount={confirmList.length}
       />
     </View>
   );
@@ -310,12 +288,12 @@ const styles = StyleSheet.create({
     color: '#233E55',
   },
 
-secondPopupOverlay: {
-  ...StyleSheet.absoluteFillObject,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
+  secondPopupOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
   secondPopupContainer: {
     width: 372,

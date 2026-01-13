@@ -15,12 +15,14 @@ import Barcodescanner from '../../assets/icons/barcodescanner.svg';
 import BlueTickIcon from '../../assets/icons/Ship_Icons/BlueTickIcon.svg';
 import LinearGradient from 'react-native-linear-gradient';
 import BarcodeScanner from '../BarCodeScanner';
-import { PICK_TABLE_DATA } from '../../data/shippingMockData';
+// import { PICK_TABLE_DATA } from '../../data/shippingMockData';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import Ship_LotPopupModal from '../../components/shipping/Ship_LotPopupModal';
 import Ship_SerialPopupModal from '../../components/shipping/Ship_SerialPopupModal';
 import Ship_LotSerialPopup from '../../components/shipping/Ship_LotSerialPopup';
 import ManPickConfirmPopup from '../../components/shipping/Ship_ManPickConfirmPopup';
+import { useShippingStore } from '../../store/shippingStore';
+import { useMemo } from 'react';
 
 function ManualPick({ route, navigation }) {
     const [scannedBarcode, setScannedBarcode] = useState('');
@@ -71,16 +73,24 @@ function ManualPick({ route, navigation }) {
             setCheckedItems({});
         } else {
             const allChecked = {};
-            PICK_TABLE_DATA.forEach(item => {
+            pickItems.forEach(item => {
                 allChecked[item.itemCode] = true;
             });
+
             setCheckedItems(allChecked);
         }
         setAllSelected(!allSelected);
     };
 
     const handleDetailsPress = (item) => {
-        setSelectedItem(item);
+        const lotTransactionId = selectedTransaction?.lot_transaction_id;
+
+        const itemWithTransaction = {
+            ...item,
+            lot_transaction_id: lotTransactionId,
+        };
+
+        setSelectedItem(itemWithTransaction);
 
         if (item.itemType === 'Lot') {
             setShowLotPopup(true);
@@ -120,18 +130,17 @@ function ManualPick({ route, navigation }) {
         }));
         closeSerialPopup();
     };
-    const handleLotSerialConfirm = (itemWithData) => {
-        setConfirmedItems(prev => ({
-            ...prev,
-            [itemWithData.itemCode]: true
-        }));
-        setCheckedItems(prev => ({
-            ...prev,
-            [itemWithData.itemCode]: true
-        }));
-        closeLotSerialPopup();
-    };
-
+   const handleLotSerialConfirm = (itemWithData) => {
+    setConfirmedItems(prev => ({
+        ...prev,
+        [itemWithData.itemCode]: true
+    }));
+    setCheckedItems(prev => ({
+        ...prev,
+        [itemWithData.itemCode]: true
+    }));
+    closeLotSerialPopup();
+};
     const closeLotPopup = () => {
         setShowLotPopup(false);
         setSelectedItem(null);
@@ -145,6 +154,21 @@ function ManualPick({ route, navigation }) {
     const closeLotSerialPopup = () => {
         setShowLotSerialPopup(false);
         setSelectedItem(null);
+    };
+
+    const selectedTransaction =
+        useShippingStore(s => s.selectedTransaction);
+    const pickItems = useMemo(() => {
+        const list = selectedTransaction?.items;
+        return Array.isArray(list) ? list : [];
+    }, [selectedTransaction]);
+
+    const setPickItemsData =
+        useShippingStore(s => s.setPickItemsData);
+    const getPickedItems = () => {
+        return pickItems.filter(
+            item => checkedItems[item.itemCode]
+        );
     };
 
     const renderPickItem = ({ item, index }) => {
@@ -295,13 +319,12 @@ function ManualPick({ route, navigation }) {
                         contentContainerStyle={styles.tableScrollContent}
                     >
                         <FlatList
-                            data={PICK_TABLE_DATA}
+                            data={pickItems}
                             renderItem={renderPickItem}
                             keyExtractor={(item, index) => `${item.itemCode}-${index}`}
                             scrollEnabled={false}
-                            showsVerticalScrollIndicator={false}
-                            ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                         />
+
                     </ScrollView>
                 </View>
             </View>
@@ -338,9 +361,14 @@ function ManualPick({ route, navigation }) {
                 onCancel={() => setShowConfirmation(false)}
                 onNo={() => setShowConfirmation(false)}
                 onYes={() => {
+                    const pickedItems = getPickedItems();
+
+                    setPickItemsData(pickedItems);
+
                     setShowConfirmation(false);
                     navigation.navigate('ManualPack');
                 }}
+
             />
             {selectedItem && selectedItem.itemType === 'Lot' && (
                 <Ship_LotPopupModal
@@ -350,6 +378,7 @@ function ManualPick({ route, navigation }) {
                     item={selectedItem}
                     pickedQuantity={0}
                     totalQuantity={selectedItem.quantity}
+                    lotTransactionId={selectedItem.lot_transaction_id}
                 />
             )}
 
@@ -361,6 +390,8 @@ function ManualPick({ route, navigation }) {
                     pickedQuantity={0}
                     totalQuantity={selectedItem.quantity}
                     onConfirm={handleSerialConfirm}
+                            lotTransactionId={selectedItem.lot_transaction_id} 
+
                 />
             )}
             {selectedItem && selectedItem.itemType === 'Lot+Serial' && (
@@ -508,7 +539,7 @@ const styles = StyleSheet.create({
     },
     itemContainer: {
         width: 346,
-        height: 70,
+        height: 80,
         borderRadius: 8,
         borderWidth: 0.2,
         borderColor: '#CCCED2',
@@ -520,7 +551,7 @@ const styles = StyleSheet.create({
     },
     fullWidthDottedLine: {
         position: 'absolute',
-        bottom: 20,
+        bottom: 25,
         left: 38,
         right: 0,
         height: 1,

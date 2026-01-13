@@ -30,16 +30,15 @@ function Ship_LotPopupModal({
     item,
     pickedQuantity = 0,
     totalQuantity = 0,
+    lotTransactionId,
 }) {
     const slideAnim = useState(new Animated.Value(height))[0];
     const [showLotCard, setShowLotCard] = useState(true);
     const [showScanner, setShowScanner] = useState(false);
     const [scannerVisible, setScannerVisible] = useState(false);
     const [activeLotIndex, setActiveLotIndex] = useState(null);
+    const [scanTargetIdx, setScanTargetIdx] = useState(null);
     const [scannedLots, setScannedLots] = useState({});
-      const [scanTargetIdx, setScanTargetIdx] = useState(null);
-    
-
 
     useEffect(() => {
         if (visible) {
@@ -62,29 +61,43 @@ function Ship_LotPopupModal({
     };
 
     const handleConfirmLot = () => {
-        if (onConfirm && item) {
-            onConfirm(item);
-        }
+        if (!onConfirm || !item) return;
+
+    const lotsPayload = filteredLots.map((lot, index) => ({
+            ...lot,
+            scannedLotNumber: scannedLots[index] || lot.lotNumber, 
+        }));
+        onConfirm({
+            ...item,
+            lots: lotsPayload,
+        });
+
+        closeModal();
     };
+
 
     const handleClose = () => {
         setShowScanner(false)
         setShowLotCard(true)
     };
 
-    
-  const openScannerForLot = idx => {
-    setScanTargetIdx(idx);
-    setScannerVisible(true);
-  };
 
-  const handleLotScanned = codeString => {
-    const scannedRaw = String(codeString || '').trim();
-    if (scannedRaw && scanTargetIdx != null) {
-      updateLot(scanTargetIdx, { lotNumber: scannedRaw });
-    }
-    setScannerVisible(false);
-  };
+    const openScannerForLot = index => {
+        setScanTargetIdx(index);
+        setScannerVisible(true);
+    };
+
+    const handleLotScanned = codeString => {
+        if (scanTargetIdx === null) return;
+
+        setScannedLots(prev => ({
+            ...prev,
+            [scanTargetIdx]: String(codeString).trim(),
+        }));
+
+        setScanTargetIdx(null);
+        setScannerVisible(false);
+    };
 
     const handleScanResult = (code) => {
         if (activeLotIndex !== null) {
@@ -95,9 +108,13 @@ function Ship_LotPopupModal({
         }
         setShowScanner(false);
     };
+
     const filteredLots = LOT_DATA.filter(
-        lot => lot.itemCode === item?.itemCode
+        lot =>
+            lot.itemCode === item?.itemCode &&
+            lot.lot_transaction_id === lotTransactionId
     );
+
 
     if (showScanner) {
         return (
@@ -107,6 +124,11 @@ function Ship_LotPopupModal({
             />
         );
     }
+
+    const allLotsScanned =
+        filteredLots.length > 0 &&
+        filteredLots.every((_, index) => scannedLots[index]);
+
     return (
         <Modal
             visible={visible}
@@ -183,13 +205,13 @@ function Ship_LotPopupModal({
                                 </View>
 
                                 {showLotCard &&
-  filteredLots.map((lot, index) => (
-    <View key={lot.lotNumber} style={styles.lotCard}>
+                                    filteredLots.map((lot, index) => (
+                                        <View key={lot.lotNumber} style={styles.lotCard}>
 
                                             <Text style={styles.fieldLabel}>Lot Number*</Text>
                                             <TouchableOpacity
                                                 style={styles.lotNumberBox}
-                                                onPress={() => openScannerForLot(lot.idx)}
+                                                onPress={() => openScannerForLot(index)}
 
                                             >
                                                 <Text style={styles.valueText}>
@@ -227,7 +249,7 @@ function Ship_LotPopupModal({
                             <SingleFooterBtnComponent
                                 label="Confirm Lot"
                                 onPress={handleConfirmLot}
-                                enabled={pickedQuantity < totalQuantity}
+                                enabled={true}
                             />
                         </View>
                     </Animated.View>
@@ -349,9 +371,17 @@ const styles = StyleSheet.create({
     },
 
     valueText: {
-        fontSize: 14,
+        fontSize: 10,
         color: '#233E55',
         fontWeight: '500',
+        paddingLeft: 5,
+
+    },
+    fieldLabel: {
+        fontSize: 12,
+        color: '#667085',
+        paddingLeft: 5,
+        marginBottom: 4,
     },
     dateRow: {
         flexDirection: 'row',
@@ -369,8 +399,9 @@ const styles = StyleSheet.create({
         fontWeight: '700'
     },
     uom: {
-        fontSize: 12,
-        color: '#667085'
+        fontSize: 10,
+        color: '#667085',
+        paddingRight: 5,
     },
     footer: {
         position: 'absolute',

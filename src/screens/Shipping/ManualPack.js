@@ -19,6 +19,8 @@ import { AUTOPACK_MOCK_DATA } from '../../data/shippingMockData';
 import ShipConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
 import DropdownIcon from '../../assets/icons/dropdown.svg';
 import { default as Rec_DropDown } from '../../components/receive/Rec_DropDown';
+import { useShippingStore } from '../../store/shippingStore';
+
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -35,7 +37,8 @@ const ManualPack = () => {
   const [selectedLPN, setSelectedLPN] = useState(null);
   const [isPackButtonEnabled, setIsPackButtonEnabled] = useState(false);
 
-  const pickItems = AUTOPACK_MOCK_DATA || [];
+  const pickItems =
+    useShippingStore(s => s.pickItemsData) || [];
 
   const packOptions = [
     { id: 'lpn', label: 'Pack with LPN' },
@@ -51,6 +54,9 @@ const ManualPack = () => {
     { id: '5', name: 'LPN-005', code: '1234681', description: 'JKL LTD' },
     { id: '6', name: 'LPN-006', code: '1234682', description: 'MNO CORP' },
   ];
+  useEffect(() => {
+    console.log('PACK ITEMS →', pickItems);
+  }, [pickItems]);
 
   useEffect(() => {
     if (selectedOption === 'Pack with LPN') {
@@ -125,7 +131,7 @@ const ManualPack = () => {
 
   const renderTableRow = (item, index) => {
     if (!item || !item.item) return null;
-    
+
     return (
       <View key={`${item.item}-${index}`} style={styles.rowCard}>
         <View style={styles.tableRow}>
@@ -266,7 +272,7 @@ const ManualPack = () => {
           containerStyle={styles.buttonWrapper}
         />
       </View>
-      
+
       <ShipConfirmationModal
         visible={showConfirmPackModal}
         type="CONFIRM_PACK"
@@ -391,13 +397,13 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    padding: 20, 
+    padding: 20,
     paddingBottom: 24,
   },
 
   radioSection: {
     marginTop: 0,
-    marginBottom: 20, 
+    marginBottom: 20,
   },
 
   radioGroupHorizontal: {
@@ -405,19 +411,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     width: '100%',
-    gap: 15, 
+    gap: 15,
   },
 
   radioContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6, 
+    gap: 6,
   },
 
   radioLabel: {
     fontFamily: 'Mulish',
     fontWeight: '300',
-    fontSize: 12, 
+    fontSize: 12,
     lineHeight: 14,
     letterSpacing: 0,
     color: '#6C757D',
@@ -427,15 +433,15 @@ const styles = StyleSheet.create({
 
   radioLabelSelected: {
     color: '#233E55',
-    fontWeight: '400', 
+    fontWeight: '400',
   },
 
-    searchSection: {
-    marginBottom: -9, 
+  searchSection: {
+    marginBottom: -9,
   },
 
   tableHeaderSection: {
-    marginTop: 8, 
+    marginTop: 8,
     marginBottom: 12,
   },
 
@@ -443,7 +449,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 32,
     backgroundColor: 'rgba(93, 118, 139, 0.05)',
-    borderRadius: 6, 
+    borderRadius: 6,
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
@@ -457,7 +463,7 @@ const styles = StyleSheet.create({
   headerText: {
     fontFamily: 'Mulish',
     fontSize: 13,
-    fontWeight: '400', 
+    fontWeight: '400',
     lineHeight: 15,
     letterSpacing: 0,
     color: '#233E55',
@@ -469,7 +475,7 @@ const styles = StyleSheet.create({
 
   rowCard: {
     width: '100%',
-    height: 76, 
+    height: 76,
     borderRadius: 8,
     borderWidth: 0.5,
     borderColor: '#CCCED2',
@@ -531,7 +537,7 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     width: '100%',
   },
-  
+
   eachText: {
     fontSize: 12,
     color: '#595A5C',

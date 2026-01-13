@@ -178,6 +178,7 @@ function Ship_ConfirmShippment({ navigation }) {
     };
 
     setShipConfirmPayload(payload);
+    console.log(payload, 'payload');
 
     const items = Array.isArray(selectedTransaction?.items) ? selectedTransaction.items : [];
     const updatedItems = items.map(it => ({ ...it, status: 'Shipped' }));
