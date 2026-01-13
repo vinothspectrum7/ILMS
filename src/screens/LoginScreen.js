@@ -43,18 +43,19 @@ const LoginScreen = ({ navigation }) => {
   }
   else {
       try {
-    const formData = new FormData();
-    formData.append('grant_type', "password");
-    formData.append('username', employeeId);
-    formData.append('password', password);
-        console.log('entered login data',formData);
+    // const formData = new FormData();
+    // formData.append('grant_type', "password");
+    // formData.append('username', employeeId);
+    // formData.append('password', password);
+        // console.log('entered login data',formData);
 
-    const response = await UserLogin(formData);
+    const response = await UserLogin(employeeId,password);
     console.log('responseresponseresponseresponse',response);
 
-    if (response.status === 200 && response.data.access_token && response.data.user_name) {
+    if (response.status === 200 && response.data.access_token && response.data.username) {
       await AsyncStorage.setItem('access_token', response.data.access_token);
-      await AsyncStorage.setItem('user_name', response.data.user_name);
+      await AsyncStorage.setItem('refresh_token', response.data.refresh_token);
+      await AsyncStorage.setItem('user_name', response.data.username);
       navigation.replace('Home');
     } else {
       // navigation.replace('Home');

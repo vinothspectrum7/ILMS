@@ -1,11 +1,11 @@
 // Fusion API
-export const BASE_URL ='http://3.17.31.222:7002';
+export const BASE_URL ='http://3.17.31.222:7003';
 // Local AWS
 // export const BASE_URL ='http://3.17.31.222:8000';
 // export const BASE_URL ='http://10.72.180.16:8000';
 // export const BASE_URL = 'http://192.168.1.15:3003/api/v1/';
 export const API_ENDPOINTS = {
-  LOGIN: `${BASE_URL}/token`,
+  LOGIN:(username,password)=> `${BASE_URL}/auth/login?username=${username}&password=${password}`,
   GET_ASN_DATA: (org_uuid) => `${BASE_URL}/asn/asn_headers/${org_uuid}/all/`,
   GET_SINGLE_ASN_DATA: (asn_id) => `${BASE_URL}/asn/asn_lines_po/${asn_id}/details`,
   GET_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all`,

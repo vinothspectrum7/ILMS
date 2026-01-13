@@ -1,21 +1,65 @@
 // api.js
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { BASE_URL } from "../config/config";
 import { Alert } from "react-native";
-import { createNavigationContainerRef } from '@react-navigation/native';
+import { createNavigationContainerRef } from "@react-navigation/native";
+import { BASE_URL } from "../config/config";
 import { getCurrentPO, releasecurrentPO } from "./posession";
-// import { useNavigation } from '@react-navigation/native';
 
 const api = axios.create({
   baseURL: BASE_URL,
 });
-  // const navigation = useNavigation();
+
+export const navigationRef = createNavigationContainerRef();
+
+export function navigate(name, params) {
+  if (navigationRef.isReady()) {
+    navigationRef.navigate(name, params);
+  }
+}
 // APIs where token must NOT be sent
-const excludedUrls = ["/token", "/auth/register"];
+const excludedUrls = ["auth/login", "/register", "auth/refresh"];
+// Refresh control
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+const refreshAccessToken = async () => {
+  const refreshToken = await AsyncStorage.getItem("refresh_token");
+
+  if (!refreshToken) {
+    throw new Error("Refresh token not found");
+  }
+
+  const response = await axios.post(
+    `${BASE_URL}/auth/refresh`,
+    { refresh_token: refreshToken },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  const newAccessToken = response.data.access_token;
+
+  await AsyncStorage.setItem("access_token", newAccessToken);
+
+  return newAccessToken;
+};
 
 api.interceptors.request.use(async (config) => {
-  // Attach token unless excluded
+  // Attach access token
   if (!excludedUrls.some((url) => config.url.includes(url))) {
     const token = await AsyncStorage.getItem("access_token");
     if (token) {
@@ -23,7 +67,7 @@ api.interceptors.request.use(async (config) => {
     }
   }
 
-  // Handle Content-Type
+  // Content-Type handling
   if (config.data instanceof FormData) {
     config.headers["Content-Type"] = "multipart/form-data";
   } else if (config.data instanceof URLSearchParams) {
@@ -32,22 +76,49 @@ api.interceptors.request.use(async (config) => {
     config.headers["Content-Type"] = "application/json";
   }
 
-  console.log("Axios Request Config:", config);
   return config;
 });
 
-// Global error handling
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response) {
-      const { status } = error.response;
+    const originalRequest = error.config;
+    // Access token expired
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry
+    ) {
+      // If refresh already in progress → queue request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
 
-      if (status === 401) {
-        console.warn("Unauthorized → Token expired or invalid");
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const newToken = await refreshAccessToken();
+
+        api.defaults.headers.Authorization = `Bearer ${newToken}`;
+        processQueue(null, newToken);
+
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+
+        // Refresh token expired → Logout
         Alert.alert(
           "Session Expired",
-          "Your session has expired. You’ll be logged out now.",
+          "Your session has expired. Please login again.",
           [
             {
               text: "OK",
@@ -57,7 +128,11 @@ api.interceptors.response.use(
                   if (currentPO && !lockedByUser) {
                     await releasecurrentPO(currentPO);
                   }
-                  await AsyncStorage.removeItem("access_token");
+
+                  await AsyncStorage.multiRemove([
+                    "access_token",
+                    "refresh_token",
+                  ]);
                   navigate("Login");
                 } catch (e) {
                   console.error("Error during logout:", e);
@@ -67,28 +142,15 @@ api.interceptors.response.use(
           ],
           { cancelable: false }
         );
-      } else if (status === 403) {
-        console.error("Forbidden → You don’t have access");
-      } else if (status >= 500) {
-        console.error("Server error → Please try again later");
-      } else {
-        console.error("API Error:", error.response.data || error.message);
+
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
-    } else {
-      console.error("Network error or server unreachable:", error.message);
     }
 
     return Promise.reject(error);
   }
 );
-
-export const navigationRef = createNavigationContainerRef();
-
-export function navigate(name, params) {
-  if (navigationRef.isReady()) {
-    navigationRef.navigate(name, params);
-  }
-}
-
 
 export default api;

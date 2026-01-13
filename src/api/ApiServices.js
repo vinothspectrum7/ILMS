@@ -11,9 +11,9 @@ export const FetchData = async (org_id) => {
     throw error;
   }
 };
-export const UserLogin = async(formData)=>{
+export const UserLogin = async(username,password)=>{
     try {
-    const response = await api.post(API_ENDPOINTS.LOGIN,formData);
+    const response = await api.post(API_ENDPOINTS.LOGIN(username,password));
     console.log("Response Data:", response);
     return response;
   } catch (error) {
