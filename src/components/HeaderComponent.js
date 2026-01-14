@@ -115,9 +115,9 @@ export default function HeaderComponent({
 
   const maporgdata = data =>
     data.map(element => ({
-      label: element.org_code,
-      value: element.org_uuid,
-      org_code: element.org_code,
+      label: element.ORG_CODE,
+      value: element.ORG_ID,
+      org_code: element.ORG_CODE,
       is_default: element.is_default,
     }));
 

@@ -11,9 +11,9 @@ export const FetchData = async (org_id) => {
     throw error;
   }
 };
-export const UserLogin = async(username,password)=>{
+export const UserLogin = async(formData)=>{
     try {
-    const response = await api.post(API_ENDPOINTS.LOGIN(username,password));
+    const response = await api.post(API_ENDPOINTS.LOGIN,formData);
     console.log("Response Data:", response);
     return response;
   } catch (error) {
@@ -176,7 +176,7 @@ export const GetInventryData = async(org_id)=>{
     return response.data;
     
   }catch (error) {
-    console.error("Get ORGS ERROR:", error.message, error.response?.data);
+    console.error("Get INVENTORY ERROR:", error.message, error.response?.data);
     throw error;
   }
 }
@@ -338,4 +338,50 @@ export const Put_Away_Complete = async(data)=>{
     console.error("PUT_AWAY_COMPLETE Error:", error.message, error.response?.data);
     throw error.response?.data;
   }  
+}
+
+export const GetSubInvItemList = async(org_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETSUBINVITEMLIST(org_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SubInvItem ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetFROMSubInvData = async(org_id,item_code)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETFROMSUBINVLIST(org_id,item_code));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get FROMSUBINV ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetAvailableStockData = async(org_id,item_code,sub_inv_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETAVAILABLESTOCK(org_id,item_code,sub_inv_id));
+    console.log(response.data)
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get AvailableStock ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetAvailableItemStockData = async(org_id,item_code)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETITEMAVAILABLESTOCK(org_id,item_code));
+    console.log(response.data)
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get AvailableStock ERROR:", error.message, error.response?.data);
+    throw error;
+  }
 }

@@ -43,13 +43,13 @@ const LoginScreen = ({ navigation }) => {
   }
   else {
       try {
-    // const formData = new FormData();
-    // formData.append('grant_type', "password");
-    // formData.append('username', employeeId);
-    // formData.append('password', password);
-        // console.log('entered login data',formData);
+    const formData = new FormData();
+    formData.append('grant_type', "password");
+    formData.append('username', employeeId);
+    formData.append('password', password);
+        console.log('entered login data',formData);
 
-    const response = await UserLogin(employeeId,password);
+    const response = await UserLogin(formData);
     console.log('responseresponseresponseresponse',response);
 
     if (response.status === 200 && response.data.access_token && response.data.username) {
