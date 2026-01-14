@@ -138,6 +138,7 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3456',
     status: 'Pick',
     organization: 'ENV',
+    shipTo: '45 Industrial Park, Noida, UP',
     items: [
       {
         item: 'Item A',
@@ -219,6 +220,7 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3457',
     status: 'Ready To Pack',
     organization: 'ENV',
+    shipTo: '35 Industrial Park, Noida, UP',
     items: [
       {
         item: 'Item A',
@@ -293,6 +295,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3458',
     status: 'Pick',
     organization: 'ORG1',
+    shipTo: '55 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item D',
@@ -362,6 +366,7 @@ export const SHIPPING_TABLE_DATA = [
     ],
     exception: 'Missing',
     itemType: 'Serial',
+ lot_transaction_id: 'SERIAL-001', 
   },
   {
     deliveryId: 'D1237',
@@ -373,6 +378,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3459',
     status: 'Ready To Pack',
     organization: 'ORG2',
+    shipTo: '65 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -447,6 +454,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3459',
     status: 'Pick',
     organization: 'ENV',
+    shipTo: '75 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item G',
@@ -488,7 +497,7 @@ export const SHIPPING_TABLE_DATA = [
     ],
     exception: 'Delayed',
     itemType: 'Lot+Serial',
-    
+
   },
   {
     deliveryId: 'D1239',
@@ -500,6 +509,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3461',
     status: 'Ready To Pack',
     organization: 'ORG1',
+    shipTo: '85 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item B',
@@ -567,6 +578,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3462',
     status: 'Pick',
     organization: 'ENV',
+    shipTo: '95 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -641,6 +654,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3463',
     status: 'Pick',
     organization: 'ORG2',
+    shipTo: '25 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -722,6 +737,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3464',
     status: 'Ready To Pack',
     organization: 'ENV',
+    shipTo: '15 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item D',
@@ -784,6 +801,7 @@ export const SHIPPING_TABLE_DATA = [
     ],
     exception: 'Missing',
     itemType: 'Serial',
+    lot_transaction_id: 'SERIAL-002',
   },
   {
     deliveryId: 'D1243',
@@ -795,6 +813,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3465',
     status: 'Ready To Pack',
     organization: 'ORG1',
+    shipTo: '105 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -876,6 +896,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3466',
     status: 'Pick',
     organization: 'ENV',
+    shipTo: '115 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item D',
@@ -938,6 +960,7 @@ export const SHIPPING_TABLE_DATA = [
     ],
     exception: 'Delayed',
     itemType: 'Serial',
+     lot_transaction_id: 'SERIAL-003',
   },
   {
     deliveryId: 'D1202',
@@ -949,6 +972,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3472',
     status: 'Ready To Ship',
     organization: 'ORG1',
+    shipTo: '125 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -1017,8 +1042,9 @@ export const SHIPPING_TABLE_DATA = [
       },
     ],
     exception: 'None',
-    lot_transaction_id: '56789890',
+    // lot_transaction_id: '56789890',
     itemType: 'Lot',
+      lot_transaction_id: 'SERIAL-003',
   },
   {
     deliveryId: 'D1203',
@@ -1030,6 +1056,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3474',
     status: 'Ready To Ship',
     organization: 'ORG1',
+    shipTo: '135 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -1104,6 +1132,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3476',
     status: 'Ready To Ship',
     organization: 'ENV',
+    shipTo: '145 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -1185,6 +1215,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3477',
     status: 'Ready To Ship',
     organization: 'ENV',
+    shipTo: '155 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item G',
@@ -1220,6 +1252,7 @@ export const SHIPPING_TABLE_DATA = [
     exception: 'None',
     itemType: 'Lot+Serial',
     lot_transaction_id: '56789891',
+  
   },
   {
     deliveryId: 'D1206',
@@ -1231,6 +1264,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3478',
     status: 'Ready To Ship',
     organization: 'ENV',
+    shipTo: '165 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item D',
@@ -1300,6 +1335,7 @@ export const SHIPPING_TABLE_DATA = [
     ],
     exception: 'None',
     itemType: 'Serial',
+      lot_transaction_id: 'SERIAL-004',
   },
   {
     deliveryId: 'D1207',
@@ -1311,6 +1347,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3479',
     status: 'Ready To Ship',
     organization: 'ORG2',
+    shipTo: '175 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -1385,6 +1423,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3480',
     status: 'Ready To Ship',
     organization: 'ENV',
+    shipTo: '185 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -1466,6 +1506,8 @@ export const SHIPPING_TABLE_DATA = [
     pickSlipNo: 'PS3481',
     status: 'Ready To Ship',
     organization: 'ORG1',
+    shipTo: '195 Industrial Park, Noida, UP',
+
     items: [
       {
         item: 'Item A',
@@ -1822,22 +1864,46 @@ export const LOT_DATA = [
     expDate: '01/01/2026',
     qty: 20,
   },
+  {
+    lot_transaction_id: '56789892',
+    itemCode: '01234',
+    lotNumber: 'LOT251113-528',
+    mfgDate: '23/09/2025',
+    expDate: '23/09/2026',
+    qty: 10,
+  },
+  {
+    lot_transaction_id: '56789893',
+    itemCode: '01234',
+    lotNumber: 'LOT251113-529',
+    mfgDate: '23/09/2025',
+    expDate: '24/09/2026',
+    qty: 10,
+  },
+  {
+    lot_transaction_id: '56789893',
+    itemCode: '56789',
+    lotNumber: 'LOT888888',
+    mfgDate: '01/01/2025',
+    expDate: '01/01/2026',
+    qty: 20,
+  },
 ];
-
 export const MOCK_SERIALS = [
-  { id: 1, serialNo: 'SN001' },
-  { id: 2, serialNo: 'SN002' },
-  { id: 3, serialNo: 'SN003' },
-  { id: 4, serialNo: 'SN004' },
-  { id: 5, serialNo: 'SN005' },
-  { id: 6, serialNo: 'SN006' },
-  { id: 7, serialNo: 'SN007' },
-  { id: 8, serialNo: 'SN008' },
-  { id: 9, serialNo: 'SN009' },
-  { id: 10, serialNo: 'SN010' },
-  { id: 11, serialNo: 'SN011' },
+  { id: 1, itemCode: '78801', serialNo: 'SN001', lot_transaction_id: 'SERIAL-001' },
+  { id: 2, itemCode: '78801', serialNo: 'SN002', lot_transaction_id: 'SERIAL-001' },
+  { id: 3, itemCode: '89012', serialNo: 'SN003', lot_transaction_id: 'SERIAL-001' },
+  { id: 4, itemCode: '89012', serialNo: 'SN004', lot_transaction_id: 'SERIAL-001' },
+  { id: 5, itemCode: '99123', serialNo: 'SN005', lot_transaction_id: 'SERIAL-001' },
+  { id: 6, itemCode: '99123', serialNo: 'SN006', lot_transaction_id: 'SERIAL-001' },
+  
+  { id: 7, itemCode: '78801', serialNo: 'SN007', lot_transaction_id: 'SERIAL-002' },
+  { id: 8, itemCode: '78801', serialNo: 'SN008', lot_transaction_id: 'SERIAL-002' },
+  { id: 9, itemCode: '89012', serialNo: 'SN009', lot_transaction_id: 'SERIAL-002' },
+  { id: 10, itemCode: '89012', serialNo: 'SN010', lot_transaction_id: 'SERIAL-002' },
+  { id: 11, itemCode: '99123', serialNo: 'SN011', lot_transaction_id: 'SERIAL-002' },
+  { id: 12, itemCode: '99123', serialNo: 'SN012', lot_transaction_id: 'SERIAL-002' },
 ];
-
 export const LOTSERIAL = [
   {
     lot_transaction_id: '56789891',

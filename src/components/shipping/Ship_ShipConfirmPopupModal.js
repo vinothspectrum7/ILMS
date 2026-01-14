@@ -6,9 +6,15 @@ import {
   Modal,
 } from 'react-native';
 import SipBoxIcon from '../../assets/icons/Ship_Icons/SipBoxIcon.svg';
-import FooterButtonsComponent from '../../components/FooterButtonsComponent';
+import FooterButtonsComponent from '../../components/shipping/Ship_FooterModalButtonComponent';
 
-const Ship_ShipConfirmPopupModal = ({ visible, onClose, onConfirm, deliveryNumber }) => {
+const Ship_ShipConfirmPopupModal = ({ 
+  visible, 
+  onClose, 
+  onConfirm, 
+  onNo, 
+  deliveryNumber 
+}) => {
   
   const handleYesPress = () => {
     console.log('Yes button pressed in modal');
@@ -19,8 +25,10 @@ const Ship_ShipConfirmPopupModal = ({ visible, onClose, onConfirm, deliveryNumbe
 
   const handleNoPress = () => {
     console.log('No button pressed in modal');
-    if (onClose) {
-      onClose();
+    if (onNo) {
+      onNo(); 
+    } else {
+      onClose?.(); 
     }
   };
 
@@ -29,7 +37,7 @@ const Ship_ShipConfirmPopupModal = ({ visible, onClose, onConfirm, deliveryNumbe
       animationType="fade"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={handleNoPress} 
     >
       <View style={styles.overlay}>
         <View style={styles.popup}>
@@ -50,7 +58,7 @@ const Ship_ShipConfirmPopupModal = ({ visible, onClose, onConfirm, deliveryNumbe
             <View style={styles.footerContainer}>
               <FooterButtonsComponent
                 onSave={handleNoPress}  
-                onReceive={handleYesPress}  
+                onReceive={handleYesPress}   
                 leftLabel="No"
                 rightLabel="Yes"
                 leftEnabled={true}

@@ -108,7 +108,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
     }
 
     if (payload?.status === 'Ready To Ship') {
-      navigation.navigate('Ship_ConfirmPack', { order: payload, status: payload.status });
+      navigation.navigate('ShipConfirmShipment', { order: payload, status: payload.status });
     }
   };
 
