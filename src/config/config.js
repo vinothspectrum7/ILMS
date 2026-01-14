@@ -43,10 +43,10 @@ export const API_ENDPOINTS = {
   PRIORITY_LIST: (org_id,limit) => `${BASE_URL}/dashboard/priority-tasks?org_uuid=${org_id}&limit=${limit}`,
   LPN_LIST: `${BASE_URL}/purchase_orders/get/lpn_num`,
   PUT_AWAY_COMPLETE: `${BASE_URL}/receipts/update/batch_received_qty`,
-  GETSUBINVITEMLIST: (org_id) => `${BASE_URL}/inventory/Get_All-Inventory-Items?Org_code=${org_id}&Sub_inv=MAIN&username=SARAN&password=welcome456`,
-  GETFROMSUBINVLIST: (org_id,item_code) => `${BASE_URL}/inventory/Get-Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=MAIN&username=SARAN&password=welcome456`,
-  GETITEMAVAILABLESTOCK: (org_id,item_code) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}&username=SARAN&password=welcome456`,
-  GETAVAILABLESTOCK: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}&username=SARAN&password=welcome456`
+  GETSUBINVITEMLIST: (org_id) => `${BASE_URL}/inventory/Get_All-Inventory-Items?Org_code=${org_id}`,
+  GETFROMSUBINVLIST: (org_id,item_code) => `${BASE_URL}/inventory/Get-Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}`,
+  GETITEMAVAILABLESTOCK: (org_id,item_code) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}`,
+  GETAVAILABLESTOCK: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`
 
  
 };
