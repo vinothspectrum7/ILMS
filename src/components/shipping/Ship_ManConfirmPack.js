@@ -18,18 +18,18 @@ import { useShippingStore } from '../../store/shippingStore';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-
 const Ship_ManConfirmPack = () => {
   const navigation = useNavigation();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSecondPopup, setShowSecondPopup] = useState(false);
+
   const selectedTransaction = useShippingStore(s => s.selectedTransaction);
+  const { setTransactionStatus } = useShippingStore();
 
   const confirmList = React.useMemo(() => {
     const list = selectedTransaction?.confirm_data;
     return Array.isArray(list) ? list : [];
   }, [selectedTransaction]);
-
 
   const handleConfirm = () => {
     setShowSecondPopup(true);
@@ -37,11 +37,32 @@ const Ship_ManConfirmPack = () => {
 
   const handleSecondPopupLeft = () => {
     setShowSecondPopup(false);
+    handleCancelAction();
   };
 
   const handleSecondPopupRight = () => {
     setShowSecondPopup(false);
     setShowConfirmModal(true);
+  };
+
+  const handleCancelAction = () => {
+    if (selectedTransaction?.deliveryId) {
+      setTransactionStatus(selectedTransaction.deliveryId, 'Ready To Ship');
+    }
+
+    navigation.navigate('ShipDashboard', {
+      status: 'All',
+      refresh: true
+    });
+  };
+
+  const handleConfirmationNo = () => {
+    setShowConfirmModal(false);
+    handleCancelAction();
+  };
+
+  const handleConfirmationYes = () => {
+    setShowConfirmModal(false);
   };
 
   const mainCardWidth = Math.min(372, screenWidth - 42);
@@ -108,7 +129,7 @@ const Ship_ManConfirmPack = () => {
         visible={showSecondPopup}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowSecondPopup(false)}
+        onRequestClose={handleSecondPopupLeft}
       >
         <View style={styles.secondPopupOverlay}>
           <View style={styles.secondPopupContainer}>
@@ -143,7 +164,9 @@ const Ship_ManConfirmPack = () => {
 
       <ShipConfirmationModal
         visible={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
+        onClose={handleConfirmationNo}
+        onYes={handleConfirmationYes}
+        onNo={handleConfirmationNo}
         type="CONFIRM_PACK"
         itemCount={confirmList.length}
       />

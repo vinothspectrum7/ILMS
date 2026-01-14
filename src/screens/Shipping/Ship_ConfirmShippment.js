@@ -32,6 +32,7 @@ function Ship_ConfirmShippment({ navigation }) {
   const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
   const setTransactionStatus = useShippingStore(s => s.setTransactionStatus);
   const setShipConfirmPayload = useShippingStore(s => s.setShipConfirmPayload);
+  const pickItemsData = useShippingStore(s => s.pickItemsData);
 
   const [selectedDate, setSelectedDate] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -154,7 +155,73 @@ function Ship_ConfirmShippment({ navigation }) {
     setShowVolumeWeightModal(false);
   };
 
+  const handleCancelAction = () => {
+    navigation.navigate('ShipDashboard', { 
+      status: 'All',
+      refresh: true 
+    });
+  };
+
   const handleConfirmShipping = () => {
+    const lotSerialData = {};
+    if (pickItemsData && pickItemsData.length > 0) {
+      pickItemsData.forEach(item => {
+        if (item.transactionData) {
+          const transactionType = item.transactionData.type;
+
+          let transactionData = {};
+
+          if (transactionType === 'lot') {
+            transactionData = {
+              lotNumber: item.transactionData.data?.lotNumber,
+              scannedLotNumber: item.transactionData.data?.scannedLotNumber,
+              mfgDate: item.transactionData.data?.mfgDate,
+              expDate: item.transactionData.data?.expDate,
+              quantity: item.transactionData.data?.quantity,
+              lotTransactions: item.transactionData.data?.lotTransactions || []
+            };
+          }
+          else if (transactionType === 'serial') {
+            transactionData = {
+              serials: item.transactionData.data?.serials || [],
+              serialTransactions: item.transactionData.data?.serialTransactions || [],
+              selectedSerialNumbers: item.transactionData.data?.selectedSerialNumbers || []
+            };
+          }
+          else if (transactionType === 'lot+serial') {
+            transactionData = {
+              lotTransactions: item.transactionData.data?.lotTransactions || [],
+              serialTransactions: item.transactionData.data?.serialTransactions || [],
+              scannedLots: item.transactionData.data?.scannedLots || {},
+              selectedSerialNumbers: item.transactionData.data?.selectedSerialNumbers || []
+            };
+          }
+
+          lotSerialData[item.itemCode] = {
+            itemCode: item.itemCode,
+            itemName: item.item,
+            itemType: item.itemType,
+            quantity: item.quantity,
+            uom: item.uom,
+            transactionType: transactionType,
+            data: transactionData,
+          };
+        }
+      });
+    }
+
+    const lotItemsCount = Object.values(lotSerialData).filter(item =>
+      item.transactionType === 'lot').length;
+    const serialItemsCount = Object.values(lotSerialData).filter(item =>
+      item.transactionType === 'serial').length;
+    const lotSerialItemsCount = Object.values(lotSerialData).filter(item =>
+      item.transactionType === 'lot+serial').length;
+
+    console.log('Lot items:', lotItemsCount);
+    console.log('Serial items:', serialItemsCount);
+    console.log('Lot+Serial items:', lotSerialItemsCount);
+    console.log('Full lotSerialData:', lotSerialData);
+
     const payload = {
       deliveryId: selectedTransaction?.deliveryId ?? null,
       deliveryNumber: selectedTransaction?.deliveryNumber ?? selectedTransaction?.deliveryId ?? null,
@@ -175,10 +242,12 @@ function Ship_ConfirmShippment({ navigation }) {
         printDocuments,
       },
       volumeWeight: volumeWeightData,
+      lotSerialData: lotSerialData,
+      pickedItems: pickItemsData
     };
 
     setShipConfirmPayload(payload);
-    console.log(payload, 'payload');
+    console.log('Final payload with lot/serial data:', payload);
 
     const items = Array.isArray(selectedTransaction?.items) ? selectedTransaction.items : [];
     const updatedItems = items.map(it => ({ ...it, status: 'Shipped' }));
@@ -489,6 +558,7 @@ function Ship_ConfirmShippment({ navigation }) {
         visible={showConfirmPopup}
         onClose={() => setShowConfirmPopup(false)}
         onConfirm={handleConfirmShipping}
+        onNo={handleCancelAction} 
         deliveryNumber={deliveryNumberText}
         customerName={customerNameText}
       />

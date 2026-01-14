@@ -5,6 +5,8 @@ import {
     StyleSheet,
     Modal,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useShippingStore } from '../../store/shippingStore';
 import ManDeliveryIcon from '../../assets/icons/Ship_Icons/ManDeliveryIcon';
 import ConfirmationTickIcon from '../../assets/icons/Ship_Icons/ConfirmationTickIcon.svg';
 import Ship_FooterModalButtonComponent from '../../components/shipping/Ship_FooterModalButtonComponent';
@@ -15,7 +17,10 @@ const ManPickConfirmPopup = ({
     selectedCount,
     onYes,
     onNo,
+    selectedTransaction,
 }) => {
+    const navigation = useNavigation();
+    const { setTransactionStatus } = useShippingStore();
 
     const [step, setStep] = useState('confirm');
     const [showPackingConfirm, setShowPackingConfirm] = useState(false);
@@ -37,13 +42,35 @@ const ManPickConfirmPopup = ({
         }
     };
 
+    const handleCancel = () => {
+        if (selectedTransaction?.deliveryId) {
+            setTransactionStatus(selectedTransaction.deliveryId, 'Ready To Pack');
+        }
+        navigation.reset({
+            index: 0,
+            routes: [
+                {
+                    name: 'ShipDashboard',
+                    params: {
+                        status: 'All',
+                        refresh: true,
+                        packMode: 'MANUAL',
+                    },
+                },
+            ],
+        });
+
+
+        onCancel?.();
+    };
+
     return (
         <>
             <Modal
                 visible={visible}
                 transparent
                 animationType="fade"
-                onRequestClose={onCancel}
+                onRequestClose={handleCancel}
             >
                 <View style={styles.overlay}>
                     <View style={styles.popupContainer}>
@@ -69,7 +96,7 @@ const ManPickConfirmPopup = ({
                                     <Ship_FooterModalButtonComponent
                                         leftLabel="Cancel"
                                         rightLabel="Confirm"
-                                        onLeftPress={onCancel}
+                                        onLeftPress={handleCancel}
                                         onRightPress={handleConfirm}
                                         sticky={false}
                                     />
@@ -92,7 +119,10 @@ const ManPickConfirmPopup = ({
                 visible={showPackingConfirm}
                 transparent
                 animationType="fade"
-                onRequestClose={() => setShowPackingConfirm(false)}
+                onRequestClose={() => {
+                    setShowPackingConfirm(false);
+                    handleCancel();
+                }}
             >
                 <View style={styles.overlay}>
                     <View style={styles.secondPopupContainer}>
@@ -107,7 +137,7 @@ const ManPickConfirmPopup = ({
                             <Text style={styles.packingQuestionText}>
                                 Would you proceed the next to packing
                             </Text>
-                            
+
                             <View style={styles.secondButtonWrapper}>
                                 <Ship_FooterModalButtonComponent
                                     leftLabel="No"

@@ -35,6 +35,8 @@ function Ship_Dashboard({ navigation, route }) {
     selectedException: null,
     selectedOrganization: null,
   });
+const packMode = route.params?.packMode || 'AUTO';
+
 
   useEffect(() => {
     if (!status) return;
@@ -50,10 +52,17 @@ function Ship_Dashboard({ navigation, route }) {
     });
   }, [status]);
 
-  const handlePickPress = order => {
-    setSelectedOrder(order);
+ const handlePickPress = order => {
+  setSelectedOrder(order);
+
+  if (packMode === 'MANUAL') {
+    setSelectedTransaction(order);
+    navigation.navigate('ManualPick');
+  } else {
     setIsPopupVisible(true);
-  };
+  }
+};
+
 
   const handleClosePopup = () => {
     setIsPopupVisible(false);
@@ -86,6 +95,7 @@ function Ship_Dashboard({ navigation, route }) {
 
   const handleLabelPrint = () => {
     setShowPrintMenu(false);
+    navigation.navigate('Ship_LabelPrintListScreen');
 
   };
 
