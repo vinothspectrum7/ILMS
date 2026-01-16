@@ -33,6 +33,7 @@ const defaultReceiptItems = [
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ACTION_WIDTH = SCREEN_WIDTH * 0.8;
+const rs = v => (SCREEN_WIDTH / ACTION_WIDTH) * v;
 
 const ReceiveSummaryScreen = () => {
   const navigation = useNavigation();
@@ -61,6 +62,9 @@ const ReceiveSummaryScreen = () => {
     resetReceiving,
     OrgData,
   } = useReceivingStore();
+
+  const [printlabel, setprintlabel] = useState(true);
+  const [labelprinted, setlabelprinted] = useState(true);
 
   const [draft, setDraft] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -100,7 +104,7 @@ const ReceiveSummaryScreen = () => {
   useFocusEffect(
     useCallback(() => {
       didCompleteRef.current = false;
-      return () => {};
+      return () => { };
     }, [])
   );
 
@@ -177,15 +181,15 @@ const ReceiveSummaryScreen = () => {
       prev.map(it =>
         String(it.id) === patchId
           ? {
-              ...it,
-              qtyToReceive:
-                typeof patch.receivingQty === 'number'
-                  ? patch.receivingQty
-                  : it.qtyToReceive,
-              lpn: patch.lpn ?? it.lpn,
-              subInventory: patch.subInventory ?? it.subInventory,
-              locator: patch.locator ?? it.locator,
-            }
+            ...it,
+            qtyToReceive:
+              typeof patch.receivingQty === 'number'
+                ? patch.receivingQty
+                : it.qtyToReceive,
+            lpn: patch.lpn ?? it.lpn,
+            subInventory: patch.subInventory ?? it.subInventory,
+            locator: patch.locator ?? it.locator,
+          }
           : it
       )
     );
@@ -195,7 +199,7 @@ const ReceiveSummaryScreen = () => {
     return () => clearTimeout(t);
   }, [patch?.id, patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation]);
 
-    
+
   const normDeliveryType = v => String(v ?? '').trim().toLowerCase();
   const isDirectDelivery = dt => normDeliveryType(dt) === 'direct delivery';
   const isStandardDelivery = dt => normDeliveryType(dt) === 'standard receipt';
@@ -247,8 +251,8 @@ const ReceiveSummaryScreen = () => {
       const serials = Array.isArray(l?.serials)
         ? l.serials
         : Array.isArray(l?.serialLines)
-        ? l.serialLines
-        : [];
+          ? l.serialLines
+          : [];
 
       if (!serials || serials.length !== lotQty) return false;
 
@@ -301,7 +305,7 @@ const ReceiveSummaryScreen = () => {
     return (items || []).filter(isLineValidForConfirm);
   };
 
-  
+
   const headerData = useMemo(
     () =>
       poHeader || {
@@ -313,19 +317,19 @@ const ReceiveSummaryScreen = () => {
     [poHeader]
   );
 
-const formatDateToYMD = (dateStr) => {
-  if (!dateStr) return null;
+  const formatDateToYMD = (dateStr) => {
+    if (!dateStr) return null;
 
-  const [dd, mm, yyyy] = dateStr.split('/');
-  return `${yyyy}-${mm}-${dd}`;
-};
+    const [dd, mm, yyyy] = dateStr.split('/');
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
-  const mapConfirmLots = (data)=>{
-        return data.map(backend => ({
-        "lot_number": backend?.lotNumber,
-        "transaction_quantity": backend?.qty,
-        "lot_expiration_date": formatDateToYMD(backend?.expDate)
-      }));
+  const mapConfirmLots = (data) => {
+    return data.map(backend => ({
+      "lot_number": backend?.lotNumber,
+      "transaction_quantity": backend?.qty,
+      "lot_expiration_date": formatDateToYMD(backend?.expDate)
+    }));
   }
 
   const mapConfirmData = data => {
@@ -384,7 +388,7 @@ const formatDateToYMD = (dateStr) => {
     });
   };
 
-    const pickConfirmDeliveryType = (lines = []) => {
+  const pickConfirmDeliveryType = (lines = []) => {
     const norm = v => String(v ?? '').trim().toLowerCase();
 
     // If any line is inspection required -> Inspection required
@@ -397,7 +401,7 @@ const formatDateToYMD = (dateStr) => {
     return 'Direct delivery';
   };
 
-    const openConfirmModal = () => {
+  const openConfirmModal = () => {
     const eligibleLines = getConfirmEligibleLines(renderItems);
     const dt = pickConfirmDeliveryType(eligibleLines);
     setConfirmDeliveryType(dt);
@@ -408,8 +412,8 @@ const formatDateToYMD = (dateStr) => {
 
 
   const confirmAction = async () => {
-    console.log(renderItems,"renderItemsrenderItemsrenderItemsrenderItems")
-        const eligibleLines = getConfirmEligibleLines(renderItems);
+    console.log(renderItems, "renderItemsrenderItemsrenderItemsrenderItems")
+    const eligibleLines = getConfirmEligibleLines(renderItems);
 
     if (!eligibleLines.length) {
       Toast.show({
@@ -425,11 +429,11 @@ const formatDateToYMD = (dateStr) => {
     console.log(eligibleLines, "eligibleLines");
     const formatdata = mapConfirmData(eligibleLines);
 
-    console.log(formatdata,"mapConfirmDatamapConfirmData");
+    console.log(formatdata, "mapConfirmDatamapConfirmData");
     try {
       const response = await Submit_Receive_Qty(formatdata);
-      console.log(response,"Submit_Receive_Qty");
-            if (response?.status == "SUCCESS") {
+      console.log(response, "Submit_Receive_Qty");
+      if (response?.status == "SUCCESS") {
         // Extract receipt_num safely from possible shapes
         const receipt_num =
           response?.receipt_num ??
@@ -461,7 +465,7 @@ const formatDateToYMD = (dateStr) => {
         const dt = pickConfirmDeliveryType(eligibleLines);
         setConfirmDeliveryType(dt);
 
-        console.log(setConfirmDeliveryType,"setConfirmDeliveryTypesetConfirmDeliveryTypesetConfirmDeliveryType");
+        console.log(setConfirmDeliveryType, "setConfirmDeliveryTypesetConfirmDeliveryTypesetConfirmDeliveryType");
 
         return {
           success: true,
@@ -614,8 +618,8 @@ const formatDateToYMD = (dateStr) => {
     setModalVisible(false);
   };
 
-  
-    const openLineDetailsFromSummary = item => {
+
+  const openLineDetailsFromSummary = item => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
 
@@ -701,11 +705,11 @@ const formatDateToYMD = (dateStr) => {
         receiveItems: receiveItems.map(it =>
           String(it.id) === String(itemId)
             ? {
-                ...it,
-                subInventory: OrgData?.selectedinventory,
-                qtyToReceive: 0,
-                locator: OrgData?.selectedOrg,
-              }
+              ...it,
+              subInventory: OrgData?.selectedinventory,
+              qtyToReceive: 0,
+              locator: OrgData?.selectedOrg,
+            }
             : it
         ),
       });
@@ -717,11 +721,11 @@ const formatDateToYMD = (dateStr) => {
         summaryItems: summaryItems.map(it =>
           String(it.id) === String(itemId)
             ? {
-                ...it,
-                subInventory: OrgData?.selectedinventory,
-                qtyToReceive: 0,
-                locator: OrgData?.selectedOrg,
-              }
+              ...it,
+              subInventory: OrgData?.selectedinventory,
+              qtyToReceive: 0,
+              locator: OrgData?.selectedOrg,
+            }
             : it
         ),
       });
@@ -733,11 +737,11 @@ const formatDateToYMD = (dateStr) => {
         prev.map(it =>
           String(it.id) === String(itemId)
             ? {
-                ...it,
-                subInventory: OrgData?.selectedinventory,
-                qtyToReceive: 0,
-                locator: OrgData?.selectedOrg,
-              }
+              ...it,
+              subInventory: OrgData?.selectedinventory,
+              qtyToReceive: 0,
+              locator: OrgData?.selectedOrg,
+            }
             : it
         )
       );
@@ -758,6 +762,26 @@ const formatDateToYMD = (dateStr) => {
       }
     }, [filteredItems, listTypeFromRoute, navigation])
   );
+
+  const TogglePill = ({ label, value, onToggle }) => {
+    return (
+      <TouchableOpacity activeOpacity={0.9} onPress={onToggle}>
+        <View style={[styles.toggleTrack, { backgroundColor: value ? '#233E55' : '#9D9FA3' }]}>
+          {value ? (
+            <>
+              <Text style={[styles.toggleText, styles.textLeft]}>{label}</Text>
+              <View style={[styles.toggleDot, styles.dotOn]} />
+            </>
+          ) : (
+            <>
+              <View style={[styles.toggleDot, styles.dotOff]} />
+              <Text style={[styles.toggleText, styles.textRight]}>{label}</Text>
+            </>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -787,6 +811,12 @@ const formatDateToYMD = (dateStr) => {
 
         <View style={styles.itemcontainer}>
           <Text style={styles.itemName}>Items Summary</Text>
+
+          <View style={styles.toggleGroup}>
+            <TogglePill label="Print Label" value={printlabel} onToggle={() => setprintlabel(v => !v)} />
+            <View style={{ width: rs(10) }} />
+            <TogglePill label="Label Printed" value={labelprinted} onToggle={() => setlabelprinted(v => !v)} />
+          </View>
 
           <View style={styles.tableHeader}>
             <SummaryTabHdrComponent />
@@ -922,7 +952,7 @@ const formatDateToYMD = (dateStr) => {
             visible={saveModalVisible}
             transparent
             animationType="fade"
-            onRequestClose={() => {}}
+            onRequestClose={() => { }}
           >
             <View
               style={{
@@ -1003,6 +1033,42 @@ const styles = StyleSheet.create({
   deleteButton: {
     justifyContent: 'center',
     alignItems: 'center',
+    flex: 1,
+  },
+  toggleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toggleText: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: '#FFFFFF',
+    paddingLeft: rs(5),
+    paddingRight: rs(5),
+  },
+  toggleTrack: {
+    width: rs(72),
+    height: rs(20),
+    borderRadius: rs(18),
+    paddingHorizontal: rs(3),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleDot: {
+    width: rs(14),
+    height: rs(14),
+    borderRadius: rs(20),
+    backgroundColor: '#FFFFFF',
+  },
+  dotOn: {},
+  dotOff: {},
+  textLeft: {
+    textAlign: 'left',
+    flex: 1,
+  },
+  textRight: {
+    textAlign: 'right',
     flex: 1,
   },
 });

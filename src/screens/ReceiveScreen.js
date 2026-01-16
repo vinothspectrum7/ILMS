@@ -512,6 +512,7 @@ const ReceiveScreen = () => {
   }, [ActiveTab]);
 
   useEffect(() => {
+    console.log("Response Data:popopo", '204');
     if (!OrgData?.selectedOrg) return;
     setPhase('loading');
 
@@ -584,7 +585,7 @@ const ReceiveScreen = () => {
     //   }
     // };
 loadPO();
-loadReceived();
+// loadReceived();
     // Promise.all([loadASN(), loadPO(), loadReceived(), loadIC()]).finally(() => setPhase('success'));
   }, [OrgData?.selectedOrg]);
 

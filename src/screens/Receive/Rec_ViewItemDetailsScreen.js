@@ -42,6 +42,7 @@ import SelectedReceiveTabIcon from '../../assets/icons/selectedreceivetabicon.sv
 import SelectedInspectTabIcon from '../../assets/icons/selectedinspecttabicon.svg';
 import SelectedPutAwayTabIcon from '../../assets/icons/selectedputawaytabicon.svg';
 import ReceiveAddIcon from '../../assets/icons/receiveaddicon.svg';
+import Receiveingprinticon from '../../assets/icons/receiveingprinticon.svg';
 import PendingInspectionIcon from '../../assets/icons/pendinginspectionicon.svg';
 import PassedInspectionIcon from '../../assets/icons/passedinspectionicon.svg';
 import PendingPutAwayIcon from '../../assets/icons/pendingputawayicon.svg';
@@ -2227,6 +2228,34 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                     />
                   </View>
                 )}
+
+                <View style={styles.cardShipTo}>
+                <View style={styles.shipHeaderRow}>
+                  <View style={styles.shipHeaderLeft}>
+                    <Receiveingprinticon width={18} height={18} />
+                    <Text style={styles.sectionTitle}>No. of Print Copies </Text>
+                  </View>
+                  {readOnly ? (
+                      <Text style={styles.orderQtyText}>{currentQty}</Text>
+                    ) : (
+                      <CustomNumericInput
+                        key={`qty-${String(current.id)}`}
+                        value={currentQty}
+                        setValue={v => {
+                          const raw = typeof v === 'function' ? v(currentQty) : v;
+                          handleQtyChange(current.id, current, raw);
+                        }}
+                        max={Number(current.max_open_qty ?? current.openQty ?? 0)}
+                        min={0}
+                        step={1}
+                        width={80}
+                        height={28}
+                        isSelected
+                        disabledinput={Number(current.openQty ?? 0) === 0}
+                      />
+                    )}
+                </View>
+              </View>
 
               </View>
             )}

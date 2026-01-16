@@ -82,6 +82,13 @@ useEffect(() => {
   // setLoadingRecent(true);
   // setloadingPriority(true);
   console.log(OrgCode,"OrgCodeOrgCode")
+  Setdefaultinventory(null);
+    setOrgData({
+    selectedOrg: Defaultorg,
+    selectedinventory: null,
+    selectedOrgCode: OrgCode,
+    BusinessName: BusinessName
+  });
   const loadinventrydata = async () => {
     try {
       const inventrydata = await GetInventryData(OrgCode);
@@ -164,7 +171,7 @@ useEffect(() => {
   //   selectedOrgCode: OrgCode,
   //   BusinessName: BusinessName
   // });
-  loadinventrydata();
+  // loadinventrydata();
   // loadrecentactivity();
   // loadpriorityList();
 

@@ -66,7 +66,8 @@ export const GetInspectLineDetails = async(po_no,recId,po_line_no)=>{
 
 export const GetPoItems = async(org_id)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_ALL_PO_FUSION_DATA(org_id));
+    console.log("Response Data:popopo", org_id);
+    const response = await api.post(API_ENDPOINTS.GET_ALL_PO_EBS_DATA('204'));
         console.log("Response Data:popopo", response);
     return response.data;
   }catch (error) {
