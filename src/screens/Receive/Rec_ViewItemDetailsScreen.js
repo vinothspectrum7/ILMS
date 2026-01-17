@@ -160,6 +160,26 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const [copies, setCopies] = useState(0);
 
+  const getSafeCopies = v => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    return n;
+  };
+
+  // Sync copies on first load + whenever the current line changes / store updates
+  useEffect(() => {
+    // priority: store -> route -> 0
+    const fromStore = currentStoreLine?.copies;
+    const fromRoute = route?.params?.copies;
+
+    const next = getSafeCopies(
+      fromStore != null ? fromStore : fromRoute != null ? fromRoute : 0
+    );
+
+    setCopies(next);
+  }, [current?.id, currentStoreLine?.copies, route?.params?.copies]);
+
+
   const [inspectRowsMap, setInspectRowsMap] = useState({}); // { [itemId]: [rows] }
   const [inspectRowModalVisible, setInspectRowModalVisible] = useState(false);
   const [selectedInspectRow, setSelectedInspectRow] = useState(null);
@@ -195,19 +215,6 @@ const Rec_ViewItemDetailsScreen = () => {
       ? receiveItems.find(r => String(r.id) === String(current.id))
       : null;
   }, [receiveItems, current]);
-
-  useEffect(() => {
-    if (readOnly) return;
-    if (!current) return;
-
-    const fromStore = Number(currentStoreLine?.copies ?? 0);
-    const fromRoute = Number(route?.params?.copies ?? 0);
-
-    // Prefer store; fallback to route; else 0
-    const nextCopies = Number.isFinite(fromStore) ? fromStore : (Number.isFinite(fromRoute) ? fromRoute : 0);
-
-    setCopies(nextCopies > 0 ? nextCopies : 0);
-  }, [readOnly, current?.id, currentStoreLine?.copies, route?.params?.copies]);
 
 
   const currentLotLines = useMemo(() => {
@@ -1243,6 +1250,20 @@ const Rec_ViewItemDetailsScreen = () => {
     navigation,
     listType,
   ]);
+
+  // Persist copies to store whenever it changes (for the CURRENT line only)
+  useEffect(() => {
+    if (readOnly) return;
+    if (!current?.id) return;
+
+    const safe = Number.isFinite(Number(copies)) && Number(copies) >= 0 ? Number(copies) : 0;
+
+    mergePatchIntoReceiveItems({
+      id: String(current.id),
+      copies: safe,
+    });
+  }, [copies, current?.id, readOnly, mergePatchIntoReceiveItems]);
+
 
 
 
@@ -3565,28 +3586,15 @@ const Rec_ViewItemDetailsScreen = () => {
               <Text style={styles.sectionTitle}>No. of Print Copies </Text>
             </View>
             {readOnly ? (
-              <Text style={styles.orderQtyText}>{copies}</Text>
+              <Text style={styles.orderQtyText}>{Number(copies) || 0}</Text>
             ) : (
               <CustomNumericInput
+                key={`copies-${String(current?.id ?? 'na')}`}
                 value={copies}
                 setValue={v => {
-                  console.log(copies, "copiescopiescopiescopiescopiescopiescopies");
                   const raw = typeof v === 'function' ? v(copies) : v;
-                  const next = Math.max(0, Number(raw || 0));
-                  setCopies(next);
-
-                  if (!readOnly && current?.id != null) {
-                    mergePatchIntoReceiveItems({
-                      id: String(current.id),
-                      copies: next,
-                    });
-                    mergePatchIntoSummaryItems({
-                      id: String(current.id),
-                      copies: next,
-                    });
-                  }
+                  setCopies(getSafeCopies(raw));
                 }}
-
                 min={0}
                 max={1000000}
                 step={1}
@@ -3596,6 +3604,7 @@ const Rec_ViewItemDetailsScreen = () => {
                 disabledinput={false}
               />
             )}
+
           </View>
         </View>
       </ScrollView>
