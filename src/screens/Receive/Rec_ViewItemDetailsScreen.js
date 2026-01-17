@@ -121,6 +121,7 @@ const Rec_ViewItemDetailsScreen = () => {
     OrgData,
     receiveItems,
     mergePatchIntoReceiveItems,
+    mergePatchIntoSummaryItems,
     setLocatorInCache,
     getLocatorFromCache,
   } = useReceivingStore();
@@ -194,6 +195,20 @@ const Rec_ViewItemDetailsScreen = () => {
       ? receiveItems.find(r => String(r.id) === String(current.id))
       : null;
   }, [receiveItems, current]);
+
+  useEffect(() => {
+    if (readOnly) return;
+    if (!current) return;
+
+    const fromStore = Number(currentStoreLine?.copies ?? 0);
+    const fromRoute = Number(route?.params?.copies ?? 0);
+
+    // Prefer store; fallback to route; else 0
+    const nextCopies = Number.isFinite(fromStore) ? fromStore : (Number.isFinite(fromRoute) ? fromRoute : 0);
+
+    setCopies(nextCopies > 0 ? nextCopies : 0);
+  }, [readOnly, current?.id, currentStoreLine?.copies, route?.params?.copies]);
+
 
   const currentLotLines = useMemo(() => {
     if (!current) return [];
@@ -1162,7 +1177,7 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const handleSaveInspectLot = () => {
     if (!current) return;
-    if (returnTo) navigation.navigate(returnTo,  { listType, copies });
+    if (returnTo) navigation.navigate(returnTo, { listType, copies });
     else navigation.goBack();
   };
 
@@ -1215,7 +1230,7 @@ const Rec_ViewItemDetailsScreen = () => {
       lastPutAwayDate: new Date().toISOString(),
     });
 
-    if (returnTo) navigation.navigate(returnTo,  { listType, copies });
+    if (returnTo) navigation.navigate(returnTo, { listType, copies });
     else navigation.goBack();
   }, [
     current,
@@ -1565,7 +1580,7 @@ const Rec_ViewItemDetailsScreen = () => {
       copies: copies,
     });
 
-    if (returnTo) navigation.navigate(returnTo,  { listType, copies });
+    if (returnTo) navigation.navigate(returnTo, { listType, copies });
     else navigation.goBack();
   };
 
@@ -1933,7 +1948,7 @@ const Rec_ViewItemDetailsScreen = () => {
       },
     });
 
-    if (returnTo) navigation.navigate(returnTo,  { listType, copies });
+    if (returnTo) navigation.navigate(returnTo, { listType, copies });
     else navigation.goBack();
   };
 
@@ -3550,11 +3565,27 @@ const Rec_ViewItemDetailsScreen = () => {
               <Text style={styles.sectionTitle}>No. of Print Copies </Text>
             </View>
             {readOnly ? (
-              <Text style={styles.orderQtyText}>{currentQty}</Text>
+              <Text style={styles.orderQtyText}>{copies}</Text>
             ) : (
               <CustomNumericInput
                 value={copies}
-                setValue={setCopies}
+                setValue={v => {
+                  const raw = typeof v === 'function' ? v(copies) : v;
+                  const next = Math.max(0, Number(raw || 0));
+                  setCopies(next);
+
+                  if (!readOnly && current?.id != null) {
+                    mergePatchIntoReceiveItems({
+                      id: String(current.id),
+                      copies: next,
+                    });
+                    mergePatchIntoSummaryItems({
+                      id: String(current.id),
+                      copies: next,
+                    });
+                  }
+                }}
+
                 min={0}
                 max={1000000}
                 step={1}

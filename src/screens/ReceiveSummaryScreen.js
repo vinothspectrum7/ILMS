@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, Modal, BackHandler, ActivityIndicator, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { FlatList, SafeAreaView, ScrollView, StyleSheet, View, Text, Modal, BackHandler, TouchableOpacity, Dimensions } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import GlobalHeaderComponent from '../components/GlobalHeaderComponent';
 import POinfoCardComponent from '../components/POinfoCardComponent';
@@ -8,15 +8,15 @@ import FooterButtonsComponent from '../components/FooterButtonsComponent';
 import SummaryTabHdrComponent from '../components/SummaryTabHdrComponent';
 import ConfirmModalComponent from '../components/ConfirmModalComponent';
 import Toast from 'react-native-toast-message';
-import { createOrderReceipt } from '../api/mockApi';
 import { useReceivingStore } from '../store/receivingStore';
 import { Submit_Receive_Qty, Save_Receive_Qty } from '../api/ApiServices';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import ConfirmSvg from '../assets/icons/success.svg';
 import FailureSvg from '../assets/icons/failure.svg';
 import DeleteSvg from '../assets/icons/delete.svg';
+import PrintTickIcon from '../assets/icons/printtickicon.svg';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { getCurrentPO } from '../api/posession';
+import Rec_LabelPrintModalPopUp from '../components/receive/Rec_LabelPrintModalPopUp';
 
 const receivedData = [
   { id: '1', purchaseReceipt: 'PR-00002', poNumber: 'PO-00002', supplier: '3DIng', receivedDate: '21 Jul 2025', status: 'Fully Received' },
@@ -35,24 +35,41 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ACTION_WIDTH = SCREEN_WIDTH * 0.8;
 const rs = v => (SCREEN_WIDTH / ACTION_WIDTH) * v;
 
+const toNumberOrZero = v => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const normText = v => String(v ?? '').trim();
+
 const ReceiveSummaryScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
 
   const [openItems, setOpenItems] = useState(new Set());
-  const [profileName, setProfileName] = useState('');
   const [deletedIds, setDeletedIds] = useState([]);
+  const [draft, setDraft] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [lastReceiptPayload, setLastReceiptPayload] = useState(null);
+  const [confirmDeliveryType, setConfirmDeliveryType] = useState('Inspection required');
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [saveModalStatus, setSaveModalStatus] = useState('success');
+  const [labelModalVisible, setLabelModalVisible] = useState(false);
+
+  const didCompleteRef = useRef(false);
+  const handledPatchIdsRef = useRef(new Set());
+  const initializedRef = useRef(false);
+
   const readonly = !!route?.params?.readonly;
-  const printcopies = route?.params?.copies || '0';
-  console.log(printcopies, "printcopiesprintcopiesprintcopiesprintcopies")
   const listTypeFromRoute = route?.params?.listType || 'line';
-  console.log(listTypeFromRoute, "listTypeFromRoutelistTypeFromRoutelistTypeFromRoute")
   const headerFromRoute = route?.params?.header || null;
   const purchaseReceipt = route?.params?.purchaseReceipt;
-  const { currentPO } = getCurrentPO();
   const sourceId = route?.params?.id ? String(route.params.id) : null;
-  const Interface_Id = route?.params?.interface_id ? route.params.interface_id : null;
   const passedItems = Array.isArray(route?.params?.selectedItems) ? route.params.selectedItems : [];
+  const routeCopies = route?.params?.copies;
+  const routePrintStatus = route?.params?.printstatus;
+
+  const { currentPO } = getCurrentPO();
 
   const {
     poHeader,
@@ -65,26 +82,6 @@ const ReceiveSummaryScreen = () => {
     resetReceiving,
     OrgData,
   } = useReceivingStore();
-
-  const [printlabel, setprintlabel] = useState(true);
-  const [labelprinted, setlabelprinted] = useState(true);
-
-  const [draft, setDraft] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-
-  const [lastReceiptPayload, setLastReceiptPayload] = useState(null);
-  const [confirmDeliveryType, setConfirmDeliveryType] = useState('Inspection required');
-
-
-  const didCompleteRef = useRef(false);
-
-  const [saveModalVisible, setSaveModalVisible] = useState(false);
-  const [saveModalStatus, setSaveModalStatus] = useState('success');
-
-  const didsaveCompleteRef = useRef(false);
-
-  const handledPatchIdsRef = useRef(new Set());
-  const initializedRef = useRef(false);
 
   const handleSwipeOpen = useCallback(id => {
     setOpenItems(prev => {
@@ -107,7 +104,7 @@ const ReceiveSummaryScreen = () => {
   useFocusEffect(
     useCallback(() => {
       didCompleteRef.current = false;
-      return () => { };
+      return () => {};
     }, [])
   );
 
@@ -122,6 +119,10 @@ const ReceiveSummaryScreen = () => {
           setSaveModalVisible(false);
           return true;
         }
+        if (labelModalVisible) {
+          setLabelModalVisible(false);
+          return true;
+        }
         if (listTypeFromRoute === 'Received') {
           navigation.navigate('Receive');
         } else {
@@ -131,7 +132,7 @@ const ReceiveSummaryScreen = () => {
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [navigation, modalVisible, listTypeFromRoute, saveModalVisible])
+    }, [navigation, modalVisible, listTypeFromRoute, saveModalVisible, labelModalVisible])
   );
 
   useEffect(() => {
@@ -144,8 +145,7 @@ const ReceiveSummaryScreen = () => {
       let rec = null;
       if (sourceId) rec = receivedData.find(r => r.id === sourceId);
       if (!rec) {
-        const poNo =
-          route?.params?.header?.poNumber || route?.params?.poNumber || null;
+        const poNo = route?.params?.header?.poNumber || route?.params?.poNumber || null;
         if (poNo) rec = receivedData.find(r => r.poNumber === poNo);
       }
       if (rec) {
@@ -180,134 +180,27 @@ const ReceiveSummaryScreen = () => {
     const patchId = patch?.id != null ? String(patch.id) : null;
     if (!patchId || handledPatchIdsRef.current.has(patchId)) return;
     handledPatchIdsRef.current.add(patchId);
+
     setDraft(prev =>
       prev.map(it =>
         String(it.id) === patchId
           ? {
-            ...it,
-            qtyToReceive:
-              typeof patch.receivingQty === 'number'
-                ? patch.receivingQty
-                : it.qtyToReceive,
-            lpn: patch.lpn ?? it.lpn,
-            subInventory: patch.subInventory ?? it.subInventory,
-            locator: patch.locator ?? it.locator,
-          }
+              ...it,
+              qtyToReceive: typeof patch.receivingQty === 'number' ? patch.receivingQty : it.qtyToReceive,
+              lpn: patch.lpn ?? it.lpn,
+              subInventory: patch.subInventory ?? it.subInventory,
+              locator: patch.locator ?? it.locator,
+            }
           : it
       )
     );
+
     mergePatchIntoSummaryItems(patch);
     mergePatchIntoReceiveItems(patch);
+
     const t = setTimeout(() => navigation.setParams({ patch: undefined }), 0);
     return () => clearTimeout(t);
   }, [patch?.id, patch, mergePatchIntoSummaryItems, mergePatchIntoReceiveItems, navigation]);
-
-
-  const normDeliveryType = v => String(v ?? '').trim().toLowerCase();
-  const isDirectDelivery = dt => normDeliveryType(dt) === 'direct delivery';
-  const isStandardDelivery = dt => normDeliveryType(dt) === 'standard receipt';
-  const isInspectionRequired = dt => normDeliveryType(dt) === 'inspection required';
-
-  const hasAnyDeliveryType = dt => !!String(dt ?? '').trim();
-
-  const hasValidLotForLine = line => {
-    if (!Array.isArray(line?.lotLines) || line.lotLines.length === 0) return false;
-
-    const total = line.lotLines.reduce((sum, l) => sum + Number(l?.qty ?? 0), 0);
-    const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
-
-    if (!Number.isFinite(target) || target <= 0) return false;
-    if (total !== target) return false;
-
-    return line.lotLines.every(
-      l => Number(l?.qty ?? 0) > 0 && !!String(l?.lotNumber ?? '').trim()
-    );
-  };
-
-  const hasValidSerialForLine = line => {
-    if (!Array.isArray(line?.serialLines) || line.serialLines.length === 0) return false;
-
-    const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
-    if (!Number.isFinite(target) || target <= 0) return false;
-
-    if (line.serialLines.length !== target) return false;
-
-    return line.serialLines.every(s =>
-      !!String(s?.serialNumber ?? s?.serial ?? '').trim()
-    );
-  };
-
-  const hasValidLotSerialForLine = line => {
-    if (!Array.isArray(line?.lotLines) || line.lotLines.length === 0) return false;
-
-    const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
-    if (!Number.isFinite(target) || target <= 0) return false;
-
-    const lotTotal = line.lotLines.reduce((sum, l) => sum + Number(l?.qty ?? 0), 0);
-    if (lotTotal !== target) return false;
-
-    return line.lotLines.every(l => {
-      const lotNoOk = !!String(l?.lotNumber ?? '').trim();
-      const lotQty = Number(l?.qty ?? 0);
-      if (!lotNoOk || !Number.isFinite(lotQty) || lotQty <= 0) return false;
-
-      const serials = Array.isArray(l?.serials)
-        ? l.serials
-        : Array.isArray(l?.serialLines)
-          ? l.serialLines
-          : [];
-
-      if (!serials || serials.length !== lotQty) return false;
-
-      return serials.every(s => !!String(s?.serialNumber ?? s?.serial ?? '').trim());
-    });
-  };
-
-  const isLineItemTypeValidForDirect = line => {
-    const t = String(line?.itemtype ?? '').trim();
-    if (t === 'Lot') return hasValidLotForLine(line);
-    if (t === 'Serial') return hasValidSerialForLine(line);
-    if (t === 'Lot+Serial') return hasValidLotSerialForLine(line);
-    return true; // normal item => no lot/serial requirement
-  };
-
-  const isLineValidForConfirm = line => {
-    const qty = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
-    if (!Number.isFinite(qty) || qty <= 0) return false;
-
-    const dt = line?.deliverytype;
-
-    // deliverytype must be present
-    if (!hasAnyDeliveryType(dt)) return false;
-
-    // Standard / Inspection required:
-    // - qty > 0
-    // - LPN optional
-    // - subInventory optional
-    // - locator optional
-    // - no lot/serial enforcement
-    if (isStandardDelivery(dt) || isInspectionRequired(dt)) {
-      return true;
-    }
-
-    // Direct delivery:
-    // - qty > 0
-    // - subInventory mandatory
-    // - lot/serial mandatory based on itemtype
-    if (isDirectDelivery(dt)) {
-      const subInvOk = !!String(line?.subInventory ?? '').trim();
-      if (!subInvOk) return false;
-      return isLineItemTypeValidForDirect(line);
-    }
-
-    // unknown delivery type => block
-    return false;
-  };
-
-  const getConfirmEligibleLines = (items = []) => {
-    return (items || []).filter(isLineValidForConfirm);
-  };
-
 
   const headerData = useMemo(
     () =>
@@ -320,250 +213,9 @@ const ReceiveSummaryScreen = () => {
     [poHeader]
   );
 
-  const formatDateToYMD = (dateStr) => {
-    if (!dateStr) return null;
-
-    const [dd, mm, yyyy] = dateStr.split('/');
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  const mapConfirmLots = (data) => {
-    return data.map(backend => ({
-      "lot_number": backend?.lotNumber,
-      "transaction_quantity": backend?.qty,
-      "lot_expiration_date": formatDateToYMD(backend?.expDate)
-    }));
-  }
-
-  const mapConfirmData = data => {
-    return (data || []).map(backend => {
-      const dt = backend?.deliverytype;
-
-      const subInvId =
-        backend?.subInventory?.id != null ? backend.subInventory.id : null;
-      const subInvCode =
-        backend?.subInventory?.name != null ? backend.subInventory.name : null;
-
-      const locatorId =
-        backend?.locator?.id != null ? backend.locator.id : null;
-      const locatorCode =
-        backend?.locator?.name != null ? backend.locator.name : null;
-
-      const lpnNumber =
-        backend?.lpn?.id != null ? backend.lpn.id : null;
-
-      const base = {
-        po_id: currentPO,
-        po_number: poHeader?.poNumber,
-
-        po_line_id: backend?.po_line_id,
-        po_line_num: backend?.po_line_number,
-
-        item_id: backend?.item_id,
-        item_code: backend?.name,
-
-        org_id: backend?.org_id,
-        org_code: backend?.org_code,
-        business_unit: OrgData?.BusinessName,
-        supplier_name: poHeader?.supplier,
-
-        uom_code: backend?.uomCode,
-        uom: backend?.uom,
-
-        source_doc_code: 'PO',
-        received_qty: Number(backend?.qtyToReceive ?? backend?.receivingQty ?? 0),
-        delivery_type: dt,
-
-        lot_item_lots: Array.isArray(backend?.lotLines) ? mapConfirmLots(backend.lotLines) : [],
-      };
-
-      // Include optional fields only if available (Standard/Inspection optional, Direct already validated)
-      if (subInvId != null) base.sub_inv_id = subInvId;
-      if (subInvCode != null) base.sub_inv_code = subInvCode;
-
-      if (locatorId != null) base.locator_id = locatorId;
-      if (locatorCode != null) base.locator_code = locatorCode;
-
-      // LPN optional for all (your current rule)
-      if (lpnNumber != null) base.lpn_number = lpnNumber;
-
-      return base;
-    });
-  };
-
-  const pickConfirmDeliveryType = (lines = []) => {
-    const norm = v => String(v ?? '').trim().toLowerCase();
-
-    // If any line is inspection required -> Inspection required
-    if (lines.some(l => norm(l?.deliverytype) === 'inspection required')) return 'Inspection required';
-
-    // If any line is standard receipt -> Standard receipt
-    if (lines.some(l => norm(l?.deliverytype) === 'standard receipt')) return 'Standard receipt';
-
-    // else treat as Direct delivery (no post question)
-    return 'Direct delivery';
-  };
-
-  const openConfirmModal = () => {
-    const eligibleLines = getConfirmEligibleLines(renderItems);
-    const dt = pickConfirmDeliveryType(eligibleLines);
-    setConfirmDeliveryType(dt);
-    setModalVisible(true);
-  };
-
-
-
-
-  const confirmAction = async () => {
-    console.log(renderItems, "renderItemsrenderItemsrenderItemsrenderItems")
-    const eligibleLines = getConfirmEligibleLines(renderItems);
-
-    if (!eligibleLines.length) {
-      Toast.show({
-        type: 'error',
-        text1: 'Invalid items',
-        text2: 'No eligible lines to confirm. Please check Delivery Type, Qty, Sub Inventory and Lot/Serial data.',
-        position: 'top',
-        visibilityTime: 5000,
-      });
-      return { success: false, message: 'No eligible lines to confirm' };
-    }
-
-    console.log(eligibleLines, "eligibleLines");
-    const formatdata = mapConfirmData(eligibleLines);
-
-    console.log(formatdata, "mapConfirmDatamapConfirmData");
-    try {
-      const response = await Submit_Receive_Qty(formatdata);
-      console.log(response, "Submit_Receive_Qty");
-      if (response?.status == "SUCCESS") {
-        // Extract receipt_num safely from possible shapes
-        const receipt_num =
-          response?.receipt_num ??
-          response?.receiptNumber ??
-          response?.data?.receipt_num ??
-          response?.data?.receiptNumber ??
-          response?.results?.receipt_num ??
-          null;
-
-        const supplier_name =
-          response?.supplier_name ??
-          response?.data?.supplier_name ??
-          poHeader?.supplier ??
-          '—';
-
-        const po_number =
-          response?.po_number ??
-          response?.data?.po_number ??
-          poHeader?.poNumber ??
-          '—';
-
-        // receipt_date not available now -> '-'
-        const received_date = response?.received_date ?? response?.data?.received_date ?? '-';
-
-        // store for navigation usage
-        setLastReceiptPayload({ receipt_num, supplier_name, po_number, received_date });
-
-        // decide which post question text to show
-        const dt = pickConfirmDeliveryType(eligibleLines);
-        setConfirmDeliveryType(dt);
-
-        console.log(setConfirmDeliveryType, "setConfirmDeliveryTypesetConfirmDeliveryTypesetConfirmDeliveryType");
-
-        return {
-          success: true,
-          receipt_num,
-          item: { supplier_name, po_number, received_date },
-        };
-      }
-
-      return {
-        success: false,
-        message: response?.message || 'Failed to create order receipt',
-      };
-    } catch (err) {
-      return {
-        success: false,
-        message: err.detail?.[0].msg || 'Network error. Please try again.',
-      };
-    }
-  };
-
-  const mapConfirmSaveData = data => {
-    const FILTER_ZERO_QTY = false;
-
-    const rows = data.map(backend => {
-      const qty = Number(backend?.qtyToReceive ?? 0);
-      return {
-        po_line_id: backend?.po_line_id,
-        item_id: backend?.item_id,
-        org_id: backend?.org_id,
-        sub_inv_id: backend?.subInventory,
-        locator_id: backend?.locator ? backend?.locator : null,
-        lot_number: '',
-        expiry_date: formatToday(),
-        received_qty: qty,
-        is_checked: qty > 0 ? true : false,
-        received_type: 'purchase_order',
-        asn_header_uuid: null,
-      };
-    });
-
-    return FILTER_ZERO_QTY ? rows.filter(r => r.received_qty > 0) : rows;
-  };
-
-  const isSaveSuccess = res => {
-    if (!res) return false;
-    if (res === true) return true;
-    if (typeof res?.results === 'boolean') return res.results === true;
-    if (typeof res?.results === 'number') return res.results > 0;
-    if (Array.isArray(res?.results)) return res.results.length > 0;
-    if (res?.results[0].status == 'success') return true;
-    if (res?.results[0].status == 'error') return false;
-    if (res?.status === 'success' || res?.status === 'ok') return true;
-    if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success'))
-      return true;
-    return false;
-  };
-
-  const handlesave = async () => {
-    didCompleteRef.current = false;
-    try {
-      const payload = mapConfirmSaveData(receiveItems);
-      const response = await Save_Receive_Qty(payload);
-      if (isSaveSuccess(response)) {
-        setSaveModalStatus('success');
-        setSaveModalVisible(true);
-        setTimeout(() => handlesaveSuccess(), 3500);
-      } else {
-        setSaveModalStatus('failure');
-        setSaveModalVisible(true);
-        setTimeout(() => handlesaveFailure(), 3500);
-      }
-    } catch (e) {
-      setSaveModalStatus('failure');
-      setSaveModalVisible(true);
-      setTimeout(() => handlesaveFailure(), 3500);
-    }
-  };
-
-  const handlesaveSuccess = () => {
-    if (didCompleteRef.current) return;
-    didCompleteRef.current = true;
-    setSaveModalVisible(false);
-  };
-
-  const handlesaveFailure = () => {
-    if (didCompleteRef.current) return;
-    didCompleteRef.current = true;
-    setSaveModalVisible(false);
-  };
-
   const renderItems = useMemo(() => {
     if (!readonly && Array.isArray(receiveItems) && receiveItems.length > 0) {
-      return receiveItems.filter(
-        it => Number(it?.qtyToReceive ?? it?.receivingQty ?? 0) > 0
-      );
+      return receiveItems.filter(it => Number(it?.qtyToReceive ?? it?.receivingQty ?? 0) > 0);
     }
     if (Array.isArray(summaryItems) && summaryItems.length > 0) return summaryItems;
     if (Array.isArray(draft) && draft.length > 0) return draft;
@@ -572,12 +224,8 @@ const ReceiveSummaryScreen = () => {
 
   const qtyFor = useCallback(
     it => {
-      const inReceive = Array.isArray(receiveItems)
-        ? receiveItems.find(x => String(x.id) === String(it.id))
-        : null;
-      const inSummary = Array.isArray(summaryItems)
-        ? summaryItems.find(x => String(x.id) === String(it.id))
-        : null;
+      const inReceive = Array.isArray(receiveItems) ? receiveItems.find(x => String(x.id) === String(it.id)) : null;
+      const inSummary = Array.isArray(summaryItems) ? summaryItems.find(x => String(x.id) === String(it.id)) : null;
       const q =
         inReceive?.qtyToReceive ??
         inReceive?.receivingQty ??
@@ -599,13 +247,276 @@ const ReceiveSummaryScreen = () => {
         if (listTypeFromRoute === 'Received') {
           navigation.replace('Receive');
         } else {
-          navigation.replace('NewReceiveScreen', {
-            listType: listTypeFromRoute || 'line',
-          });
+          navigation.replace('NewReceiveScreen', { listType: listTypeFromRoute || 'line' });
         }
       }
     }, [readonly, receiveItems, passedItems, summaryItems, listTypeFromRoute, navigation])
   );
+
+  const formatToday = () => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const mapConfirmSaveData = data => {
+    const rows = data.map(backend => {
+      const qty = Number(backend?.qtyToReceive ?? 0);
+      return {
+        po_line_id: backend?.po_line_id,
+        item_id: backend?.item_id,
+        org_id: backend?.org_id,
+        sub_inv_id: backend?.subInventory,
+        locator_id: backend?.locator ? backend?.locator : null,
+        lot_number: '',
+        expiry_date: formatToday(),
+        received_qty: qty,
+        is_checked: qty > 0 ? true : false,
+        received_type: 'purchase_order',
+        asn_header_uuid: null,
+      };
+    });
+    return rows;
+  };
+
+  const isSaveSuccess = res => {
+    if (!res) return false;
+    if (res === true) return true;
+    if (typeof res?.results === 'boolean') return res.results === true;
+    if (typeof res?.results === 'number') return res.results > 0;
+    if (Array.isArray(res?.results)) return res.results.length > 0;
+    if (Array.isArray(res?.results) && res?.results?.[0]?.status === 'success') return true;
+    if (Array.isArray(res?.results) && res?.results?.[0]?.status === 'error') return false;
+    if (res?.status === 'success' || res?.status === 'ok') return true;
+    if (typeof res?.message === 'string' && res.message.toLowerCase().includes('success')) return true;
+    return false;
+  };
+
+  const handlesave = async () => {
+    didCompleteRef.current = false;
+    try {
+      const payload = mapConfirmSaveData(receiveItems);
+      const response = await Save_Receive_Qty(payload);
+      if (isSaveSuccess(response)) {
+        setSaveModalStatus('success');
+        setSaveModalVisible(true);
+        setTimeout(() => {
+          if (didCompleteRef.current) return;
+          didCompleteRef.current = true;
+          setSaveModalVisible(false);
+        }, 3500);
+      } else {
+        setSaveModalStatus('failure');
+        setSaveModalVisible(true);
+        setTimeout(() => {
+          if (didCompleteRef.current) return;
+          didCompleteRef.current = true;
+          setSaveModalVisible(false);
+        }, 3500);
+      }
+    } catch (e) {
+      setSaveModalStatus('failure');
+      setSaveModalVisible(true);
+      setTimeout(() => {
+        if (didCompleteRef.current) return;
+        didCompleteRef.current = true;
+        setSaveModalVisible(false);
+      }, 3500);
+    }
+  };
+
+  const normDeliveryType = v => String(v ?? '').trim().toLowerCase();
+  const isDirectDelivery = dt => normDeliveryType(dt) === 'direct delivery';
+  const isStandardDelivery = dt => normDeliveryType(dt) === 'standard receipt';
+  const isInspectionRequired = dt => normDeliveryType(dt) === 'inspection required';
+
+  const hasAnyDeliveryType = dt => !!String(dt ?? '').trim();
+
+  const hasValidLotForLine = line => {
+    if (!Array.isArray(line?.lotLines) || line.lotLines.length === 0) return false;
+    const total = line.lotLines.reduce((sum, l) => sum + Number(l?.qty ?? 0), 0);
+    const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
+    if (!Number.isFinite(target) || target <= 0) return false;
+    if (total !== target) return false;
+    return line.lotLines.every(l => Number(l?.qty ?? 0) > 0 && !!String(l?.lotNumber ?? '').trim());
+  };
+
+  const hasValidSerialForLine = line => {
+    if (!Array.isArray(line?.serialLines) || line.serialLines.length === 0) return false;
+    const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
+    if (!Number.isFinite(target) || target <= 0) return false;
+    if (line.serialLines.length !== target) return false;
+    return line.serialLines.every(s => !!String(s?.serialNumber ?? s?.serial ?? '').trim());
+  };
+
+  const hasValidLotSerialForLine = line => {
+    if (!Array.isArray(line?.lotLines) || line.lotLines.length === 0) return false;
+    const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
+    if (!Number.isFinite(target) || target <= 0) return false;
+
+    const lotTotal = line.lotLines.reduce((sum, l) => sum + Number(l?.qty ?? 0), 0);
+    if (lotTotal !== target) return false;
+
+    return line.lotLines.every(l => {
+      const lotNoOk = !!String(l?.lotNumber ?? '').trim();
+      const lotQty = Number(l?.qty ?? 0);
+      if (!lotNoOk || !Number.isFinite(lotQty) || lotQty <= 0) return false;
+
+      const serials = Array.isArray(l?.serials) ? l.serials : Array.isArray(l?.serialLines) ? l.serialLines : [];
+      if (!serials || serials.length !== lotQty) return false;
+
+      return serials.every(s => !!String(s?.serialNumber ?? s?.serial ?? '').trim());
+    });
+  };
+
+  const isLineItemTypeValidForDirect = line => {
+    const t = String(line?.itemtype ?? '').trim();
+    if (t === 'Lot') return hasValidLotForLine(line);
+    if (t === 'Serial') return hasValidSerialForLine(line);
+    if (t === 'Lot+Serial') return hasValidLotSerialForLine(line);
+    return true;
+  };
+
+  const isLineValidForConfirm = line => {
+    const qty = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
+    if (!Number.isFinite(qty) || qty <= 0) return false;
+
+    const dt = line?.deliverytype;
+    if (!hasAnyDeliveryType(dt)) return false;
+
+    if (isStandardDelivery(dt) || isInspectionRequired(dt)) return true;
+
+    if (isDirectDelivery(dt)) {
+      const subInvOk = !!String(line?.subInventory ?? '').trim();
+      if (!subInvOk) return false;
+      return isLineItemTypeValidForDirect(line);
+    }
+
+    return false;
+  };
+
+  const getConfirmEligibleLines = (items = []) => (items || []).filter(isLineValidForConfirm);
+
+  const mapConfirmData = data => {
+    return (data || []).map(backend => {
+      const dt = backend?.deliverytype;
+
+      const subInvId = backend?.subInventory?.id != null ? backend.subInventory.id : null;
+      const subInvCode = backend?.subInventory?.name != null ? backend.subInventory.name : null;
+
+      const locatorId = backend?.locator?.id != null ? backend.locator.id : null;
+      const locatorCode = backend?.locator?.name != null ? backend.locator.name : null;
+
+      const lpnNumber = backend?.lpn?.id != null ? backend.lpn.id : null;
+
+      const base = {
+        po_id: currentPO,
+        po_number: poHeader?.poNumber,
+        po_line_id: backend?.po_line_id,
+        po_line_num: backend?.po_line_number,
+        item_id: backend?.item_id,
+        item_code: backend?.name,
+        org_id: backend?.org_id,
+        org_code: backend?.org_code,
+        business_unit: OrgData?.BusinessName,
+        supplier_name: poHeader?.supplier,
+        uom_code: backend?.uomCode,
+        uom: backend?.uom,
+        source_doc_code: 'PO',
+        received_qty: Number(backend?.qtyToReceive ?? backend?.receivingQty ?? 0),
+        delivery_type: dt,
+        lot_item_lots: Array.isArray(backend?.lotLines)
+          ? backend.lotLines.map(l => ({
+              lot_number: l?.lotNumber,
+              transaction_quantity: l?.qty,
+              lot_expiration_date: l?.expDate ? (() => {
+                const [dd, mm, yyyy] = String(l.expDate).split('/');
+                return dd && mm && yyyy ? `${yyyy}-${mm}-${dd}` : null;
+              })() : null,
+            }))
+          : [],
+      };
+
+      if (subInvId != null) base.sub_inv_id = subInvId;
+      if (subInvCode != null) base.sub_inv_code = subInvCode;
+      if (locatorId != null) base.locator_id = locatorId;
+      if (locatorCode != null) base.locator_code = locatorCode;
+      if (lpnNumber != null) base.lpn_number = lpnNumber;
+
+      return base;
+    });
+  };
+
+  const pickConfirmDeliveryType = (lines = []) => {
+    const norm = v => String(v ?? '').trim().toLowerCase();
+    if (lines.some(l => norm(l?.deliverytype) === 'inspection required')) return 'Inspection required';
+    if (lines.some(l => norm(l?.deliverytype) === 'standard receipt')) return 'Standard receipt';
+    return 'Direct delivery';
+  };
+
+  const openConfirmModal = () => {
+    const eligibleLines = getConfirmEligibleLines(renderItems);
+    const dt = pickConfirmDeliveryType(eligibleLines);
+    setConfirmDeliveryType(dt);
+    setModalVisible(true);
+  };
+
+  const confirmAction = async () => {
+    const eligibleLines = getConfirmEligibleLines(renderItems);
+
+    if (!eligibleLines.length) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid items',
+        text2: 'No eligible lines to confirm. Please check Delivery Type, Qty, Sub Inventory and Lot/Serial data.',
+        position: 'top',
+        visibilityTime: 5000,
+      });
+      return { success: false, message: 'No eligible lines to confirm' };
+    }
+
+    const formatdata = mapConfirmData(eligibleLines);
+
+    try {
+      const response = await Submit_Receive_Qty(formatdata);
+      if (response?.status === 'SUCCESS') {
+        const receipt_num =
+          response?.receipt_num ??
+          response?.receiptNumber ??
+          response?.data?.receipt_num ??
+          response?.data?.receiptNumber ??
+          response?.results?.receipt_num ??
+          null;
+
+        const supplier_name = response?.supplier_name ?? response?.data?.supplier_name ?? poHeader?.supplier ?? '—';
+        const po_number = response?.po_number ?? response?.data?.po_number ?? poHeader?.poNumber ?? '—';
+        const received_date = response?.received_date ?? response?.data?.received_date ?? '-';
+
+        setLastReceiptPayload({ receipt_num, supplier_name, po_number, received_date });
+
+        const dt = pickConfirmDeliveryType(eligibleLines);
+        setConfirmDeliveryType(dt);
+
+        return {
+          success: true,
+          receipt_num,
+          item: { supplier_name, po_number, received_date },
+        };
+      }
+
+      return {
+        success: false,
+        message: response?.message || 'Failed to create order receipt',
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: err?.detail?.[0]?.msg || 'Network error. Please try again.',
+      };
+    }
+  };
 
   const handleCancel = () => setModalVisible(false);
 
@@ -621,48 +532,77 @@ const ReceiveSummaryScreen = () => {
     setModalVisible(false);
   };
 
+  const handleDelete = itemId => {
+    setDeletedIds(prev => [...prev, itemId]);
+
+    const resetItem = it =>
+      String(it.id) === String(itemId)
+        ? {
+            ...it,
+            subInventory: OrgData?.selectedinventory,
+            qtyToReceive: 0,
+            locator: OrgData?.selectedOrg,
+          }
+        : it;
+
+    if (!readonly && Array.isArray(receiveItems) && receiveItems.length > 0) {
+      useReceivingStore.setState({ receiveItems: receiveItems.map(resetItem) });
+      return;
+    }
+
+    if (Array.isArray(summaryItems) && summaryItems.length > 0) {
+      useReceivingStore.setState({ summaryItems: summaryItems.map(resetItem) });
+      return;
+    }
+
+    if (Array.isArray(draft) && draft.length > 0) {
+      setDraft(prev => prev.map(resetItem));
+    }
+  };
+
+  const filteredItems = renderItems.filter(item => !deletedIds.includes(item.id));
+
+  useFocusEffect(
+    useCallback(() => {
+      if (filteredItems.length === 0) {
+        if (listTypeFromRoute === 'Received') {
+          navigation.navigate('Receive');
+        } else {
+          navigation.navigate('NewReceiveScreen');
+        }
+      }
+    }, [filteredItems, listTypeFromRoute, navigation])
+  );
 
   const openLineDetailsFromSummary = item => {
     const source = renderItems;
     const idx = Math.max(source.findIndex(x => String(x.id) === String(item.id)), 0);
 
-    // Same data-flow as NewReceiveScreen -> goToLineItemDetails
     const withLatestFromStore = source.map((it, i) => {
-      const s = Array.isArray(receiveItems)
-        ? receiveItems.find(r => String(r.id) === String(it.id))
-        : null;
-
+      const s = Array.isArray(receiveItems) ? receiveItems.find(r => String(r.id) === String(it.id)) : null;
       const qty = Number(s?.qtyToReceive ?? s?.receivingQty ?? it.qtyToReceive ?? 0);
 
       return {
         id: String(it.id),
         poNumber: headerData.poNumber ?? '—',
         lineNumber: i + 1,
-
         itemName: it.name,
         po_line_id: it.po_line_id,
         po_line_number: it.po_line_number,
         itemid: it.item_id,
-
         ship_to_location: it.ship_to_location,
         itemDescription: it.itemDescription ?? it.description ?? '—',
-
         orderQty: Number(it.orderedQty ?? it.orderQty ?? 0),
         orderqty: Number(it.orderedQty ?? it.orderQty ?? it.orderqty ?? 0),
-
         itemtype: it.itemtype ?? null,
         deliverytype: s?.deliverytype ?? it.deliverytype ?? null,
-
         openQty: Number(it.openQty ?? 0),
         uom: it.uom,
-
         receivingQty: qty,
         receivingStatus: it.status,
-
         lpn: s?.lpn ?? it.lpn ?? '',
         subInventory: s?.subInventory ?? it.subInventory ?? '',
         locator: s?.locator ?? it.locator ?? null,
-
         max_open_qty: Number(it.max_open_qty ?? it.openQty ?? 0),
         imageUri: s?.imageUri ?? it.imageUri ?? null,
       };
@@ -681,7 +621,6 @@ const ReceiveSummaryScreen = () => {
     });
   };
 
-
   const renderRightActions = onDelete => {
     return (
       <View style={styles.deleteContainer}>
@@ -692,88 +631,73 @@ const ReceiveSummaryScreen = () => {
     );
   };
 
-  const formatToday = () => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    return `${yyyy}-${mm}-${dd}`;
+  const pickStorePrintMeta = () => {
+    const pools = [
+      ...(Array.isArray(receiveItems) ? receiveItems : []),
+      ...(Array.isArray(summaryItems) ? summaryItems : []),
+      ...(Array.isArray(draft) ? draft : []),
+    ];
+
+    const foundCopies =
+      pools.find(x => x?.printcopies != null)?.printcopies ??
+      pools.find(x => x?.copies != null)?.copies ??
+      0;
+
+    const foundStatus =
+      pools.find(x => x?.printstatus != null)?.printstatus ??
+      pools.find(x => x?.labelPrintStatus != null)?.labelPrintStatus ??
+      '';
+
+    return { foundCopies, foundStatus };
   };
 
-  const handleDelete = itemId => {
-    setDeletedIds(prev => [...prev, itemId]);
+  const { foundCopies, foundStatus } = useMemo(() => pickStorePrintMeta(), [receiveItems, summaryItems, draft]);
 
-    if (!readonly && Array.isArray(receiveItems) && receiveItems.length > 0) {
-      useReceivingStore.setState({
-        receiveItems: receiveItems.map(it =>
-          String(it.id) === String(itemId)
-            ? {
-              ...it,
-              subInventory: OrgData?.selectedinventory,
-              qtyToReceive: 0,
-              locator: OrgData?.selectedOrg,
-            }
-            : it
-        ),
-      });
-      return;
-    }
+  const effectiveCopies = routeCopies != null ? routeCopies : foundCopies;
+  const effectiveStatus = routePrintStatus != null ? routePrintStatus : foundStatus;
 
-    if (Array.isArray(summaryItems) && summaryItems.length > 0) {
-      useReceivingStore.setState({
-        summaryItems: summaryItems.map(it =>
-          String(it.id) === String(itemId)
-            ? {
-              ...it,
-              subInventory: OrgData?.selectedinventory,
-              qtyToReceive: 0,
-              locator: OrgData?.selectedOrg,
-            }
-            : it
-        ),
-      });
-      return;
-    }
+  const copiesNum = toNumberOrZero(effectiveCopies);
+  const statusText = normText(effectiveStatus);
+  const isPrinted = statusText === 'Label Printed';
+  const isToggleDisabled = copiesNum <= 0;
+  const isToggleOn = !isToggleDisabled && isPrinted;
 
-    if (Array.isArray(draft) && draft.length > 0) {
-      setDraft(prev =>
-        prev.map(it =>
-          String(it.id) === String(itemId)
-            ? {
-              ...it,
-              subInventory: OrgData?.selectedinventory,
-              qtyToReceive: 0,
-              locator: OrgData?.selectedOrg,
-            }
-            : it
-        )
-      );
-      return;
-    }
+  const toggleTrackColor = isToggleDisabled ? '#9D9FA3' : isPrinted ? '#168035' : '#233E55';
+
+  const onPressToggle = () => {
+    if (isToggleDisabled) return;
+    if (isPrinted) return;
+    setLabelModalVisible(true);
   };
 
-  const filteredItems = renderItems.filter(item => !deletedIds.includes(item.id));
+  const applyPrintStatus = nextStatus => {
+    const patchObj = {
+      printcopies: copiesNum,
+      printstatus: nextStatus,
+    };
 
-  useFocusEffect(
-    useCallback(() => {
-      if (filteredItems.length === 0) {
-        if (listTypeFromRoute === 'Received') {
-          navigation.navigate('Receive');
-        } else {
-          navigation.navigate('NewReceiveScreen');
-        }
-      }
-    }, [filteredItems, listTypeFromRoute, navigation])
-  );
+    mergePatchIntoReceiveItems(patchObj);
+    mergePatchIntoSummaryItems(patchObj);
 
-  const TogglePill = ({ Rightlabel,Leftlabel, value, onToggle }) => {
+    navigation.setParams({
+      copies: copiesNum,
+      printstatus: nextStatus,
+    });
+  };
+
+  const TogglePill = ({ isOn, disabled, trackColor, onToggle }) => {
+    const Leftlabel = 'Label Printed';
+    const Rightlabel = 'Print Label';
+
     return (
-      <TouchableOpacity activeOpacity={0.9} onPress={onToggle}>
-        <View style={[styles.toggleTrack, { backgroundColor: value ? '#168035' : '#233E55' || '#9D9FA3' }]}>
-          {value ? (
+      <TouchableOpacity activeOpacity={0.9} onPress={onToggle} disabled={disabled}>
+        <View style={[styles.toggleTrack, { backgroundColor: trackColor, opacity: disabled ? 1 : 1 }]}>
+          {isOn ? (
             <>
               <Text style={[styles.toggleText, styles.textLeft]}>{Leftlabel}</Text>
-              <View style={[styles.toggleDot, styles.dotOn]} />
+              <View style={[styles.toggleDot, styles.dotOn]}>
+                <PrintTickIcon width={rs(10)} height={rs(10)} />
+              </View>
             </>
           ) : (
             <>
@@ -789,10 +713,7 @@ const ReceiveSummaryScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <GlobalHeaderComponent
-        organizationName={
-          useReceivingStore.getState()?.OrgData?.selectedOrgCode ||
-          OrgData?.selectedOrgCode
-        }
+        organizationName={useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode}
         screenTitle="Receiving"
         notificationCount={0}
         onBack={() => {
@@ -816,7 +737,12 @@ const ReceiveSummaryScreen = () => {
           <Text style={styles.itemName}>Items Summary</Text>
 
           <View style={styles.toggleGroup}>
-            <TogglePill Leftlabel="Label Printed" Rightlabel="Print Label" value={printlabel} onToggle={() => setprintlabel(v => !v)} />
+            <TogglePill
+              isOn={isToggleOn}
+              disabled={isToggleDisabled || isPrinted}
+              trackColor={toggleTrackColor}
+              onToggle={onPressToggle}
+            />
           </View>
 
           <View style={styles.tableHeader}>
@@ -835,15 +761,11 @@ const ReceiveSummaryScreen = () => {
                   onSwipeableOpenStartDrag={() => handleSwipeOpen(item.id)}
                   onSwipeableCloseStartDrag={() => handleSwipeClose(item.id)}
                 >
-                  <View style={[styles.lineItemWrapper]}>
+                  <View style={styles.lineItemWrapper}>
                     <ConfirmLineItemComponent
                       item={item}
                       qtyLabel={item.uom}
-                      qtyValue={
-                        readonly
-                          ? Number(item.orderedQty ?? item.receivedQty ?? qtyFor(item))
-                          : qtyFor(item)
-                      }
+                      qtyValue={readonly ? Number(item.orderedQty ?? item.receivedQty ?? qtyFor(item)) : qtyFor(item)}
                       readOnly
                       isSwipe={openItems.has(item.id)}
                       onViewDetails={() => openLineDetailsFromSummary(item)}
@@ -858,42 +780,37 @@ const ReceiveSummaryScreen = () => {
         </View>
       </ScrollView>
 
+      <Rec_LabelPrintModalPopUp
+        isVisible={labelModalVisible}
+        onClose={() => setLabelModalVisible(false)}
+        onPrintComplete={(payload) => {
+          const nextStatus = payload?.printstatus || 'Label Printed';
+          applyPrintStatus(nextStatus);
+          setLabelModalVisible(false);
+        }}
+      />
+
       {!readonly && (
         <>
           <FooterButtonsComponent
             leftLabel="Save"
             rightLabel="Confirm"
-            onLeftPress={() => {
-              handlesave();
-            }}
+            onLeftPress={handlesave}
             onRightPress={openConfirmModal}
             leftEnabled
             rightEnabled
           />
+
           <ConfirmModalComponent
             visible={modalVisible}
             title="Confirmation"
             message="Are you sure want to receive this Purchase Order?"
             deliveryType={confirmDeliveryType}
             confirmAction={confirmAction}
-
-            // YES on postSuccess -> navigate to ReceivedSummaryScreen with required params
             onInspect={(payloadFromModal) => {
-              const receipt_num =
-                payloadFromModal?.receipt_num ??
-                lastReceiptPayload?.receipt_num ??
-                null;
-
-              const supplier_name =
-                payloadFromModal?.item?.supplier_name ??
-                lastReceiptPayload?.supplier_name ??
-                '—';
-
-              const po_number =
-                payloadFromModal?.item?.po_number ??
-                lastReceiptPayload?.po_number ??
-                poHeader?.poNumber ??
-                '—';
+              const receipt_num = payloadFromModal?.receipt_num ?? lastReceiptPayload?.receipt_num ?? null;
+              const supplier_name = payloadFromModal?.item?.supplier_name ?? lastReceiptPayload?.supplier_name ?? '—';
+              const po_number = payloadFromModal?.item?.po_number ?? lastReceiptPayload?.po_number ?? poHeader?.poNumber ?? '—';
 
               navigation.navigate('ReceivedSummaryScreen', {
                 readonly: true,
@@ -904,28 +821,15 @@ const ReceiveSummaryScreen = () => {
                   receiptNumber: receipt_num,
                   supplier: supplier_name,
                   poNumber: po_number ?? '—',
-                  receiptDate: '-', // future: from API response
+                  receiptDate: '-',
                 },
                 selectedItems: [],
               });
             }}
-
             onPutaway={(payloadFromModal) => {
-              const receipt_num =
-                payloadFromModal?.receipt_num ??
-                lastReceiptPayload?.receipt_num ??
-                null;
-
-              const supplier_name =
-                payloadFromModal?.item?.supplier_name ??
-                lastReceiptPayload?.supplier_name ??
-                '—';
-
-              const po_number =
-                payloadFromModal?.item?.po_number ??
-                lastReceiptPayload?.po_number ??
-                poHeader?.poNumber ??
-                '—';
+              const receipt_num = payloadFromModal?.receipt_num ?? lastReceiptPayload?.receipt_num ?? null;
+              const supplier_name = payloadFromModal?.item?.supplier_name ?? lastReceiptPayload?.supplier_name ?? '—';
+              const po_number = payloadFromModal?.item?.po_number ?? lastReceiptPayload?.po_number ?? poHeader?.poNumber ?? '—';
 
               navigation.navigate('ReceivedSummaryScreen', {
                 readonly: true,
@@ -936,55 +840,21 @@ const ReceiveSummaryScreen = () => {
                   receiptNumber: receipt_num,
                   supplier: supplier_name,
                   poNumber: po_number ?? '—',
-                  receiptDate: '-', // future: from API response
+                  receiptDate: '-',
                 },
                 selectedItems: [],
               });
             }}
-
-            // keep if you still need putaway later (not used now but preserved)
-
             onCancel={handleCancel}
             onSuccess={handleSuccess}
             onFailure={handleFailure}
           />
 
-          <Modal
-            visible={saveModalVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => { }}
-          >
-            <View
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: 'rgba(0,0,0,0.4)',
-              }}
-            >
-              <View
-                style={{
-                  backgroundColor: 'white',
-                  borderRadius: 12,
-                  padding: 24,
-                  alignItems: 'center',
-                  width: '80%',
-                }}
-              >
-                {saveModalStatus === 'success' ? (
-                  <ConfirmSvg width={72} height={72} />
-                ) : (
-                  <FailureSvg width={72} height={72} />
-                )}
-                <Text
-                  style={{
-                    marginTop: 16,
-                    textAlign: 'center',
-                    fontSize: 16,
-                    color: '#333',
-                  }}
-                >
+          <Modal visible={saveModalVisible} transparent animationType="fade" onRequestClose={() => {}}>
+            <View style={styles.centerOverlay}>
+              <View style={styles.centerCard}>
+                {saveModalStatus === 'success' ? <ConfirmSvg width={72} height={72} /> : <FailureSvg width={72} height={72} />}
+                <Text style={styles.centerText}>
                   {saveModalStatus === 'success'
                     ? 'Order Saved Successfully. Please continue Receipt.'
                     : 'Save failed. Please try again.'}
@@ -1039,8 +909,8 @@ const styles = StyleSheet.create({
   toggleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginEnd: rs(10), 
-    alignSelf: 'flex-end'
+    marginEnd: rs(12),
+    alignSelf: 'flex-end',
   },
   toggleText: {
     fontSize: 10,
@@ -1063,16 +933,31 @@ const styles = StyleSheet.create({
     height: rs(14),
     borderRadius: rs(20),
     backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dotOn: {},
   dotOff: {},
-  textLeft: {
-    textAlign: 'left',
+  textLeft: { textAlign: 'left', flex: 1 },
+  textRight: { textAlign: 'right', flex: 1 },
+  centerOverlay: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  textRight: {
-    textAlign: 'right',
-    flex: 1,
+  centerCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    width: '80%',
+  },
+  centerText: {
+    marginTop: 16,
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#333',
   },
 });
 

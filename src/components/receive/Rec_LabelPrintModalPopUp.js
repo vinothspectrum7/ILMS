@@ -3,48 +3,32 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions } from 'rea
 import CloseIcon from '../../assets/icons/close.svg';
 import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
 import Ship_SingleFooterBtnComponent from '../../components/shipping/Ship_SingleFooterBtnComponent';
-import Ship_CustomNumericInput from '../../components/shipping/Ship_CustomNumericInput';
 import Ship_DropDown from '../../components/shipping/Ship_DropDown';
-import Ship_PrintPreviewModalPopUp from '../../components/shipping/Ship_PrintPreviewModalPopUp';
 import { MOCK_SHIPPING_DATA } from '../../data/shippingMockData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
 
-const toNumberOrZero = v => {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-};
-
 const Rec_LabelPrintModalPopUp = ({
   isVisible,
   onClose,
   onPrintComplete,
-  initialDeliveryId,
-  initialCopies,
+  initialPrinter,
 }) => {
-  const [selectedDelivery, setSelectedDelivery] = useState(null);
-  const [selectedLabelType, setSelectedLabelType] = useState(null);
-  const [selectedPrintableSelection, setSelectedPrintableSelection] = useState(null);
-  const [copies, setCopies] = useState(0);
-
-  const [showPreview, setShowPreview] = useState(false);
+  const [selectedPrinter, setSelectedPrinter] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const timerRef = useRef(null);
   const didPrefillRef = useRef(false);
 
-  const deliveryItems = MOCK_SHIPPING_DATA?.deliveryList || [];
-  const labelTypeItems = MOCK_SHIPPING_DATA?.labelTypeList || [];
-  const printableItems = MOCK_SHIPPING_DATA?.printableSelectionList || [];
+  const printerItems = MOCK_SHIPPING_DATA?.printableSelectionList || [];
 
   const isFormValid = useMemo(() => {
-    return !!selectedDelivery && !!selectedLabelType && !!selectedPrintableSelection && Number(copies) > 0;
-  }, [selectedDelivery, selectedLabelType, selectedPrintableSelection, copies]);
+    return !!selectedPrinter;
+  }, [selectedPrinter]);
 
   const closeAll = () => {
-    setShowPreview(false);
     setShowSuccess(false);
     onClose?.();
   };
@@ -57,11 +41,7 @@ const Rec_LabelPrintModalPopUp = ({
 
   useEffect(() => {
     if (!isVisible) {
-      setSelectedDelivery(null);
-      setSelectedLabelType(null);
-      setSelectedPrintableSelection(null);
-      setCopies(0);
-      setShowPreview(false);
+      setSelectedPrinter(null);
       setShowSuccess(false);
       didPrefillRef.current = false;
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -70,70 +50,37 @@ const Rec_LabelPrintModalPopUp = ({
 
   useEffect(() => {
     if (!isVisible) return;
+    if (didPrefillRef.current) return;
 
-    if (!didPrefillRef.current) {
-      if (initialDeliveryId) {
-        const did = String(initialDeliveryId);
-        const found = (Array.isArray(deliveryItems) ? deliveryItems : []).find(
-          d => String(d?.deliveryId ?? '') === did,
-        );
-        if (found) setSelectedDelivery(found);
-      }
-
-      if (initialCopies !== undefined && initialCopies !== null) {
-        setCopies(toNumberOrZero(initialCopies));
-      } else {
-        setCopies(0);
-      }
-
-      didPrefillRef.current = true;
+    if (initialPrinter) {
+      const pid = String(initialPrinter);
+      const found = (Array.isArray(printerItems) ? printerItems : []).find(
+        p => String(p?.id ?? p?.name ?? '') === pid || String(p?.name ?? '') === pid,
+      );
+      if (found) setSelectedPrinter(found);
     }
-  }, [isVisible, initialDeliveryId, initialCopies, deliveryItems]);
 
-  const handleDeliveryChange = item => {
-    setSelectedDelivery(item);
-    if (showPreview) setShowPreview(false);
-
-    const deliveryCopies = toNumberOrZero(item?.noOfCopies);
-    setCopies(deliveryCopies > 0 ? deliveryCopies : 0);
-  };
-
-  const handlePreview = () => {
-    if (!isFormValid) return;
-    setShowPreview(true);
-  };
+    didPrefillRef.current = true;
+  }, [isVisible, initialPrinter, printerItems]);
 
   const handlePrint = () => {
     if (!isFormValid) return;
 
-    setShowPreview(false);
     setShowSuccess(true);
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       setShowSuccess(false);
-      onPrintComplete?.();
+      onPrintComplete?.({
+        printstatus: 'Label Printed',
+        printer: selectedPrinter,
+      });
       closeAll();
-    }, 3000);
+    }, 2500);
   };
 
-  const mainVisible = isVisible && !showPreview && !showSuccess;
-  const previewVisible = isVisible && showPreview;
+  const mainVisible = isVisible && !showSuccess;
   const successVisible = isVisible && showSuccess;
-
-  const previewRows = useMemo(() => {
-    if (!selectedDelivery) return [];
-    return [
-      { label: 'SCAC Code', value: selectedDelivery.scacCode || '' },
-      { label: 'Pallet Number/\nBox Number', value: selectedDelivery.palletOrBoxNumber || '' },
-      { label: 'Package Weight', value: selectedDelivery.packageWeight || '' },
-      { label: 'Item Number', value: selectedDelivery.itemNumber || '' },
-      { label: 'Consignee', value: selectedDelivery.consignee || '' },
-      { label: 'Country of Origin', value: selectedDelivery.countryOfOrigin || '' },
-      { label: 'Final Destination', value: selectedDelivery.finalDestination || '' },
-      { label: 'Total LPN Weight', value: selectedDelivery.totalLpnWeight || '' },
-    ];
-  }, [selectedDelivery]);
 
   return (
     <>
@@ -141,71 +88,23 @@ const Rec_LabelPrintModalPopUp = ({
         <View style={styles.overlay}>
           <View style={styles.popup}>
             <View style={styles.header}>
-              <Text style={styles.headerText}>Label Print</Text>
+              <Text style={styles.headerText}>Print Label</Text>
               <TouchableOpacity onPress={closeAll} style={styles.closeButton}>
-                <CloseIcon width={rs(14.73)} height={rs(14.73)} />
+                <CloseIcon width={rs(16)} height={rs(16)} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.content}>
               <Ship_DropDown
-                label="Delivery Number"
+                label="Printer Selection"
                 required
-                placeholder="Select Delivery Number"
-                value={selectedDelivery}
-                onChange={handleDeliveryChange}
-                items={deliveryItems}
-                searchKeys={['name', 'deliveryNumber', 'deliveryId', 'scacCode', 'finalDestination']}
-                displayValue={it => String(it?.deliveryNumber ?? it?.name ?? '')}
-              />
-
-              <Ship_DropDown
-                label="Label Type"
-                required
-                placeholder="Select Label Type"
-                value={selectedLabelType}
-                onChange={setSelectedLabelType}
-                items={labelTypeItems}
+                placeholder="Select"
+                value={selectedPrinter}
+                onChange={setSelectedPrinter}
+                items={printerItems}
                 searchKeys={['name']}
                 displayValue={it => String(it?.name ?? '')}
               />
-
-              <Ship_DropDown
-                label="Printable Selection"
-                required
-                placeholder="Select Printable"
-                value={selectedPrintableSelection}
-                onChange={setSelectedPrintableSelection}
-                items={printableItems}
-                searchKeys={['name']}
-                displayValue={it => String(it?.name ?? '')}
-              />
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>
-                  No. Of Copies<Text style={styles.required}>*</Text>
-                </Text>
-
-                <View style={styles.numericInputWrapper}>
-                  <Ship_CustomNumericInput
-                    value={copies}
-                    setValue={setCopies}
-                    min={0}
-                    max={1000000}
-                    step={1}
-                    width={rs(337)}
-                    height={rs(45)}
-                    isSelected={Number(copies) > 0}
-                    disabledinput={false}
-                  />
-                </View>
-
-                {isFormValid ? (
-                  <TouchableOpacity activeOpacity={0.85} onPress={handlePreview} style={styles.previewLinkWrap}>
-                    <Text style={styles.previewLinkText}>Preview</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
 
               <View style={styles.printButtonContainer}>
                 <Ship_SingleFooterBtnComponent
@@ -219,15 +118,6 @@ const Rec_LabelPrintModalPopUp = ({
           </View>
         </View>
       </Modal>
-
-      <Ship_PrintPreviewModalPopUp
-        isVisible={previewVisible}
-        onClose={() => setShowPreview(false)}
-        rows={previewRows}
-        pulseWidth={rs(10)}
-        pulseHeight={rs(18)}
-        cardWidth={rs(372)}
-      />
 
       <Modal visible={successVisible} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.successOverlay}>
@@ -255,7 +145,6 @@ const styles = StyleSheet.create({
   },
   popup: {
     width: rs(372),
-    height: rs(580),
     borderRadius: rs(4),
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
@@ -284,37 +173,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: rs(20),
-    flex: 1,
-  },
-  formGroup: {
-    marginTop: rs(2),
-    marginBottom: rs(10),
-  },
-  label: {
-    fontSize: rs(14),
-    fontWeight: '400',
-    color: '#233E55',
-    marginBottom: rs(8),
-    fontFamily: 'Mulish',
-  },
-  required: {
-    color: '#E53935',
-  },
-  numericInputWrapper: {
-    alignItems: 'center',
-  },
-  previewLinkWrap: {
-    marginTop: rs(10),
-    alignSelf: 'flex-start',
-  },
-  previewLinkText: {
-    color: '#1E5DD3',
-    fontSize: rs(14),
-    textDecorationLine: 'underline',
-    fontWeight: '500',
+    paddingBottom: rs(24),
   },
   printButtonContainer: {
-    marginTop: rs(24),
+    marginTop: rs(28),
     alignItems: 'center',
   },
   singleFooterBtnStyle: {
