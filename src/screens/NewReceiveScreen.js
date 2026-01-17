@@ -65,6 +65,8 @@ const NewReceiveScreen = () => {
   } = useReceivingStore();
 
   const selectedPO = route?.params?.selectedPO || null;
+  const printcopies = route?.params?.copies || '0';
+  console.log(printcopies, "printcopiesprintcopiesprintcopiesprintcopies")
 
   const [modalVisible, setModalVisible] = useState(false);
   const didCompleteRef = useRef(false);
@@ -225,7 +227,8 @@ const NewReceiveScreen = () => {
     setPhase('loading');
     const loadPoData = async () => {
       try {
-        const posingledata = await GetSinglePO(selectedPO.po_id);
+        console.log(selectedPO,"selectedPOselectedPOselectedPOselectedPOselectedPOselectedPO")
+        const posingledata = await GetSinglePO(selectedPO.po_number);
         if (posingledata?.purchase_order_lines) {
           const lockstatus = posingledata?.po_user_action == 'ASSIGNED' ? true : false;
           setCurrentPO(selectedPO.po_id, lockstatus);
@@ -360,6 +363,7 @@ const NewReceiveScreen = () => {
         org_id: OrgData?.selectedOrg,
         locator: i.locator ? i.locator : null,
         status: i.status,
+        copies: printcopies,
       }));
     navigation.push('ReceiveSummaryScreen', {
       id: selectedPO?.id ?? null,
@@ -368,6 +372,7 @@ const NewReceiveScreen = () => {
       purchaseReceipt: PurchaseReceipt,
       header: mapHeader(selectedPO),
       listType: 'line',
+      copies: printcopies,
       interface_id: null,
     });
   };

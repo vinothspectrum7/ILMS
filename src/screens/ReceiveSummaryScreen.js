@@ -43,7 +43,10 @@ const ReceiveSummaryScreen = () => {
   const [profileName, setProfileName] = useState('');
   const [deletedIds, setDeletedIds] = useState([]);
   const readonly = !!route?.params?.readonly;
+  const printcopies = route?.params?.copies || '0';
+  console.log(printcopies, "printcopiesprintcopiesprintcopiesprintcopies")
   const listTypeFromRoute = route?.params?.listType || 'line';
+  console.log(listTypeFromRoute, "listTypeFromRoutelistTypeFromRoutelistTypeFromRoute")
   const headerFromRoute = route?.params?.header || null;
   const purchaseReceipt = route?.params?.purchaseReceipt;
   const { currentPO } = getCurrentPO();
@@ -763,19 +766,19 @@ const ReceiveSummaryScreen = () => {
     }, [filteredItems, listTypeFromRoute, navigation])
   );
 
-  const TogglePill = ({ label, value, onToggle }) => {
+  const TogglePill = ({ Rightlabel,Leftlabel, value, onToggle }) => {
     return (
       <TouchableOpacity activeOpacity={0.9} onPress={onToggle}>
-        <View style={[styles.toggleTrack, { backgroundColor: value ? '#233E55' : '#9D9FA3' }]}>
+        <View style={[styles.toggleTrack, { backgroundColor: value ? '#168035' : '#233E55' }]}>
           {value ? (
             <>
-              <Text style={[styles.toggleText, styles.textLeft]}>{label}</Text>
+              <Text style={[styles.toggleText, styles.textLeft]}>{Leftlabel}</Text>
               <View style={[styles.toggleDot, styles.dotOn]} />
             </>
           ) : (
             <>
               <View style={[styles.toggleDot, styles.dotOff]} />
-              <Text style={[styles.toggleText, styles.textRight]}>{label}</Text>
+              <Text style={[styles.toggleText, styles.textRight]}>{Rightlabel}</Text>
             </>
           )}
         </View>
@@ -813,9 +816,7 @@ const ReceiveSummaryScreen = () => {
           <Text style={styles.itemName}>Items Summary</Text>
 
           <View style={styles.toggleGroup}>
-            <TogglePill label="Print Label" value={printlabel} onToggle={() => setprintlabel(v => !v)} />
-            <View style={{ width: rs(10) }} />
-            <TogglePill label="Label Printed" value={labelprinted} onToggle={() => setlabelprinted(v => !v)} />
+            <TogglePill Leftlabel="Label Printed" Rightlabel="Print Label" value={printlabel} onToggle={() => setprintlabel(v => !v)} />
           </View>
 
           <View style={styles.tableHeader}>
@@ -1038,6 +1039,8 @@ const styles = StyleSheet.create({
   toggleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginEnd: rs(10), 
+    alignSelf: 'flex-end'
   },
   toggleText: {
     fontSize: 10,

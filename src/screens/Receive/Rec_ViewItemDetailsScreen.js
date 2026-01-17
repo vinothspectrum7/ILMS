@@ -157,6 +157,8 @@ const Rec_ViewItemDetailsScreen = () => {
   const [index, setIndex] = useState(startIndex);
   const [activeTab, setActiveTab] = useState('Receive');
 
+  const [copies, setCopies] = useState(0);
+
   const [inspectRowsMap, setInspectRowsMap] = useState({}); // { [itemId]: [rows] }
   const [inspectRowModalVisible, setInspectRowModalVisible] = useState(false);
   const [selectedInspectRow, setSelectedInspectRow] = useState(null);
@@ -211,10 +213,10 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const lotsCount = currentLotLines.length;
   const hasLots = lotsCount > 0;
-    const LottotalQty = useMemo(
-      () => currentLotLines.reduce((sum, l) => sum + (Number(l.qty) || 0), 0),
-      [currentLotLines],
-    );
+  const LottotalQty = useMemo(
+    () => currentLotLines.reduce((sum, l) => sum + (Number(l.qty) || 0), 0),
+    [currentLotLines],
+  );
 
   const lotSerialLotsCount = currentLotSerialLines.length;
   const hasLotSerials = lotSerialLotsCount > 0;
@@ -268,7 +270,7 @@ const Rec_ViewItemDetailsScreen = () => {
   const [scannedLotSerial, setscannedLotSerial] = useState('');
   const [inspectModalVisible, setInspectModalVisible] = useState(false);
   const [selectedLot, setSelectedLot] = useState(null);
-  const [selectedLotIndex, setSelectedLotIndex] = useState(0); 
+  const [selectedLotIndex, setSelectedLotIndex] = useState(0);
 
   const [putAwayModalVisible, setPutAwayModalVisible] = useState(false);
   const [selectedPutAwayLot, setSelectedPutAwayLot] = useState(null);
@@ -289,10 +291,10 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const [inspectionDataMap, setInspectionDataMap] = useState({});
   const [selectedLotInitialInspection, setSelectedLotInitialInspection] = useState(null);
-    // preview modal state
-    const [previewVisible, setPreviewVisible] = useState(false);
-    const [previewUri, setPreviewUri] = useState(null);
-    const [imageMap, setImageMap] = useState({});
+  // preview modal state
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewUri, setPreviewUri] = useState(null);
+  const [imageMap, setImageMap] = useState({});
 
   const openInspectModal = useCallback(
     (lot, lotIdx) => {
@@ -315,124 +317,125 @@ const Rec_ViewItemDetailsScreen = () => {
   );
 
   const openPutAwayModal = useCallback(
-  (lot, lotIdx) => {
-    setSelectedPutAwayLot(lot);
-    setSelectedPutAwayLotIndex(lotIdx);
+    (lot, lotIdx) => {
+      setSelectedPutAwayLot(lot);
+      setSelectedPutAwayLotIndex(lotIdx);
 
-    const itemId = current?.id;
-    const key = itemId != null ? `${itemId}-${lotIdx}` : '';
-    const fromMap = key ? putAwayDataMap[key] : null;
+      const itemId = current?.id;
+      const key = itemId != null ? `${itemId}-${lotIdx}` : '';
+      const fromMap = key ? putAwayDataMap[key] : null;
 
-    let fromStore = null;
-    if (!fromMap) {
-      const lots = Array.isArray(currentStoreLine?.putAwayLots) ? currentStoreLine.putAwayLots : [];
-      fromStore = lots.find(x => Number(x?.lotIndex) === Number(lotIdx)) || null;
+      let fromStore = null;
+      if (!fromMap) {
+        const lots = Array.isArray(currentStoreLine?.putAwayLots) ? currentStoreLine.putAwayLots : [];
+        fromStore = lots.find(x => Number(x?.lotIndex) === Number(lotIdx)) || null;
+      }
+
+      setPutAwayModalVisible(true);
+    },
+    [current?.id, putAwayDataMap, currentStoreLine],
+  );
+
+  const handleScanAndOpenPutAwayLot = scannedValue => {
+    if (!current) return;
+    const code = normalizeLotKey(scannedValue);
+    if (!code) {
+      Toast.show({ type: 'error', text1: 'Invalid Lot' });
+      return;
+    }
+    const idx = currentLotLines.findIndex(l => normalizeLotKey(l?.lotNumber) === code);
+    if (idx < 0) {
+      Toast.show({ type: 'error', text1: 'Lot not found' });
+      return;
+    }
+    const lot = currentLotLines[idx];
+    setTimeout(() => {
+      openPutAwayModal(lot, idx);
+    }, 250);
+  };
+
+  const handlePutAwayComplete = putAwayData => {
+    const lotKey = `${current?.id}-${putAwayData.lotIndex}`;
+
+    setPutAwayDataMap(prev => ({
+      ...prev,
+      [lotKey]: {
+        ...putAwayData,
+        putAwayDate: new Date().toISOString(),
+      },
+    }));
+
+    if (!current) return;
+
+    const stored = Array.isArray(receiveItems)
+      ? receiveItems.find(r => String(r.id) === String(current.id))
+      : null;
+
+    const existing = Array.isArray(stored?.putAwayLots) ? stored.putAwayLots : [];
+    const idx = existing.findIndex(x => Number(x?.lotIndex) === Number(putAwayData.lotIndex));
+
+    let updated;
+    const row = { ...putAwayData, putAwayDate: new Date().toISOString() };
+
+    if (idx >= 0) {
+      updated = [...existing];
+      updated[idx] = row;
+    } else {
+      updated = [...existing, row];
     }
 
-    setPutAwayModalVisible(true);
-  },
-  [current?.id, putAwayDataMap, currentStoreLine],
-);
+    const allCompleted =
+      Array.isArray(currentLotLines) &&
+      currentLotLines.length > 0 &&
+      currentLotLines.every((_, i) => updated.some(x => Number(x?.lotIndex) === Number(i)));
 
-const handleScanAndOpenPutAwayLot = scannedValue => {
-  if (!current) return;
-  const code = normalizeLotKey(scannedValue);
-  if (!code) {
-    Toast.show({ type: 'error', text1: 'Invalid Lot' });
-    return;
-  }
-  const idx = currentLotLines.findIndex(l => normalizeLotKey(l?.lotNumber) === code);
-  if (idx < 0) {
-    Toast.show({ type: 'error', text1: 'Lot not found' });
-    return;
-  }
-  const lot = currentLotLines[idx];
-  setTimeout(() => {
-    openPutAwayModal(lot, idx);
-  }, 250);
-};
-
-const handlePutAwayComplete = putAwayData => {
-  const lotKey = `${current?.id}-${putAwayData.lotIndex}`;
-
-  setPutAwayDataMap(prev => ({
-    ...prev,
-    [lotKey]: {
-      ...putAwayData,
-      putAwayDate: new Date().toISOString(),
-    },
-  }));
-
-  if (!current) return;
-
-  const stored = Array.isArray(receiveItems)
-    ? receiveItems.find(r => String(r.id) === String(current.id))
-    : null;
-
-  const existing = Array.isArray(stored?.putAwayLots) ? stored.putAwayLots : [];
-  const idx = existing.findIndex(x => Number(x?.lotIndex) === Number(putAwayData.lotIndex));
-
-  let updated;
-  const row = { ...putAwayData, putAwayDate: new Date().toISOString() };
-
-  if (idx >= 0) {
-    updated = [...existing];
-    updated[idx] = row;
-  } else {
-    updated = [...existing, row];
-  }
-
-  const allCompleted =
-    Array.isArray(currentLotLines) &&
-    currentLotLines.length > 0 &&
-    currentLotLines.every((_, i) => updated.some(x => Number(x?.lotIndex) === Number(i)));
-
-  mergePatchIntoReceiveItems({
-    id: String(current.id),
-    putAwayLots: updated,
-    putAwayStatus: allCompleted ? 'Passed' : 'Pending',
-  });
-};
+    mergePatchIntoReceiveItems({
+      id: String(current.id),
+      putAwayLots: updated,
+      putAwayStatus: allCompleted ? 'Passed' : 'Pending',
+      copies: copies,
+    });
+  };
 
 
   const openInspectLotSerialModal = useCallback(
-  (lot, lotIdx) => {
-    setSelectedLotSerial(lot);
-    setSelectedLotSerialIndex(lotIdx);
+    (lot, lotIdx) => {
+      setSelectedLotSerial(lot);
+      setSelectedLotSerialIndex(lotIdx);
 
-    const itemId = current?.id;
-    const key = itemId != null ? `${itemId}-${lotIdx}` : '';
-    setInspectLotSerialKey(key);
+      const itemId = current?.id;
+      const key = itemId != null ? `${itemId}-${lotIdx}` : '';
+      setInspectLotSerialKey(key);
 
-    const fromMap = key ? inspectionDataMap[key] : null;
-    let fromStore = null;
+      const fromMap = key ? inspectionDataMap[key] : null;
+      let fromStore = null;
 
-    if (!fromMap && currentStoreLine?.inspections && Array.isArray(currentStoreLine.inspections)) {
-      fromStore =
-        currentStoreLine.inspections.find(i => Number(i?.lotIndex) === Number(lotIdx)) || null;
-    }
+      if (!fromMap && currentStoreLine?.inspections && Array.isArray(currentStoreLine.inspections)) {
+        fromStore =
+          currentStoreLine.inspections.find(i => Number(i?.lotIndex) === Number(lotIdx)) || null;
+      }
 
-    const initial = fromMap || fromStore || null;
+      const initial = fromMap || fromStore || null;
 
-    const initSerials = Array.isArray(initial?.serials) ? initial.serials : [];
-    if (key && initSerials.length) {
-      setLotSerialSelectedSerialsMap(prev => ({ ...prev, [key]: initSerials }));
-    }
+      const initSerials = Array.isArray(initial?.serials) ? initial.serials : [];
+      if (key && initSerials.length) {
+        setLotSerialSelectedSerialsMap(prev => ({ ...prev, [key]: initSerials }));
+      }
 
-    setSelectedLotSerialInitialInspection(initial);
-    setInspectLotSerialModalVisible(true);
-  },
-  [current?.id, inspectionDataMap, currentStoreLine],
-);
+      setSelectedLotSerialInitialInspection(initial);
+      setInspectLotSerialModalVisible(true);
+    },
+    [current?.id, inspectionDataMap, currentStoreLine],
+  );
 
-const openInspectLotSerialSerialModal = useCallback(() => {
-  if (!selectedLotSerial || !current) return;
+  const openInspectLotSerialSerialModal = useCallback(() => {
+    if (!selectedLotSerial || !current) return;
 
-  const qty = Number(selectedLotSerial?.qty || 0);
-  if (!qty || qty <= 0) return;
+    const qty = Number(selectedLotSerial?.qty || 0);
+    if (!qty || qty <= 0) return;
 
-  setInspectLotSerialSerialModalVisible(true);
-}, [selectedLotSerial, current]);
+    setInspectLotSerialSerialModalVisible(true);
+  }, [selectedLotSerial, current]);
 
 
 
@@ -495,72 +498,74 @@ const openInspectLotSerialSerialModal = useCallback(() => {
         id: String(current.id),
         inspections: updatedInspections,
         inspectionStatus,
+        copies: copies,
       });
     }
-  }; 
+  };
 
   const handleLotSerialInspectionComplete = inspectionData => {
-  const lotKey = `${current?.id}-${inspectionData.lotIndex}`;
+    const lotKey = `${current?.id}-${inspectionData.lotIndex}`;
 
-  setInspectionDataMap(prev => ({
-    ...prev,
-    [lotKey]: {
-      ...inspectionData,
-      inspectionDate: new Date().toISOString(),
-    },
-  }));
-
-  if (current) {
-    const stored = Array.isArray(receiveItems)
-      ? receiveItems.find(r => String(r.id) === String(current.id))
-      : null;
-
-    const existingInspections = stored?.inspections || [];
-
-    const existingIndex = existingInspections.findIndex(
-      insp => Number(insp.lotIndex) === Number(inspectionData.lotIndex),
-    );
-
-    let updatedInspections;
-    if (existingIndex >= 0) {
-      updatedInspections = [...existingInspections];
-      updatedInspections[existingIndex] = {
+    setInspectionDataMap(prev => ({
+      ...prev,
+      [lotKey]: {
         ...inspectionData,
         inspectionDate: new Date().toISOString(),
-      };
-    } else {
-      updatedInspections = [
-        ...existingInspections,
-        {
+      },
+    }));
+
+    if (current) {
+      const stored = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(current.id))
+        : null;
+
+      const existingInspections = stored?.inspections || [];
+
+      const existingIndex = existingInspections.findIndex(
+        insp => Number(insp.lotIndex) === Number(inspectionData.lotIndex),
+      );
+
+      let updatedInspections;
+      if (existingIndex >= 0) {
+        updatedInspections = [...existingInspections];
+        updatedInspections[existingIndex] = {
           ...inspectionData,
           inspectionDate: new Date().toISOString(),
-        },
-      ];
+        };
+      } else {
+        updatedInspections = [
+          ...existingInspections,
+          {
+            ...inspectionData,
+            inspectionDate: new Date().toISOString(),
+          },
+        ];
+      }
+
+      const hasRejected = updatedInspections.some(
+        insp =>
+          insp.status?.name === 'Reject and Notify' ||
+          insp.status?.name === 'Unacceptable',
+      );
+
+      const hasPassed = updatedInspections.some(
+        insp =>
+          insp.status?.name === 'Above Average' ||
+          insp.status?.name === 'Average' ||
+          insp.status?.name === 'Excellent' ||
+          insp.status?.name === 'Passed',
+      );
+
+      const inspectionStatus = hasRejected ? 'Rejected' : hasPassed ? 'Passed' : 'Pending';
+
+      mergePatchIntoReceiveItems({
+        id: String(current.id),
+        inspections: updatedInspections,
+        inspectionStatus,
+        copies: copies,
+      });
     }
-
-    const hasRejected = updatedInspections.some(
-      insp =>
-        insp.status?.name === 'Reject and Notify' ||
-        insp.status?.name === 'Unacceptable',
-    );
-
-    const hasPassed = updatedInspections.some(
-      insp =>
-        insp.status?.name === 'Above Average' ||
-        insp.status?.name === 'Average' ||
-        insp.status?.name === 'Excellent' ||
-        insp.status?.name === 'Passed',
-    );
-
-    const inspectionStatus = hasRejected ? 'Rejected' : hasPassed ? 'Passed' : 'Pending';
-
-    mergePatchIntoReceiveItems({
-      id: String(current.id),
-      inspections: updatedInspections,
-      inspectionStatus,
-    });
-  }
-};
+  };
 
 
   useEffect(() => {
@@ -581,53 +586,53 @@ const openInspectLotSerialSerialModal = useCallback(() => {
   }, [allItems, receiveItems, readOnly]);
 
   useEffect(() => {
-  if (readOnly) return;
+    if (readOnly) return;
 
-  const next = {};
-  for (const it of allItems) {
-    const fromStore = Array.isArray(receiveItems)
-      ? receiveItems.find(r => String(r.id) === String(it.id))
-      : undefined;
+    const next = {};
+    for (const it of allItems) {
+      const fromStore = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(it.id))
+        : undefined;
 
-    next[it.id] = {
-      subInventory: getId(
-        fromStore?.putAwaySubInventory ??
+      next[it.id] = {
+        subInventory: getId(
+          fromStore?.putAwaySubInventory ??
           fromStore?.subInventory ??
           it.subInventory ??
           OrgData?.selectedinventory ??
           '',
-      ),
-      locator: getId(
-        fromStore?.putAwayLocator ??
+        ),
+        locator: getId(
+          fromStore?.putAwayLocator ??
           fromStore?.locator ??
           it.locator ??
           '',
-      ),
-      putAwayQty: Number(fromStore?.putAwayQty ?? 0),
-    };
-  }
+        ),
+        putAwayQty: Number(fromStore?.putAwayQty ?? 0),
+      };
+    }
 
-  setPutAwayEditedMap(next);
-}, [allItems, receiveItems, readOnly, OrgData]);
+    setPutAwayEditedMap(next);
+  }, [allItems, receiveItems, readOnly, OrgData]);
 
 
-useEffect(() => {
-  if (readOnly) return;
-  if (!current) return;
-  if (current?.itemType !== 'Serial') return;
+  useEffect(() => {
+    if (readOnly) return;
+    if (!current) return;
+    if (current?.itemType !== 'Serial') return;
 
-  const storeSerials = Array.isArray(currentStoreLine?.putAwaySerials)
-    ? currentStoreLine.putAwaySerials
-    : [];
+    const storeSerials = Array.isArray(currentStoreLine?.putAwaySerials)
+      ? currentStoreLine.putAwaySerials
+      : [];
 
-  if (!storeSerials.length) return;
+    if (!storeSerials.length) return;
 
-  setPutAwaySelectedSerialsMap(prev => {
-    const existing = Array.isArray(prev[current.id]) ? prev[current.id] : [];
-    if (existing.length) return prev; // don’t override user’s current session selection
-    return { ...prev, [current.id]: storeSerials };
-  });
-}, [readOnly, current?.id, current?.itemType, currentStoreLine?.putAwaySerials]);
+    setPutAwaySelectedSerialsMap(prev => {
+      const existing = Array.isArray(prev[current.id]) ? prev[current.id] : [];
+      if (existing.length) return prev; // don’t override user’s current session selection
+      return { ...prev, [current.id]: storeSerials };
+    });
+  }, [readOnly, current?.id, current?.itemType, currentStoreLine?.putAwaySerials]);
 
 
 
@@ -903,13 +908,13 @@ useEffect(() => {
           ...(lineIsStandard
             ? {}
             : {
-                subInventory: st.subInventory ?? '',
-                locator: st.locator ?? null,
-              }),
+              subInventory: st.subInventory ?? '',
+              locator: st.locator ?? null,
+            }),
           imageUri: itemstore?.imageUri ?? null,
         });
       }
-          console.log(itemstore,"editededitededitededited");
+      console.log(itemstore, "editededitededitededited");
 
     });
     patches.forEach(p => mergePatchIntoReceiveItems(p));
@@ -1021,91 +1026,91 @@ useEffect(() => {
 
     setLotSerialModalVisible(false);
   };
-const sumQty = (lines = []) =>
-  lines.reduce((sum, l) => sum + Number(l.qty ?? 0), 0);
+  const sumQty = (lines = []) =>
+    lines.reduce((sum, l) => sum + Number(l.qty ?? 0), 0);
 
-const getSerialLinesByItemId = (itemId) => {
-  const fromStore = receiveItems?.find(
-    r => String(r.id) === String(itemId)
-  )?.serialLines;
+  const getSerialLinesByItemId = (itemId) => {
+    const fromStore = receiveItems?.find(
+      r => String(r.id) === String(itemId)
+    )?.serialLines;
 
-  if (Array.isArray(fromStore)) return fromStore;
+    if (Array.isArray(fromStore)) return fromStore;
 
-  const fromLocal = serialRowsMap[itemId];
-  return Array.isArray(fromLocal) ? fromLocal : [];
-};
+    const fromLocal = serialRowsMap[itemId];
+    return Array.isArray(fromLocal) ? fromLocal : [];
+  };
 
   const getLotLinesByItemId = (itemId) => {
-  const fromStore = receiveItems?.find(
-    r => String(r.id) === String(itemId)
-  )?.lotLines;
+    const fromStore = receiveItems?.find(
+      r => String(r.id) === String(itemId)
+    )?.lotLines;
 
-  if (Array.isArray(fromStore)) return fromStore;
+    if (Array.isArray(fromStore)) return fromStore;
 
-  const fromLocal = lotRowsMap[itemId];
-  return Array.isArray(fromLocal) ? fromLocal : [];
-};
+    const fromLocal = lotRowsMap[itemId];
+    return Array.isArray(fromLocal) ? fromLocal : [];
+  };
 
-const isReceiveSubmitEnabled = useMemo(() => {
-  if (readOnly) return false;
-  // ✅ validate only items where qty is entered
-  const activeItems = allItems.filter(it => {
-    const st = edited[it.id];
-    return Number(st?.receivingQty ?? 0) > 0;
-  });
+  const isReceiveSubmitEnabled = useMemo(() => {
+    if (readOnly) return false;
+    // ✅ validate only items where qty is entered
+    const activeItems = allItems.filter(it => {
+      const st = edited[it.id];
+      return Number(st?.receivingQty ?? 0) > 0;
+    });
 
-  if (activeItems.length === 0) return false;
-  return activeItems.every(it => {
-    const st = edited[it.id];
-    if (!st) return false;
+    if (activeItems.length === 0) return false;
+    return activeItems.every(it => {
+      const st = edited[it.id];
+      if (!st) return false;
 
-    const receivingQty = Number(st.receivingQty ?? 0);
-    const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
-console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
+      const receivingQty = Number(st.receivingQty ?? 0);
+      const limit = Number(it.max_open_qty ?? it.openQty ?? 0);
+      console.log(activeItems, LottotalQty, "activeItemsactiveItemsactiveItems")
 
-    // Basic qty validation
-    if (!(receivingQty > 0 && receivingQty <= limit)) return false;
+      // Basic qty validation
+      if (!(receivingQty > 0 && receivingQty <= limit)) return false;
 
-    const lineDelivery = String(it?.deliverytype ?? '').trim();
-    const lineIsDirect = lineDelivery === 'Direct delivery';
-    const lineIsStandard = lineDelivery === 'Standard receipt';
-    const lineIsInspectionRequired = lineDelivery === 'Inspection required';
+      const lineDelivery = String(it?.deliverytype ?? '').trim();
+      const lineIsDirect = lineDelivery === 'Direct delivery';
+      const lineIsStandard = lineDelivery === 'Standard receipt';
+      const lineIsInspectionRequired = lineDelivery === 'Inspection required';
 
-    // Standard receipt / Inspection required: LPN is OPTIONAL for now.
-    // Only validate qty here (already validated above) and allow save.
-    if (lineIsStandard || lineIsInspectionRequired) {
-      return true;
-    }
-
-
-    // Direct delivery keeps existing validations + requires subInventory
-    if (!st.subInventory) return false;
-
-    if (lineIsDirect) {
-      switch (it.itemtype) {
-        case 'Lot': {
-          const lotQty = sumQty(getLotLinesByItemId(it.id));
-          if (lotQty !== receivingQty) return false;
-          break;
-        }
-        case 'Serial': {
-          const serialQty = sumQty(getSerialLinesByItemId(it.id));
-          if (serialQty !== receivingQty) return false;
-          break;
-        }
-        case 'Lot+Serial': {
-          const lotQty = sumQty(getLotLinesByItemId(it.id));
-          if (lotQty !== receivingQty) return false;
-          break;
-        }
-        default:
-          break;
+      // Standard receipt / Inspection required: LPN is OPTIONAL for now.
+      // Only validate qty here (already validated above) and allow save.
+      if (lineIsStandard || lineIsInspectionRequired) {
+        return true;
       }
-    }
 
-    return true;
-  });
-}, [edited, allItems, readOnly]);
+
+      // Direct delivery keeps existing validations + requires subInventory
+      if (!st.subInventory) return false;
+
+      if (lineIsDirect) {
+        switch (it.itemtype) {
+          case 'Lot': {
+            const lotQty = sumQty(getLotLinesByItemId(it.id));
+            if (lotQty !== receivingQty) return false;
+            break;
+          }
+          case 'Serial': {
+            const serialQty = sumQty(getSerialLinesByItemId(it.id));
+            if (serialQty !== receivingQty) return false;
+            break;
+          }
+          case 'Lot+Serial': {
+            const lotQty = sumQty(getLotLinesByItemId(it.id));
+            if (lotQty !== receivingQty) return false;
+            break;
+          }
+          default:
+            break;
+        }
+      }
+
+      return true;
+    });
+  }, [edited, allItems, readOnly]);
 
 
   // const handleSaveAll = () => {
@@ -1115,6 +1120,7 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
   //   else navigation.goBack();
   // };
   const handleSaveAll = () => {
+    console.log(copies, "printcopiesprintcopiesprintcopiesprintcopies")
     if (!isReceiveSubmitEnabled) return;
     persistPatches();
 
@@ -1148,18 +1154,19 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
         });
       }
     });
+    console.log(copies, "printcopiesprintcopiesprintcopiesprintcopies")
 
-    if (returnTo) navigation.navigate(returnTo, { listType });
+    if (returnTo) navigation.navigate(returnTo, { listType, copies });
     else navigation.goBack();
   };
 
   const handleSaveInspectLot = () => {
     if (!current) return;
-    if (returnTo) navigation.navigate(returnTo, { listType });
+    if (returnTo) navigation.navigate(returnTo,  { listType, copies });
     else navigation.goBack();
   };
 
-    const handleSavePutAway = useCallback(() => {
+  const handleSavePutAway = useCallback(() => {
     if (!current) return;
 
     const stored = Array.isArray(receiveItems)
@@ -1208,7 +1215,7 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
       lastPutAwayDate: new Date().toISOString(),
     });
 
-    if (returnTo) navigation.navigate(returnTo, { listType });
+    if (returnTo) navigation.navigate(returnTo,  { listType, copies });
     else navigation.goBack();
   }, [
     current,
@@ -1365,30 +1372,30 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
       : 0;
 
 
-      useEffect(() => {
-        if (readOnly) return;
-        if (!current) return;
-        if (activeTab !== 'PutAway') return;
-        if (itemType !== 'Serial') return;
+  useEffect(() => {
+    if (readOnly) return;
+    if (!current) return;
+    if (activeTab !== 'PutAway') return;
+    if (itemType !== 'Serial') return;
 
-        if (putAwayMax <= 0) return;
+    if (putAwayMax <= 0) return;
 
-        setPutAwayEditedMap(prev => {
-          const line = prev[current.id] ?? {};
-          const existingQty = Number(line.putAwayQty ?? 0);
+    setPutAwayEditedMap(prev => {
+      const line = prev[current.id] ?? {};
+      const existingQty = Number(line.putAwayQty ?? 0);
 
-          // keep user's qty if already valid
-          if (existingQty > 0 && existingQty <= putAwayMax) return prev;
+      // keep user's qty if already valid
+      if (existingQty > 0 && existingQty <= putAwayMax) return prev;
 
-          return {
-            ...prev,
-            [current.id]: {
-              ...line,
-              putAwayQty: putAwayMax,
-            },
-          };
-        });
-      }, [readOnly, current?.id, activeTab, itemType, putAwayMax]);
+      return {
+        ...prev,
+        [current.id]: {
+          ...line,
+          putAwayQty: putAwayMax,
+        },
+      };
+    });
+  }, [readOnly, current?.id, activeTab, itemType, putAwayMax]);
 
 
 
@@ -1436,9 +1443,9 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
     const showSerial = itemType === 'Serial';
     const showLotSerial = itemType === 'Lot+Serial';
     const showreceive = itemType === null;
-    return { showLot, showSerial, showLotSerial,showreceive };
+    return { showLot, showSerial, showLotSerial, showreceive };
   })();
-    const deliveryPills = (() => {
+  const deliveryPills = (() => {
     const showreceive = isDirectDelivery;
     const showputaway = isStandardReceipt;
     const inspect = isInspectionRequired;
@@ -1471,24 +1478,24 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
 
 
   useEffect(() => {
-  const saved = {};
+    const saved = {};
 
-  allItems.forEach(item => {
-    const stored = Array.isArray(receiveItems)
-      ? receiveItems.find(r => String(r.id) === String(item.id))
-      : null;
+    allItems.forEach(item => {
+      const stored = Array.isArray(receiveItems)
+        ? receiveItems.find(r => String(r.id) === String(item.id))
+        : null;
 
-    const lots = Array.isArray(stored?.putAwayLots) ? stored.putAwayLots : [];
-    lots.forEach(pa => {
-      if (pa?.lotIndex !== undefined && pa?.lotIndex !== null) {
-        const key = `${item.id}-${pa.lotIndex}`;
-        saved[key] = pa;
-      }
+      const lots = Array.isArray(stored?.putAwayLots) ? stored.putAwayLots : [];
+      lots.forEach(pa => {
+        if (pa?.lotIndex !== undefined && pa?.lotIndex !== null) {
+          const key = `${item.id}-${pa.lotIndex}`;
+          saved[key] = pa;
+        }
+      });
     });
-  });
 
-  setPutAwayDataMap(saved);
-}, [allItems, receiveItems]);
+    setPutAwayDataMap(saved);
+  }, [allItems, receiveItems]);
 
 
   const baseInspectionStatus = (currentStoreLine?.inspectionStatus || '').toLowerCase();
@@ -1555,9 +1562,10 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
       failedQty,
       holdQty,
       inspectionNotes: notes,
+      copies: copies,
     });
 
-    if (returnTo) navigation.navigate(returnTo, { listType });
+    if (returnTo) navigation.navigate(returnTo,  { listType, copies });
     else navigation.goBack();
   };
 
@@ -1614,7 +1622,7 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
     });
   }, [current, hasLots, currentLotLines, inspectionDataMap]);
 
-    const allSavedLotsPutAwayCompleted = useMemo(() => {
+  const allSavedLotsPutAwayCompleted = useMemo(() => {
     if (!current) return false;
     if (!hasLots) return false;
 
@@ -1634,21 +1642,21 @@ console.log(activeItems,LottotalQty,"activeItemsactiveItemsactiveItems")
 
 
   const allSavedLotSerialLotsInspected = useMemo(() => {
-  if (!current) return false;
-  if (!hasLotSerials) return false;
-  return currentLotSerialLines.every((_, idx) => {
-    const key = `${current.id}-${idx}`;
-    return !!inspectionDataMap[key];
-  });
-}, [current, hasLotSerials, currentLotSerialLines, inspectionDataMap]);
+    if (!current) return false;
+    if (!hasLotSerials) return false;
+    return currentLotSerialLines.every((_, idx) => {
+      const key = `${current.id}-${idx}`;
+      return !!inspectionDataMap[key];
+    });
+  }, [current, hasLotSerials, currentLotSerialLines, inspectionDataMap]);
 
-const isInspectLotSerialSubmitEnabled = useMemo(() => {
-  if (readOnly || !current) return false;
-  if (!hasLotSerials) return false;
-  return allSavedLotSerialLotsInspected;
-}, [readOnly, current, hasLotSerials, allSavedLotSerialLotsInspected]);
+  const isInspectLotSerialSubmitEnabled = useMemo(() => {
+    if (readOnly || !current) return false;
+    if (!hasLotSerials) return false;
+    return allSavedLotSerialLotsInspected;
+  }, [readOnly, current, hasLotSerials, allSavedLotSerialLotsInspected]);
 
-  
+
   const isInspectLotSubmitEnabled = useMemo(() => {
     if (readOnly || !current) return false;
     if (!hasLots) return false;
@@ -1679,210 +1687,210 @@ const isInspectLotSerialSubmitEnabled = useMemo(() => {
     }, 250);
   };
 
-const renderImageBox = (item) => {
-  const imgState = edited[item.itemid] ?? {
-    imageUri: item.imageUri,
-    loading: false,
+  const renderImageBox = (item) => {
+    const imgState = edited[item.itemid] ?? {
+      imageUri: item.imageUri,
+      loading: false,
+    };
+
+    if (imgState.loading) {
+      return <ActivityIndicator size="large" color="#007bff" />;
+    }
+
+    if (imgState.imageUri) {
+      return (
+        <TouchableOpacity
+          style={{ flex: 1, width: '100%', height: '100%' }}
+          onPress={() => {
+            setPreviewUri(imgState.imageUri);
+            setPreviewVisible(true);
+          }}
+        >
+          <Image
+            source={{ uri: imgState.imageUri }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
+      );
+    }
+
+    return <Text style={{ fontSize: 10, color: '#999' }}>No Image</Text>;
   };
 
-  if (imgState.loading) {
-    return <ActivityIndicator size="large" color="#007bff" />;
-  }
-
-  if (imgState.imageUri) {
-    return (
-      <TouchableOpacity
-        style={{ flex: 1, width: '100%', height: '100%' }}
-        onPress={() => {
-          setPreviewUri(imgState.imageUri);
-          setPreviewVisible(true);
-        }}
-      >
-        <Image
-          source={{ uri: imgState.imageUri }}
-          style={{ width: '100%', height: '100%' }}
-          resizeMode="cover"
-        />
-      </TouchableOpacity>
-    );
-  }
-
-  return <Text style={{ fontSize: 10, color: '#999' }}>No Image</Text>;
-};
 
 
+  useEffect(() => {
+    const currentItem = allItems[index];
+    if (!currentItem) return;
 
-useEffect(() => {
-  const currentItem = allItems[index];
-  if (!currentItem) return;
+    const editedItem = edited[currentItem.itemid];
+    console.log(currentItem, "editedItemeditedItem");
 
-  const editedItem = edited[currentItem.itemid];
-  console.log(currentItem,"editedItemeditedItem");
+    // 🚫 If user already changed image, DO NOT fetch
+    if (currentItem?.imageUri) return;
 
-  // 🚫 If user already changed image, DO NOT fetch
-  if (currentItem?.imageUri) return;
+    // ✅ Fetch only once
+    // if (!editedItem?.imageUri && !editedItem?.loading) {
+    //   fetchImageForItem(currentItem.itemid);
+    // }
+  }, [index, allItems, edited]);
 
-  // ✅ Fetch only once
-  // if (!editedItem?.imageUri && !editedItem?.loading) {
-  //   fetchImageForItem(currentItem.itemid);
-  // }
-}, [index, allItems, edited]);
-
-const fetchImageForItem = async (itemId) => {
-  setEdited(prev => ({
-    ...prev,
-    [itemId]: {
-      ...(prev[itemId] ?? {}),
-      loading: false,
-    },
-  }));
-
-  // try {
-  //   const resp = await GetItemImage(itemId);
-
-  //   setEdited(prev => ({
-  //     ...prev,
-  //     [itemId]: {
-  //       imageUri: resp?.base64_image ?? null,
-  //       loading: false,
-  //       source: 'api',
-  //     },
-  //   }));
-  // } catch (err) {
-  //   setEdited(prev => ({
-  //     ...prev,
-  //     [itemId]: {
-  //       imageUri: null,
-  //       loading: false,
-  //       source: 'api',
-  //     },
-  //   }));
-  // }
-};
-
-
-
-const handleImagePick = (itemId) => {
-  Alert.alert('Select Image', 'Choose an option', [
-    {
-      text: 'Camera',
-      onPress: () => {
-        launchCamera({ mediaType: 'photo', quality: 0.7 }, res => {
-          if (!res.didCancel && !res.errorCode) {
-            const uri = res.assets?.[0]?.uri;
-            setEdited(prev => ({
-              ...prev,
-              [itemId]: {
-                imageUri: uri,
-                loading: false,
-                source: 'local', // 🔑
-              },
-            }));
-          }
-        });
+  const fetchImageForItem = async (itemId) => {
+    setEdited(prev => ({
+      ...prev,
+      [itemId]: {
+        ...(prev[itemId] ?? {}),
+        loading: false,
       },
-    },
-    {
-      text: 'Gallery',
-      onPress: () => {
-        launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, res => {
-          if (!res.didCancel && !res.errorCode) {
-            const uri = res.assets?.[0]?.uri;
-            console.log(uri,itemId,"sdfghjhgfdsdfghjhgfdesdfgh")
-            setEdited(prev => ({
-              ...prev,
-              [itemId]: {
-                imageUri: uri,
-                loading: false,
-                source: 'local',
-              },
-            }));
-          }
-        });
+    }));
+
+    // try {
+    //   const resp = await GetItemImage(itemId);
+
+    //   setEdited(prev => ({
+    //     ...prev,
+    //     [itemId]: {
+    //       imageUri: resp?.base64_image ?? null,
+    //       loading: false,
+    //       source: 'api',
+    //     },
+    //   }));
+    // } catch (err) {
+    //   setEdited(prev => ({
+    //     ...prev,
+    //     [itemId]: {
+    //       imageUri: null,
+    //       loading: false,
+    //       source: 'api',
+    //     },
+    //   }));
+    // }
+  };
+
+
+
+  const handleImagePick = (itemId) => {
+    Alert.alert('Select Image', 'Choose an option', [
+      {
+        text: 'Camera',
+        onPress: () => {
+          launchCamera({ mediaType: 'photo', quality: 0.7 }, res => {
+            if (!res.didCancel && !res.errorCode) {
+              const uri = res.assets?.[0]?.uri;
+              setEdited(prev => ({
+                ...prev,
+                [itemId]: {
+                  imageUri: uri,
+                  loading: false,
+                  source: 'local', // 🔑
+                },
+              }));
+            }
+          });
+        },
       },
-    },
-    { text: 'Cancel', style: 'cancel' },
-  ]);
-};
+      {
+        text: 'Gallery',
+        onPress: () => {
+          launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, res => {
+            if (!res.didCancel && !res.errorCode) {
+              const uri = res.assets?.[0]?.uri;
+              console.log(uri, itemId, "sdfghjhgfdsdfghjhgfdesdfgh")
+              setEdited(prev => ({
+                ...prev,
+                [itemId]: {
+                  imageUri: uri,
+                  loading: false,
+                  source: 'local',
+                },
+              }));
+            }
+          });
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
 
 
-const openInspectRowModalForPending = useCallback(() => {
-  if (!current) return;
-  if (!isInspectionRequired) return;
-
-  const rows = Array.isArray(inspectRowsMap[current.id]) ? inspectRowsMap[current.id] : [];
-  const pending = rows.find(r => !r.isCompleted);
-
-  if (!pending) {
-    Toast.show({ type: 'info', text1: 'Inspection already completed' });
-    return;
-  }
-
-  const pendingQty = Number(pending.qty ?? 0);
-  if (!pendingQty || pendingQty <= 0) {
-    Toast.show({ type: 'error', text1: 'No pending qty to inspect' });
-    return;
-  }
-
-  setSelectedInspectRow({ ...pending });
-  setInspectRowModalVisible(true);
-}, [current?.id, isInspectionRequired, inspectRowsMap]);
-
-const handleInspectRowComplete = useCallback(
-  payload => {
+  const openInspectRowModalForPending = useCallback(() => {
     if (!current) return;
+    if (!isInspectionRequired) return;
 
-    const rowId = payload?.rowId;
-    const inspectQty = Number(payload?.inspectQty ?? 0);
-    const decision = normalizeInspectDecision(payload?.status);
+    const rows = Array.isArray(inspectRowsMap[current.id]) ? inspectRowsMap[current.id] : [];
+    const pending = rows.find(r => !r.isCompleted);
 
-    if (!rowId || !inspectQty || inspectQty <= 0 || !decision) return;
+    if (!pending) {
+      Toast.show({ type: 'info', text1: 'Inspection already completed' });
+      return;
+    }
 
-    setInspectRowsMap(prev => {
-      const rows = Array.isArray(prev[current.id]) ? prev[current.id] : [];
-      const idx = rows.findIndex(r => String(r.id) === String(rowId));
-      if (idx < 0) return prev;
+    const pendingQty = Number(pending.qty ?? 0);
+    if (!pendingQty || pendingQty <= 0) {
+      Toast.show({ type: 'error', text1: 'No pending qty to inspect' });
+      return;
+    }
 
-      const row = rows[idx];
-      if (!row || row.isCompleted) return prev;
+    setSelectedInspectRow({ ...pending });
+    setInspectRowModalVisible(true);
+  }, [current?.id, isInspectionRequired, inspectRowsMap]);
 
-      const rowQty = Number(row.qty ?? 0);
-      const safeInspectQty = Math.min(inspectQty, rowQty);
+  const handleInspectRowComplete = useCallback(
+    payload => {
+      if (!current) return;
 
-      const completedRow = {
-        ...row,
-        qty: safeInspectQty,
-        inspectDecision: decision === 'Accepted' ? 'Accepted' : 'Rejected',
-        receivingStatus: 'Inspection Completed',
-        isCompleted: true,
-        completedAt: new Date().toISOString(),
-      };
+      const rowId = payload?.rowId;
+      const inspectQty = Number(payload?.inspectQty ?? 0);
+      const decision = normalizeInspectDecision(payload?.status);
 
-      const remaining = Math.max(0, rowQty - safeInspectQty);
+      if (!rowId || !inspectQty || inspectQty <= 0 || !decision) return;
 
-      const nextRows = [...rows];
-      nextRows.splice(idx, 1, completedRow);
+      setInspectRowsMap(prev => {
+        const rows = Array.isArray(prev[current.id]) ? prev[current.id] : [];
+        const idx = rows.findIndex(r => String(r.id) === String(rowId));
+        if (idx < 0) return prev;
 
-      if (remaining > 0) {
-        nextRows.splice(idx + 1, 0, {
-          id: makeInspectRowId(),
-          qty: remaining,
-          inspectDecision: '-',
-          receivingStatus: 'Inspection Pending',
-          isCompleted: false,
-          completedAt: null,
-        });
-      }
+        const row = rows[idx];
+        if (!row || row.isCompleted) return prev;
 
-      return { ...prev, [current.id]: nextRows };
-    });
-  },
-  [current?.id],
-);
-  
+        const rowQty = Number(row.qty ?? 0);
+        const safeInspectQty = Math.min(inspectQty, rowQty);
 
-const handleScanAndOpenLotandSerialInspect = scannedValue => {
+        const completedRow = {
+          ...row,
+          qty: safeInspectQty,
+          inspectDecision: decision === 'Accepted' ? 'Accepted' : 'Rejected',
+          receivingStatus: 'Inspection Completed',
+          isCompleted: true,
+          completedAt: new Date().toISOString(),
+        };
+
+        const remaining = Math.max(0, rowQty - safeInspectQty);
+
+        const nextRows = [...rows];
+        nextRows.splice(idx, 1, completedRow);
+
+        if (remaining > 0) {
+          nextRows.splice(idx + 1, 0, {
+            id: makeInspectRowId(),
+            qty: remaining,
+            inspectDecision: '-',
+            receivingStatus: 'Inspection Pending',
+            isCompleted: false,
+            completedAt: null,
+          });
+        }
+
+        return { ...prev, [current.id]: nextRows };
+      });
+    },
+    [current?.id],
+  );
+
+
+  const handleScanAndOpenLotandSerialInspect = scannedValue => {
     if (!current) return;
     const code = normalizeLotKey(scannedValue);
     if (!code) {
@@ -1900,7 +1908,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
     }, 250);
   };
 
-      const handleSaveInspectionRequired = () => {
+  const handleSaveInspectionRequired = () => {
     if (!current) return;
 
     // Must satisfy receive validations AND inspection must be fully completed
@@ -1921,10 +1929,11 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
       lastInspectionDate: completedRows[completedRows.length - 1]?.completedAt || new Date().toISOString(),
       inspectionData: {
         rows: completedRows,
+        copies: copies,
       },
     });
 
-    if (returnTo) navigation.navigate(returnTo, { listType });
+    if (returnTo) navigation.navigate(returnTo,  { listType, copies });
     else navigation.goBack();
   };
 
@@ -1933,7 +1942,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
 
 
 
-    const rightEnabled = isReceiveSubmitEnabled;
+  const rightEnabled = isReceiveSubmitEnabled;
 
 
 
@@ -2015,92 +2024,92 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
               </TouchableOpacity>
 
 
-<TouchableOpacity
-  style={styles.tabWrapper}
-  activeOpacity={1}
-  onPress={() => {}}
-  disabled
->
-  {(deliveryPills?.showreceive || deliveryPills?.showputaway || deliveryPills?.inspect) ? (
-    // 🔹 Disabled state (NO gradient)
-    <View style={[styles.tabBtn, styles.disabledTab]}>
-      <InspectTabIcon width={18} height={18} />
-      <Text style={[styles.tabText, styles.tabTextInactive]}>
-        Inspect
-      </Text>
-    </View>
-  ) : (
-    // 🔹 Enabled state (Gradient)
-    <LinearGradient
-      colors={
-        activeTab === 'Inspect'
-          ? ['#233E55', '#5D768B']
-          : ['#F3F4F6', '#E5E7EB']
-      }
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={[styles.tabBtn, activeTab === 'Inspect' && styles.tabBtnActive]}
-    >
-      {activeTab === 'Inspect' ? (
-        <SelectedInspectTabIcon width={18} height={18} />
-      ) : (
-        <InspectTabIcon width={18} height={18} />
-      )}
-      <Text
-        style={
-          activeTab === 'Inspect'
-            ? [styles.tabText, styles.tabTextActive]
-            : [styles.tabText, styles.tabTextInactive]
-        }
-      >
-        Inspect
-      </Text>
-    </LinearGradient>
-  )}
-</TouchableOpacity>
+              <TouchableOpacity
+                style={styles.tabWrapper}
+                activeOpacity={1}
+                onPress={() => { }}
+                disabled
+              >
+                {(deliveryPills?.showreceive || deliveryPills?.showputaway || deliveryPills?.inspect) ? (
+                  // 🔹 Disabled state (NO gradient)
+                  <View style={[styles.tabBtn, styles.disabledTab]}>
+                    <InspectTabIcon width={18} height={18} />
+                    <Text style={[styles.tabText, styles.tabTextInactive]}>
+                      Inspect
+                    </Text>
+                  </View>
+                ) : (
+                  // 🔹 Enabled state (Gradient)
+                  <LinearGradient
+                    colors={
+                      activeTab === 'Inspect'
+                        ? ['#233E55', '#5D768B']
+                        : ['#F3F4F6', '#E5E7EB']
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.tabBtn, activeTab === 'Inspect' && styles.tabBtnActive]}
+                  >
+                    {activeTab === 'Inspect' ? (
+                      <SelectedInspectTabIcon width={18} height={18} />
+                    ) : (
+                      <InspectTabIcon width={18} height={18} />
+                    )}
+                    <Text
+                      style={
+                        activeTab === 'Inspect'
+                          ? [styles.tabText, styles.tabTextActive]
+                          : [styles.tabText, styles.tabTextInactive]
+                      }
+                    >
+                      Inspect
+                    </Text>
+                  </LinearGradient>
+                )}
+              </TouchableOpacity>
 
 
               <TouchableOpacity
                 style={styles.tabWrapper}
                 activeOpacity={1}
-                onPress={() => {}}
+                onPress={() => { }}
                 disabled
               >
-                  {(isDirectDelivery || isStandardReceipt || isInspectionRequired) ? (
-    // 🔹 Disabled state (NO gradient)
-    <View style={[styles.tabBtn, styles.disabledTab]}>
-      <InspectTabIcon width={18} height={18} />
-      <Text style={[styles.tabText, styles.tabTextInactive]}>
-        Put Away
-      </Text>
-    </View>
-  ) : (
-                <LinearGradient
-                  colors={
-                    activeTab === 'PutAway'
-                      ? ['#233E55', '#5D768B']
-                      : ['#F3F4F6', '#E5E7EB']
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.tabBtn, activeTab === 'PutAway' && styles.tabBtnActive]}
-                >
-                  {activeTab === 'PutAway' ? (
-                    <SelectedPutAwayTabIcon width={18} height={18} />
-                  ) : (
-                    <PutAwayTabIcon width={18} height={18} />
-                  )}
-                  <Text
-                    style={
+                {(isDirectDelivery || isStandardReceipt || isInspectionRequired) ? (
+                  // 🔹 Disabled state (NO gradient)
+                  <View style={[styles.tabBtn, styles.disabledTab]}>
+                    <InspectTabIcon width={18} height={18} />
+                    <Text style={[styles.tabText, styles.tabTextInactive]}>
+                      Put Away
+                    </Text>
+                  </View>
+                ) : (
+                  <LinearGradient
+                    colors={
                       activeTab === 'PutAway'
-                        ? [styles.tabText, styles.tabTextActive]
-                        : [styles.tabText, styles.tabTextInactive]
+                        ? ['#233E55', '#5D768B']
+                        : ['#F3F4F6', '#E5E7EB']
                     }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.tabBtn, activeTab === 'PutAway' && styles.tabBtnActive]}
                   >
-                    Put Away
-                  </Text>
-                </LinearGradient>
-  )}
+                    {activeTab === 'PutAway' ? (
+                      <SelectedPutAwayTabIcon width={18} height={18} />
+                    ) : (
+                      <PutAwayTabIcon width={18} height={18} />
+                    )}
+                    <Text
+                      style={
+                        activeTab === 'PutAway'
+                          ? [styles.tabText, styles.tabTextActive]
+                          : [styles.tabText, styles.tabTextInactive]
+                      }
+                    >
+                      Put Away
+                    </Text>
+                  </LinearGradient>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -2164,7 +2173,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                   <Text style={styles.sectionTitle}>Quantity Overview</Text>
                 </View>
 
-                <View style={[styles.row,{borderBottomWidth:0.5,borderBottomColor:'#CCCED2'}]}>
+                <View style={[styles.row, { borderBottomWidth: 0.5, borderBottomColor: '#CCCED2' }]}>
                   <Text style={styles.label}>Order Quantity</Text>
                   <Text style={styles.orderQtyText}>
                     {current.orderQty}{' '}
@@ -2173,14 +2182,14 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                 </View>
 
                 {(isStandardReceipt || isInspectionRequired) && (
-                <View style={[styles.row, { borderBottomWidth: 0.5, borderBottomColor: '#CCCED2' }]}>
-                  <Text style={styles.label}>Open Quantity</Text>
-                  <Text style={styles.orderQtyText}>
-                    {Number(current.max_open_qty ?? current.openQty ?? 0)}{' '}
-                    <Text style={styles.orderQtyUom}>/ {current.uom}</Text>
-                  </Text>
-                </View>
-              )}
+                  <View style={[styles.row, { borderBottomWidth: 0.5, borderBottomColor: '#CCCED2' }]}>
+                    <Text style={styles.label}>Open Quantity</Text>
+                    <Text style={styles.orderQtyText}>
+                      {Number(current.max_open_qty ?? current.openQty ?? 0)}{' '}
+                      <Text style={styles.orderQtyUom}>/ {current.uom}</Text>
+                    </Text>
+                  </View>
+                )}
 
 
                 <View style={styles.row}>
@@ -2229,36 +2238,9 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                   </View>
                 )}
 
-                <View style={styles.cardShipTo}>
-                <View style={styles.shipHeaderRow}>
-                  <View style={styles.shipHeaderLeft}>
-                    <Receiveingprinticon width={18} height={18} />
-                    <Text style={styles.sectionTitle}>No. of Print Copies </Text>
-                  </View>
-                  {readOnly ? (
-                      <Text style={styles.orderQtyText}>{currentQty}</Text>
-                    ) : (
-                      <CustomNumericInput
-                        key={`qty-${String(current.id)}`}
-                        value={currentQty}
-                        setValue={v => {
-                          const raw = typeof v === 'function' ? v(currentQty) : v;
-                          handleQtyChange(current.id, current, raw);
-                        }}
-                        max={Number(current.max_open_qty ?? current.openQty ?? 0)}
-                        min={0}
-                        step={1}
-                        width={80}
-                        height={28}
-                        isSelected
-                        disabledinput={Number(current.openQty ?? 0) === 0}
-                      />
-                    )}
-                </View>
-              </View>
-
               </View>
             )}
+
 
             {activeTab === 'Inspect' && current && isInspectionRequired && (
               <View style={styles.inspectRequiredWrap}>
@@ -2362,7 +2344,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
               </View>
             )}
 
-            
+
             {activeTab === 'Inspect' && current && !isInspectionRequired && itemType === 'Serial' && (
               <View style={styles.inspectContainer}>
                 <View
@@ -2848,30 +2830,30 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                     Lot + Serial Controlled
                   </Text>
                 </View>
-                            {/* {current?.itemType === 'Lot' && ( */}
-                              <TouchableOpacity
-                                onPress={() => setShowScanner(true)}
-                                activeOpacity={0.7}
-                                style={{
-                                  width: '100%',
-                                  height: 38,
-                                  borderRadius: 4,
-                                  borderWidth: 1,
-                                  borderColor: '#CCCED2',
-                                  paddingHorizontal: 10,
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  marginBottom: 18,
-                                  marginTop: 18,
-                                }}
-                              >
-                                <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
-                                  {scannedLotSerial || 'Scan Lot'}
-                                </Text>
-                                <Barcodescanner width={18} height={18} />
-                              </TouchableOpacity>
-                            {/* )} */}
+                {/* {current?.itemType === 'Lot' && ( */}
+                <TouchableOpacity
+                  onPress={() => setShowScanner(true)}
+                  activeOpacity={0.7}
+                  style={{
+                    width: '100%',
+                    height: 38,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: '#CCCED2',
+                    paddingHorizontal: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 18,
+                    marginTop: 18,
+                  }}
+                >
+                  <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
+                    {scannedLotSerial || 'Scan Lot'}
+                  </Text>
+                  <Barcodescanner width={18} height={18} />
+                </TouchableOpacity>
+                {/* )} */}
                 {hasLotSerials && currentLotSerialLines && (
                   <View style={{ marginTop: ms(14) }}>
                     {currentLotSerialLines.map((lot, idx) => {
@@ -3019,176 +3001,176 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
 
 
             {activeTab === 'PutAway' && current && itemType === 'Lot' && (
-  <View style={styles.section}>
-    {(() => {
-      const allSavedLotsPutAwayCompleted =
-        currentLotLines.length > 0 &&
-        currentLotLines.every((_, idx) => !!putAwayDataMap[`${current.id}-${idx}`]);
+              <View style={styles.section}>
+                {(() => {
+                  const allSavedLotsPutAwayCompleted =
+                    currentLotLines.length > 0 &&
+                    currentLotLines.every((_, idx) => !!putAwayDataMap[`${current.id}-${idx}`]);
 
-      const cardPassed = allSavedLotsPutAwayCompleted;
-      const cardBg = cardPassed ? '#EEFDF8' : '#FFF8EC';
-      const cardBorder = cardPassed ? '#73B386' : '#F06000';
-      const cardText = cardPassed ? '#168035' : '#F06000';
-      const pillBg = cardPassed ? '#168035' : '#FCDFCC';
+                  const cardPassed = allSavedLotsPutAwayCompleted;
+                  const cardBg = cardPassed ? '#EEFDF8' : '#FFF8EC';
+                  const cardBorder = cardPassed ? '#73B386' : '#F06000';
+                  const cardText = cardPassed ? '#168035' : '#F06000';
+                  const pillBg = cardPassed ? '#168035' : '#FCDFCC';
 
-      return (
-        <>
-          <View
-            style={[
-              styles.inspectInfoCard,
-              {
-                backgroundColor: cardBg,
-                borderColor: cardBorder,
-                marginTop: ms(6),
-              },
-            ]}
-          >
-            <View style={styles.inspectInfoIconWrap}>
-              {cardPassed ? (
-                <PassedPutAwayIcon width={24} height={24} />
-              ) : (
-                <PendingPutAwayIcon width={24} height={24} />
-              )}
-            </View>
+                  return (
+                    <>
+                      <View
+                        style={[
+                          styles.inspectInfoCard,
+                          {
+                            backgroundColor: cardBg,
+                            borderColor: cardBorder,
+                            marginTop: ms(6),
+                          },
+                        ]}
+                      >
+                        <View style={styles.inspectInfoIconWrap}>
+                          {cardPassed ? (
+                            <PassedPutAwayIcon width={24} height={24} />
+                          ) : (
+                            <PendingPutAwayIcon width={24} height={24} />
+                          )}
+                        </View>
 
-            <View style={styles.inspectInfoMiddle}>
-              <Text style={[styles.inspectInfoLabel, { color: cardText }]}>
-                Put Away Status
-              </Text>
+                        <View style={styles.inspectInfoMiddle}>
+                          <Text style={[styles.inspectInfoLabel, { color: cardText }]}>
+                            Put Away Status
+                          </Text>
 
-              <View style={[styles.inspectStatusPill, { backgroundColor: pillBg }]}>
-                <Text
-                  style={[
-                    styles.inspectStatusPillText,
-                    cardPassed
-                      ? styles.inspectStatusPillTextPassed
-                      : styles.inspectStatusPillTextPending,
-                  ]}
-                >
-                  {cardPassed ? 'Passed' : 'Pending'}
-                </Text>
-              </View>
-            </View>
+                          <View style={[styles.inspectStatusPill, { backgroundColor: pillBg }]}>
+                            <Text
+                              style={[
+                                styles.inspectStatusPillText,
+                                cardPassed
+                                  ? styles.inspectStatusPillTextPassed
+                                  : styles.inspectStatusPillTextPending,
+                              ]}
+                            >
+                              {cardPassed ? 'Passed' : 'Pending'}
+                            </Text>
+                          </View>
+                        </View>
 
-            <Text style={[styles.inspectInfoRightText, { color: cardText }]}>
-              Lot Controlled
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            onPress={() => setShowScanner(true)}
-            activeOpacity={0.7}
-            style={{
-              width: '100%',
-              height: 38,
-              borderRadius: 4,
-              borderWidth: 1,
-              borderColor: '#CCCED2',
-              paddingHorizontal: 10,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 18,
-              marginTop: 18,
-            }}
-          >
-            <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
-              {scannedPutAwayLot || 'Scan Lot'}
-            </Text>
-            <Barcodescanner width={18} height={18} />
-          </TouchableOpacity>
-
-          {hasLots && currentLotLines && (
-            <View>
-              {currentLotLines.map((lot, idx) => {
-                const putAwayData = putAwayDataMap[`${current.id}-${idx}`];
-                const isCompleted = !!putAwayData;
-
-                return (
-                  <View
-                    key={`putaway-lot-${idx}`}
-                    style={{
-                      width: '100%',
-                      minHeight: 64,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: '#ECF1F7',
-                      backgroundColor: '#FFFFFF',
-                      padding: 10,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontFamily: 'Mulish',
-                        fontSize: 12,
-                        fontWeight: '800',
-                        color: '#233E55',
-                        marginBottom: 6,
-                      }}
-                    >
-                      {lot.lotNumber || `LOT ${idx + 1}`}
-                    </Text>
-
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <View style={{ flexDirection: 'row' }}>
-                        <Text style={{ fontSize: 9, fontWeight: '600', color: '#9D9FA3' }}>
-                          Mfg:{' '}
-                          <Text style={{ color: '#111827' }}>{lot.mfgDate || '-'}</Text>
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: 9,
-                            fontWeight: '600',
-                            color: '#9D9FA3',
-                            marginLeft: 8,
-                          }}
-                        >
-                          Exp:{' '}
-                          <Text style={{ color: '#111827' }}>{lot.expDate || '-'}</Text>
+                        <Text style={[styles.inspectInfoRightText, { color: cardText }]}>
+                          Lot Controlled
                         </Text>
                       </View>
 
                       <TouchableOpacity
-                        onPress={() => openPutAwayModal(lot, idx)}
+                        onPress={() => setShowScanner(true)}
+                        activeOpacity={0.7}
                         style={{
+                          width: '100%',
+                          height: 38,
+                          borderRadius: 4,
+                          borderWidth: 1,
+                          borderColor: '#CCCED2',
                           paddingHorizontal: 10,
-                          paddingVertical: 4,
-                          borderRadius: 6,
-                          borderWidth: 0,
-                          borderColor: isCompleted ? '#16803C' : '#033EFF',
-                          backgroundColor: isCompleted ? '#E7F7ED' : '#D7E8FE',
+                          flexDirection: 'row',
                           alignItems: 'center',
-                          justifyContent: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: 18,
+                          marginTop: 18,
                         }}
                       >
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            fontWeight: '700',
-                            color: isCompleted ? '#16803C' : '#033EFF',
-                          }}
-                        >
-                          {isCompleted ? 'Completed' : 'Put Away'}
+                        <Text style={{ color: '#7E7E7E', fontSize: 14 }}>
+                          {scannedPutAwayLot || 'Scan Lot'}
                         </Text>
+                        <Barcodescanner width={18} height={18} />
                       </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </>
-      );
-    })()}
-  </View>
-)}
+
+                      {hasLots && currentLotLines && (
+                        <View>
+                          {currentLotLines.map((lot, idx) => {
+                            const putAwayData = putAwayDataMap[`${current.id}-${idx}`];
+                            const isCompleted = !!putAwayData;
+
+                            return (
+                              <View
+                                key={`putaway-lot-${idx}`}
+                                style={{
+                                  width: '100%',
+                                  minHeight: 64,
+                                  borderRadius: 8,
+                                  borderWidth: 1,
+                                  borderColor: '#ECF1F7',
+                                  backgroundColor: '#FFFFFF',
+                                  padding: 10,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontFamily: 'Mulish',
+                                    fontSize: 12,
+                                    fontWeight: '800',
+                                    color: '#233E55',
+                                    marginBottom: 6,
+                                  }}
+                                >
+                                  {lot.lotNumber || `LOT ${idx + 1}`}
+                                </Text>
+
+                                <View
+                                  style={{
+                                    flexDirection: 'row',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  <View style={{ flexDirection: 'row' }}>
+                                    <Text style={{ fontSize: 9, fontWeight: '600', color: '#9D9FA3' }}>
+                                      Mfg:{' '}
+                                      <Text style={{ color: '#111827' }}>{lot.mfgDate || '-'}</Text>
+                                    </Text>
+                                    <Text
+                                      style={{
+                                        fontSize: 9,
+                                        fontWeight: '600',
+                                        color: '#9D9FA3',
+                                        marginLeft: 8,
+                                      }}
+                                    >
+                                      Exp:{' '}
+                                      <Text style={{ color: '#111827' }}>{lot.expDate || '-'}</Text>
+                                    </Text>
+                                  </View>
+
+                                  <TouchableOpacity
+                                    onPress={() => openPutAwayModal(lot, idx)}
+                                    style={{
+                                      paddingHorizontal: 10,
+                                      paddingVertical: 4,
+                                      borderRadius: 6,
+                                      borderWidth: 0,
+                                      borderColor: isCompleted ? '#16803C' : '#033EFF',
+                                      backgroundColor: isCompleted ? '#E7F7ED' : '#D7E8FE',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    <Text
+                                      style={{
+                                        fontSize: 12,
+                                        fontWeight: '700',
+                                        color: isCompleted ? '#16803C' : '#033EFF',
+                                      }}
+                                    >
+                                      {isCompleted ? 'Completed' : 'Put Away'}
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      )}
+                    </>
+                  );
+                })()}
+              </View>
+            )}
 
             {activeTab === 'PutAway' && current && itemType === 'Serial' && (
               <View style={styles.inspectContainer}>
@@ -3405,10 +3387,10 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                 </View>
               </View>
             )}
-            
+
           </View>
 
-          {activeTab === 'Receive' && current &&!isInspectionRequired&&!isStandardReceipt && (
+          {activeTab === 'Receive' && current && !isInspectionRequired && !isStandardReceipt && (
             <>
               <View style={styles.cardShipTo}>
                 <View style={styles.shipHeaderRow}>
@@ -3474,7 +3456,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openLotModal}
-                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty==0 || !currentEdited.subInventory}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty == 0 || !currentEdited.subInventory}
                     >
                       {hasLots ? (
                         <View style={styles.addLotGreen}>
@@ -3534,7 +3516,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
                       style={styles.addLotBtn}
                       activeOpacity={0.85}
                       onPress={openLotSerialModal}
-                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty==0}
+                      disabled={readOnly || Number(current.openQty ?? 0) === 0 || currentQty == 0}
                     >
                       {hasLotSerials ? (
                         <View style={styles.addLotGreen}>
@@ -3560,6 +3542,29 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
               </View>
             </>
           )}
+        </View>
+        <View style={styles.cardShipTo}>
+          <View style={styles.shipHeaderRow}>
+            <View style={styles.shipHeaderLeft}>
+              <Receiveingprinticon width={18} height={18} />
+              <Text style={styles.sectionTitle}>No. of Print Copies </Text>
+            </View>
+            {readOnly ? (
+              <Text style={styles.orderQtyText}>{currentQty}</Text>
+            ) : (
+              <CustomNumericInput
+                value={copies}
+                setValue={setCopies}
+                min={0}
+                max={1000000}
+                step={1}
+                width={ms(80)}
+                height={ms(30)}
+                isSelected={Number(copies) > 0}
+                disabledinput={false}
+              />
+            )}
+          </View>
         </View>
       </ScrollView>
 
@@ -3617,33 +3622,33 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
           >
             <BarcodeScanner
               onScan={value => {
-              // Inspection required: scan item => open inspect modal for current pending qty
-              if (current && isInspectionRequired && activeTab === 'Inspect') {
-                setShowScanner(false);
-                setTimeout(() => {
-                  openInspectRowModalForPending();
-                }, 150);
-                return;
-              }
+                // Inspection required: scan item => open inspect modal for current pending qty
+                if (current && isInspectionRequired && activeTab === 'Inspect') {
+                  setShowScanner(false);
+                  setTimeout(() => {
+                    openInspectRowModalForPending();
+                  }, 150);
+                  return;
+                }
 
-              if (current && activeTab === 'PutAway' && itemType === 'Lot') {
-                setScannedPutAwayLot(value);
-                setShowScanner(false);
-                handleScanAndOpenPutAwayLot(value);
-                return;
-              }
+                if (current && activeTab === 'PutAway' && itemType === 'Lot') {
+                  setScannedPutAwayLot(value);
+                  setShowScanner(false);
+                  handleScanAndOpenPutAwayLot(value);
+                  return;
+                }
 
-              if (current && itemType === 'Lot+Serial') {
-                setscannedLotSerial(value);
-                setShowScanner(false);
-                handleScanAndOpenLotandSerialInspect(value);
-                return;
-              }
+                if (current && itemType === 'Lot+Serial') {
+                  setscannedLotSerial(value);
+                  setShowScanner(false);
+                  handleScanAndOpenLotandSerialInspect(value);
+                  return;
+                }
 
-              setScannedLot(value);
-              setShowScanner(false);
-              handleScanAndOpenLotInspect(value);
-            }}
+                setScannedLot(value);
+                setShowScanner(false);
+                handleScanAndOpenLotInspect(value);
+              }}
 
 
               onClose={() => setShowScanner(false)}
@@ -3659,8 +3664,8 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
               inspectionSerials.length > 0
                 ? inspectionSerials
                 : inspectionQty === currentQty
-                ? currentSavedSerials.slice(0, inspectionQty)
-                : []
+                  ? currentSavedSerials.slice(0, inspectionQty)
+                  : []
             }
             requireValidationAgainstSaved={inspectionQty < currentQty}
             onConfirm={serials => {
@@ -3688,7 +3693,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
             onComplete={handleInspectRowComplete}
           />
 
-          
+
           <Rec_PutAwaySerialModalPopup
             visible={putAwaySerialModalVisible}
             onClose={() => setPutAwaySerialModalVisible(false)}
@@ -3705,7 +3710,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
               setPutAwaySerialModalVisible(false);
             }}
           />
-          
+
         </>
       )}
 
@@ -3748,10 +3753,10 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
           const locdata = await GetLocatorsData(subInvId);
           return Array.isArray(locdata)
             ? locdata.map(d => ({
-                id: d.locator_id,
-                name: d.locator_name,
-                enabled: d.locator_enabled,
-              }))
+              id: d.locator_id,
+              name: d.locator_name,
+              enabled: d.locator_enabled,
+            }))
             : [];
         }}
         initialPutAwayData={(() => {
@@ -3854,6 +3859,7 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
             id: String(itemId),
             inspections: updatedInspections,
             inspectionStatus,
+            copies: copies,
           });
 
           setInspectLotSerialModalVisible(false);
@@ -3895,8 +3901,8 @@ const handleScanAndOpenLotandSerialInspect = scannedValue => {
             <View style={{ width: 40 }} />
           </View>
 
-          <View style={styles.modalBackground}> 
-            <Pressable style={styles.modalCloseArea} onPress={() => {setPreviewVisible(false);setPreviewUri(null)}} />
+          <View style={styles.modalBackground}>
+            <Pressable style={styles.modalCloseArea} onPress={() => { setPreviewVisible(false); setPreviewUri(null) }} />
             {previewUri ? (
               <Image source={{ uri: previewUri }} style={styles.fullImage} resizeMode="contain" />
             ) : null}
@@ -4006,9 +4012,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: ms(10),
   },
-  itemTextCol: { flex: 1,marginLeft:5 },
+  itemTextCol: { flex: 1, marginLeft: 5 },
   itemName: { fontSize: ms(13), fontWeight: '700', color: '#111827' },
-  itemCode: { marginTop: ms(3), fontSize: ms(12), color: '#9D9FA3',fontWeight:700 },
+  itemCode: { marginTop: ms(3), fontSize: ms(12), color: '#9D9FA3', fontWeight: 700 },
   itemPillsCol: { alignItems: 'flex-end', justifyContent: 'center' },
   pilllotserial: {
     minWidth: ms(50),
@@ -4047,7 +4053,7 @@ const styles = StyleSheet.create({
     fontSize: ms(14),
     fontWeight: '700',
     color: '#242424',
-    fontFamily:'Mulish'
+    fontFamily: 'Mulish'
   },
 
   row: {
@@ -4084,7 +4090,7 @@ const styles = StyleSheet.create({
   },
 
   fieldBlockFull: { marginTop: ms(10) },
-  mandLabel: { fontSize: ms(12), color: '#595A5C', marginBottom: ms(4),fontWeight:400 },
+  mandLabel: { fontSize: ms(12), color: '#595A5C', marginBottom: ms(4), fontWeight: 400 },
 
   subLocRow: { flexDirection: 'row', marginTop: ms(12) },
   subCol: { flex: 1, marginRight: ms(6) },
@@ -4339,7 +4345,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-    imageWrapper: {
+  imageWrapper: {
     position: 'relative',
     width: 60,
     height: 60,
@@ -4362,7 +4368,7 @@ const styles = StyleSheet.create({
     zIndex: 5,
     elevation: 2,
   },
-    fullScreenModal: {
+  fullScreenModal: {
     flex: 1,
     backgroundColor: '#000',
   },
@@ -4411,117 +4417,117 @@ const styles = StyleSheet.create({
   },
 
   inspectRequiredWrap: {
-  marginTop: ms(14),
-},
-scanRowWrap: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginTop: ms(12),
-  marginBottom: ms(12),
-  gap: ms(10),
-},
-scanBox: {
-  flex: 1,
-  height: ms(38),
-  borderRadius: ms(6),
-  borderWidth: 1,
-  borderColor: '#CCCED2',
-  paddingHorizontal: ms(10),
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  backgroundColor: '#FFFFFF',
-},
-scanPlaceholder: {
-  color: '#7E7E7E',
-  fontSize: ms(13),
-  fontWeight: '600',
-},
-inspectNowBtn: {
-  height: ms(38),
-  paddingHorizontal: ms(16),
-  borderRadius: ms(8),
-  backgroundColor: '#5D768B',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-inspectNowBtnDisabled: {
-  opacity: 0.5,
-},
-inspectNowBtnText: {
-  color: '#FFFFFF',
-  fontSize: ms(12),
-  fontWeight: '800',
-},
-inspectTableHeader: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingVertical: ms(10),
-  paddingHorizontal: ms(10),
-  backgroundColor: 'rgba(93,118,139,0.05)',
-  borderTopLeftRadius: ms(10),
-  borderTopRightRadius: ms(10),
-},
-inspectTh: {
-  fontSize: ms(11),
-  fontWeight: '800',
-  color: '#233E55',
-},
-inspectThQty: { width: ms(60) },
-inspectThMid: { flex: 1, textAlign: 'center' },
-inspectThRight: { width: ms(150), textAlign: 'right' },
+    marginTop: ms(14),
+  },
+  scanRowWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: ms(12),
+    marginBottom: ms(12),
+    gap: ms(10),
+  },
+  scanBox: {
+    flex: 1,
+    height: ms(38),
+    borderRadius: ms(6),
+    borderWidth: 1,
+    borderColor: '#CCCED2',
+    paddingHorizontal: ms(10),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+  },
+  scanPlaceholder: {
+    color: '#7E7E7E',
+    fontSize: ms(13),
+    fontWeight: '600',
+  },
+  inspectNowBtn: {
+    height: ms(38),
+    paddingHorizontal: ms(16),
+    borderRadius: ms(8),
+    backgroundColor: '#5D768B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inspectNowBtnDisabled: {
+    opacity: 0.5,
+  },
+  inspectNowBtnText: {
+    color: '#FFFFFF',
+    fontSize: ms(12),
+    fontWeight: '800',
+  },
+  inspectTableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: ms(10),
+    paddingHorizontal: ms(10),
+    backgroundColor: 'rgba(93,118,139,0.05)',
+    borderTopLeftRadius: ms(10),
+    borderTopRightRadius: ms(10),
+  },
+  inspectTh: {
+    fontSize: ms(11),
+    fontWeight: '800',
+    color: '#233E55',
+  },
+  inspectThQty: { width: ms(60) },
+  inspectThMid: { flex: 1, textAlign: 'center' },
+  inspectThRight: { width: ms(150), textAlign: 'right' },
 
-inspectTableBody: {
-  borderWidth: 1,
-  borderColor: '#ECF1F7',
-  borderBottomLeftRadius: ms(10),
-  borderBottomRightRadius: ms(10),
-  overflow: 'hidden',
-},
-inspectTr: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingVertical: ms(10),
-  paddingHorizontal: ms(10),
-  borderBottomWidth: StyleSheet.hairlineWidth,
-  borderBottomColor: '#ECF1F7',
-},
-inspectTd: {
-  fontSize: ms(12),
-  color: '#111827',
-  fontWeight: '700',
-},
-inspectTdQty: { width: ms(60) },
-inspectTdMid: { flex: 1, textAlign: 'center' },
-inspectTdRightWrap: { width: ms(150), alignItems: 'flex-end' },
+  inspectTableBody: {
+    borderWidth: 1,
+    borderColor: '#ECF1F7',
+    borderBottomLeftRadius: ms(10),
+    borderBottomRightRadius: ms(10),
+    overflow: 'hidden',
+  },
+  inspectTr: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: ms(10),
+    paddingHorizontal: ms(10),
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ECF1F7',
+  },
+  inspectTd: {
+    fontSize: ms(12),
+    color: '#111827',
+    fontWeight: '700',
+  },
+  inspectTdQty: { width: ms(60) },
+  inspectTdMid: { flex: 1, textAlign: 'center' },
+  inspectTdRightWrap: { width: ms(150), alignItems: 'flex-end' },
 
-statusPill: {
-  paddingHorizontal: ms(10),
-  paddingVertical: ms(5),
-  borderRadius: ms(20),
-},
-statusPillText: {
-  fontSize: ms(10),
-  fontWeight: '800',
-},
-inspectRequiredFooterInfo: {
-  marginTop: ms(10),
-  alignItems: 'flex-end',
-},
-inspectRequiredFooterText: {
-  fontSize: ms(11),
-  color: '#595A5C',
-  fontWeight: '700',
-},
+  statusPill: {
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(5),
+    borderRadius: ms(20),
+  },
+  statusPillText: {
+    fontSize: ms(10),
+    fontWeight: '800',
+  },
+  inspectRequiredFooterInfo: {
+    marginTop: ms(10),
+    alignItems: 'flex-end',
+  },
+  inspectRequiredFooterText: {
+    fontSize: ms(11),
+    color: '#595A5C',
+    fontWeight: '700',
+  },
 
-disabledTab: {
-  backgroundColor: '#F5F5F6',
-  opacity: 0.6, // 👈 adjust as needed
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderRadius: 8, // same as tabBtn
-},
+  disabledTab: {
+    backgroundColor: '#F5F5F6',
+    opacity: 0.6, // 👈 adjust as needed
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8, // same as tabBtn
+  },
   stdReceiptItemCode: {
     fontSize: ms(12),
     fontWeight: '700',

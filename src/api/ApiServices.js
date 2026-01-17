@@ -115,9 +115,9 @@ export const GetSearchReceivedItems = async(org_id,po_no)=>{
     throw error;
   }
 }
-export const GetSinglePO = async(po_id)=>{
+export const GetSinglePO = async(po_no)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PO_DATA(po_id));
+    const response = await api.post(API_ENDPOINTS.GET_SINGLE_PO_EBS_DATA(po_no));
     console.log(response,"GET_SINGLE_PO_DATA");
     return response.data;
     
