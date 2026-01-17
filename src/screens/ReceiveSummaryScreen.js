@@ -769,7 +769,7 @@ const ReceiveSummaryScreen = () => {
   const TogglePill = ({ Rightlabel,Leftlabel, value, onToggle }) => {
     return (
       <TouchableOpacity activeOpacity={0.9} onPress={onToggle}>
-        <View style={[styles.toggleTrack, { backgroundColor: value ? '#168035' : '#233E55' }]}>
+        <View style={[styles.toggleTrack, { backgroundColor: value ? '#168035' : '#233E55' || '#9D9FA3' }]}>
           {value ? (
             <>
               <Text style={[styles.toggleText, styles.textLeft]}>{Leftlabel}</Text>
