@@ -3570,6 +3570,7 @@ const Rec_ViewItemDetailsScreen = () => {
               <CustomNumericInput
                 value={copies}
                 setValue={v => {
+                  console.log(copies, "copiescopiescopiescopiescopiescopiescopies");
                   const raw = typeof v === 'function' ? v(copies) : v;
                   const next = Math.max(0, Number(raw || 0));
                   setCopies(next);
