@@ -105,7 +105,7 @@ export default function Sub_Inv_TransferScreen() {
     if(!selectedItem) return;
       const loadFromSubInvData = async () => {
         try {
-          const fromsubinvdata = await GetFROMSubInvData('EM1',selectedItem?.code);
+          const fromsubinvdata = await GetFROMSubInvData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code);
           if (fromsubinvdata) {
             const fromSubInvList = mapfromsubInvlist(fromsubinvdata);
             setFromSubInvList(fromSubInvList);
@@ -119,7 +119,7 @@ export default function Sub_Inv_TransferScreen() {
 
       const loadAvailablestockData = async () => {
         try {
-          const availableStock = await GetAvailableItemStockData('EM1',selectedItem?.code);
+          const availableStock = await GetAvailableItemStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code);
           if (availableStock) {
             console.log(availableStock,"availableStock")
             const availableStockList = mapavailableStockList(availableStock);
@@ -145,7 +145,7 @@ export default function Sub_Inv_TransferScreen() {
 
       const loadAvailablestockData = async () => {
         try {
-          const availableStock = await GetAvailableStockData('EM1',selectedItem?.code,fromSub?.code);
+          const availableStock = await GetAvailableStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
           if (availableStock) {
             console.log(availableStock,"availableStock")
             const availableStockList = mapavailableStockList(availableStock);
@@ -204,7 +204,7 @@ export default function Sub_Inv_TransferScreen() {
   useEffect(() => {
       const loadSubInvItemData = async () => {
         try {
-          const subinvdata = await GetSubInvItemList('EM1');
+          const subinvdata = await GetSubInvItemList(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode);
           if (subinvdata) {
             const SubInvItemList = mapsubInvitemlist(subinvdata);
             setSubInvItemList(SubInvItemList);
