@@ -27,8 +27,6 @@ import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg'
 import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
 import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
 import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
-import { GetAvailableItemStockData, GetAvailableStockData, GetFROMSubInvData, GetSubInvItemList } from '../../api/ApiServices';
-import Toast from 'react-native-toast-message';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -77,24 +75,19 @@ export default function Sub_Inv_TransferScreen() {
   const [scannerVisible, setScannerVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
-  const [SubInvItemList,setSubInvItemList] = useState([]);
-  const [FromSubInvList,setFromSubInvList] = useState([]);
-  const [FromLocatorList,setFromLocatorList] = useState([]);
-  const [ToLocatorList,setToLocatorList] = useState([]);
-  const [AvailableData, setAvailableData] = useState(null);
   const [controlType,setControlType] = useState(null);
 
   const availableLocatorsFrom = useMemo(() => {
     if (!fromSub) return [];
-    return FromLocatorList.filter(l => l.subInventoryId === fromSub.id);
+    return MOCK_LOCATORS.filter(l => l.subInventoryId === fromSub.id);
   }, [fromSub]);
 
   const availableLocatorsTo = useMemo(() => {
     if (!toSub) return [];
-    return ToLocatorList.filter(l => l.subInventoryId === toSub.id);
+    return MOCK_LOCATORS.filter(l => l.subInventoryId === toSub.id);
   }, [toSub]);
 
-  const itemAvailableQty = AvailableData?.availableStock ?? 0;
+  const itemAvailableQty = selectedItem?.openQty ?? 0;
 
   const baseLineLabel = useMemo(() => {
     const idx = persistedIndex != null ? persistedIndex : subInvTransferItems.length;
@@ -102,121 +95,9 @@ export default function Sub_Inv_TransferScreen() {
   }, [persistedIndex, subInvTransferItems.length]);
 
   useEffect(()=>{
-    if(!selectedItem) return;
-      const loadFromSubInvData = async () => {
-        try {
-          const fromsubinvdata = await GetFROMSubInvData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code);
-          if (fromsubinvdata) {
-            const fromSubInvList = mapfromsubInvlist(fromsubinvdata);
-            setFromSubInvList(fromSubInvList);
-          } else {
-            setFromSubInvList([]);
-          }
-        } catch (err) {
-          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromSubInv. Please try again.', position: 'top', visibilityTime: 5000 });
-        }
-      };
-
-      const loadAvailablestockData = async () => {
-        try {
-          const availableStock = await GetAvailableItemStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code);
-          if (availableStock) {
-            console.log(availableStock,"availableStock")
-            const availableStockList = mapavailableStockList(availableStock);
-            setFromSubInvList([]);
-            console.log(availableStockList,"availableStockListavailableStockList")
-            setControlType(availableStockList?.[0].controlType);
-            setAvailableData(availableStockList?.[0]);
-          } else {
-            setAvailableData([]);
-          }
-        } catch (err) {
-          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load availableStock. Please try again.', position: 'top', visibilityTime: 5000 });
-        }
-      };
-
-      loadAvailablestockData();
-      loadFromSubInvData();
-
-  },[selectedItem]);
-
-    useEffect(()=>{
-    if(!selectedItem || !fromSub) return;
-
-      const loadAvailablestockData = async () => {
-        try {
-          const availableStock = await GetAvailableStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
-          if (availableStock) {
-            console.log(availableStock,"availableStock")
-            const availableStockList = mapavailableStockList(availableStock);
-            console.log(availableStockList,"availableStockListavailableStockList")
-            setControlType(availableStockList?.[0].controlType);
-            setAvailableData(availableStockList?.[0]);
-          } else {
-            setAvailableData([]);
-          }
-        } catch (err) {
-          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load availableStock. Please try again.', position: 'top', visibilityTime: 5000 });
-        }
-      };
-      loadAvailablestockData();
-
-  },[selectedItem,fromSub]);
-
-  const mapsubInvitemlist = data =>
-    data.map(element => ({
-    id: element.R_INV_ITEM_CODE,
-    name: element.R_INV_ITEM_CODE,
-    code: element.R_INV_ITEM_CODE,
-    // description:
-    //   'Lorem ipsum dolor sit amet.',
-    // controlType: 'Lot',
-    // availableStock: 120,
-    // availableUom: 'Each',
-    // openQty: 120,
-    }));
-  const mapfromsubInvlist = data =>
-    data.map(element => ({
-    id: element.R_SUBINVENTORY_CODE,
-    name: element.R_SUBINVENTORY_CODE,
-    code: element.R_SUBINVENTORY_CODE,
-    // description:
-    //   'Lorem ipsum dolor sit amet.',
-    // controlType: 'Lot',
-    // availableStock: 120,
-    // availableUom: 'Each',
-    // openQty: 120,
-    }));
-  const mapavailableStockList = data =>
-    data.map(element => ({
-    availableUom:null,
-    availableStock: element?.Total_available_qty??element?.available_qty ?? 0,
-    code: element.item_code,
-    controlType: element.control_type ?? 'Lot'
-    // description:
-    //   'Lorem ipsum dolor sit amet.',
-    // controlType: 'Lot',
-    // availableStock: 120,
-    // availableUom: 'Each',
-    // openQty: 120,
-    }));
-
-  useEffect(() => {
-      const loadSubInvItemData = async () => {
-        try {
-          const subinvdata = await GetSubInvItemList(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode);
-          if (subinvdata) {
-            const SubInvItemList = mapsubInvitemlist(subinvdata);
-            setSubInvItemList(SubInvItemList);
-          } else {
-            setSubInvItemList([]);
-          }
-        } catch (err) {
-          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInvItems. Please try again.', position: 'top', visibilityTime: 5000 });
-        }
-      };
-      loadSubInvItemData();
-    }, []);
+    console.log(subInvTransferItems,persistedIndex,"subInvTransferItemssubInvTransferItems");
+    console.log(subInvTransferItems[persistedIndex]?.lotserials,"currentLotSerialscurrentLotSerialscurrentLotSerialscurrentLotSerialscurrentLotSerials")
+  },[subInvTransferItems,currentLotSerials])
 
 const handlePersistMainLine = () => {
   let existingLots = [];
@@ -418,7 +299,7 @@ const handlePersistMainLine = () => {
     }
 
     const matchedItem =
-      SubInvItemList.find(
+      MOCK_ITEMS.find(
         it => String(it.code || '').trim().toLowerCase() === scanned,
       ) || null;
 
@@ -428,7 +309,7 @@ const handlePersistMainLine = () => {
     }
 
     setSelectedItem(matchedItem);
-    const maxQty = AvailableData?.availableStock ?? 0;
+    const maxQty = matchedItem.openQty ?? 0;
     if (qty > maxQty) {
       setQty(maxQty);
     }
@@ -482,33 +363,33 @@ const handlePersistMainLine = () => {
               value={selectedItem}
               onChange={item => {
                 setSelectedItem(item);
-                // if (item && qty > item.openQty) {
-                //   setQty(item.openQty);
-                // }
-                // setControlType(item.controlType);
+                if (item && qty > item.openQty) {
+                  setQty(item.openQty);
+                }
+                setControlType(item.controlType);
               }}
-              items={SubInvItemList}
+              items={MOCK_ITEMS}
               displayValue={it => it.name}
               renderCode={it => it.code}
               showBarcodeIcon
               onBarcodePress={handleBarcodePress}
             />
 
-            {AvailableData ? (
+            {selectedItem ? (
               <View style={styles.itemInfoStrip}>
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>Available Stock</Text>
                   <Text style={styles.infoValue}>
-                    {AvailableData.availableStock} {AvailableData.availableUom}
+                    {selectedItem.availableStock} {selectedItem.availableUom}
                   </Text>
                 </View>
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>Item Code</Text>
-                  <Text style={styles.infoValue}>{AvailableData.code}</Text>
+                  <Text style={styles.infoValue}>{selectedItem.code}</Text>
                 </View>
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>Control Type</Text>
-                  <Text style={styles.infoValue}>{AvailableData.controlType}</Text>
+                  <Text style={styles.infoValue}>{selectedItem.controlType}</Text>
                 </View>
               </View>
             ) : null}
@@ -523,7 +404,7 @@ const handlePersistMainLine = () => {
                     setFromSub(it);
                     setFromLocator(null);
                   }}
-                  items={FromSubInvList}
+                  items={MOCK_SUB_INVENTORIES}
                   displayValue={it => it.name}
                   renderCode={it => it.code}
                 />
