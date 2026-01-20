@@ -56,13 +56,15 @@ const Ship_ManConfirmPack = () => {
     });
   };
 
+  // Just close the modal without navigation
+  const handleCloseModal = () => {
+    setShowConfirmModal(false);
+  };
+
+  // Navigate to dashboard when user says "No"
   const handleConfirmationNo = () => {
     setShowConfirmModal(false);
     handleCancelAction();
-  };
-
-  const handleConfirmationYes = () => {
-    setShowConfirmModal(false);
   };
 
   const mainCardWidth = Math.min(372, screenWidth - 42);
@@ -164,9 +166,8 @@ const Ship_ManConfirmPack = () => {
 
       <ShipConfirmationModal
         visible={showConfirmModal}
-        onClose={handleConfirmationNo}
-        onYes={handleConfirmationYes}
-        onNo={handleConfirmationNo}
+        onClose={handleCloseModal}  // Changed: Just closes, doesn't navigate
+        onNo={handleConfirmationNo}  // "No" button navigates to dashboard
         type="CONFIRM_PACK"
         itemCount={confirmList.length}
       />

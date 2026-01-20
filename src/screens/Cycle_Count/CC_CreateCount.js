@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
 import { useReceivingStore } from '../../store/receivingStore';
 import DocumentIcon from '../../assets/icons/Ship_Icons/DocumentIcon';
+import CC_Dropdown from '../../components/Cycle_Count/CC_Dropdown';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +23,14 @@ const CC_CreateCount = () => {
 
   const onBack = useCallback(() => navigation.goBack(), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
+  const [subInventory, setSubInventory] = useState(null);
+  const subInventoryList = [
+    { id: 1, name: 'FGI 1', code: 'Lorem ipusm dolor' },
+    { id: 2, name: 'FGI 2', code: 'Lorem ipusm dolor' },
+    { id: 3, name: 'FGI 3', code: 'Lorem ipusm dolor' },
+    { id: 4, name: 'FGI 4', code: 'Lorem ipusm dolor' },
+    { id: 5, name: 'FGI 5', code: 'Lorem ipusm dolor' },
+  ];
 
   return (
     <View style={styles.container}>
@@ -50,6 +59,27 @@ const CC_CreateCount = () => {
               placeholderTextColor="#9D9FA3"
             />
           </View>
+
+          <View style={styles.section}>
+            <CC_Dropdown
+              label="Sub-Inventory"
+              required
+              multiple
+              placeholder="Select Sub-Inventory"
+              items={subInventoryList}
+              value={subInventory}
+              onChange={setSubInventory}
+              searchKeys={['name', 'code']}
+              displayValue={value =>
+                Array.isArray(value)
+                  ? value.map(i => i.name).join(', ')
+                  : value?.name ?? ''
+              }
+              renderCode={item => item.code}
+            />
+
+          </View>
+
 
         </View>
       </ScrollView>
@@ -85,7 +115,7 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8, 
+    marginBottom: 8,
   },
   headerIcon: {
     marginRight: 8,
@@ -100,7 +130,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#EFEFF0',
-    marginBottom: 24, 
+    marginBottom: 12,
   },
   section: {
     marginBottom: 32,
@@ -125,5 +155,5 @@ const styles = StyleSheet.create({
     color: '#242424',
     backgroundColor: '#FFFFFF',
   },
- 
+
 });
