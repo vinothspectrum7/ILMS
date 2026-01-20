@@ -106,16 +106,17 @@ export default function HeaderComponent({
               setSelectedOrganization(orgToSelect);
               Defaultorg?.(orgToSelect.value);
               OrgCode?.(orgToSelect.org_code);
-              setSelectedOrg({
-                selectedOrg: orgToSelect,
-                selectedOrgCode: orgToSelect.org_code
-              });
+              // setSelectedOrg({
+              //   selectedOrg: orgToSelect,
+              //   selectedOrgCode: orgToSelect?.org_code
+              // });
             }
           }
         } else {
           setOrganizations([]);
         }
       } catch (err) {
+        console.log(err,"err")
         Toast.show({ 
           type: 'error', 
           text1: 'Error', 

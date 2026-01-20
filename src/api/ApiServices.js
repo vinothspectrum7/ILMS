@@ -386,3 +386,37 @@ export const GetAvailableItemStockData = async(org_id,item_code)=>{
     throw error;
   }
 }
+
+export const GetAvailableLocatorStockData = async(org_id,item_code,sub_inv_id,locator_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETAVAILABLELOCATORSTOCK(org_id,item_code,sub_inv_id,locator_id));
+    console.log(response.data)
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get AvailableLocatorStock ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetTOSubInvData = async(org_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETTOSUBINVLIST(org_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get TOSUBINV ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetTOLocatorData = async(org_id,sub_inv_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETTOLOCATORINVLIST(org_id,sub_inv_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get TOLOCATOR ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}

@@ -6,6 +6,7 @@ export const BASE_URL ='http://3.17.31.222:7003';
 // export const BASE_URL = 'http://192.168.1.15:3003/api/v1/';
 export const API_ENDPOINTS = {
   LOGIN: `${BASE_URL}/auth/token`,
+  REFRESH: `${BASE_URL}/auth/refresh`,
   GET_ASN_DATA: (org_uuid) => `${BASE_URL}/asn/asn_headers/${org_uuid}/all/`,
   GET_SINGLE_ASN_DATA: (asn_id) => `${BASE_URL}/asn/asn_lines_po/${asn_id}/details`,
   GET_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all`,
@@ -48,7 +49,9 @@ export const API_ENDPOINTS = {
   GETSUBINVITEMLIST: (org_id) => `${BASE_URL}/inventory/Get_All-Inventory-Items?Org_code=${org_id}`,
   GETFROMSUBINVLIST: (org_id,item_code) => `${BASE_URL}/inventory/Get-Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}`,
   GETITEMAVAILABLESTOCK: (org_id,item_code) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}`,
-  GETAVAILABLESTOCK: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`
-
+  GETAVAILABLESTOCK: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
+  GETAVAILABLELOCATORSTOCK: (org_id,item_code,sub_inv,loc_id) => `${BASE_URL}/inventory/locator-available-qty?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}&Loc=${loc_id}`,
+  GETTOSUBINVLIST: (org_id) => `${BASE_URL}/inventory/Get-To-Subinventory?Org_code=${org_id}`,
+  GETTOLOCATORINVLIST: (org_id,sub_inv_id) => `${BASE_URL}/inventory/Get-To-Locator?Org_code=${org_id}&Sub_inv=${sub_inv_id}`,
  
 };

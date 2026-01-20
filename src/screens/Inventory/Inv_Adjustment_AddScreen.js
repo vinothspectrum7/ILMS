@@ -7,6 +7,7 @@ import {
   TextInput,
   Modal,
   TouchableOpacity,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
@@ -29,6 +30,9 @@ import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopu
 import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
 import RadioGlossySelected from "../../assets/icons/RadioGlossySelected.svg";
 import RadioGlossyUnselected from "../../assets/icons/RadioGlossyUnselected.svg";
+import Toast from 'react-native-toast-message';
+import { colors } from '../../theme/colors';
+import { GetAvailableItemStockData, GetAvailableLocatorStockData, GetAvailableStockData, GetFROMSubInvData, GetOrgsData, GetSubInvItemList, GetTOLocatorData, GetTOSubInvData } from '../../api/ApiServices';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -79,23 +83,242 @@ export default function Inv_Adjustment_Add() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [controlType,setControlType] = useState(null);
+     const [SubInvItemList,setSubInvItemList] = useState([]);
+      const [FromSubInvList,setFromSubInvList] = useState([]);
+      const [TOSubInvList,setTOSubInvList] = useState([]);
+      const [FromLocatorList,setFromLocatorList] = useState([
+      {
+        id: '1.2.1',
+        name: '1.2.1',
+        code: '1.2.1'
+      },
+      { id: '1.2.2',
+        name: '1.2.2',
+        code: '1.2.2'
+      }
+      ]);
+      const [UOMList,setUOMList] = useState([]);
+      const [ToLocatorList,setToLocatorList] = useState([]);
+      const [StockLoader,setStockLoader] = useState(false);
+      const [AvailableData, setAvailableData] = useState(null);
 
-  const availableLocatorsFrom = useMemo(() => {
-    if (!fromSub) return [];
-    return MOCK_LOCATORS.filter(l => l.subInventoryId === fromSub.id);
-  }, [fromSub]);
 
-  const availableLocatorsTo = useMemo(() => {
-    if (!toSub) return [];
-    return MOCK_LOCATORS.filter(l => l.subInventoryId === toSub.id);
-  }, [toSub]);
-
-  const itemAvailableQty = selectedItem?.openQty ?? 0;
+  const itemAvailableQty = AvailableData?.availableStock ?? 0;
 
   const baseLineLabel = useMemo(() => {
     const idx = persistedIndex != null ? persistedIndex : InvAdjustmentItems.length;
     return `Line ${idx + 1}`;
   }, [persistedIndex, InvAdjustmentItems.length]);
+
+    useEffect(()=>{
+      if(!selectedItem) return;
+        const loadFromSubInvData = async () => {
+          try {
+            const fromsubinvdata = await GetFROMSubInvData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code);
+            if (fromsubinvdata) {
+              const fromSubInvList = mapfromsubInvlist(fromsubinvdata);
+              setFromSubInvList(fromSubInvList);
+            } else {
+              setFromSubInvList([]);
+            }
+          } catch (err) {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromSubInv. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+  
+        const loadAvailablestockData = async () => {
+          try {
+            setStockLoader(true);
+            const availableStock = await GetAvailableItemStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code);
+            if (availableStock) {
+              console.log(availableStock,"availableStock")
+              const availableStockList = mapavailableStockList(availableStock);
+              console.log(availableStockList,"availableStockListavailableStockList")
+              setControlType(availableStockList?.[0].controlType);
+              setAvailableData(availableStockList?.[0]);
+              setStockLoader(false);
+            } else {
+              setAvailableData([]);
+              setStockLoader(false);
+            }
+          } catch (err) {
+            setStockLoader(false);
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load availableStock. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+  
+        loadAvailablestockData();
+        loadFromSubInvData();
+  
+    },[selectedItem]);
+  
+      useEffect(()=>{
+      if(!selectedItem || !fromSub) return;
+  
+        const loadAvailablestockData = async () => {
+          try {
+            setStockLoader(true);
+            const availableStock = await GetAvailableStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
+            if (availableStock) {
+              console.log(availableStock,"availableStock")
+              const availableStockList = mapavailableStockList(availableStock);
+              console.log(availableStockList,"availableStockListavailableStockList")
+              setControlType(availableStockList?.[0].controlType);
+              setAvailableData(availableStockList?.[0]);
+              setStockLoader(false);
+            } else {
+              setAvailableData([]);
+              setStockLoader(false);
+            }
+          } catch (err) {
+            setStockLoader(false);
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load availableStock. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+        loadAvailablestockData();
+  
+    },[selectedItem,fromSub]);
+  
+      useEffect(()=>{
+      if(!selectedItem || !fromSub || !fromLocator) return;
+        const loadAvailablestockData = async () => {
+          try {
+            console.log(fromLocator,"fromlocaadreref")
+            setStockLoader(true);
+            const availableStock = await GetAvailableLocatorStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code,fromLocator?.code);
+            if (availableStock) {
+              console.log(availableStock,"availableStocklocator");
+              const availableUOMList = MapUOMList(availableStock);
+              setUOMList(availableUOMList);
+              setUom(availableUOMList?.[0]);
+              setAvailableData(prev => ({
+                  ...prev,
+                  availableStock: availableStock?.[0]?.locator_total_qty ?? prev?.availableStock,
+                  availableUom: availableStock?.[0]?.uom ?? null,
+                }));
+              setStockLoader(false);
+            } else {
+              setAvailableData([]);
+              setStockLoader(false);
+            }
+          } catch (err) {
+            setStockLoader(false);
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load availableStock. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+        loadAvailablestockData();
+  
+    },[selectedItem,fromSub,fromLocator]);
+  
+      useEffect(()=>{
+      if(!toSub) return;
+  
+        const loadToLocatorData = async () => {
+          try {
+            const toLocatordata = await GetTOLocatorData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,toSub?.code);
+            if (toLocatordata) {
+              const toLocatorLists = maptoLocatorlist(toLocatordata);
+              setToLocatorList(toLocatorLists);
+            } else {
+              setToLocatorList([]);
+            }
+          } catch (err) {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromSubInv. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+        loadToLocatorData();
+  
+    },[toSub]);
+  
+    const mapsubInvitemlist = data =>
+      data.map(element => ({
+      id: element.R_INV_ITEM_CODE,
+      name: element.R_INV_ITEM_CODE,
+      code: element.R_INV_ITEM_CODE,
+      // description:
+      //   'Lorem ipsum dolor sit amet.',
+      // controlType: 'Lot',
+      // availableStock: 120,
+      // availableUom: 'Each',
+      // openQty: 120,
+      }));
+  
+    const mapfromsubInvlist = data =>
+      data.map(element => ({
+      id: element.R_SUBINVENTORY_CODE,
+      name: element.R_SUBINVENTORY_CODE,
+      code: element.R_SUBINVENTORY_CODE,
+      }));
+  
+    const maptoLocatorlist = data =>
+      data.map(element => ({
+      id: element.locator,
+      name: element.locator,
+      code: element.locator,
+      }));
+    const maptosubInvlist = data =>
+      data.map(element => ({
+      id: element.sub_inv,
+      name: element.sub_inv,
+      code: element.sub_inv,
+      }));
+    const mapavailableStockList = data =>
+      data.map(element => ({
+      availableUom:null,
+      availableStock: element?.Total_available_qty??element?.available_qty ?? 0,
+      code: element.item_code,
+      controlType: element.control_type ?? 'Lot'
+      // description:
+      //   'Lorem ipsum dolor sit amet.',
+      // controlType: 'Lot',
+      // availableStock: 120,
+      // availableUom: 'Each',
+      // openQty: 120,
+      }));
+  
+    const MapUOMList = data =>
+      data.map(element => ({
+      id: element.uom,
+      name: element.uom,
+      code: element.uom,
+      // description:
+      //   'Lorem ipsum dolor sit amet.',
+      // controlType: 'Lot',
+      // availableStock: 120,
+      // availableUom: 'Each',
+      // openQty: 120,
+      }));
+  
+    useEffect(() => {
+        const loadSubInvItemData = async () => {
+          try {
+            const subinvdata = await GetSubInvItemList(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode);
+            if (subinvdata) {
+              const SubInvItemList = mapsubInvitemlist(subinvdata);
+              setSubInvItemList(SubInvItemList);
+            } else {
+              setSubInvItemList([]);
+            }
+          } catch (err) {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInvItems. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+        const loadToSubInvData = async () => {
+          try {
+            const tosubinvdata = await GetTOSubInvData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode);
+            if (tosubinvdata) {
+              const toSubInvList = maptosubInvlist(tosubinvdata);
+              setTOSubInvList(toSubInvList);
+            } else {
+              setTOSubInvList([]);
+            }
+          } catch (err) {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromSubInv. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+        loadToSubInvData();
+        loadSubInvItemData();
+      }, []);
 
 const handlePersistMainLine = () => {
   let existingLots = [];
@@ -325,7 +548,7 @@ const lineValid =
     }
 
     const matchedItem =
-      MOCK_ITEMS.find(
+      SubInvItemList.find(
         it => String(it.code || '').trim().toLowerCase() === scanned,
       ) || null;
 
@@ -335,7 +558,7 @@ const lineValid =
     }
 
     setSelectedItem(matchedItem);
-    const maxQty = matchedItem.openQty ?? 0;
+    const maxQty = AvailableData?.availableStock ?? 0;
     if (qty > maxQty) {
       setQty(maxQty);
     }
@@ -395,36 +618,42 @@ const lineValid =
               value={selectedItem}
               onChange={item => {
                 setSelectedItem(item);
-                if (item && qty > item.openQty) {
-                  setQty(item.openQty);
-                }
-                setControlType(item.controlType);
+                // if (item && qty > item.openQty) {
+                //   setQty(item.openQty);
+                // }
+                // setControlType(item.controlType);
               }}
-              items={MOCK_ITEMS}
+              items={SubInvItemList}
               displayValue={it => it.name}
               renderCode={it => it.code}
               showBarcodeIcon
               onBarcodePress={handleBarcodePress}
             />
 
-            {selectedItem ? (
+          {StockLoader ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 30 }}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+           ) :( 
+            AvailableData ? (
               <View style={styles.itemInfoStrip}>
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>Available Stock</Text>
                   <Text style={styles.infoValue}>
-                    {selectedItem.availableStock} {selectedItem.availableUom}
+                    {AvailableData.availableStock} {AvailableData.availableUom}
                   </Text>
                 </View>
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>Item Code</Text>
-                  <Text style={styles.infoValue}>{selectedItem.code}</Text>
+                  <Text style={styles.infoValue}>{AvailableData.code}</Text>
                 </View>
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>Control Type</Text>
-                  <Text style={styles.infoValue}>{selectedItem.controlType}</Text>
+                  <Text style={styles.infoValue}>{AvailableData.controlType}</Text>
                 </View>
               </View>
-            ) : null}
+            ) : null
+           )}
 
             {adjustType =="Issue" && (<View style={styles.rowSplit}>
               <View style={styles.colHalf}>
@@ -436,7 +665,7 @@ const lineValid =
                     setFromSub(it);
                     setFromLocator(null);
                   }}
-                  items={MOCK_SUB_INVENTORIES}
+                  items={FromSubInvList}
                   displayValue={it => it.name}
                   renderCode={it => it.code}
                 />
@@ -448,7 +677,7 @@ const lineValid =
                     required
                     value={fromLocator}
                     onChange={setFromLocator}
-                    items={availableLocatorsFrom}
+                    items={FromLocatorList}
                     displayValue={it => it.name}
                     renderCode={it => it.code}
                   />
@@ -466,7 +695,7 @@ const lineValid =
                     setToSub(it);
                     setToLocator(null);
                   }}
-                  items={MOCK_SUB_INVENTORIES}
+                  items={TOSubInvList}
                   displayValue={it => it.name}
                   renderCode={it => it.code}
                 />
@@ -478,7 +707,7 @@ const lineValid =
                     required
                     value={toLocator}
                     onChange={setToLocator}
-                    items={availableLocatorsTo}
+                    items={ToLocatorList}
                     displayValue={it => it.name}
                     renderCode={it => it.code}
                   />
@@ -493,7 +722,7 @@ const lineValid =
                   required
                   value={uom}
                   onChange={setUom}
-                  items={MOCK_UOMS}
+                  items={UOMList}
                   displayValue={it => it.name}
                   renderCode={it => it.code}
                 />
