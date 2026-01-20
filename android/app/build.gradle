@@ -79,7 +79,7 @@ android {
     
     namespace "com.ilms"
     defaultConfig {
-        applicationId "com.ilms"
+        applicationId "com.ilms.fusion"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
