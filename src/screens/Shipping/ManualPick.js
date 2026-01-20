@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     tableHeader: {
-        width: 346,
+        width: '100%',
         height: 31.26,
         backgroundColor: 'rgba(93, 118, 139, 0.05)',
         flexDirection: 'row',
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
         paddingBottom: 10,
     },
     itemContainer: {
-        width: 346,
+        width: '100%',
         height: 80,
         borderRadius: 8,
         borderWidth: 0.2,
