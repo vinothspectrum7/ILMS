@@ -4,6 +4,7 @@ import {
     Text,
     StyleSheet,
     Modal,
+    TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useShippingStore } from '../../store/shippingStore';
@@ -33,34 +34,35 @@ const ManPickConfirmPopup = ({
     const handlePackingConfirm = (proceed) => {
         setShowPackingConfirm(false);
         setStep('confirm');
-        onCancel?.();
+        onCancel?.(); // Close the main modal
 
         if (proceed) {
+            // If Yes, call onYes
             onYes?.();
         } else {
-            onNo?.();
+            // If No, update status to Ready To Pack and navigate to dashboard
+            if (selectedTransaction?.deliveryId) {
+                setTransactionStatus(selectedTransaction.deliveryId, 'Ready To Pack');
+            }
+            
+            navigation.reset({
+                index: 0,
+                routes: [
+                    {
+                        name: 'ShipDashboard',
+                        params: {
+                            status: 'All',
+                            refresh: true,
+                            packMode: 'MANUAL',
+                        },
+                    },
+                ],
+            });
         }
     };
 
-    const handleCancel = () => {
-        if (selectedTransaction?.deliveryId) {
-            setTransactionStatus(selectedTransaction.deliveryId, 'Ready To Pack');
-        }
-        navigation.reset({
-            index: 0,
-            routes: [
-                {
-                    name: 'ShipDashboard',
-                    params: {
-                        status: 'All',
-                        refresh: true,
-                        packMode: 'MANUAL',
-                    },
-                },
-            ],
-        });
-
-
+    // Just close the modal without any action
+    const handleSimpleCancel = () => {
         onCancel?.();
     };
 
@@ -70,7 +72,7 @@ const ManPickConfirmPopup = ({
                 visible={visible}
                 transparent
                 animationType="fade"
-                onRequestClose={handleCancel}
+                onRequestClose={handleSimpleCancel}
             >
                 <View style={styles.overlay}>
                     <View style={styles.popupContainer}>
@@ -96,8 +98,8 @@ const ManPickConfirmPopup = ({
                                     <Ship_FooterModalButtonComponent
                                         leftLabel="Cancel"
                                         rightLabel="Confirm"
-                                        onLeftPress={handleCancel}
-                                        onRightPress={handleConfirm}
+                                        onLeftPress={handleSimpleCancel}  // Just close, no action
+                                        onRightPress={handleConfirm}      // Show 2nd popup
                                         sticky={false}
                                     />
                                 </View>
@@ -121,7 +123,7 @@ const ManPickConfirmPopup = ({
                 animationType="fade"
                 onRequestClose={() => {
                     setShowPackingConfirm(false);
-                    handleCancel();
+                    handleSimpleCancel(); // Just close
                 }}
             >
                 <View style={styles.overlay}>
@@ -133,19 +135,29 @@ const ManPickConfirmPopup = ({
                             </Text>
                         </View>
 
-                        <View style={styles.secondFooter}>
-                            <Text style={styles.packingQuestionText}>
-                                Would you proceed the next to packing
-                            </Text>
+                        <View style={styles.footerSection}>
+                            <View style={styles.footerRow}>
+                                <View style={styles.questionContainer}>
+                                    <Text style={styles.questionText}>Would you proceed the</Text>
+                                    <Text style={styles.questionText}>
+                                        next to packing
+                                    </Text>
+                                </View>
 
-                            <View style={styles.secondButtonWrapper}>
-                                <Ship_FooterModalButtonComponent
-                                    leftLabel="No"
-                                    rightLabel="Yes"
-                                    onLeftPress={() => handlePackingConfirm(false)}
-                                    onRightPress={() => handlePackingConfirm(true)}
-                                    sticky={false}
-                                />
+                                <View style={styles.buttonContainer}>
+                                    <TouchableOpacity
+                                        style={[styles.button, styles.yesButton]}
+                                        onPress={() => handlePackingConfirm(true)}
+                                    >
+                                        <Text style={styles.yesButtonText}>Yes</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.button, styles.noButton]}
+                                        onPress={() => handlePackingConfirm(false)}
+                                    >
+                                        <Text style={styles.noButtonText}>No</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         </View>
                     </View>
@@ -246,25 +258,62 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 
-    secondFooter: {
+    // Footer styles for second modal (Yes/No buttons)
+    footerSection: {
+        backgroundColor: '#ECF1F7',
         paddingHorizontal: 24,
-        paddingTop: 10,
-        paddingBottom: 20,
+        paddingVertical: 16,
+    },
+
+    footerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+
+    questionContainer: {
+        flex: 1,
+    },
+
+    questionText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#233E55',
+        lineHeight: 18,
+    },
+
+    buttonContainer: {
+        flexDirection: 'row',
+        gap: 12,
+        marginLeft: 16,
+    },
+
+    button: {
+        width: 64,
+        height: 40,
+        borderRadius: 8,
+        justifyContent: 'center',
         alignItems: 'center',
     },
 
-    packingQuestionText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#233E55',
-        lineHeight: 21,
-        fontFamily: 'Mulish',
-        textAlign: 'center',
-        marginBottom: 12,
+    yesButton: {
+        backgroundColor: '#233E55',
     },
 
-    secondButtonWrapper: {
-        width: '100%',
+    noButton: {
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D0D5DD',
+    },
+
+    yesButtonText: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
+
+    noButtonText: {
+        color: '#5F6B7A',
+        fontWeight: '600',
     },
 });
 

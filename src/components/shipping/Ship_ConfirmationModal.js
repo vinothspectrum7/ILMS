@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
-import ConfirmTickIcon from '../../assets/icons/Ship_Icons/ConfirmationTickIcon.svg';
 import { useNavigation } from '@react-navigation/native';
+import ConfirmTickIcon from '../../assets/icons/Ship_Icons/ConfirmationTickIcon.svg';
 import Ship_PrintLabels from './Ship_PrintLabels';
 
 const ShipConfirmationModal = ({
@@ -23,30 +23,38 @@ const ShipConfirmationModal = ({
   const [showLabelPrintedModal, setShowLabelPrintedModal] = useState(false);
 
   const isConfirmPack = type === 'CONFIRM_PACK';
-const displayCount = itemCount;
-
+  const displayCount = itemCount;
 
   const handleYes = () => {
-    if (onYes) {
-      onYes();
-      return;
-    }
-
-    onClose();
-
     if (isConfirmPack) {
-      setShowPrintLabelModal(true);
+      // For CONFIRM_PACK: Close modal and show print labels
+      if (onClose) {
+        onClose();
+      }
+      
+      // Show print label modal after a short delay
+      setTimeout(() => {
+        setShowPrintLabelModal(true);
+      }, 300);
     } else {
-      navigation.navigate('AutoPack');
+      // For CONFIRM_PICK: Either call onYes or navigate to AutoPack
+      if (onYes) {
+        onYes();
+      } else {
+        if (onClose) {
+          onClose();
+        }
+        navigation.navigate('AutoPack');
+      }
     }
   };
 
   const handleNo = () => {
     if (onNo) {
       onNo();
-      return;
+    } else if (onClose) {
+      onClose();
     }
-    onClose();
   };
 
   const handlePrintComplete = () => {
@@ -57,6 +65,10 @@ const displayCount = itemCount;
   const handleShippingConfirmYes = () => {
     setShowLabelPrintedModal(false);
     navigation.navigate('ShipConfirmShipment');
+  };
+
+  const handlePrintLabelClose = () => {
+    setShowPrintLabelModal(false);
   };
 
   return (
@@ -119,12 +131,14 @@ const displayCount = itemCount;
         </View>
       </Modal>
 
+      {/* Print Label Modal */}
       <Ship_PrintLabels
         isVisible={showPrintLabelModal}
-        onClose={() => setShowPrintLabelModal(false)}
+        onClose={handlePrintLabelClose}
         onPrintComplete={handlePrintComplete}
       />
 
+      {/* Label Printed Success Modal */}
       <Modal
         visible={showLabelPrintedModal}
         transparent
@@ -174,6 +188,7 @@ const displayCount = itemCount;
     </>
   );
 };
+
 
 export default ShipConfirmationModal;
 

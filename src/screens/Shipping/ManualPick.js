@@ -50,8 +50,9 @@ function ManualPick({ route, navigation }) {
     const handleScannerClose = () => {
         setShowScanner(false);
     };
-
     const handleConfirmPick = () => {
+
+
         console.log('Transaction data stored:', itemTransactionData);
         const pickedItems = getPickedItems();
         console.log('Picked items to store:', pickedItems);
@@ -409,7 +410,7 @@ function ManualPick({ route, navigation }) {
                 <SingleFooterBtnComponent
                     label="Confirm Pick"
                     onPress={handleConfirmPick}
-                    enabled={true}
+                    enabled={selectedCount > 0}
                     containerStyle={styles.buttonWrapper}
                 />
             </View>
@@ -438,6 +439,11 @@ function ManualPick({ route, navigation }) {
                 }}
                 onNo={() => {
                     setShowConfirmation(false);
+                    navigation.navigate('ShipDashboard', {
+                        status: 'All',
+                        refresh: true,
+                        packMode: 'MANUAL',
+                    });
                 }}
                 selectedTransaction={selectedTransaction}
             />
