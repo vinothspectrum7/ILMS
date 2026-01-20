@@ -4,8 +4,9 @@ import {
     Text,
     StyleSheet,
     Modal,
-    TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useShippingStore } from '../../store/shippingStore';
 import ManDeliveryIcon from '../../assets/icons/Ship_Icons/ManDeliveryIcon';
 import ConfirmationTickIcon from '../../assets/icons/Ship_Icons/ConfirmationTickIcon.svg';
 import Ship_FooterModalButtonComponent from '../../components/shipping/Ship_FooterModalButtonComponent';
@@ -16,7 +17,10 @@ const ManPickConfirmPopup = ({
     selectedCount,
     onYes,
     onNo,
+    selectedTransaction,
 }) => {
+    const navigation = useNavigation();
+    const { setTransactionStatus } = useShippingStore();
 
     const [step, setStep] = useState('confirm');
     const [showPackingConfirm, setShowPackingConfirm] = useState(false);
@@ -28,7 +32,6 @@ const ManPickConfirmPopup = ({
 
     const handlePackingConfirm = (proceed) => {
         setShowPackingConfirm(false);
-                console.log(showPackingConfirm, "yes")
         setStep('confirm');
         onCancel?.();
 
@@ -38,13 +41,36 @@ const ManPickConfirmPopup = ({
             onNo?.();
         }
     };
+
+    const handleCancel = () => {
+        if (selectedTransaction?.deliveryId) {
+            setTransactionStatus(selectedTransaction.deliveryId, 'Ready To Pack');
+        }
+        navigation.reset({
+            index: 0,
+            routes: [
+                {
+                    name: 'ShipDashboard',
+                    params: {
+                        status: 'All',
+                        refresh: true,
+                        packMode: 'MANUAL',
+                    },
+                },
+            ],
+        });
+
+
+        onCancel?.();
+    };
+
     return (
         <>
             <Modal
                 visible={visible}
                 transparent
                 animationType="fade"
-                onRequestClose={onCancel}
+                onRequestClose={handleCancel}
             >
                 <View style={styles.overlay}>
                     <View style={styles.popupContainer}>
@@ -54,20 +80,23 @@ const ManPickConfirmPopup = ({
                                     <ManDeliveryIcon width={150} height={150} />
                                 </View>
 
-                                <Text style={styles.messageText}>
-                                    Totally <Text style={styles.boldText}>{selectedCount} lines</Text> items{"\n"}
-                                    have been selected.
-                                </Text>
+                                <View style={styles.textContent}>
+                                    <Text style={styles.messageText}>
+                                        Totally <Text style={styles.boldText}>{selectedCount} lines</Text> items
+                                        {"\n"}
+                                        have been selected.
+                                    </Text>
 
-                                <Text style={styles.subText}>
-                                    Are you sure want to confirm this pick.
-                                </Text>
+                                    <Text style={styles.subText}>
+                                        Are you sure want to confirm this pick.
+                                    </Text>
+                                </View>
 
                                 <View style={styles.footerWrapper}>
                                     <Ship_FooterModalButtonComponent
                                         leftLabel="Cancel"
                                         rightLabel="Confirm"
-                                        onLeftPress={onCancel}
+                                        onLeftPress={handleCancel}
                                         onRightPress={handleConfirm}
                                         sticky={false}
                                     />
@@ -77,13 +106,11 @@ const ManPickConfirmPopup = ({
                         {step === 'success' && (
                             <View style={styles.successContainer}>
                                 <ConfirmationTickIcon width={160} height={160} />
-
                                 <Text style={styles.successText}>
                                     Items picked successfully
                                 </Text>
                             </View>
                         )}
-
                     </View>
                 </View>
             </Modal>
@@ -92,42 +119,33 @@ const ManPickConfirmPopup = ({
                 visible={showPackingConfirm}
                 transparent
                 animationType="fade"
-                onRequestClose={() => setShowPackingConfirm(false)}
+                onRequestClose={() => {
+                    setShowPackingConfirm(false);
+                    handleCancel();
+                }}
             >
                 <View style={styles.overlay}>
-                    <View style={[styles.popupContainer, { height: 373 }]}>
-                        <View style={styles.successContainer}>
+                    <View style={styles.secondPopupContainer}>
+                        <View style={styles.secondSuccessContainer}>
                             <ConfirmationTickIcon width={160} height={160} />
-
                             <Text style={styles.successText}>
                                 Items picked successfully
                             </Text>
-                            <View style={{ height: 40 }} />
                         </View>
 
-                        <View style={styles.packingFooter}>
-                            <View style={styles.packingFooterContent}>
-                                <View style={styles.packingQuestionContainer}>
-                                    <Text style={styles.packingQuestionText}>
-                                        Would you proceed the next to packing
-                                    </Text>
-                                </View>
+                        <View style={styles.secondFooter}>
+                            <Text style={styles.packingQuestionText}>
+                                Would you proceed the next to packing
+                            </Text>
 
-                                <View style={styles.packingButtonContainer}>
-                                    <TouchableOpacity
-                                        style={[styles.packingButton, styles.noButton]}
-                                        onPress={() => handlePackingConfirm(false)}
-                                    >
-                                        <Text style={styles.noButtonText}>No</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={[styles.packingButton, styles.yesButton]}
-                                        onPress={() => handlePackingConfirm(true)}
-                                    >
-                                        <Text style={styles.yesButtonText}>Yes</Text>
-                                    </TouchableOpacity>
-                                </View>
+                            <View style={styles.secondButtonWrapper}>
+                                <Ship_FooterModalButtonComponent
+                                    leftLabel="No"
+                                    rightLabel="Yes"
+                                    onLeftPress={() => handlePackingConfirm(false)}
+                                    onRightPress={() => handlePackingConfirm(true)}
+                                    sticky={false}
+                                />
                             </View>
                         </View>
                     </View>
@@ -153,6 +171,13 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
 
+    secondPopupContainer: {
+        width: 372,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+
     topBlueSection: {
         width: '100%',
         height: 165,
@@ -161,13 +186,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
+    textContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingTop: 10,
+        paddingBottom: 20,
+    },
+
     messageText: {
-        marginTop: 12,
         fontFamily: 'Mulish',
         fontSize: 16,
         lineHeight: 24,
         color: '#233E55',
         textAlign: 'center',
+        marginBottom: 6,
     },
 
     boldText: {
@@ -175,7 +209,6 @@ const styles = StyleSheet.create({
     },
 
     subText: {
-        marginTop: 6,
         fontFamily: 'Mulish',
         fontSize: 19,
         lineHeight: 21,
@@ -184,9 +217,9 @@ const styles = StyleSheet.create({
     },
 
     footerWrapper: {
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
+        paddingHorizontal: 24,
+        paddingBottom: 16,
+        paddingTop: 8,
     },
 
     successContainer: {
@@ -194,6 +227,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
+    },
+
+    secondSuccessContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 30,
+        paddingBottom: 20,
     },
 
     successText: {
@@ -206,27 +246,11 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 
-    packingFooter: {
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
-        height: 75,
-        backgroundColor: '#ECF1F7',
-        borderBottomRightRadius: 4,
-        borderBottomLeftRadius: 4,
-        justifyContent: 'center',
-    },
-
-    packingFooterContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+    secondFooter: {
         paddingHorizontal: 24,
-        paddingVertical: 16,
-    },
-
-    packingQuestionContainer: {
-        flex: 1,
+        paddingTop: 10,
+        paddingBottom: 20,
+        alignItems: 'center',
     },
 
     packingQuestionText: {
@@ -235,44 +259,12 @@ const styles = StyleSheet.create({
         color: '#233E55',
         lineHeight: 21,
         fontFamily: 'Mulish',
+        textAlign: 'center',
+        marginBottom: 12,
     },
 
-    packingButtonContainer: {
-        flexDirection: 'row',
-        gap: 12,
-        marginLeft: 16,
-    },
-
-    packingButton: {
-        width: 64,
-        height: 40,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-
-    yesButton: {
-        backgroundColor: '#233E55',
-    },
-
-    noButton: {
-        backgroundColor: '#FFFFFF',
-        borderWidth: 1,
-        borderColor: '#D0D5DD',
-    },
-
-    yesButtonText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '600',
-        fontFamily: 'Mulish',
-    },
-
-    noButtonText: {
-        color: '#5F6B7A',
-        fontSize: 14,
-        fontWeight: '600',
-        fontFamily: 'Mulish',
+    secondButtonWrapper: {
+        width: '100%',
     },
 });
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StatusBar, StyleSheet, TouchableOpacity, Dimensions, Modal, TouchableWithoutFeedback, ScrollView } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
@@ -30,6 +29,7 @@ import CarrierManagnt_HM from '../assets/icons/HM/CarrierManagnt_HM.svg';
 import { NavigationCard } from './NavigationCard';
 import { GetOrgsData } from '../api/ApiServices';
 import { useReceivingStore } from '../store/receivingStore';
+import Header_DropDown from '../components/Header_DropDown';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -51,6 +51,7 @@ function getInitials(name = '') {
 
 export const HEADER_METRICS = {
   HEADER_HEIGHT: rs(170),
+  DROPDOWN_HEIGHT: rs(80),
   NAV_CARDS_OVERLAP: rs(40),
   CONTENT_SPACER: rs(160),
 };
@@ -74,15 +75,14 @@ export default function HeaderComponent({
   Defaultorg,
   OrgCode,
   notificationCount = 0,
-  onCardPress = () => {},
-  onMenuSelect = () => {},
+  onCardPress = () => { },
+  onMenuSelect = () => { },
   menuVersion = '25121921',
 }) {
-  const [openOrgDropdown, setOpenOrgDropdown] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState(null);
   const [organizations, setOrganizations] = useState([]);
   const navigation = useNavigation();
-  const { OrgData } = useReceivingStore();
+  const { OrgData, setSelectedOrg } = useReceivingStore();
   const [profileNames, setprofileName] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -93,21 +93,36 @@ export default function HeaderComponent({
         if (orgsdata) {
           const orgformatdata = maporgdata(orgsdata);
           setOrganizations(orgformatdata);
-          const defaultOrg = orgformatdata.find(o => o.is_default);
+          
           if (OrgData?.selectedOrg) {
-            setSelectedOrganization(OrgData?.selectedOrg);
-            Defaultorg?.(OrgData?.selectedOrg);
-            OrgCode?.(OrgData?.selectedOrgCode);
+            setSelectedOrganization(OrgData.selectedOrg);
+            Defaultorg?.(OrgData.selectedOrg.value);
+            OrgCode?.(OrgData.selectedOrg.org_code);
           } else {
-            Defaultorg?.(defaultOrg?.value ?? orgformatdata[0]?.value);
-            OrgCode?.(defaultOrg?.org_code ?? orgformatdata[0]?.org_code);
-            setSelectedOrganization(defaultOrg?.value ?? orgformatdata[0]?.value);
+            const defaultOrg = orgformatdata.find(o => o.is_default);
+            const orgToSelect = defaultOrg || orgformatdata[0];
+            
+            if (orgToSelect) {
+              setSelectedOrganization(orgToSelect);
+              Defaultorg?.(orgToSelect.value);
+              OrgCode?.(orgToSelect.org_code);
+              setSelectedOrg({
+                selectedOrg: orgToSelect,
+                selectedOrgCode: orgToSelect.org_code
+              });
+            }
           }
         } else {
           setOrganizations([]);
         }
       } catch (err) {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load organizations. Please try again.', position: 'top', visibilityTime: 5000 });
+        Toast.show({ 
+          type: 'error', 
+          text1: 'Error', 
+          text2: 'Failed to load organizations. Please try again.', 
+          position: 'top', 
+          visibilityTime: 5000 
+        });
       }
     };
     loadPoData();
@@ -115,39 +130,56 @@ export default function HeaderComponent({
 
   const maporgdata = data =>
     data.map(element => ({
-      label: element.org_code,
-      value: element.org_uuid,
-      org_code: element.org_code,
+      label: element.ORG_CODE,
+      name: element.ORG_CODE,
+      value: element.ORG_ID,
+      org_code: element.ORG_CODE,
       is_default: element.is_default,
     }));
 
+  const handleOrganizationChange = (item) => {
+    if (!item) return;
+    
+    setSelectedOrganization(item);
+    Defaultorg?.(item.value);
+    OrgCode?.(item.org_code);
+    onOrganizationChange?.(item);
+    
+    if (setSelectedOrg) {
+      setSelectedOrg({
+        selectedOrg: item,
+        selectedOrgCode: item.org_code
+      });
+    }
+  };
+
   const showDot = Number(notificationCount) > 0;
 
-    const loadUserName = useCallback(async () => {
-        const raw = await AsyncStorage.getItem('user_name');
-        if(raw){
-          const initials = getInitials(raw);
-          setprofileName(initials);
-        }
-    }, []);
-  
-    useEffect(() => {
+  const loadUserName = useCallback(async () => {
+    const raw = await AsyncStorage.getItem('user_name');
+    if (raw) {
+      const initials = getInitials(raw);
+      setprofileName(initials);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserName();
+  }, [loadUserName]);
+
+  useFocusEffect(
+    React.useCallback(() => {
       loadUserName();
-    }, [loadUserName]);
-  
-    useFocusEffect(
-      React.useCallback(() => {
-        loadUserName();
-      }, [loadUserName])
-    );
+    }, [loadUserName])
+  );
 
-    const profilePress = async()=>{
-      navigation.navigate("settings");
-    }
+  const profilePress = async () => {
+    navigation.navigate("settings");
+  }
 
-    const NotificationPress = async()=>{
-      navigation.navigate("Notification");
-    }
+  const NotificationPress = async () => {
+    navigation.navigate("Notification");
+  }
 
   const toggleMenu = () => setMenuOpen(v => !v);
 
@@ -156,6 +188,7 @@ export default function HeaderComponent({
     onMenuSelect?.(name);
     if (name === 'Receiving') navigation.navigate('Receive');
     if (name === 'Inventory') navigation.navigate('Inventory');
+    if (name === 'Shipping') navigation.navigate('Ship_Entry');
   };
 
   const handleHomePress = () => {
@@ -171,7 +204,6 @@ export default function HeaderComponent({
           <EnnVeeLogoSmall width={rs(140)} height={rs(36)} />
         </View>
         <View style={styles.brandRight}>
-          {/* <Text style={styles.version}>V: 25102918</Text> */}
           <TouchableOpacity onPress={NotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={rs(22)} height={rs(22)} />
             {showDot && <View style={styles.dot} />}
@@ -185,27 +217,21 @@ export default function HeaderComponent({
 
       <View style={styles.headerContent}>
         <View style={styles.organizationSection}>
-          <OrganizationIcon width={rs(21)} height={rs(21)} style={{ marginTop: 5 }} />
-          <DropDownPicker
-            open={openOrgDropdown}
+          <OrganizationIcon width={rs(21)} height={rs(21)} style={styles.orgIcon} />
+          
+          <Header_DropDown
+            label=""
+            placeholder="Select Org"
             value={selectedOrganization}
             items={organizations}
-            setOpen={setOpenOrgDropdown}
-            setValue={setSelectedOrganization}
+            onChange={handleOrganizationChange}
+            renderDropdownIcon={(isOpen) => (
+              <Text style={styles.dropdownArrow}>
+                {isOpen ? '▲' : '▼'}
+              </Text>
+            )}
+            displayValue={(item) => item?.label || item?.name || item?.org_code || ''}
             containerStyle={styles.dropdownContainer}
-            style={styles.dropdownStyle}
-            labelStyle={styles.dropdownLabel}
-            textStyle={styles.dropdownText}
-            dropDownContainerStyle={styles.dropdownMenuContainer}
-            itemSeparator
-            itemSeparatorStyle={styles.itemSeparatorStyle}
-            listItemLabelStyle={styles.listItemLabelStyle}
-            selectedItemLabelStyle={styles.selectedItemLabelStyle}
-            onSelectItem={item => onOrganizationChange?.(item)}
-            renderBadge={() => null}
-            ArrowUpIconComponent={({ style }) => <Text style={[style, { color: '#FFFFFF' }]}>▲</Text>}
-            ArrowDownIconComponent={({ style }) => <Text style={[style, { color: '#FFFFFF' }]}>▼</Text>}
-            TickIconComponent={({ style }) => <Text style={[style, { color: '#FFFFFF', fontSize: 18 }]}>✓</Text>}
           />
         </View>
 
@@ -294,17 +320,33 @@ const styles = StyleSheet.create({
     zIndex: 5,
     paddingBottom: rs(20),
   },
-  headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: rs(15), paddingTop: rs(0) },
-  organizationSection: { flexDirection: 'row', alignItems: 'center', zIndex: 100 },
-  dropdownContainer: { width: rs(103), height: rs(21) },
-  dropdownStyle: { backgroundColor: 'transparent', borderColor: 'transparent', minHeight: rs(21) },
-  dropdownLabel: { color: '#FFFFFF', fontSize: rs(14), fontWeight: '600' },
-  dropdownText: { color: '#FFFFFF', fontSize: rs(14) },
-  dropdownMenuContainer: { backgroundColor: BRAND_BG, borderColor: '#FFFFFF', borderWidth: 0 },
-  itemSeparatorStyle: { backgroundColor: '#3b5266' },
-  listItemLabelStyle: { color: '#FFFFFF' },
-  selectedItemLabelStyle: { fontWeight: 'bold', color: '#FFFFFF' },
-  iconSection: { flexDirection: 'row', alignItems: 'center' },
+  headerContent: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    paddingHorizontal: rs(15), 
+    paddingTop: rs(5),
+  },
+  organizationSection: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    flex: 1,
+  },
+  orgIcon: {
+    marginRight: rs(8),
+    marginTop: 5,
+  },
+  dropdownContainer: {
+    width: rs(120),
+  },
+  dropdownArrow: {
+    color: WHITE,
+    fontSize: rs(10),
+    marginLeft: rs(2),
+  },
+  iconSection: { 
+    marginLeft: rs(20),
+  },
   navigationCardsRow: {
     position: 'absolute',
     bottom: -HEADER_METRICS.NAV_CARDS_OVERLAP,
@@ -315,7 +357,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: rs(10),
     zIndex: 10,
   },
-  version: { fontFamily: 'Mulish', fontWeight: 500, fontSize: 10, verticalAlign: 'middle', color: '#FFFFFF', marginRight: 10 },
   menuBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   menuAnchorRow: { position: 'absolute', top: ms(80), right: ms(12), left: ms(12), alignItems: 'flex-end' },
   menuCard: {

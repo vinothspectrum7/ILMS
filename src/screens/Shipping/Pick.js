@@ -56,9 +56,10 @@ function Pick({ navigation }) {
     const updated = { ...selectedTransaction, status: 'Ready To Pack' };
 
     setPickItemsData(updated);
+    //add lot, serail, lot+serail data here - manualPick
+
     setSelectedTransaction(updated);
     setTransactionStatus(updated.deliveryId, 'Ready To Pack');
-
     setShowConfirmation(true);
   };
 
@@ -209,6 +210,7 @@ function Pick({ navigation }) {
         onYes={handleConfirmationYes}
         onNo={handleConfirmationNo}
         type="CONFIRM_PICK"
+        itemCount={pickLines.length}
       />
     </View>
   );

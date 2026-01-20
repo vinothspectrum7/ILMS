@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
   TextInput,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import DropDown from '../../assets/icons/Ship_Icons/DropDown.svg';
 import CalenderIcon from '../../assets/icons/Ship_Icons/CalenderIcon.svg';
 import LocationIcon from '../../assets/icons/Ship_Icons/LocationIcon.svg';
 import DocumentIcon from '../../assets/icons/Ship_Icons/DocumentIcon.svg';
@@ -26,8 +25,15 @@ import Ship_ShipConfirmPopupModal from '../../components/shipping/Ship_ShipConfi
 import ShippingProgressModal from '../../components/shipping/ShippingProgressModal';
 import Ship_ViewDetails from '../../components/shipping/Ship_ViewDetails';
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
+import { useShippingStore } from '../../store/shippingStore';
 
 function Ship_ConfirmShippment({ navigation }) {
+  const selectedTransaction = useShippingStore(s => s.selectedTransaction);
+  const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
+  const setTransactionStatus = useShippingStore(s => s.setTransactionStatus);
+  const setShipConfirmPayload = useShippingStore(s => s.setShipConfirmPayload);
+  const pickItemsData = useShippingStore(s => s.pickItemsData);
+
   const [selectedDate, setSelectedDate] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [freightTerm, setFreightTerm] = useState('Prepaid');
@@ -50,6 +56,31 @@ function Ship_ConfirmShippment({ navigation }) {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [freightCharges, setFreightCharges] = useState('');
 
+  const deliveryNumberText = useMemo(() => {
+    return String(selectedTransaction?.deliveryId ?? selectedTransaction?.deliveryNumber ?? '-') || '-';
+  }, [selectedTransaction]);
+
+  const customerNameText = useMemo(() => {
+    return String(selectedTransaction?.customer ?? selectedTransaction?.customerName ?? '-') || '-';
+  }, [selectedTransaction]);
+
+  const lpnText = useMemo(() => {
+    const list = selectedTransaction?.confirm_data;
+    if (Array.isArray(list) && list.length > 0) {
+      return String(list[0]?.lpn ?? '-') || '-';
+    }
+    return String(selectedTransaction?.lpn ?? '-') || '-';
+  }, [selectedTransaction]);
+
+  const shipToText = useMemo(() => {
+    const addr =
+      selectedTransaction?.shipToAddress ||
+      selectedTransaction?.shipTo ||
+      selectedTransaction?.shipToLocation ||
+      '';
+    return addr ? String(addr) : '-';
+  }, [selectedTransaction]);
+
   const allRequiredFieldsFilled = () => {
     return (
       fobValue &&
@@ -57,8 +88,7 @@ function Ship_ConfirmShippment({ navigation }) {
       shipMethodValue &&
       selectedDate &&
       freightTermValue &&
-      trackingNumber.trim() !== '' 
-
+      trackingNumber.trim() !== ''
     );
   };
 
@@ -89,7 +119,7 @@ function Ship_ConfirmShippment({ navigation }) {
     { id: 3, name: 'Third Party', code: 'TPP' },
   ];
 
-  const formatDate = (date) => {
+  const formatDate = date => {
     if (!date) return '';
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -97,8 +127,8 @@ function Ship_ConfirmShippment({ navigation }) {
     return `${day}/${month}/${year}`;
   };
 
-  const onChangeDate = (event, selectedDate) => {
-    const currentDate = selectedDate || new Date();
+  const onChangeDate = (event, picked) => {
+    const currentDate = picked || new Date();
     setShowDatePicker(Platform.OS === 'ios');
     setSelectedDate(currentDate);
   };
@@ -107,32 +137,135 @@ function Ship_ConfirmShippment({ navigation }) {
     setShowDatePicker(true);
   };
 
- const handleConfirmShipment = () => {
-  if (!allRequiredFieldsFilled()) {
-    // Optional: Show a toast or alert
-    console.log('Please fill all required fields');
-    return;
-  }
-  
-  console.log('Ship Confirm button pressed');
-  setShowConfirmPopup(true);
-};
+  const handleConfirmShipment = () => {
+    if (!allRequiredFieldsFilled()) {
+      console.log('Please fill all required fields');
+      return;
+    }
+    setShowConfirmPopup(true);
+  };
+
   const handleAddVolumeWeight = () => {
     setShowVolumeWeightModal(true);
   };
 
-  const handleSaveVolumeWeight = (data) => {
-    console.log('Volume and Weight saved:', data);
+  const handleSaveVolumeWeight = data => {
     setVolumeWeightData(data);
     setHasVolumeWeight(true);
     setShowVolumeWeightModal(false);
   };
 
+  const handleCancelAction = () => {
+    navigation.navigate('ShipDashboard', { 
+      status: 'All',
+      refresh: true 
+    });
+  };
+
   const handleConfirmShipping = () => {
-    console.log('handleConfirmShipping called');
+    const lotSerialData = {};
+    if (pickItemsData && pickItemsData.length > 0) {
+      pickItemsData.forEach(item => {
+        if (item.transactionData) {
+          const transactionType = item.transactionData.type;
+
+          let transactionData = {};
+
+          if (transactionType === 'lot') {
+            transactionData = {
+              lotNumber: item.transactionData.data?.lotNumber,
+              scannedLotNumber: item.transactionData.data?.scannedLotNumber,
+              mfgDate: item.transactionData.data?.mfgDate,
+              expDate: item.transactionData.data?.expDate,
+              quantity: item.transactionData.data?.quantity,
+              lotTransactions: item.transactionData.data?.lotTransactions || []
+            };
+          }
+          else if (transactionType === 'serial') {
+            transactionData = {
+              serials: item.transactionData.data?.serials || [],
+              serialTransactions: item.transactionData.data?.serialTransactions || [],
+              selectedSerialNumbers: item.transactionData.data?.selectedSerialNumbers || []
+            };
+          }
+          else if (transactionType === 'lot+serial') {
+            transactionData = {
+              lotTransactions: item.transactionData.data?.lotTransactions || [],
+              serialTransactions: item.transactionData.data?.serialTransactions || [],
+              scannedLots: item.transactionData.data?.scannedLots || {},
+              selectedSerialNumbers: item.transactionData.data?.selectedSerialNumbers || []
+            };
+          }
+
+          lotSerialData[item.itemCode] = {
+            itemCode: item.itemCode,
+            itemName: item.item,
+            itemType: item.itemType,
+            quantity: item.quantity,
+            uom: item.uom,
+            transactionType: transactionType,
+            data: transactionData,
+          };
+        }
+      });
+    }
+
+    const lotItemsCount = Object.values(lotSerialData).filter(item =>
+      item.transactionType === 'lot').length;
+    const serialItemsCount = Object.values(lotSerialData).filter(item =>
+      item.transactionType === 'serial').length;
+    const lotSerialItemsCount = Object.values(lotSerialData).filter(item =>
+      item.transactionType === 'lot+serial').length;
+
+    console.log('Lot items:', lotItemsCount);
+    console.log('Serial items:', serialItemsCount);
+    console.log('Lot+Serial items:', lotSerialItemsCount);
+    console.log('Full lotSerialData:', lotSerialData);
+
+    const payload = {
+      deliveryId: selectedTransaction?.deliveryId ?? null,
+      deliveryNumber: selectedTransaction?.deliveryNumber ?? selectedTransaction?.deliveryId ?? null,
+      customer: selectedTransaction?.customer ?? selectedTransaction?.customerName ?? null,
+      lpn: lpnText,
+      shipTo: shipToText,
+      fob: fobValue,
+      fobLocation: fobLocationValue,
+      shipMethod: shipMethodValue,
+      ultimateShipToDate: selectedDate ? formatDate(selectedDate) : null,
+      freightTerms: freightTermValue,
+      trackingNumber: trackingNumber,
+      freightCharges: freightCharges,
+      options: {
+        allowPartialShipment,
+        backorderRemainingQty,
+        autoInterfaceTripStop,
+        printDocuments,
+      },
+      volumeWeight: volumeWeightData,
+      lotSerialData: lotSerialData,
+      pickedItems: pickItemsData
+    };
+
+    setShipConfirmPayload(payload);
+    console.log('Final payload with lot/serial data:', payload);
+
+    const items = Array.isArray(selectedTransaction?.items) ? selectedTransaction.items : [];
+    const updatedItems = items.map(it => ({ ...it, status: 'Shipped' }));
+
+    const updatedTransaction = {
+      ...(selectedTransaction || {}),
+      items: updatedItems,
+      status: 'Shipped',
+    };
+
+    setSelectedTransaction(updatedTransaction);
+
+    if (updatedTransaction?.deliveryId != null) {
+      setTransactionStatus(updatedTransaction.deliveryId, 'Shipped');
+    }
+
     setShowConfirmPopup(false);
     setShowProgressModal(true);
-    console.log('showProgressModal should be true now');
   };
 
   const Checkbox = ({ checked, onPress }) => (
@@ -155,27 +288,23 @@ function Ship_ConfirmShippment({ navigation }) {
         onBack={() => navigation.goBack()}
       />
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.mainCard}>
           <View style={styles.deliverySection}>
             <View style={styles.topRow}>
               <View style={styles.topItem}>
                 <Text style={styles.label}>Delivery Number</Text>
-                <Text style={styles.value}>1100002</Text>
+                <Text style={styles.value}>{deliveryNumberText}</Text>
               </View>
 
               <View style={styles.topItem}>
                 <Text style={styles.label}>Customer Name</Text>
-                <Text style={styles.value}>ABC PVT LTD</Text>
+                <Text style={styles.value}>{customerNameText}</Text>
               </View>
 
               <View style={styles.topItem}>
                 <Text style={styles.label}>LPN</Text>
-                <Text style={styles.value}>234567800654</Text>
+                <Text style={styles.value}>{lpnText}</Text>
               </View>
             </View>
 
@@ -186,9 +315,10 @@ function Ship_ConfirmShippment({ navigation }) {
                 </View>
                 <Text style={styles.shipToText}>
                   <LocationIcon width={16} height={16} style={styles.locationIcon} />
-                  45 Industrial Park, Noida, UP
+                  {shipToText}
                 </Text>
               </View>
+
               <TouchableOpacity
                 style={styles.viewItemsBtn}
                 activeOpacity={0.8}
@@ -339,10 +469,9 @@ function Ship_ConfirmShippment({ navigation }) {
               style={styles.addVolumeWeightTouchable}
               onPress={handleAddVolumeWeight}
             >
-              <Text style={[
-                styles.addVolumeWeightText,
-                hasVolumeWeight && styles.addVolumeWeightTextActive
-              ]}>
+              <Text
+                style={[styles.addVolumeWeightText, hasVolumeWeight && styles.addVolumeWeightTextActive]}
+              >
                 {hasVolumeWeight ? 'Volume and Weight Added' : 'Add Volume and Weight'}
               </Text>
             </TouchableOpacity>
@@ -352,10 +481,7 @@ function Ship_ConfirmShippment({ navigation }) {
             <View style={styles.checkboxRow}>
               <View style={styles.checkboxOptionContainer}>
                 <View style={styles.checkboxOption}>
-                  <Checkbox
-                    checked={allowPartialShipment}
-                    onPress={() => setAllowPartialShipment(!allowPartialShipment)}
-                  />
+                  <Checkbox checked={allowPartialShipment} onPress={() => setAllowPartialShipment(!allowPartialShipment)} />
                   <Text style={styles.checkboxLabel}>Allow Partial Shipment</Text>
                 </View>
               </View>
@@ -383,10 +509,7 @@ function Ship_ConfirmShippment({ navigation }) {
               </View>
               <View style={styles.checkboxOptionContainer}>
                 <View style={styles.checkboxOption}>
-                  <Checkbox
-                    checked={printDocuments}
-                    onPress={() => setPrintDocuments(!printDocuments)}
-                  />
+                  <Checkbox checked={printDocuments} onPress={() => setPrintDocuments(!printDocuments)} />
                   <Text style={styles.checkboxLabel}>Print Documents</Text>
                 </View>
               </View>
@@ -435,8 +558,9 @@ function Ship_ConfirmShippment({ navigation }) {
         visible={showConfirmPopup}
         onClose={() => setShowConfirmPopup(false)}
         onConfirm={handleConfirmShipping}
-        deliveryNumber="1100002"
-        customerName="ABC PVT LTD"
+        onNo={handleCancelAction} 
+        deliveryNumber={deliveryNumberText}
+        customerName={customerNameText}
       />
 
       <ShippingProgressModal
@@ -444,23 +568,15 @@ function Ship_ConfirmShippment({ navigation }) {
         onClose={() => setShowProgressModal(false)}
       />
 
-      {/* <SingleFooterBtnComponent
-        label="Ship Confirm"
-        onPress={handleConfirmShipment}
-                disabled={!allRequiredFieldsFilled()}
-      /> */}
+      <Ship_ViewDetails visible={showShip_ViewDetails} onClose={() => setShowShip_ViewDetails(false)} />
 
-      <Ship_ViewDetails
-        visible={showShip_ViewDetails}
-        onClose={() => setShowShip_ViewDetails(false)}
-      />
       {allRequiredFieldsFilled() && (
-  <SingleFooterBtnComponent
-    label="Ship Confirm"
-    onPress={handleConfirmShipment}
-    disabled={!allRequiredFieldsFilled()}
-  />
-)}
+        <SingleFooterBtnComponent
+          label="Ship Confirm"
+          onPress={handleConfirmShipment}
+          disabled={!allRequiredFieldsFilled()}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -631,7 +747,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F6',
     paddingHorizontal: 12,
     paddingVertical: 10,
-
   },
 
   carrierDetailsTight: {
@@ -774,8 +889,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  addVolumeWeightButtonActive: {
-  },
+  addVolumeWeightButtonActive: {},
 
   addVolumeWeightTouchable: {
     flex: 1,
@@ -937,8 +1051,8 @@ const styles = StyleSheet.create({
     color: '#168035',
   },
 
-  readyTruckIcon: {
-  },
+  readyTruckIcon: {},
+
   datePlaceholder: {
     fontFamily: 'Mulish',
     fontWeight: '200',

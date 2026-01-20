@@ -14,7 +14,7 @@ import {
 import CloseIcon from '../../assets/icons/close.svg';
 import SummaryIcon from '../../assets/icons/Ship_Icons/SummaryIcon';
 import LotsAdd from '../../assets/icons/Ship_Icons/LotsAdd';
-import DropdownIcon from '../../assets/icons/Ship_Icons/DropdownIcon';
+import DropdownIcon from '../../assets/icons/Ship_Icons/Whitedropdown.svg';
 import SearchIcon from '../../assets/icons/Ship_Icons/SearchIcon';
 import EditIcon from '../../assets/icons/Ship_Icons/EditIcon';
 import SerialUpIcon from '../../assets/icons/serialupicon.svg';
@@ -35,6 +35,8 @@ function Ship_LotSerialPopup({
     item,
     pickedQuantity = 0,
     totalQuantity = 0,
+    orderId = null,
+    lineNumber = null,
 }) {
     const slideAnim = useState(new Animated.Value(height))[0];
     const [showLotCard, setShowLotCard] = useState(true);
@@ -53,6 +55,8 @@ function Ship_LotSerialPopup({
     const [startNumberText, setStartNumberText] = useState('');
     const [endNumberText, setEndNumberText] = useState('');
     const [serialsData, setSerialsData] = useState([]);
+    const [lotTransactions, setLotTransactions] = useState({});
+    const [serialTransactions, setSerialTransactions] = useState({});
 
     useEffect(() => {
         if (visible) {
@@ -67,13 +71,31 @@ function Ship_LotSerialPopup({
     }, [visible]);
 
     useEffect(() => {
-        if (visible) {
-            const itemCodeStr = String(item?.itemCode || '').trim();
-            const filtered = LOTSERIAL.filter(lot => {
+        if (visible && item) {
+            const filteredLots = LOTSERIAL.filter(lot => {
                 const lotCodeStr = String(lot.itemCode || '').trim();
-                const isMatch = lotCodeStr === itemCodeStr;
-                return isMatch;
+                const itemCodeStr = String(item?.itemCode || '').trim();
+                return lotCodeStr === itemCodeStr;
             });
+            const initialLotTransactions = {};
+            filteredLots.forEach((lot, index) => {
+                const transactionId = `lot_txn_${item?.itemCode}_${index}_${Date.now()}`;
+                initialLotTransactions[index] = {
+                    transactionId,
+                    itemCode: item?.itemCode,
+                    itemDescription: item?.item,
+                    lotNumber: lot.lotNumber,
+                    scannedLotNumber: null,
+                    mfgDate: lot.mfgDate,
+                    expDate: lot.expDate,
+                    quantity: lot.qty,
+                    uom: item?.uom || 'Each',
+                    orderId: orderId || 'ORD_' + Date.now(),
+                    lineNumber: lineNumber || item?.lineNumber,
+                    timestamp: new Date().toISOString(),
+                };
+            });
+            setLotTransactions(initialLotTransactions);
         }
     }, [visible, item]);
 
@@ -85,11 +107,28 @@ function Ship_LotSerialPopup({
         }).start(onClose);
     };
 
-    const handleConfirmLot = () => {
-        if (onConfirm && item) {
-            onConfirm(item);
-        }
-    };
+const handleConfirmLot = () => {
+    const confirmedTransactions = Object.values(lotTransactions).map(lotTxn => {
+        const serialsForLot = serialTransactions[lotTxn.lotNumber] || [];
+        
+        return {
+            ...lotTxn,
+            serials: serialsForLot,
+            confirmedTimestamp: new Date().toISOString()
+        };
+    });
+
+    const allSerialTransactions = Object.values(serialTransactions).flat();
+
+    if (onConfirm && item) {
+        onConfirm({
+            ...item,  
+            lotTransactions: confirmedTransactions,
+            serialTransactions: allSerialTransactions,
+            confirmedTimestamp: new Date().toISOString()
+        });
+    }
+};
 
     const openScannerForLot = idx => {
         setScanTargetIdx(idx);
@@ -103,6 +142,14 @@ function Ship_LotSerialPopup({
                 ...prev,
                 [scanTargetIdx]: scannedRaw,
             }));
+            setLotTransactions(prev => ({
+                ...prev,
+                [scanTargetIdx]: {
+                    ...prev[scanTargetIdx],
+                    scannedLotNumber: scannedRaw,
+                    scanTimestamp: new Date().toISOString(),
+                }
+            }));
         }
         setScannerVisible(false);
         setScanTargetIdx(null);
@@ -114,16 +161,47 @@ function Ship_LotSerialPopup({
             index: lotIndex
         });
 
+        let initialSerials = [];
         if (lot.serials && lot.serials.length > 0) {
-            setSerialsData(lot.serials);
+            initialSerials = lot.serials.map((serial, idx) => ({
+                ...serial,
+                id: serial.id || `serial-${lotIndex}-${idx + 1}`,
+                lotNumber: lot.lotNumber,
+                itemCode: item?.itemCode,
+                transactionId: `serial_txn_${item?.itemCode}_${lot.lotNumber}_${idx + 1}_${Date.now()}`
+            }));
         } else {
-            const mockSerials = Array.from({ length: lot.qty || totalQuantity }, (_, i) => ({
+            initialSerials = Array.from({ length: lot.qty || totalQuantity }, (_, i) => ({
                 id: `serial-${lotIndex}-${i + 1}`,
                 serialNo: `SR-${item?.itemCode || 'ITEM'}-${i + 1}`,
-                status: 'Active'
+                status: 'Active',
+                lotNumber: lot.lotNumber,
+                itemCode: item?.itemCode,
+                transactionId: `serial_txn_${item?.itemCode}_${lot.lotNumber}_${i + 1}_${Date.now()}`
             }));
-            setSerialsData(mockSerials);
         }
+
+        setSerialsData(initialSerials);
+        
+        const initialSerialTransactions = {};
+        initialSerials.forEach(serial => {
+            initialSerialTransactions[serial.id] = {
+                transactionId: serial.transactionId,
+                serialNo: serial.serialNo,
+                lotNumber: lot.lotNumber,
+                itemCode: item?.itemCode,
+                itemDescription: item?.item,
+                orderId: orderId || 'ORD_' + Date.now(),
+                lineNumber: lineNumber || item?.lineNumber,
+                timestamp: new Date().toISOString(),
+                scannedSerialNo: null
+            };
+        });
+
+        setSerialTransactions(prev => ({
+            ...prev,
+            [lot.lotNumber]: initialSerialTransactions
+        }));
 
         setSelectedSerialNumbers([]);
         setSearchQuery('');
@@ -155,6 +233,21 @@ function Ship_LotSerialPopup({
                         : serial
                 )
             );
+
+            const serial = serialsData.find(s => s.id === scanSerialTargetId);
+            if (serial && serial.lotNumber) {
+                setSerialTransactions(prev => ({
+                    ...prev,
+                    [serial.lotNumber]: {
+                        ...prev[serial.lotNumber],
+                        [scanSerialTargetId]: {
+                            ...prev[serial.lotNumber][scanSerialTargetId],
+                            scannedSerialNo: scannedRaw,
+                            scanTimestamp: new Date().toISOString(),
+                        }
+                    }
+                }));
+            }
         }
 
         setScannerSerialVisible(false);
@@ -183,6 +276,20 @@ function Ship_LotSerialPopup({
                 return [...prev, { id: serialId, serialNo }];
             }
         });
+
+        const serial = serialsData.find(s => s.id === serialId);
+        if (serial && serial.lotNumber) {
+            setSerialTransactions(prev => ({
+                ...prev,
+                [serial.lotNumber]: {
+                    ...prev[serial.lotNumber],
+                    [serialId]: {
+                        ...prev[serial.lotNumber][serialId],
+                        selectedTimestamp: new Date().toISOString()
+                    }
+                }
+            }));
+        }
     };
 
     const incStart = useCallback(() => {
@@ -213,20 +320,69 @@ function Ship_LotSerialPopup({
         const start = parseInt(startNumberText) || 0;
         const end = parseInt(endNumberText) || 0;
 
-        if (start <= end) {
+        if (start <= end && selectedLotForSerials) {
             const newSerials = [];
+            const lotNumber = selectedLotForSerials.lotNumber;
+            
             for (let i = start; i <= end; i++) {
+                const serialId = `serial-${selectedLotForSerials.index}-${i}`;
+                const serialNo = `${item?.itemCode || 'ITEM'}-${i}`;
+                
                 newSerials.push({
-                    id: `serial-${selectedLotForSerials?.index}-${i}`,
-                    serialNo: `${item?.itemCode || 'ITEM'}-${i}`,
-                    status: 'Active'
+                    id: serialId,
+                    serialNo: serialNo,
+                    status: 'Active',
+                    lotNumber: lotNumber,
+                    itemCode: item?.itemCode,
+                    transactionId: `serial_txn_${item?.itemCode}_${lotNumber}_${i}_${Date.now()}`
                 });
+
+                setSerialTransactions(prev => ({
+                    ...prev,
+                    [lotNumber]: {
+                        ...prev[lotNumber],
+                        [serialId]: {
+                            transactionId: `serial_txn_${item?.itemCode}_${lotNumber}_${i}_${Date.now()}`,
+                            serialNo: serialNo,
+                            lotNumber: lotNumber,
+                            itemCode: item?.itemCode,
+                            itemDescription: item?.item,
+                            orderId: orderId || 'ORD_' + Date.now(),
+                            lineNumber: lineNumber || item?.lineNumber,
+                            timestamp: new Date().toISOString(),
+                            scannedSerialNo: null
+                        }
+                    }
+                }));
             }
 
             setSerialsData(newSerials);
             setReallocateVisible(false);
             setStartNumberText('');
             setEndNumberText('');
+        }
+    };
+
+    const deleteSerialRow = (id) => {
+        const serial = serialsData.find(s => s.id === id);
+        
+        if (serial && serial.lotNumber) {
+            setSerialTransactions(prev => {
+                const lotSerials = { ...prev[serial.lotNumber] };
+                delete lotSerials[id];
+                
+                return {
+                    ...prev,
+                    [serial.lotNumber]: lotSerials
+                };
+            });
+        }
+
+        setSerialsData(prev => prev.filter(serial => serial.id !== id));
+        setSelectedSerialNumbers(prev => prev.filter(s => s.id !== id));
+
+        if (editingSerialId === id) {
+            setEditingSerialId(null);
         }
     };
 
@@ -266,7 +422,7 @@ function Ship_LotSerialPopup({
                         >
                             <View style={styles.header}>
                                 <Text style={styles.headerTitle}>
-                                    {item?.lineNumber || 'Line'} 
+                                   Line
                                 </Text>
                                 <TouchableOpacity onPress={closeModal}>
                                     <CloseIcon width={18} height={18} />
@@ -297,7 +453,7 @@ function Ship_LotSerialPopup({
                                         <View style={styles.bannerLeft}>
                                             <LotsAdd width={22} height={22} />
                                             <Text style={styles.bannerText}>
-                                                Lots Added
+                                                Lots Added 
                                             </Text>
                                         </View>
 
@@ -322,9 +478,7 @@ function Ship_LotSerialPopup({
                                             const hasSerials = lot.serials && lot.serials.length > 0;
 
                                             return (
-                                                <View style={styles.lotCard}>
-
-
+                                                <View style={styles.lotCard} key={`lot-${index}`}>
                                                     <Text style={styles.fieldLabel}>Lot Number*</Text>
                                                     <TouchableOpacity
                                                         style={styles.lotNumberBox}
@@ -360,7 +514,7 @@ function Ship_LotSerialPopup({
                                                             activeOpacity={0.7}
                                                         >
                                                             <Text style={styles.viewSerialText}>
-                                                                View Serial
+                                                                View Serial 
                                                             </Text>
                                                         </TouchableOpacity>
                                                     )}
@@ -406,7 +560,7 @@ function Ship_LotSerialPopup({
                     <View style={styles.serialModalContainer}>
                         <View style={styles.serialModalHeader}>
                             <Text style={styles.serialModalTitle}>
-                                View Serials
+                                View Serials 
                             </Text>
                             <TouchableOpacity onPress={closeSerialModal}>
                                 <CloseIcon width={18} height={18} />
@@ -434,36 +588,50 @@ function Ship_LotSerialPopup({
                             <ScrollView style={styles.serialsScrollView}>
                                 {filteredSerials.length > 0 ? (
                                     <View style={styles.serialsListContainer}>
-
                                         {filteredSerials.map((serial, idx) => {
                                             const isSelected = selectedSerialNumbers.some(s => s.id === serial.id);
+
                                             return (
                                                 <View key={serial.id || idx} style={styles.serialItemRow}>
                                                     <TouchableOpacity
                                                         style={styles.serialTextContainer}
                                                         onPress={() => handleSerialSelect(serial.id, serial.serialNo)}
                                                     >
-                                                        <Text style={[
-                                                            styles.serialItemText,
-                                                            isSelected && styles.serialItemTextSelected
-                                                        ]}>
-                                                            {editingSerialId === serial.id ? '' : serial.serialNo}
-                                                        </Text>
+                                                        <View style={styles.serialInfo}>
+                                                            <Text style={[
+                                                                styles.serialItemText,
+                                                                isSelected && styles.serialItemTextSelected
+                                                            ]}>
+                                                                {editingSerialId === serial.id ? '' : serial.serialNo}
+                                                            </Text>
+                                                        </View>
                                                     </TouchableOpacity>
-                                                    <TouchableOpacity
-                                                        style={styles.editButton}
-                                                        onPress={() =>
-                                                            editingSerialId === serial.id
-                                                                ? onScannerIconPress(serial.id)
-                                                                : onEditIconPress(serial.id)
-                                                        }
-                                                    >
+                                                    <View style={styles.serialActionContainer}>
                                                         {editingSerialId === serial.id ? (
-                                                            <BarcodeScannerIcon width={18} height={18} />
+                                                            <>
+                                                                <TouchableOpacity
+                                                                    style={styles.actionIcon}
+                                                                    onPress={() => onScannerIconPress(serial.id)}
+                                                                >
+                                                                    <BarcodeScannerIcon width={18} height={18} />
+                                                                </TouchableOpacity>
+
+                                                                <TouchableOpacity
+                                                                    style={styles.actionIcon}
+                                                                    onPress={() => deleteSerialRow(serial.id)}
+                                                                >
+                                                                    <CloseIcon width={16} height={16} fill="#E11D48" />
+                                                                </TouchableOpacity>
+                                                            </>
                                                         ) : (
-                                                            <EditIcon width={16} height={16} />
+                                                            <TouchableOpacity
+                                                                style={styles.actionIcon}
+                                                                onPress={() => onEditIconPress(serial.id)}
+                                                            >
+                                                                <EditIcon width={16} height={16} />
+                                                            </TouchableOpacity>
                                                         )}
-                                                    </TouchableOpacity>
+                                                    </View>
                                                 </View>
                                             );
                                         })}
@@ -482,7 +650,7 @@ function Ship_LotSerialPopup({
                                 style={styles.closeSerialButton}
                                 onPress={closeSerialModal}
                             >
-
+                                <Text style={styles.closeSerialButtonText}>Close</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -675,9 +843,8 @@ const styles = StyleSheet.create({
     viewSerialText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#233E55',
+        color: '#021322',
     },
-
     fieldLabel: {
         fontSize: 12,
         color: '#667085',
@@ -749,18 +916,17 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: rs(21),
     },
     serialModalContainer: {
-        width: rs(350),  
+        width: rs(350),
         height: rs(600),
         backgroundColor: '#FFFFFF',
         borderRadius: 4,
         overflow: 'hidden',
     },
     serialModalHeader: {
-        width: '100%',       
-        height: rs(40),      
+        width: '100%',
+        height: rs(40),
         backgroundColor: '#D9E4EE',
         flexDirection: 'row',
         alignItems: 'center',
@@ -768,19 +934,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: rs(12),
         borderRadius: 4,
     },
-
-
+    serialModalTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#233E55',
+    },
     serialModalContent: {
         flex: 1,
     },
-    serialModalInfo: {
-        paddingHorizontal: rs(16),
-        paddingTop: rs(16),
-        paddingBottom: rs(12),
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
-    },
-
     serialHeader: {
         height: 36,
         backgroundColor: '#E9F0F8',
@@ -806,31 +967,12 @@ const styles = StyleSheet.create({
     editHeaderIcon: {
         padding: 2,
     },
-    searchContainer: {
-        paddingHorizontal: rs(16),
-        paddingVertical: rs(8),
-    },
-    searchInput: {
-        height: 36,
-        backgroundColor: '#F2F6FA',
-        borderRadius: 6,
-        paddingHorizontal: rs(12),
-        fontSize: 14,
-        color: '#233E55',
-    },
     serialsScrollView: {
         flex: 1,
         paddingHorizontal: rs(16),
     },
     serialsListContainer: {
         flex: 1,
-    },
-    serialsListTitle: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#233E55',
-        marginBottom: rs(8),
-        marginTop: rs(8),
     },
     serialItemRow: {
         flexDirection: 'row',
@@ -843,6 +985,9 @@ const styles = StyleSheet.create({
     serialTextContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
+    },
+    serialInfo: {
         flex: 1,
     },
     serialItemText: {
@@ -874,7 +1019,18 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#E5E7EB',
     },
-
+    closeSerialButton: {
+        backgroundColor: '#5F778E',
+        height: rs(44),
+        borderRadius: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    closeSerialButtonText: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: 14,
+    },
     reallocateOverlay: {
         position: 'absolute',
         top: 0,
@@ -964,6 +1120,14 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: '600',
         fontSize: 14,
+    },
+    serialActionContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    actionIcon: {
+        padding: 4,
     },
 });
 

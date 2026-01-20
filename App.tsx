@@ -57,6 +57,9 @@ import ManualPick from './src/screens/Shipping/ManualPick';
 import Ship_LabelPrintListScreen from './src/screens/Shipping/Ship_LabelPrintListScreen';
 import ManualPack from './src/screens/Shipping/ManualPack';
 import Ship_ManConfirmPack from './src/components/shipping/Ship_ManConfirmPack';
+import Ship_PrintDocumentScreen from './src/screens/Shipping/Ship_PrintDocumentScreen';
+import CycleCount from './src/screens/Cycle_Count/CycleCount';
+import CC_CreateCount from './src/screens/Cycle_Count/CC_CreateCount';
 
 const Stack = createNativeStackNavigator();
 
@@ -341,6 +344,23 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="Ship_LabelPrintListScreen"
 component={Ship_LabelPrintListScreen}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="Ship_PrintDocumentScreen"
+component={Ship_PrintDocumentScreen}
+options={{ headerShown: false }}
+/>
+
+<Stack.Screen
+name="CycleCount"
+component={CycleCount}
+options={{ headerShown: false }}
+/>
+
+<Stack.Screen
+name="CC_CreateCount"
+component={CC_CreateCount}
 options={{ headerShown: false }}
 />
 
