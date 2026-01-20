@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,10 @@ import {
 import { useReceivingStore } from '../../store/receivingStore';
 import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg';
 import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
+import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
+import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
+import { GetAvailableItemStockData, GetAvailableStockData, GetFROMSubInvData, GetSubInvItemList } from '../../api/ApiServices';
+import Toast from 'react-native-toast-message';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -58,59 +62,215 @@ export default function Sub_Inv_TransferScreen() {
   const [uom, setUom] = useState(existingItem?.uom || null);
   const [qty, setQty] = useState(existingItem?.qty || 0);
   const [notes, setNotes] = useState(existingItem?.notes || '');
-  const [lotStatus, setLotStatus] = useState(existingItem?.lotStatus || null);
+  // const [lotStatus, setLotStatus] = useState(existingItem?.lotStatus || null);
+  const [status, setStatus] = useState(
+  controlType === 'Lot'
+    ? existingItem?.lotStatus || null
+    :controlType === 'Serial'
+    ? existingItem?.serialStatus || null:existingItem?.lotSerialStatus || null
+);
+
   const [lotModalVisible, setLotModalVisible] = useState(false);
+  const [serialModalVisible, setserialModalVisible] = useState(false);
+  const [lotserialModalVisible, setLotserialModalVisible] = useState(false);
   const [persistedIndex, setPersistedIndex] = useState(editIndex);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
+  const [SubInvItemList,setSubInvItemList] = useState([]);
+  const [FromSubInvList,setFromSubInvList] = useState([]);
+  const [FromLocatorList,setFromLocatorList] = useState([]);
+  const [ToLocatorList,setToLocatorList] = useState([]);
+  const [AvailableData, setAvailableData] = useState(null);
+  const [controlType,setControlType] = useState(null);
 
   const availableLocatorsFrom = useMemo(() => {
     if (!fromSub) return [];
-    return MOCK_LOCATORS.filter(l => l.subInventoryId === fromSub.id);
+    return FromLocatorList.filter(l => l.subInventoryId === fromSub.id);
   }, [fromSub]);
 
   const availableLocatorsTo = useMemo(() => {
     if (!toSub) return [];
-    return MOCK_LOCATORS.filter(l => l.subInventoryId === toSub.id);
+    return ToLocatorList.filter(l => l.subInventoryId === toSub.id);
   }, [toSub]);
 
-  const itemAvailableQty = selectedItem?.openQty ?? 0;
+  const itemAvailableQty = AvailableData?.availableStock ?? 0;
 
   const baseLineLabel = useMemo(() => {
     const idx = persistedIndex != null ? persistedIndex : subInvTransferItems.length;
     return `Line ${idx + 1}`;
   }, [persistedIndex, subInvTransferItems.length]);
 
-  const handlePersistMainLine = () => {
-    const existingLots =
+  useEffect(()=>{
+    if(!selectedItem) return;
+      const loadFromSubInvData = async () => {
+        try {
+          const fromsubinvdata = await GetFROMSubInvData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code);
+          if (fromsubinvdata) {
+            const fromSubInvList = mapfromsubInvlist(fromsubinvdata);
+            setFromSubInvList(fromSubInvList);
+          } else {
+            setFromSubInvList([]);
+          }
+        } catch (err) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromSubInv. Please try again.', position: 'top', visibilityTime: 5000 });
+        }
+      };
+
+      const loadAvailablestockData = async () => {
+        try {
+          const availableStock = await GetAvailableItemStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code);
+          if (availableStock) {
+            console.log(availableStock,"availableStock")
+            const availableStockList = mapavailableStockList(availableStock);
+            setFromSubInvList([]);
+            console.log(availableStockList,"availableStockListavailableStockList")
+            setControlType(availableStockList?.[0].controlType);
+            setAvailableData(availableStockList?.[0]);
+          } else {
+            setAvailableData([]);
+          }
+        } catch (err) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load availableStock. Please try again.', position: 'top', visibilityTime: 5000 });
+        }
+      };
+
+      loadAvailablestockData();
+      loadFromSubInvData();
+
+  },[selectedItem]);
+
+    useEffect(()=>{
+    if(!selectedItem || !fromSub) return;
+
+      const loadAvailablestockData = async () => {
+        try {
+          const availableStock = await GetAvailableStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
+          if (availableStock) {
+            console.log(availableStock,"availableStock")
+            const availableStockList = mapavailableStockList(availableStock);
+            console.log(availableStockList,"availableStockListavailableStockList")
+            setControlType(availableStockList?.[0].controlType);
+            setAvailableData(availableStockList?.[0]);
+          } else {
+            setAvailableData([]);
+          }
+        } catch (err) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load availableStock. Please try again.', position: 'top', visibilityTime: 5000 });
+        }
+      };
+      loadAvailablestockData();
+
+  },[selectedItem,fromSub]);
+
+  const mapsubInvitemlist = data =>
+    data.map(element => ({
+    id: element.R_INV_ITEM_CODE,
+    name: element.R_INV_ITEM_CODE,
+    code: element.R_INV_ITEM_CODE,
+    // description:
+    //   'Lorem ipsum dolor sit amet.',
+    // controlType: 'Lot',
+    // availableStock: 120,
+    // availableUom: 'Each',
+    // openQty: 120,
+    }));
+  const mapfromsubInvlist = data =>
+    data.map(element => ({
+    id: element.R_SUBINVENTORY_CODE,
+    name: element.R_SUBINVENTORY_CODE,
+    code: element.R_SUBINVENTORY_CODE,
+    // description:
+    //   'Lorem ipsum dolor sit amet.',
+    // controlType: 'Lot',
+    // availableStock: 120,
+    // availableUom: 'Each',
+    // openQty: 120,
+    }));
+  const mapavailableStockList = data =>
+    data.map(element => ({
+    availableUom:null,
+    availableStock: element?.Total_available_qty??element?.available_qty ?? 0,
+    code: element.item_code,
+    controlType: element.control_type ?? 'Lot'
+    // description:
+    //   'Lorem ipsum dolor sit amet.',
+    // controlType: 'Lot',
+    // availableStock: 120,
+    // availableUom: 'Each',
+    // openQty: 120,
+    }));
+
+  useEffect(() => {
+      const loadSubInvItemData = async () => {
+        try {
+          const subinvdata = await GetSubInvItemList(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode);
+          if (subinvdata) {
+            const SubInvItemList = mapsubInvitemlist(subinvdata);
+            setSubInvItemList(SubInvItemList);
+          } else {
+            setSubInvItemList([]);
+          }
+        } catch (err) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInvItems. Please try again.', position: 'top', visibilityTime: 5000 });
+        }
+      };
+      loadSubInvItemData();
+    }, []);
+
+const handlePersistMainLine = () => {
+  let existingLots = [];
+  let existingSerials = [];
+  let existingLotSerials = [];
+
+  if (controlType === 'Lot') {
+    existingLots =
       persistedIndex != null
         ? subInvTransferItems[persistedIndex]?.lots || []
         : existingItem?.lots || [];
+  }
 
-    const payload = {
-      item: selectedItem,
-      fromSub,
-      fromLocator,
-      toSub,
-      toLocator,
-      uom,
-      qty,
-      notes,
-      lots: existingLots,
-      lotStatus,
-    };
+  if (controlType === 'Serial') {
+    existingSerials =
+      persistedIndex != null
+        ? subInvTransferItems[persistedIndex]?.serials || []
+        : existingItem?.serials || [];
+  }
 
-    if (persistedIndex != null) {
-      editSubInvTransferItem(payload, persistedIndex);
-      return persistedIndex;
-    }
+  if (controlType === 'Lot+Serial') {
+    existingLotSerials =
+      persistedIndex != null
+        ? subInvTransferItems[persistedIndex]?.lotSerials || []
+        : existingItem?.lotSerials || [];
+  }
 
-    addSubInvTransferItem(payload);
-    const newIndex = subInvTransferItems.length;
-    setPersistedIndex(newIndex);
-    return newIndex;
+  const payload = {
+    item: selectedItem,
+    fromSub,
+    fromLocator,
+    toSub,
+    toLocator,
+    uom,
+    qty,
+    notes,
+    status,
+    ...(controlType === 'Lot' && { lots: existingLots }),
+    ...(controlType === 'Serial' && { serials: existingSerials }),
+    ...(controlType === 'Lot+Serial' && { lotSerials: existingLotSerials }),
   };
+
+  if (persistedIndex != null) {
+    editSubInvTransferItem(payload, persistedIndex);
+    return persistedIndex;
+  }
+
+  addSubInvTransferItem(payload);
+  const newIndex = subInvTransferItems.length;
+  setPersistedIndex(newIndex);
+  return newIndex;
+};
+
+
 
   const lineValid =
     !!selectedItem &&
@@ -123,23 +283,38 @@ export default function Sub_Inv_TransferScreen() {
 
   const qtyExceeds = !!selectedItem && qty > itemAvailableQty;
 
-  const canOpenLot = lineValid && !qtyExceeds;
 
-  const canUseFooterButtons =
-    lineValid &&
-    !!lotStatus &&
-    lotStatus.totalQty === qty &&
-    !qtyExceeds;
+  const canUseFooterButtons = lineValid;
 
   const currentLots =
     persistedIndex != null
       ? subInvTransferItems[persistedIndex]?.lots || []
+      : [];
+  const currentSerials =
+    persistedIndex != null
+      ? subInvTransferItems[persistedIndex]?.serials || []
+      : [];
+    const currentLotSerials =
+    persistedIndex != null
+      ? subInvTransferItems[persistedIndex]?.lotSerials || []
       : [];
 
   const handleOpenLotModal = () => {
     const idx = handlePersistMainLine();
     setPersistedIndex(idx);
     setLotModalVisible(true);
+  };
+
+  const handleOpenSerialModal = () => {
+    const idx = handlePersistMainLine();
+    setPersistedIndex(idx);
+    setserialModalVisible(true);
+  };
+
+  const handleOpenLotSerialModal = () => {
+    const idx = handlePersistMainLine();
+    setPersistedIndex(idx);
+    setLotserialModalVisible(true);
   };
 
   const handleSaveLots = (lots, totalQty) => {
@@ -154,13 +329,60 @@ export default function Sub_Inv_TransferScreen() {
       qty,
       notes,
       lots,
+      controlType,
       lotStatus: {
         count: lots.length,
         totalQty,
       },
     };
     editSubInvTransferItem(updated, persistedIndex);
-    setLotStatus({ count: lots.length, totalQty });
+    setStatus({ count: lots.length, totalQty });
+  };
+
+  const handleSaveSerials = (serials, totalQty) => {
+    if (persistedIndex == null) return;
+    const updated = {
+      item: selectedItem,
+      fromSub,
+      fromLocator,
+      toSub,
+      toLocator,
+      uom,
+      qty,
+      notes,
+      serials,
+      controlType,
+      serialStatus: {
+        count: serials.length,
+        totalQty,
+      },
+    };
+    editSubInvTransferItem(updated, persistedIndex);
+    setStatus({ count: serials.length, totalQty });
+    setserialModalVisible(false);
+  };
+
+  const handleSaveLotSerials = (lotSerials, totalQty,meta) => {
+    if (persistedIndex == null) return;
+    const updated = {
+      item: selectedItem,
+      fromSub,
+      fromLocator,
+      toSub,
+      toLocator,
+      uom,
+      qty,
+      notes,
+      lotSerials,
+      controlType,
+      lotSerialStatus: {
+        count: lotSerials.length,
+        totalQty,
+      },
+    };
+    editSubInvTransferItem(updated, persistedIndex);
+    setStatus({ count: lotSerials.length, totalQty });
+    setLotserialModalVisible(false);
   };
 
   const handleAdd = () => {
@@ -196,7 +418,7 @@ export default function Sub_Inv_TransferScreen() {
     }
 
     const matchedItem =
-      MOCK_ITEMS.find(
+      SubInvItemList.find(
         it => String(it.code || '').trim().toLowerCase() === scanned,
       ) || null;
 
@@ -206,7 +428,7 @@ export default function Sub_Inv_TransferScreen() {
     }
 
     setSelectedItem(matchedItem);
-    const maxQty = matchedItem.openQty ?? 0;
+    const maxQty = AvailableData?.availableStock ?? 0;
     if (qty > maxQty) {
       setQty(maxQty);
     }
@@ -222,12 +444,10 @@ export default function Sub_Inv_TransferScreen() {
     );
   }
 
-  const addLotEnabled = canOpenLot;
-
   return (
     <View style={styles.root}>
       <Inv_HeaderComponent
-        organizationName={OrgData?.org_name || 'EnnVee'}
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         screenTitle="Sub Inventory Transfer"
         onBack={() => navigation.goBack()}
         showCartIcon={showCartForHeader}
@@ -262,32 +482,33 @@ export default function Sub_Inv_TransferScreen() {
               value={selectedItem}
               onChange={item => {
                 setSelectedItem(item);
-                if (item && qty > item.openQty) {
-                  setQty(item.openQty);
-                }
+                // if (item && qty > item.openQty) {
+                //   setQty(item.openQty);
+                // }
+                // setControlType(item.controlType);
               }}
-              items={MOCK_ITEMS}
+              items={SubInvItemList}
               displayValue={it => it.name}
               renderCode={it => it.code}
               showBarcodeIcon
               onBarcodePress={handleBarcodePress}
             />
 
-            {selectedItem ? (
+            {AvailableData ? (
               <View style={styles.itemInfoStrip}>
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>Available Stock</Text>
                   <Text style={styles.infoValue}>
-                    {selectedItem.availableStock} {selectedItem.availableUom}
+                    {AvailableData.availableStock} {AvailableData.availableUom}
                   </Text>
                 </View>
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>Item Code</Text>
-                  <Text style={styles.infoValue}>{selectedItem.code}</Text>
+                  <Text style={styles.infoValue}>{AvailableData.code}</Text>
                 </View>
                 <View style={styles.infoCol}>
                   <Text style={styles.infoLabel}>Control Type</Text>
-                  <Text style={styles.infoValue}>{selectedItem.controlType}</Text>
+                  <Text style={styles.infoValue}>{AvailableData.controlType}</Text>
                 </View>
               </View>
             ) : null}
@@ -302,7 +523,7 @@ export default function Sub_Inv_TransferScreen() {
                     setFromSub(it);
                     setFromLocator(null);
                   }}
-                  items={MOCK_SUB_INVENTORIES}
+                  items={FromSubInvList}
                   displayValue={it => it.name}
                   renderCode={it => it.code}
                 />
@@ -380,7 +601,7 @@ export default function Sub_Inv_TransferScreen() {
               </View>
             </View>
 
-            {addLotEnabled && (
+            {controlType=='Lot' && (
               <View style={styles.lotRow}>
                 <Text style={styles.fieldLabel}>
                   Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
@@ -388,9 +609,39 @@ export default function Sub_Inv_TransferScreen() {
                 </Text>
 
                 <TouchableAddLot
-                  enabled={addLotEnabled}
-                  lotStatus={lotStatus}
+                  enabled={lineValid}
+                  lotStatus={status}
                   onPress={handleOpenLotModal}
+                />
+              </View>
+            )}
+
+            {controlType=='Serial' && (
+              <View style={styles.lotRow}>
+                <Text style={styles.fieldLabel}>
+                  Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
+                  <Text style={styles.linkText}>(Serial Controlled)</Text>
+                </Text>
+
+                <TouchableAddSerial
+                  enabled={lineValid}
+                  SerialStatus={status}
+                  onPress={handleOpenSerialModal}
+                />
+              </View>
+            )}
+
+            {controlType=='Lot+Serial' && (
+              <View style={styles.lotRow}>
+                <Text style={styles.fieldLabel}>
+                  Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
+                  <Text style={styles.linkText}>(Lot+Serial Controlled)</Text>
+                </Text>
+
+                <TouchableAddLotSerial
+                  enabled={lineValid}
+                  lotSerialStatus={status}
+                  onPress={handleOpenLotSerialModal}
                 />
               </View>
             )}
@@ -439,6 +690,30 @@ export default function Sub_Inv_TransferScreen() {
         lineLabel={baseLineLabel}
       />
 
+      <Inv_SerialModalPopup
+        visible={serialModalVisible}
+        onClose={() => setserialModalVisible(false)}
+        onSave={handleSaveSerials}
+        itemName={selectedItem?.name}
+        itemCode={selectedItem?.itemid}
+        lineQty={qty}
+        lineLabel={baseLineLabel}
+        initialSerials={currentSerials}
+        // initialMode={serialMode}
+      />
+
+      <Inv_LotSerialModalPopup
+        visible={lotserialModalVisible}
+        onClose={() => setLotserialModalVisible(false)}
+        onSave={handleSaveLotSerials}
+        itemName={selectedItem?.name}
+        itemCode={selectedItem?.itemid}
+        lineQty={qty}
+        lineLabel={baseLineLabel}
+        initialLots={currentLotSerials}
+      />
+
+
       <ConfirmModal
         visible={confirmVisible}
         onCancel={() => setConfirmVisible(false)}
@@ -453,7 +728,7 @@ export default function Sub_Inv_TransferScreen() {
   );
 }
 
-function TouchableAddLot({ enabled, lotStatus, onPress }) {
+function TouchableAddLot({enabled,lotStatus, onPress }) {
   const hasLots = !!(lotStatus && lotStatus.count > 0);
 
   if (!enabled) {
@@ -479,6 +754,70 @@ function TouchableAddLot({ enabled, lotStatus, onPress }) {
           {hasLots && lotStatus
             ? `${lotStatus.count}LOTS - ${lotStatus.totalQty} QTY`
             : 'Add Lot'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function TouchableAddSerial({ enabled, SerialStatus, onPress }) {
+  const hasSerials = !!(SerialStatus && SerialStatus.count > 0);
+
+  if (!enabled) {
+    return (
+      <View style={[styles.addLotBase, styles.addLotDisabled]}>
+        <Text style={[styles.addLotText, styles.addLotTextDisabled]}>
+          {hasSerials && SerialStatus
+            ? `${SerialStatus.count}Serials Added - ${SerialStatus.totalQty} QTY`
+            : 'Add Serial'}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={hasSerials ? styles.addLotStatusWrapper : styles.addLotGradientWrapper}
+    >
+      <View style={hasSerials ? styles.addLotStatusInner : styles.addLotGradientInner}>
+        <Text style={hasSerials ? styles.addLotStatusText : styles.addLotText}>
+          {hasSerials && SerialStatus
+            ? `${SerialStatus.count}Serials Added - ${SerialStatus.totalQty} QTY`
+            : 'Add Serial'}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function TouchableAddLotSerial({ enabled, lotSerialStatus, onPress }) {
+  const hasSerials = !!(lotSerialStatus && lotSerialStatus.count > 0);
+
+  if (!enabled) {
+    return (
+      <View style={[styles.addLotBase, styles.addLotDisabled]}>
+        <Text style={[styles.addLotText, styles.addLotTextDisabled]}>
+          {hasSerials && lotSerialStatus
+            ? `${lotSerialStatus.count}Serials Added - ${lotSerialStatus.totalQty} QTY`
+            : 'Add Lot+Serial'}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={onPress}
+      style={hasSerials ? styles.addLotStatusWrapper : styles.addLotGradientWrapper}
+    >
+      <View style={hasSerials ? styles.addLotStatusInner : styles.addLotGradientInner}>
+        <Text style={hasSerials ? styles.addLotStatusText : styles.addLotText}>
+          {hasSerials && lotSerialStatus
+            ? `${lotSerialStatus.count} Lots + ${lotSerialStatus.totalQty} Serials Added - ${lotSerialStatus.totalQty} QTY`
+            : 'Add Lot + Serial'}
         </Text>
       </View>
     </TouchableOpacity>

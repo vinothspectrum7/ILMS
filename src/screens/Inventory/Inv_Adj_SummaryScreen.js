@@ -1,311 +1,657 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
-import Toast from "react-native-toast-message";
-import GlobalHeaderComponent from "../../components/GlobalHeaderComponent";
-import FooterButtonsComponent from "../../components/FooterButtonsComponent";
-import ConfirmModalComponent from "../../components/ConfirmModalComponent";
-import FailureSvg from "../../assets/icons/failure.svg";
-import ConfirmInvAdj from "../../assets/icons/ConfirmInvAdj.svg";
-import EditIcon from "../../assets/icons/edit.svg";
-import DeleteIcon from "../../assets/icons/delete.svg";
-import Inv_Summary_Item_icon from "../../assets/icons/Inv_Summary_Item_icon.svg";
-import Inv_Summary_Gradiant_bg from "../../assets/icons/Inv_Summary_Gradiant_bg.svg";
-import { useReceivingStore } from "../../store/receivingStore";
-import { InventoryAdjustTransferSubmit, SubInventoryTransferSubmit } from "../../api/ApiServices";
+// src/screens/Inventory/Sub_Inv_TransferSummaryScreen.js
 
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
+import FooterButtonsComponent from '../../components/FooterButtonsComponent';
+import Inv_LotModalPopup from '../../components/inventory/Inv_LotModalPopup';
+import { useReceivingStore } from '../../store/receivingStore';
+import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg';
+import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
+import SummaryDividerIcon from '../../assets/icons/summarydivider.svg';
+import SummaryViewEyeIcon from '../../assets/icons/summaryvieweye.svg';
+import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
+import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
+import LinearGradient from 'react-native-linear-gradient';
+
+const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
+const BASE_WIDTH = 375;
+const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
+const BRAND = '#233E55';
+const WHITE = '#FFFFFF';
+
+const RADIUS = 42;
+const HEIGHT = 48;
 export default function Inv_Adj_SummaryScreen() {
   const navigation = useNavigation();
-  const route = useRoute();
+  const { OrgData, InvAdjustmentItems, editInvAdjustmentItem,resetInvAdjustment } = useReceivingStore();
 
-  const { OrgData, subInvTransferItems, removeSubInvTransferItem, resetSubInvTransfer } = useReceivingStore();
-
+  const [lotModalVisible, setLotModalVisible] = useState(false);
+  const [activeLineIndex, setActiveLineIndex] = useState(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
-  const [saveModalVisible, setSaveModalVisible] = useState(false);
-  const [saveModalStatus, setSaveModalStatus] = useState("success");
-  const swipeRefs = useRef({});
-  const [rowHeights, setRowHeights] = useState({});
-  const [expandedLoc, setExpandedLoc] = useState({});
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [serialModalVisible,setserialModalVisible] = useState(false);
+  const [lotserialModalVisible,setLotserialModalVisible] = useState(false);
 
-  const itemsAll = Array.isArray(subInvTransferItems) ? subInvTransferItems : [];
-  const routeType = route?.params?.adjustmentType;
-  const preferredType = useMemo(
-    () => routeType ?? (itemsAll[0]?.adjustmentType ?? "Issue"),
-    [routeType, itemsAll]
-  );
+  const handleOpenLot = index => {
+    setActiveLineIndex(index);
+    setLotModalVisible(true);
+  };
 
-  const items = useMemo(
-    () => itemsAll.filter((i) => (i.adjustmentType || "Issue") === preferredType),
-    [itemsAll, preferredType]
-  );
+  const handleOpenSerial = index => {
+    setActiveLineIndex(index);
+    setserialModalVisible(true);
+  };
 
-  const cartCount = items.length;
-  const PILL_HEIGHT = 56;
-  const EXPANDED_PILL_HEIGHT = 80;
+  const handleOpenLotSerial = index => {
+    setActiveLineIndex(index);
+    setLotserialModalVisible(true);
+  };
 
-  const onConfirmOpen = () => {
-    if (!items.length) {
-      Toast.show({ type: "info", text1: "No items to confirm", position: "top", visibilityTime: 2000 });
-      return;
-    }
+  const handleSaveLots = (lots, totalQty) => {
+    if (activeLineIndex == null) return;
+    const currentLine = InvAdjustmentItems[activeLineIndex];
+    if (!currentLine) return;
+    const updated = {
+      ...currentLine,
+      lots,
+      lotStatus: {
+        count: lots.length,
+        totalQty,
+      },
+    };
+    editInvAdjustmentItem(updated, activeLineIndex);
+    setLotModalVisible(false);
+  };
+
+    const handleSaveSerials = (serials, totalQty) => {
+    if (activeLineIndex == null) return;
+    const currentLine = InvAdjustmentItems[activeLineIndex];
+    if (!currentLine) return;
+    const updated = {
+      ...currentLine,
+      serials,
+      serialStatus: {
+        count: serials.length,
+        totalQty,
+      },
+    };
+    editInvAdjustmentItem(updated, activeLineIndex);
+    setserialModalVisible(false);
+  };
+    const handleSaveLotSerials = (lotSerials, totalQty,meta) => {
+      console.log(activeLineIndex,"activeLineIndex")
+    if (activeLineIndex == null) return;
+    const currentLine = InvAdjustmentItems[activeLineIndex];
+    if (!currentLine) return;
+    const updated = {
+      ...currentLine,
+      lotSerials,
+      serialStatus: {
+        count: lotSerials.length,
+        totalQty,
+      },
+    };
+    editInvAdjustmentItem(updated, activeLineIndex);
+    setLotserialModalVisible(false);
+  };
+
+  const handleAddMore = () => {
+    navigation.navigate('Inv_Adjustment_AddScreen', { isAddMore: true });
+  };
+
+  const handleTransferPress = () => {
+    if (!InvAdjustmentItems || InvAdjustmentItems.length === 0) return;
     setConfirmVisible(true);
   };
 
-  const AddMore = () => {
-    navigation.navigate("Inv_Adj_AddmoreScreen", { cartcount: cartCount, adjustmentType: preferredType });
-  };
-
-  const closeOthers = (id) => {
-    Object.entries(swipeRefs.current).forEach(([key, ref]) => {
-      if (key !== String(id) && ref?.close) ref.close();
-    });
-  };
-
-  const onRowLayout = (id, e) => {
-    const h = e.nativeEvent.layout.height || 0;
-    setRowHeights((prev) => (prev[id] === h ? prev : { ...prev, [id]: h }));
-  };
-
-  const renderLeftActions = (onEdit, id) => {
-    const h = rowHeights[id] || "100%";
-    return (
-      <View style={[styles.leftActionContainer, { height: h }]}>
-        <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
-          <EditIcon width={22} height={22} />
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  const renderRightActions = (onDelete, id) => {
-    const h = rowHeights[id] || "100%";
-    return (
-      <View style={[styles.rightActionContainer, { height: h }]}>
-        <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
-          <DeleteIcon width={22} height={22} />
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  const handleEdit = useCallback(
-    (indexInFiltered) => {
-      const absoluteIndex = itemsAll.findIndex((x) => x === items[indexInFiltered]);
-      navigation.navigate("Inv_Adj_EditScreen", {
-        itemToEdit: items[indexInFiltered],
-        EditIndex: absoluteIndex,
-        adjustmentType: preferredType,
-        cartcount: cartCount,
-      });
-    },
-    [navigation, items, itemsAll, preferredType, cartCount]
-  );
-
-  const handleDelete = useCallback(
-    (indexInFiltered) => {
-      const absoluteIndex = itemsAll.findIndex((x) => x === items[indexInFiltered]);
-      if (absoluteIndex >= 0) {
-        removeSubInvTransferItem(absoluteIndex);
-        Toast.show({ type: "success", text1: "Removed from summary", position: "top", visibilityTime: 1200 });
-      }
-    },
-    [removeSubInvTransferItem, items, itemsAll]
-  );
-
-  const mapPayload = (data) =>
-    data.map((backend) => ({
-      item_id: backend.item_id ?? null,
-      sub_inv_id: backend.adjustmentType =='Issue'? backend.from_sub:backend.to_sub,
-      org_id: OrgData?.selectedOrg ?? null,
-      loc_id: backend.adjustmentType =='Issue'? backend.from_locator:backend.to_locator,
-      lot_number: "",
-      type: (backend.adjustmentType || '').toString().toLowerCase(),
-      qty: backend.qty ?? 0,
-      uom: backend.uom ?? "",
-    }));
-
-  const confirmAction = async () => {
-    console.log(items, "confrimactionitems")
-    if (!items.length) return { success: false, message: "No items to confirm" };
-    const payload = { transactions: mapPayload(items) };
-    try {
-      const response = await InventoryAdjustTransferSubmit(payload,(preferredType || '').toString().toLowerCase());
-      console.log(response,"InventoryAdjustTransferSubmitresponse")
-      if (response == "Inventory adjustment transfer successful.") {
-        onConfirmSuccess();
-      } else {
-        onConfirmFailure();
-      }
-    } catch {
-      onConfirmFailure();
-      setTimeout(() => setSaveModalVisible(false), 5000);
-    }
-  };
-
-  const onConfirmSuccess = () => {
+  const handleConfirmTransfer = () => {
     setConfirmVisible(false);
-    setSaveModalStatus("success");
-    setSaveModalVisible(true);
+    console.log('SUB_INV_TRANSFER_SUBMIT', InvAdjustmentItems);
+    setSuccessVisible(true);
     setTimeout(() => {
-      setSaveModalVisible(false);
-      navigation.navigate("Inventory");
-    }, 5000);
-    resetSubInvTransfer();
+      resetInvAdjustment();
+      setSuccessVisible(false);
+      navigation.navigate('Inventory');
+    }, 1500);
   };
 
-  const onConfirmFailure = () => {
-    setConfirmVisible(false);
-    setSaveModalStatus("failure");
-    setSaveModalVisible(true);
-    setTimeout(() => setSaveModalVisible(false), 5000);
-  };
+  useEffect(()=>{
+    console.log(InvAdjustmentItems,"TestInvAdjustmentItemsInvAdjustmentItemsInvAdjustmentItems")
+  },[InvAdjustmentItems])
 
-  const clearAll = () => {
-    if (!itemsAll.length) return;
-    resetSubInvTransfer();
-    Toast.show({ type: "success", text1: "Cleared all", position: "top", visibilityTime: 1200 });
-  };
-
-  const renderItemCard = (item, indexInFiltered) => {
-    const id = String(item.item_id ?? item.id ?? indexInFiltered);
-    const qtyText = [item.qty, item.uom_label || item.uom].filter(Boolean).join(" ");
-    const fromSub = item.from_sub_name ?? item.fromSub ?? "-";
-    const fromLoc = item.from_locator_name ?? item.fromLocator ?? "-";
-    const toSub = item.to_sub_name ?? item.toSub ?? "-";
-    const toLoc = item.to_locator_name ?? item.toLocator ?? "-";
-    const itemCode = item.item_code ?? item.item ?? "-";
-    const isLocExpanded = expandedLoc[id] || false;
-    const gradBoxHeight = isLocExpanded ? EXPANDED_PILL_HEIGHT : PILL_HEIGHT;
-
-    const leftLabel = preferredType === "Issue" ? "From Sub" : "To Sub";
-    const rightLabel = preferredType === "Issue" ? "From Locator" : "To Locator";
-    const leftValue = preferredType === "Issue" ? fromSub : toSub;
-    const rightValue = preferredType === "Issue" ? fromLoc : toLoc;
-
-    return (
-      <Swipeable
-        ref={(r) => (swipeRefs.current[id] = r)}
-        key={id}
-        renderLeftActions={() => renderLeftActions(() => handleEdit(indexInFiltered), id)}
-        renderRightActions={() => renderRightActions(() => handleDelete(indexInFiltered), id)}
-        onSwipeableOpen={() => closeOthers(id)}
-      >
-        <View style={styles.card} onLayout={(e) => onRowLayout(id, e)}>
-          <View style={styles.cardHeader}>
-            <View style={styles.itemCol}>
-              <Inv_Summary_Item_icon width={20} height={20} />
-              <View style={{ alignItems: "flex-start" }}>
-                <Text style={styles.label}>Item</Text>
-                <Text style={styles.itemText}>{itemCode}</Text>
-              </View>
-            </View>
-            <Text style={styles.qtyText}>{qtyText}</Text>
-          </View>
-
-          <View style={[styles.gradientBox, { height: gradBoxHeight }]}>
-            <Inv_Summary_Gradiant_bg width="100%" height="100%" preserveAspectRatio="none" style={StyleSheet.absoluteFill} />
-            <View style={styles.singleRow}>
-              <View style={styles.col}>
-                <Text style={styles.label}>{leftLabel}</Text>
-                <Text style={styles.value} numberOfLines={1}>{leftValue}</Text>
-              </View>
-              <View style={styles.col}>
-                <Text style={styles.label}>{rightLabel}</Text>
-                <TouchableOpacity style={{ width: "100%" }} onPress={() => setExpandedLoc((pre) => ({ ...pre, [id]: !isLocExpanded }))}>
-                  <Text style={[styles.value, { width: "100%" }]} numberOfLines={isLocExpanded ? 2 : 1} ellipsizeMode="tail">
-                    {rightValue}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Swipeable>
-    );
-  };
+  const hasLines = InvAdjustmentItems && InvAdjustmentItems.length > 0;
+  const activeLine =
+    activeLineIndex != null ? InvAdjustmentItems[activeLineIndex] : null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <GlobalHeaderComponent
-        organizationName={OrgData?.selectedOrgCode}
-        screenTitle="Inventory Adjustments"
-        notificationCount={0}
+    <View style={styles.root}>
+      <Inv_HeaderComponent
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
+        screenTitle={`Inventory Adjustments (${InvAdjustmentItems?.[0]?.adjustType}s)`}
         onBack={() => navigation.goBack()}
       />
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{`Summary - ${preferredType}`}</Text>
-          <TouchableOpacity onPress={clearAll}>
-            <Text style={styles.clearAll}>Clear All</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {items.length === 0 ? (
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>No Data Available</Text>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: rs(120) }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {hasLines &&
+          InvAdjustmentItems.map((line, index) => (
+            <View key={`${line.item?.code || 'line'}-${index}`} style={styles.cardWrapper}>
+              <View style={styles.card}>
+                <View style={styles.cardTitleRow}>
+                  <Text style={styles.cardTitleText}>Line {index + 1}</Text>
+                </View>
+
+                <View style={styles.itemInfoRow}>
+                  <View style={styles.itemInfoLeft}>
+                    <Text style={styles.itemLabel}>Item</Text>
+                    <Text style={styles.itemValue}>
+                      {line.item?.name || line.item?.code || '-'}
+                    </Text>
+                  </View>
+                  <View style={styles.itemInfoRight}>
+                    <Text style={styles.itemLabel}>Qty</Text>
+                    <Text style={styles.itemValue}>{line.qty ?? 0}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailsContainer}>
+                  {line.adjustType =="Issue" && (
+                    <>
+                    <View style={[styles.detailsColumn]}>
+                    <Text style={styles.detailsLabel}>From Sub</Text>
+                    <View style={styles.detailsValueBox}>
+                      <Text style={styles.detailsValueText}>
+                        {line.fromSub?.name || '-'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.detailsColumn,{marginLeft:rs(40)}]}>
+                  <Text style={[styles.detailsLabel]}>
+                      From Locator
+                    </Text>
+                    <View style={styles.detailsValueBox}>
+                      <Text style={styles.detailsValueText}>
+                        {line.fromLocator?.name || '-'}
+                      </Text>
+                    </View>
+                    </View>
+                    </>
+                )}
+
+                  {/* <View style={styles.dividerWrapper}>
+                    <SummaryDividerIcon height={rs(24)} width={rs(24)} />
+                  </View> */}
+
+                 {line.adjustType =="Receipt" && ( 
+                  <>
+                  <View style={styles.detailsColumn}>
+                    <Text style={styles.detailsLabel}>To Sub</Text>
+                    <View style={styles.detailsValueBox}>
+                      <Text style={styles.detailsValueText}>
+                        {line.toSub?.name || '-'}
+                      </Text>
+                    </View>
+                    </View>
+
+                    <View style={[styles.detailsColumn,{marginLeft:rs(40)}]}>
+                    <Text style={[styles.detailsLabel]}>
+                      To Locator
+                    </Text>
+                    <View style={styles.detailsValueBox}>
+                      <Text style={styles.detailsValueText}>
+                        {line.toLocator?.name || '-'}
+                      </Text>
+                    </View>
+                    </View>
+                    </>
+                  )}
+                </View>
+
+                {line?.controlType=='Lot' && (<TouchableOpacity
+                  style={styles.viewLotBtn}
+                  onPress={() => handleOpenLot(index)}
+                >
+                  <SummaryViewEyeIcon width={rs(18)} height={rs(18)} />
+                  <Text style={styles.viewLotText}>View LOT</Text>
+                </TouchableOpacity>)}
+                {line?.controlType=='Serial' && (<TouchableOpacity
+                  style={styles.viewLotBtn}
+                  onPress={() => handleOpenSerial(index)}
+                >
+                  <SummaryViewEyeIcon width={rs(18)} height={rs(18)} />
+                  <Text style={styles.viewLotText}>View Serial</Text>
+                </TouchableOpacity>)}
+                {line?.controlType=='Lot+Serial' && (<TouchableOpacity
+                  style={styles.viewLotBtn}
+                  onPress={() => handleOpenLotSerial(index)}
+                >
+                  <SummaryViewEyeIcon width={rs(18)} height={rs(18)} />
+                  <Text style={styles.viewLotText}>View Lot+Serial</Text>
+                </TouchableOpacity>)}
+              </View>
             </View>
-          ) : (
-            items.map((it, idx) => renderItemCard(it, idx))
-          )}
-        </ScrollView>
-      </View>
+          ))}
+      </ScrollView>
 
       <FooterButtonsComponent
         leftLabel="Add More"
-        rightLabel="Confirm"
-        onLeftPress={AddMore}
-        onRightPress={onConfirmOpen}
+        rightLabel="Transfer"
+        onLeftPress={handleAddMore}
+        onRightPress={handleTransferPress}
         leftEnabled
-        rightEnabled
+        rightEnabled={hasLines}
       />
 
-      <ConfirmModalComponent
+      <Inv_LotModalPopup
+        visible={lotModalVisible && !!activeLine}
+        onClose={() => setLotModalVisible(false)}
+        lineQty={activeLine?.qty || 0}
+        itemName={activeLine?.item?.name}
+        initialLots={activeLine?.lots || []}
+        onSave={handleSaveLots}
+        lineLabel={activeLineIndex != null ? `Line ${activeLineIndex + 1}` : undefined}
+      />
+
+      <Inv_SerialModalPopup
+        visible={serialModalVisible}
+        onClose={() => setserialModalVisible(false)}
+        onSave={handleSaveSerials}
+        itemName={activeLine?.item?.name}
+        itemCode={activeLine?.item?.id}
+        lineQty={activeLine?.qty || 0}
+        lineLabel={activeLineIndex != null ? `Line ${activeLineIndex + 1}` : undefined}
+        initialSerials={activeLine?.serials}
+        // initialMode={serialMode}
+      />
+
+      <Inv_LotSerialModalPopup
+        visible={lotserialModalVisible}
+        onClose={() => setLotserialModalVisible(false)}
+        onSave={handleSaveLotSerials}
+        itemName={activeLine?.item?.name}
+        itemCode={activeLine?.item?.id}
+        lineQty={activeLine?.qty || 0}
+        lineLabel={activeLineIndex != null ? `Line ${activeLineIndex + 1}` : undefined}
+        initialLots={activeLine?.lotSerials}
+      />
+
+      <ConfirmModal
         visible={confirmVisible}
-        title="Confirmation"
-        message={`Are you sure want to ${preferredType === "Issue" ? "issue" : "receive"} this Inventory`}
-        confirmAction={confirmAction}
         onCancel={() => setConfirmVisible(false)}
-        successMessage={`Inventory ${preferredType} created successfully`}
+        onConfirm={handleConfirmTransfer}
       />
 
-      <Modal visible={saveModalVisible} transparent animationType="fade" onRequestClose={() => {}}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            {saveModalStatus === "success" ? <ConfirmInvAdj width={72} height={72} /> : <FailureSvg width={72} height={72} />}
+      <SuccessModal
+        visible={successVisible}
+        onClose={() => setSuccessVisible(false)}
+      />
+    </View>
+  );
+}
+
+function ConfirmModal({ visible, onCancel, onConfirm }) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalTop}>
+            <ConfirmSubInventoryIcon width={rs(80)} height={rs(80)} />
+          </View>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitle}>Confirmation</Text>
             <Text style={styles.modalText}>
-              {saveModalStatus === "success"
-                ? `Inventory Adjusted successfully`
-                : "Save failed. Please try again."}
+              Are you sure want to adjust this Inventory
+            </Text>
+            <View style={styles.modalButtonsRow}>
+<View style={styles.buttonGroup}>
+                    <TouchableOpacity
+                      onPress={onCancel}
+                      activeOpacity={0.85}
+                      style={[styles.buttonBase, styles.half]}
+                    >
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.70)', '#EBF7F6']}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.fillGradient}
+                      />
+                      <Text style={[styles.label, { color: BRAND }]}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={onConfirm}
+                      activeOpacity={0.85}
+                      style={[styles.buttonBase, styles.half]}
+                    >
+                      <View style={styles.fillSolidBrand} />
+
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.53)', 'rgba(255,255,255,0)']}
+                        locations={[0, 1]}
+                        start={{ x: 0.5, y: 0.5 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.topGloss}
+                      />
+
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.23)']}
+                        locations={[0.55, 1]}
+                        start={{ x: 0.5, y: 0.55 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.bottomInnerShadow}
+                      />
+
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0.16)', 'transparent', 'transparent', 'rgba(0,0,0,0.16)']}
+                        locations={[0, 0.2, 0.8, 1]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.sideVignette}
+                      />
+
+                      <Text style={[styles.label, { color: WHITE }]}>Confirm</Text>
+                    </TouchableOpacity>
+                  </View>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function SuccessModal({ visible, onClose }) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={styles.successmodalTop}>
+            <InventorySuccessIcon width={rs(150)} height={rs(150)} />
+          </View>
+          <View style={styles.successmodalBody}>
+            <Text style={styles.modalTitle}>
+              Inventory Adjusted successfully
             </Text>
           </View>
         </View>
-      </Modal>
-    </GestureHandlerRootView>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F7F8FB", paddingHorizontal: 16, paddingTop: 16 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  title: { fontSize: 18, fontWeight: "600", color: "#3A3A3C" },
-  clearAll: { fontSize: 14, color: "#5D768B", fontWeight: "600", textDecorationLine: "underline" },
-  card: { backgroundColor: "#FFFFFF", borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "#E5E7EB", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  itemCol: { flexDirection: "row", alignItems: "center", columnGap: 8 },
-  itemText: { fontSize: 12, fontWeight: "700", color: "#233E55" },
-  qtyText: { fontSize: 12, fontWeight: "700", color: "#233E55" },
-  gradientBox: { borderRadius: 12, overflow: "hidden" },
-  singleRow: { height: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16 },
-  col: { flex: 1, alignItems: "flex-start", marginRight: 8 },
-  label: { fontSize: 10, color: "rgba(35, 62, 85, 1)", marginBottom: 2, fontWeight: "400" },
-  value: { fontSize: 12, color: "rgba(35, 62, 85, 1)", fontWeight: "700" },
-  leftActionContainer: { backgroundColor: "#ECF1F7", justifyContent: "center", alignItems: "flex-start", width: 46, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-  rightActionContainer: { backgroundColor: "#F8D2D4", justifyContent: "center", alignItems: "flex-end", width: 46, borderTopRightRadius: 12, borderBottomRightRadius: 12 },
-  actionButton: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 10 },
-  emptyWrap: { paddingVertical: 48, justifyContent: "center", alignItems: "center" },
-  emptyText: { fontSize: 16, color: "#6B7280" },
-  modalBackdrop: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.4)" },
-  modalCard: { backgroundColor: "white", borderRadius: 12, padding: 24, alignItems: "center", width: "80%" },
-  modalText: { marginTop: 16, textAlign: "center", fontSize: 16, color: "#333" },
+  root: {
+    flex: 1,
+    backgroundColor: '#F5F6F8',
+  },
+  scroll: {
+    flex: 1,
+  },
+  cardWrapper: {
+    marginHorizontal: rs(16),
+    marginTop: rs(16),
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: rs(10),
+    paddingBottom: rs(12),
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: rs(4),
+    shadowOffset: { width: 0, height: rs(2) },
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  cardTitleRow: {
+    backgroundColor: '#5D768B',
+    paddingHorizontal: rs(16),
+    paddingVertical: rs(6),
+  },
+  cardTitleText: {
+    color: '#FFFFFF',
+    fontSize: rs(13),
+    fontWeight: '600',
+  },
+  itemInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: rs(16),
+    paddingTop: rs(12),
+    paddingBottom: rs(8),
+  },
+  itemInfoLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  itemInfoRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    minWidth: rs(80),
+  },
+  itemLabel: {
+    fontSize: rs(11),
+    color: '#555555',
+  },
+  itemValue: {
+    marginLeft: rs(6),
+    fontSize: rs(14),
+    fontWeight: '600',
+    color: '#233E55',
+  },
+  detailsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#ECF1F7',
+    marginHorizontal: rs(12),
+    borderRadius: rs(10),
+    paddingHorizontal: rs(12),
+    paddingVertical: rs(10),
+    marginTop: rs(4),
+    elevation: 2,
+    shadowColor: '#000000',
+    shadowOpacity: 0.06,
+    shadowRadius: rs(3),
+    shadowOffset: { width: 0, height: rs(1) },
+  },
+  detailsColumn: {
+    flex: 1,
+  },
+  dividerWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: rs(8),
+  },
+  detailsLabel: {
+    fontSize: rs(11),
+    color: '#555555',
+  },
+  detailsLabelSpacer: {
+    marginTop: rs(10),
+  },
+  detailsValueBox: {
+    marginTop: rs(4),
+    backgroundColor: '#D9E4EE',
+    borderRadius: rs(8),
+    paddingHorizontal: rs(10),
+    paddingVertical: rs(6),
+  },
+  detailsValueText: {
+    fontSize: rs(13),
+    color: '#233E55',
+    fontWeight: '500',
+  },
+  viewLotBtn: {
+    marginTop: rs(12),
+    marginHorizontal: rs(12),
+    backgroundColor: '#89ADC9',
+    borderRadius: rs(8),
+    height: rs(40),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    columnGap: rs(8),
+  },
+  viewLotText: {
+    color: '#FFFFFF',
+    fontSize: rs(13),
+    fontWeight: '600',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: rs(24),
+  },
+  modalCard: {
+    width: '100%',
+    borderRadius: rs(4),
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  modalTop: {
+    backgroundColor: '#ECF1F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: rs(10),
+  },
+    successmodalTop: {
+    backgroundColor: '#ECF1F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    // paddingVertical: rs(5),
+  },
+  modalBody: {
+    paddingHorizontal: rs(20),
+    paddingVertical: rs(20),
+    alignItems: 'center',
+  },
+  successmodalBody: {
+    // paddingHorizontal: rs(20),
+    paddingVertical: rs(20),
+    minHeight:100,
+    alignItems: 'center',
+    justifyContent:'center'
+  },
+  modalTitle: {
+    fontSize: rs(16),
+    fontWeight: '700',
+    color: '#242424',
+    textAlign: 'center',
+  },
+  modalText: {
+    marginTop: rs(8),
+    fontSize: rs(14),
+    color: '#555555',
+    textAlign: 'center',
+    margin:10
+  },
+  modalButtonsRow: {
+    marginTop: rs(20),
+    flexDirection: 'row',
+    columnGap: rs(12),
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    height: rs(44),
+    borderRadius: rs(30),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancel: {
+    borderWidth: 1,
+    borderColor: '#233E55',
+    backgroundColor: '#FFFFFF',
+  },
+  modalConfirm: {
+    backgroundColor: '#233E55',
+  },
+  modalButtonText: {
+    fontSize: rs(14),
+    fontWeight: '600',
+  },
+  modalCancelText: {
+    color: '#233E55',
+  },
+  modalConfirmText: {
+    color: '#FFFFFF',
+  },
+fillGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  fillSolidBrand: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: BRAND,
+  },
+
+  topGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 2,
+    right: 2,
+    height: '52%',
+    zIndex: 2,
+  },
+  bottomInnerShadow: {
+    position: 'absolute',
+    left: 2,
+    right: 2,
+    bottom: 0,
+    height: '36%',
+    zIndex: 1,
+  },
+  sideVignette: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+
+  statusBody: {
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  statusText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+  },
+    buttonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BRAND,
+    borderRadius: RADIUS,
+    overflow: 'hidden',
+    backgroundColor: WHITE,
+  },
+
+  buttonBase: {
+    height: HEIGHT,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+   half: { width: '50%' },
 });

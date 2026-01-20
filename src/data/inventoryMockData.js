@@ -5,7 +5,7 @@ export const MOCK_ITEMS = [
     code: 'ITM001',
     description:
       'Lorem ipsum dolor sit amet.',
-    controlType: 'None',
+    controlType: 'Lot',
     availableStock: 120,
     availableUom: 'Each',
     openQty: 120,
@@ -16,7 +16,7 @@ export const MOCK_ITEMS = [
     code: 'ITM002',
     description:
       'Lorem ipsum dolor sit amet.',
-    controlType: 'None',
+    controlType: 'Serial',
     availableStock: 80,
     availableUom: 'Each',
     openQty: 80,
@@ -49,7 +49,7 @@ export const MOCK_ITEMS = [
     code: 'ITM005',
     description:
       'Lorem ipsum dolor sit amet.',
-    controlType: 'Lot',
+    controlType: 'Lot+Serial',
     availableStock: 200,
     availableUom: 'Each',
     openQty: 200,

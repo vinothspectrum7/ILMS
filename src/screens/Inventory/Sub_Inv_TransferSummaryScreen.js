@@ -1,6 +1,6 @@
 // src/screens/Inventory/Sub_Inv_TransferSummaryScreen.js
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,23 +18,42 @@ import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg'
 import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
 import SummaryDividerIcon from '../../assets/icons/summarydivider.svg';
 import SummaryViewEyeIcon from '../../assets/icons/summaryvieweye.svg';
+import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
+import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
+import LinearGradient from 'react-native-linear-gradient';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
 const rs = v => (SCREEN_WIDTH / BASE_WIDTH) * v;
+const BRAND = '#233E55';
+const WHITE = '#FFFFFF';
 
+const RADIUS = 42;
+const HEIGHT = 48;
 export default function Sub_Inv_TransferSummaryScreen() {
   const navigation = useNavigation();
-  const { OrgData, subInvTransferItems, editSubInvTransferItem } = useReceivingStore();
+  const { OrgData, subInvTransferItems, editSubInvTransferItem,resetSubInvTransfer } = useReceivingStore();
 
   const [lotModalVisible, setLotModalVisible] = useState(false);
   const [activeLineIndex, setActiveLineIndex] = useState(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
+  const [serialModalVisible,setserialModalVisible] = useState(false);
+  const [lotserialModalVisible,setLotserialModalVisible] = useState(false);
 
   const handleOpenLot = index => {
     setActiveLineIndex(index);
     setLotModalVisible(true);
+  };
+
+  const handleOpenSerial = index => {
+    setActiveLineIndex(index);
+    setserialModalVisible(true);
+  };
+
+  const handleOpenLotSerial = index => {
+    setActiveLineIndex(index);
+    setLotserialModalVisible(true);
   };
 
   const handleSaveLots = (lots, totalQty) => {
@@ -50,6 +69,39 @@ export default function Sub_Inv_TransferSummaryScreen() {
       },
     };
     editSubInvTransferItem(updated, activeLineIndex);
+    setLotModalVisible(false);
+  };
+
+    const handleSaveSerials = (serials, totalQty) => {
+    if (activeLineIndex == null) return;
+    const currentLine = subInvTransferItems[activeLineIndex];
+    if (!currentLine) return;
+    const updated = {
+      ...currentLine,
+      serials,
+      serialStatus: {
+        count: serials.length,
+        totalQty,
+      },
+    };
+    editSubInvTransferItem(updated, activeLineIndex);
+    setserialModalVisible(false);
+  };
+    const handleSaveLotSerials = (lotSerials, totalQty,meta) => {
+      console.log(activeLineIndex,"activeLineIndex")
+    if (activeLineIndex == null) return;
+    const currentLine = subInvTransferItems[activeLineIndex];
+    if (!currentLine) return;
+    const updated = {
+      ...currentLine,
+      lotSerials,
+      serialStatus: {
+        count: lotSerials.length,
+        totalQty,
+      },
+    };
+    editSubInvTransferItem(updated, activeLineIndex);
+    setLotserialModalVisible(false);
   };
 
   const handleAddMore = () => {
@@ -66,10 +118,15 @@ export default function Sub_Inv_TransferSummaryScreen() {
     console.log('SUB_INV_TRANSFER_SUBMIT', subInvTransferItems);
     setSuccessVisible(true);
     setTimeout(() => {
+      resetSubInvTransfer();
       setSuccessVisible(false);
       navigation.navigate('Inventory');
     }, 1500);
   };
+
+  useEffect(()=>{
+    console.log(subInvTransferItems,"hasLineshasLineshasLineshasLines")
+  },[hasLines])
 
   const hasLines = subInvTransferItems && subInvTransferItems.length > 0;
   const activeLine =
@@ -78,7 +135,7 @@ export default function Sub_Inv_TransferSummaryScreen() {
   return (
     <View style={styles.root}>
       <Inv_HeaderComponent
-        organizationName={OrgData?.org_name || 'EnnVee'}
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         screenTitle="Sub Inventory Transfer"
         onBack={() => navigation.goBack()}
       />
@@ -151,13 +208,27 @@ export default function Sub_Inv_TransferSummaryScreen() {
                   </View>
                 </View>
 
-                <TouchableOpacity
+                {line?.controlType=='Lot' && (<TouchableOpacity
                   style={styles.viewLotBtn}
                   onPress={() => handleOpenLot(index)}
                 >
                   <SummaryViewEyeIcon width={rs(18)} height={rs(18)} />
                   <Text style={styles.viewLotText}>View LOT</Text>
-                </TouchableOpacity>
+                </TouchableOpacity>)}
+                {line?.controlType=='Serial' && (<TouchableOpacity
+                  style={styles.viewLotBtn}
+                  onPress={() => handleOpenSerial(index)}
+                >
+                  <SummaryViewEyeIcon width={rs(18)} height={rs(18)} />
+                  <Text style={styles.viewLotText}>View Serial</Text>
+                </TouchableOpacity>)}
+                {line?.controlType=='Lot+Serial' && (<TouchableOpacity
+                  style={styles.viewLotBtn}
+                  onPress={() => handleOpenLotSerial(index)}
+                >
+                  <SummaryViewEyeIcon width={rs(18)} height={rs(18)} />
+                  <Text style={styles.viewLotText}>View Lot+Serial</Text>
+                </TouchableOpacity>)}
               </View>
             </View>
           ))}
@@ -180,6 +251,29 @@ export default function Sub_Inv_TransferSummaryScreen() {
         initialLots={activeLine?.lots || []}
         onSave={handleSaveLots}
         lineLabel={activeLineIndex != null ? `Line ${activeLineIndex + 1}` : undefined}
+      />
+
+      <Inv_SerialModalPopup
+        visible={serialModalVisible}
+        onClose={() => setserialModalVisible(false)}
+        onSave={handleSaveSerials}
+        itemName={activeLine?.item?.name}
+        itemCode={activeLine?.item?.id}
+        lineQty={activeLine?.qty || 0}
+        lineLabel={activeLineIndex != null ? `Line ${activeLineIndex + 1}` : undefined}
+        initialSerials={activeLine?.serials}
+        // initialMode={serialMode}
+      />
+
+      <Inv_LotSerialModalPopup
+        visible={lotserialModalVisible}
+        onClose={() => setLotserialModalVisible(false)}
+        onSave={handleSaveLotSerials}
+        itemName={activeLine?.item?.name}
+        itemCode={activeLine?.item?.id}
+        lineQty={activeLine?.qty || 0}
+        lineLabel={activeLineIndex != null ? `Line ${activeLineIndex + 1}` : undefined}
+        initialLots={activeLine?.lotSerials}
       />
 
       <ConfirmModal
@@ -212,22 +306,55 @@ function ConfirmModal({ visible, onCancel, onConfirm }) {
               Are you sure want to transfer this Inventory
             </Text>
             <View style={styles.modalButtonsRow}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalCancel]}
-                onPress={onCancel}
-              >
-                <Text style={[styles.modalButtonText, styles.modalCancelText]}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalConfirm]}
-                onPress={onConfirm}
-              >
-                <Text style={[styles.modalButtonText, styles.modalConfirmText]}>
-                  Confirm
-                </Text>
-              </TouchableOpacity>
+<View style={styles.buttonGroup}>
+                    <TouchableOpacity
+                      onPress={onCancel}
+                      activeOpacity={0.85}
+                      style={[styles.buttonBase, styles.half]}
+                    >
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.70)', '#EBF7F6']}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.fillGradient}
+                      />
+                      <Text style={[styles.label, { color: BRAND }]}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={onConfirm}
+                      activeOpacity={0.85}
+                      style={[styles.buttonBase, styles.half]}
+                    >
+                      <View style={styles.fillSolidBrand} />
+
+                      <LinearGradient
+                        colors={['rgba(255,255,255,0.53)', 'rgba(255,255,255,0)']}
+                        locations={[0, 1]}
+                        start={{ x: 0.5, y: 0.5 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.topGloss}
+                      />
+
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.23)']}
+                        locations={[0.55, 1]}
+                        start={{ x: 0.5, y: 0.55 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.bottomInnerShadow}
+                      />
+
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0.16)', 'transparent', 'transparent', 'rgba(0,0,0,0.16)']}
+                        locations={[0, 0.2, 0.8, 1]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.sideVignette}
+                      />
+
+                      <Text style={[styles.label, { color: WHITE }]}>Confirm</Text>
+                    </TouchableOpacity>
+                  </View>
             </View>
           </View>
         </View>
@@ -243,12 +370,12 @@ function SuccessModal({ visible, onClose }) {
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modalCard}>
-          <View style={styles.modalTop}>
-            <InventorySuccessIcon width={rs(80)} height={rs(80)} />
+          <View style={styles.successmodalTop}>
+            <InventorySuccessIcon width={rs(150)} height={rs(150)} />
           </View>
-          <View style={styles.modalBody}>
+          <View style={styles.successmodalBody}>
             <Text style={styles.modalTitle}>
-              Sub Inventory Transfer created successfully
+              Org Transfer created successfully
             </Text>
           </View>
         </View>
@@ -384,7 +511,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    borderRadius: rs(16),
+    borderRadius: rs(4),
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
   },
@@ -392,17 +519,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#ECF1F7',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: rs(24),
+    paddingVertical: rs(10),
+  },
+    successmodalTop: {
+    backgroundColor: '#ECF1F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    // paddingVertical: rs(5),
   },
   modalBody: {
     paddingHorizontal: rs(20),
     paddingVertical: rs(20),
     alignItems: 'center',
   },
+  successmodalBody: {
+    // paddingHorizontal: rs(20),
+    paddingVertical: rs(20),
+    minHeight:100,
+    alignItems: 'center',
+    justifyContent:'center'
+  },
   modalTitle: {
     fontSize: rs(16),
     fontWeight: '700',
-    color: '#233E55',
+    color: '#242424',
     textAlign: 'center',
   },
   modalText: {
@@ -410,6 +550,7 @@ const styles = StyleSheet.create({
     fontSize: rs(14),
     color: '#555555',
     textAlign: 'center',
+    margin:10
   },
   modalButtonsRow: {
     marginTop: rs(20),
@@ -442,4 +583,64 @@ const styles = StyleSheet.create({
   modalConfirmText: {
     color: '#FFFFFF',
   },
+fillGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  fillSolidBrand: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: BRAND,
+  },
+
+  topGloss: {
+    position: 'absolute',
+    top: 0,
+    left: 2,
+    right: 2,
+    height: '52%',
+    zIndex: 2,
+  },
+  bottomInnerShadow: {
+    position: 'absolute',
+    left: 2,
+    right: 2,
+    bottom: 0,
+    height: '36%',
+    zIndex: 1,
+  },
+  sideVignette: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+
+  statusBody: {
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  statusText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+  },
+    buttonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: BRAND,
+    borderRadius: RADIUS,
+    overflow: 'hidden',
+    backgroundColor: WHITE,
+  },
+
+  buttonBase: {
+    height: HEIGHT,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+   half: { width: '50%' },
 });

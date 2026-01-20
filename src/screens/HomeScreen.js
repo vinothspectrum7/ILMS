@@ -82,6 +82,13 @@ useEffect(() => {
   // setLoadingRecent(true);
   // setloadingPriority(true);
   console.log(OrgCode,"OrgCodeOrgCode")
+  Setdefaultinventory(null);
+    setOrgData({
+    selectedOrg: Defaultorg,
+    selectedinventory: null,
+    selectedOrgCode: OrgCode,
+    BusinessName: BusinessName
+  });
   const loadinventrydata = async () => {
     try {
       const inventrydata = await GetInventryData(OrgCode);
@@ -164,7 +171,7 @@ useEffect(() => {
   //   selectedOrgCode: OrgCode,
   //   BusinessName: BusinessName
   // });
-  loadinventrydata();
+  // loadinventrydata();
   // loadrecentactivity();
   // loadpriorityList();
 
@@ -311,7 +318,16 @@ function capitalizeFirstLetter(str) {
         Defaultorg={v => setDefaultorg(v)}
         OrgCode={v => setOrgCode(v)}
         BusinessName={v=>setBusinessName(v)}
-        onCardPress={screen => navigation.navigate(screen)}
+        // onCardPress={screen => navigation.navigate(screen)}
+          onCardPress={(screen) => {
+    // console.log('Navigation card clicked:', screen);
+    if (screen === 'Shipping') {
+      navigation.navigate('Ship_Entry'); 
+      
+    } else {
+      navigation.navigate(screen); 
+    }
+  }}
         onMenuSelect={handleHeaderMenuSelect}
         menuVersion="25102918"
       />
