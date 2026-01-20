@@ -67,7 +67,7 @@ export default function ProfileHeader({
   onMenu = () => {},
   onNotificationPress = () => {},
   onMenuSelect = () => {},
-  menuVersion = '26010506',
+  menuVersion = '26012007',
 }) {
   const title = `${screenTitle}${contextInfo ? `(${contextInfo})` : ''}`;
   const showDot = Number(notificationCount) > 0;
