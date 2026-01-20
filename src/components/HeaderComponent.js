@@ -74,6 +74,7 @@ export default function HeaderComponent({
   onOrganizationChange,
   Defaultorg,
   OrgCode,
+  BusinessName,
   notificationCount = 0,
   onCardPress = () => { },
   onMenuSelect = () => { },
@@ -93,36 +94,23 @@ export default function HeaderComponent({
         if (orgsdata) {
           const orgformatdata = maporgdata(orgsdata);
           setOrganizations(orgformatdata);
-          
+          const defaultOrg = orgformatdata.find(o => o.is_default);
           if (OrgData?.selectedOrg) {
-            setSelectedOrganization(OrgData.selectedOrg);
-            Defaultorg?.(OrgData.selectedOrg.value);
-            OrgCode?.(OrgData.selectedOrg.org_code);
+            setSelectedOrganization(OrgData?.selectedOrg);
+            Defaultorg?.(OrgData?.selectedOrg);
+            OrgCode?.(OrgData?.selectedOrgCode);
+            BusinessName?.(OrgData?.BusinessName);
           } else {
-            const defaultOrg = orgformatdata.find(o => o.is_default);
-            const orgToSelect = defaultOrg || orgformatdata[0];
-            
-            if (orgToSelect) {
-              setSelectedOrganization(orgToSelect);
-              Defaultorg?.(orgToSelect.value);
-              OrgCode?.(orgToSelect.org_code);
-              setSelectedOrg({
-                selectedOrg: orgToSelect,
-                selectedOrgCode: orgToSelect.org_code
-              });
-            }
+            Defaultorg?.(defaultOrg?.value ?? orgformatdata[0]?.value);
+            OrgCode?.(defaultOrg?.org_code ?? orgformatdata[0]?.org_code);
+            setSelectedOrganization(defaultOrg?.value ?? orgformatdata[0]?.value);
+            BusinessName?.(defaultOrg?.business_unit_name ?? orgformatdata[0]?.business_unit_name);
           }
         } else {
           setOrganizations([]);
         }
       } catch (err) {
-        Toast.show({ 
-          type: 'error', 
-          text1: 'Error', 
-          text2: 'Failed to load organizations. Please try again.', 
-          position: 'top', 
-          visibilityTime: 5000 
-        });
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load organizations. Please try again.', position: 'top', visibilityTime: 5000 });
       }
     };
     loadPoData();
@@ -130,10 +118,10 @@ export default function HeaderComponent({
 
   const maporgdata = data =>
     data.map(element => ({
-      label: element.ORG_CODE,
-      name: element.ORG_CODE,
-      value: element.ORG_ID,
-      org_code: element.ORG_CODE,
+      label: element.org_code,
+      value: element.org_uuid,
+      business_unit_name:element.business_unit_name,
+      org_code: element.org_code,
       is_default: element.is_default,
     }));
 
@@ -145,12 +133,12 @@ export default function HeaderComponent({
     OrgCode?.(item.org_code);
     onOrganizationChange?.(item);
     
-    if (setSelectedOrg) {
-      setSelectedOrg({
-        selectedOrg: item,
-        selectedOrgCode: item.org_code
-      });
-    }
+    // if (setSelectedOrg) {
+    //   setSelectedOrg({
+    //     selectedOrg: item,
+    //     selectedOrgCode: item.org_code
+    //   });
+    // }
   };
 
   const showDot = Number(notificationCount) > 0;
