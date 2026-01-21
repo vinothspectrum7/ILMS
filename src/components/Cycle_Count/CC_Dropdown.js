@@ -14,7 +14,7 @@ import {
 import DropdownIcon from '../../assets/icons/dropdown.svg';
 import SearchIcon from '../../assets/icons/search.svg';
 import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
-import CloseIcon from '../../assets/icons/close.svg'; // You'll need this icon
+import CloseIcon from '../../assets/icons/close.svg';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -29,7 +29,6 @@ const getItemId = it => {
 
 const isPrimitive = v => typeof v === 'string' || typeof v === 'number';
 
-// Chip/Tag Component for selected items
 const SelectedChip = ({ item, onRemove, displayValue }) => {
   const label = displayValue ? displayValue(item) : (item?.name || item?.code || '');
 
@@ -63,7 +62,7 @@ export default function CC_Dropdown({
   showBarcodeIcon = false,
   onBarcodePress,
   multiple = false,
-  maxDisplayItems = 2, // Maximum chips to show before showing "+X more"
+  maxDisplayItems = 3,
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -89,7 +88,6 @@ export default function CC_Dropdown({
     }
   }, [value, items, multiple]);
 
-  // Get displayed chips and remaining count
   const { displayedChips, remainingCount } = useMemo(() => {
     if (!multiple || resolvedSelectedItems.length === 0) {
       return { displayedChips: resolvedSelectedItems, remainingCount: 0 };
@@ -103,7 +101,7 @@ export default function CC_Dropdown({
 
   const selectedLabel = useMemo(() => {
     if (multiple && resolvedSelectedItems.length > 0) {
-      return ''; // Return empty string for multiple selection since we'll show chips
+      return '';
     }
     
     if (!multiple && resolvedSelectedItems.length > 0) {
@@ -277,7 +275,7 @@ export default function CC_Dropdown({
                 ))}
                 {remainingCount > 0 && (
                   <View style={styles.moreChip}>
-                    <Text style={styles.moreText}>+{remainingCount} more</Text>
+                    <Text style={styles.moreText}>more</Text>
                   </View>
                 )}
                 {resolvedSelectedItems.length === 0 && (
@@ -444,10 +442,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ECF1F7',
-    borderRadius: rs(16),
+    borderRadius: rs(4),
     paddingHorizontal: rs(10),
     paddingVertical: rs(4),
     marginRight: rs(4),
+    minWidth: rs(73),
+    height: rs(25),
+    justifyContent: 'space-between',
   },
   chipText: {
     fontSize: rs(12),
@@ -460,15 +461,23 @@ const styles = StyleSheet.create({
     padding: rs(2),
   },
   moreChip: {
-    backgroundColor: '#F5F5F6',
-    borderRadius: rs(16),
-    paddingHorizontal: rs(8),
+    paddingHorizontal: rs(10),
     paddingVertical: rs(4),
+    minWidth: rs(73),
+    height: rs(25),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   moreText: {
-    fontSize: rs(12),
-    color: '#666666',
-    fontWeight: '500',
+    fontSize: rs(11),
+    color: '#033EFF',
+    fontFamily: 'Mulish',
+    fontWeight: '400',
+    fontStyle: 'italic',
+    textDecorationLine: 'underline',
+    textDecorationStyle: 'solid',
+    textDecorationColor: '#033EFF',
+    lineHeight: rs(11),
   },
   inputText: {
     fontSize: rs(12),
