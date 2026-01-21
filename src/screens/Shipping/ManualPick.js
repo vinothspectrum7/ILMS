@@ -50,8 +50,9 @@ function ManualPick({ route, navigation }) {
     const handleScannerClose = () => {
         setShowScanner(false);
     };
-
     const handleConfirmPick = () => {
+
+
         console.log('Transaction data stored:', itemTransactionData);
         const pickedItems = getPickedItems();
         console.log('Picked items to store:', pickedItems);
@@ -409,7 +410,7 @@ function ManualPick({ route, navigation }) {
                 <SingleFooterBtnComponent
                     label="Confirm Pick"
                     onPress={handleConfirmPick}
-                    enabled={true}
+                    enabled={selectedCount > 0}
                     containerStyle={styles.buttonWrapper}
                 />
             </View>
@@ -438,6 +439,11 @@ function ManualPick({ route, navigation }) {
                 }}
                 onNo={() => {
                     setShowConfirmation(false);
+                    navigation.navigate('ShipDashboard', {
+                        status: 'All',
+                        refresh: true,
+                        packMode: 'MANUAL',
+                    });
                 }}
                 selectedTransaction={selectedTransaction}
             />
@@ -558,7 +564,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     tableHeader: {
-        width: 346,
+        width: '100%',
         height: 31.26,
         backgroundColor: 'rgba(93, 118, 139, 0.05)',
         flexDirection: 'row',
@@ -569,7 +575,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     headerGreyArea: {
-        width: 40,
+        width: '40',
         height: '100%',
         backgroundColor: '#F5F5F6',
         justifyContent: 'center',
@@ -608,7 +614,7 @@ const styles = StyleSheet.create({
         paddingBottom: 10,
     },
     itemContainer: {
-        width: 346,
+        width: '100%',
         height: 80,
         borderRadius: 8,
         borderWidth: 0.2,

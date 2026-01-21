@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import ConfirmTickIcon from '../../assets/icons/Ship_Icons/ConfirmationTickIcon.svg';
+import { useNavigation } from '@react-navigation/native';
 import Ship_PrintLabels from './Ship_PrintLabels';
 
-const ShipConfirmationModal = ({
+const Ship_ManConfirmationModal = ({
   visible,
   onClose,
   onYes,
@@ -23,38 +23,30 @@ const ShipConfirmationModal = ({
   const [showLabelPrintedModal, setShowLabelPrintedModal] = useState(false);
 
   const isConfirmPack = type === 'CONFIRM_PACK';
-  const displayCount = itemCount;
+const displayCount = itemCount;
+
 
   const handleYes = () => {
+    if (onYes) {
+      onYes();
+      return;
+    }
+
+    onClose();
+
     if (isConfirmPack) {
-      // For CONFIRM_PACK: Close modal and show print labels
-      if (onClose) {
-        onClose();
-      }
-      
-      // Show print label modal after a short delay
-      setTimeout(() => {
-        setShowPrintLabelModal(true);
-      }, 300);
+      setShowPrintLabelModal(true);
     } else {
-      // For CONFIRM_PICK: Either call onYes or navigate to AutoPack
-      if (onYes) {
-        onYes();
-      } else {
-        if (onClose) {
-          onClose();
-        }
-        navigation.navigate('AutoPack');
-      }
+      navigation.navigate('AutoPack');
     }
   };
 
   const handleNo = () => {
     if (onNo) {
       onNo();
-    } else if (onClose) {
-      onClose();
+      return;
     }
+    onClose();
   };
 
   const handlePrintComplete = () => {
@@ -65,10 +57,6 @@ const ShipConfirmationModal = ({
   const handleShippingConfirmYes = () => {
     setShowLabelPrintedModal(false);
     navigation.navigate('ShipConfirmShipment');
-  };
-
-  const handlePrintLabelClose = () => {
-    setShowPrintLabelModal(false);
   };
 
   return (
@@ -105,7 +93,7 @@ const ShipConfirmationModal = ({
                 <View style={styles.questionContainer}>
                   <Text style={styles.questionText}>Would you proceed the</Text>
                   <Text style={styles.questionText}>
-                    next to {isConfirmPack ? 'Print labels' : 'Auto pack'}
+                    next to {isConfirmPack ? 'Print labels' : 'Manual pack'}
                   </Text>
                 </View>
 
@@ -131,14 +119,12 @@ const ShipConfirmationModal = ({
         </View>
       </Modal>
 
-      {/* Print Label Modal */}
       <Ship_PrintLabels
         isVisible={showPrintLabelModal}
-        onClose={handlePrintLabelClose}
+        onClose={() => setShowPrintLabelModal(false)}
         onPrintComplete={handlePrintComplete}
       />
 
-      {/* Label Printed Success Modal */}
       <Modal
         visible={showLabelPrintedModal}
         transparent
@@ -189,8 +175,7 @@ const ShipConfirmationModal = ({
   );
 };
 
-
-export default ShipConfirmationModal;
+export default Ship_ManConfirmationModal;
 
 const styles = StyleSheet.create({
   modalOverlay: {
