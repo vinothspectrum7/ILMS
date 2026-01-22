@@ -8,6 +8,7 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import Ship_GlobalHeaderComponent from '../../components/shipping/Ship_GlobalHeaderComponent';
 import GrowthIcon from '../../assets/icons/Ship_Icons/GrowthIcon.svg';
 import ReleasedIcon from '../../assets/icons/Ship_Icons/ReleasedIcon.svg';
@@ -21,34 +22,38 @@ import PrintIcon from '../../assets/icons/Ship_Icons/PrintIcon.svg';
 import Ship_PickPopupConfirmation from '../../components/shipping/Ship_PickPopupConfirmation';
 import { useShippingStore } from '../../store/shippingStore';
 import { useReceivingStore } from '../../store/receivingStore';
-import { GetShippingPickSlipNumData, GetShippingSummaryData } from '../../api/ApiServices';
+import { GetShippingSummaryData } from '../../api/ApiServices';
 
 function Ship_Dashboard({ navigation, route }) {
   const status = route?.params?.status;
   const resetShippingStore = useShippingStore(s => s.resetShippingStore);
+
   const [showPrintMenu, setShowPrintMenu] = useState(false);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+
   const [totalorders, settotalorders] = useState(null);
   const [releasedorers, setreleasedorers] = useState(null);
   const [unreleasedorers, setunreleasedorers] = useState(null);
   const [pickedorders, setpickedorders] = useState(null);
   const [intransit, setintransit] = useState(null);
 
-  const {
-    OrgData,
-  } = useReceivingStore();
+  const { OrgData } = useReceivingStore();
 
   const [filters, setFilters] = useState({
     pickType: 'Sales Order',
-    selectedPickSlip: null,
     selectedStatus: null,
     selectedItem: null,
     selectedException: null,
     selectedOrganization: null,
-  });
-  const packMode = route.params?.packMode || 'AUTO';
 
+    pickSearchText: '',
+    pickSuggestions: [],
+    pickOptionSelected: null,
+    pickOptionResults: [],
+  });
+
+  const packMode = route.params?.packMode || 'AUTO';
 
   useEffect(() => {
     if (!status) return;
@@ -57,9 +62,7 @@ function Ship_Dashboard({ navigation, route }) {
     const desiredSelectedStatus = incoming === 'All' ? null : incoming;
 
     setFilters(prev => {
-      if (prev.selectedStatus === desiredSelectedStatus) {
-        return prev;
-      }
+      if (prev.selectedStatus === desiredSelectedStatus) return prev;
       return { ...prev, selectedStatus: desiredSelectedStatus };
     });
   }, [status]);
@@ -68,11 +71,10 @@ function Ship_Dashboard({ navigation, route }) {
     const loadShippingSummaryData = async () => {
       try {
         const orgCode = parseInt(
-          useReceivingStore.getState()?.OrgData?.selectedOrg ??
-          OrgData?.selectedOrg,
+          useReceivingStore.getState()?.OrgData?.selectedOrg ?? OrgData?.selectedOrg,
           10
         );
-        console.log(OrgData, 'orgCodeorgCodeorgCodeorgCodeorgCode')        
+
         const shippingsummarydata = await GetShippingSummaryData(orgCode);
         if (shippingsummarydata) {
           settotalorders(shippingsummarydata?.total_orders);
@@ -80,14 +82,21 @@ function Ship_Dashboard({ navigation, route }) {
           setunreleasedorers(shippingsummarydata?.unreleased_count);
           setpickedorders(shippingsummarydata?.picked_count);
           setintransit(shippingsummarydata?.intransit_count);
-          console.log(shippingsummarydata, 'shippingsummarydatashippingsummarydatashippingsummarydatashippingsummarydata')
         }
       } catch (err) {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInvItems. Please try again.', position: 'top', visibilityTime: 5000 });
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to load Shipping Summary. Please try again.',
+          position: 'top',
+          visibilityTime: 5000,
+        });
       }
     };
     loadShippingSummaryData();
   }, []);
+
+  const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
 
   const handlePickPress = order => {
     setSelectedOrder(order);
@@ -100,21 +109,16 @@ function Ship_Dashboard({ navigation, route }) {
     }
   };
 
-
   const handleClosePopup = () => {
     setIsPopupVisible(false);
     setSelectedOrder(null);
   };
-
-  const setSelectedTransaction =
-    useShippingStore(s => s.setSelectedTransaction);
 
   const handleManualPick = () => {
     setIsPopupVisible(false);
     setSelectedTransaction(selectedOrder);
     navigation.navigate('ManualPick');
   };
-
 
   const handleExpressPick = () => {
     setIsPopupVisible(false);
@@ -133,12 +137,10 @@ function Ship_Dashboard({ navigation, route }) {
   const handleLabelPrint = () => {
     setShowPrintMenu(false);
     navigation.navigate('Ship_LabelPrintListScreen');
-
   };
 
   const handlePrintDocument = () => {
     setShowPrintMenu(false);
-
     navigation.navigate('Ship_PrintDocumentScreen');
   };
 
@@ -156,9 +158,7 @@ function Ship_Dashboard({ navigation, route }) {
       <View style={styles.fixedContent}>
         <View style={styles.shippingSummaryCard}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryText}>
-              Total Orders Delivered - {totalorders}
-            </Text>
+            <Text style={styles.summaryText}>Total Orders Delivered - {totalorders}</Text>
             <View style={styles.growthBox}>
               <Text style={styles.growthText}>10%</Text>
               <GrowthIcon width={16} height={16} />
@@ -176,9 +176,7 @@ function Ship_Dashboard({ navigation, route }) {
         </View>
 
         <View style={styles.shippingTransactionHeader}>
-          <Text style={styles.shippingTransactionTitle}>
-            Shipping Transaction
-          </Text>
+          <Text style={styles.shippingTransactionTitle}>Shipping Transaction</Text>
           <View style={styles.transactionIcons}>
             <TouchableOpacity style={styles.iconButton}>
               <SearchIcon width={20} height={20} />
@@ -195,20 +193,14 @@ function Ship_Dashboard({ navigation, route }) {
               {showPrintMenu && (
                 <View style={styles.printDropdown}>
                   <Pressable
-                    style={({ pressed }) => [
-                      styles.printOption,
-                      pressed && styles.printOptionPressed,
-                    ]}
+                    style={({ pressed }) => [styles.printOption, pressed && styles.printOptionPressed]}
                     onPress={handleLabelPrint}
                   >
                     <Text style={styles.printText}>Label Print</Text>
                   </Pressable>
 
                   <Pressable
-                    style={({ pressed }) => [
-                      styles.printOption,
-                      pressed && styles.printOptionPressed,
-                    ]}
+                    style={({ pressed }) => [styles.printOption, pressed && styles.printOptionPressed]}
                     onPress={handlePrintDocument}
                   >
                     <Text style={styles.printText}>Print Document</Text>
@@ -219,10 +211,7 @@ function Ship_Dashboard({ navigation, route }) {
           </View>
         </View>
 
-        <Ship_MainFilter
-          filters={filters}
-          onFilterChange={handleFilterChange}
-        />
+        <Ship_MainFilter filters={filters} onFilterChange={handleFilterChange} />
       </View>
 
       <ScrollView
@@ -230,10 +219,7 @@ function Ship_Dashboard({ navigation, route }) {
         showsVerticalScrollIndicator={true}
         contentContainerStyle={styles.tableScrollContent}
       >
-        <Ship_TransactionTable
-          filters={filters}
-          onPickPress={handlePickPress}
-        />
+        <Ship_TransactionTable filters={filters} onPickPress={handlePickPress} />
       </ScrollView>
 
       <Ship_PickPopupConfirmation
@@ -260,7 +246,7 @@ function StatusCard({ title, value, Icon }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F6F8'
+    backgroundColor: '#F4F6F8',
   },
 
   fixedContent: {
@@ -303,7 +289,7 @@ const styles = StyleSheet.create({
   growthText: {
     color: '#FFF',
     fontWeight: '700',
-    marginRight: 6
+    marginRight: 6,
   },
 
   cardsContainer: {
@@ -314,7 +300,7 @@ const styles = StyleSheet.create({
 
   cardRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
 
   card: {
@@ -342,7 +328,7 @@ const styles = StyleSheet.create({
   cardValue: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#233E55'
+    color: '#233E55',
   },
 
   shippingTransactionHeader: {
@@ -366,7 +352,7 @@ const styles = StyleSheet.create({
   },
 
   iconButton: {
-    padding: 8
+    padding: 8,
   },
 
   printWrapper: {
