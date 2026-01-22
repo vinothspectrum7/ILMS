@@ -23,6 +23,7 @@ import HumanIcon from '../../assets/icons/CycleCount_Icons/HumanIcon';
 import CC_SingleFooterBtnComponent from '../../components/Cycle_Count/CC_SingleFooterBtnComponent';
 import CC_CreScheduleConfirmationPopupModal from '../../components/Cycle_Count/CC_CreScheduleConfirmationPopupModal';
 import ConfirmationTickIcon from '../../assets/icons/Ship_Icons/ConfirmationTickIcon.svg';
+import { useCycleCountStore } from '../../store/cycleCountStore';
 
 const { width } = Dimensions.get('window');
 
@@ -61,6 +62,11 @@ const CC_CreateCount = () => {
     { id: 4, name: 'QC', code: 'EMP-004' },
     { id: 5, name: 'Admin Role', code: 'EMP-005' },
   ];
+
+  const addCreatedSchedule = useCycleCountStore(
+  state => state.addCreatedSchedule
+);
+
 
   const formatDate = (date) => {
     if (!date) return '';
@@ -102,35 +108,42 @@ const CC_CreateCount = () => {
     setAutoApprove(!autoApprove);
   };
 
-  const handleCreateSchedule = () => {
-    if (!isFormValid) return;
+const handleCreateSchedule = () => {
+  if (!isFormValid) return;
+  setShowConfirmationModal(true);
+};
 
-    const formData = {
-      countName,
-      subInventory,
-      scheduleDate: selectedDate ? formatDate(selectedDate) : '',
-      selectedClasses,
-      selectedScope,
-      autoApprove,
-      assignTo,
-    };
-
-    console.log('Form Data:', formData);
-    setShowConfirmationModal(true);
-  };
-
-  const handleModalClose = () => {
+const handleModalClose = () => {
     setShowConfirmationModal(false);
   };
-
-  const handleModalConfirm = () => {
-    setShowConfirmationModal(false);
-    setShowSuccessModal(true);
-    setTimeout(() => {
-      setShowSuccessModal(false);
-      navigation.navigate('CycleCount');
-    }, 2000);
+  
+const handleModalConfirm = () => {
+  const payload = {
+    id: Date.now(),
+    countName,
+    subInventory,
+    scheduleDate: selectedDate ? formatDate(selectedDate) : '',
+    selectedClasses,
+    selectedScope,
+    autoApprove,
+    assignTo,
+    createdAt: new Date().toISOString(),
+    status: 'Open',
   };
+
+  console.log('Confirmed Schedule Payload:', payload);
+
+  addCreatedSchedule(payload);
+
+  setShowConfirmationModal(false);
+  setShowSuccessModal(true);
+
+  setTimeout(() => {
+    setShowSuccessModal(false);
+    navigation.navigate('CycleCount');
+  }, 2000);
+};
+
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
