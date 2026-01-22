@@ -61,6 +61,8 @@ import Ship_PrintDocumentScreen from './src/screens/Shipping/Ship_PrintDocumentS
 import CycleCount from './src/screens/Cycle_Count/CycleCount';
 import CC_CreateCount from './src/screens/Cycle_Count/CC_CreateCount';
 import CC_ActiveCount from './src/screens/Cycle_Count/CC_ActiveCount';
+import CC_ViewActiveCount from './src/screens/Cycle_Count/CC_ViewActiveCount';
+import CC_CreateActiveCount from './src/screens/Cycle_Count/CC_CreateActiveCount';
 
 const Stack = createNativeStackNavigator();
 
@@ -368,6 +370,16 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="CC_ActiveCount"
 component={CC_ActiveCount}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="CC_ViewActiveCount"
+component={CC_ViewActiveCount}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="CC_CreateActiveCount"
+component={CC_CreateActiveCount}
 options={{ headerShown: false }}
 />
 
