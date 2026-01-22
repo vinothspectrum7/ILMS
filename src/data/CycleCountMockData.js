@@ -6,8 +6,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_LIST = [
         sub_inventory: 'MAIN_WAREHOUSE',
         schedule_date: '2026-01-21',
         cc_status: 'Open',
-        total_CC_count: '24',
-        completed_CC_count: '0',
+        total_item_count: '2',
+        completed_item_count: '0',
     },
     {
         id: '0002',
@@ -16,8 +16,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_LIST = [
         sub_inventory: 'SECURE_CAGE',
         schedule_date: '2026-01-22',
         cc_status: 'In Progress',
-        total_CC_count: '18',
-        completed_CC_count: '6',
+        total_item_count: '4',
+        completed_item_count: '0',
     },
     {
         id: '0003',
@@ -26,8 +26,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_LIST = [
         sub_inventory: 'PICK_FACE',
         schedule_date: '2026-01-23',
         cc_status: 'In Progress',
-        total_CC_count: '30',
-        completed_CC_count: '19',
+        total_item_count: '5',
+        completed_item_count: '0',
     },
     {
         id: '0004',
@@ -36,8 +36,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_LIST = [
         sub_inventory: 'RACK_STORAGE',
         schedule_date: '2026-01-18',
         cc_status: 'Completed',
-        total_CC_count: '40',
-        completed_CC_count: '40',
+        total_item_count: '3',
+        completed_item_count: '0',
     },
     {
         id: '0005',
@@ -46,8 +46,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_LIST = [
         sub_inventory: 'RECEIVING_BAY',
         schedule_date: '2026-01-20',
         cc_status: 'Open',
-        total_CC_count: '15',
-        completed_CC_count: '0',
+        total_item_count: '4',
+        completed_item_count: '0',
     },
     {
         id: '0006',
@@ -56,8 +56,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_LIST = [
         sub_inventory: 'DAMAGED_AREA',
         schedule_date: '2026-01-19',
         cc_status: 'In Progress',
-        total_CC_count: '12',
-        completed_CC_count: '4',
+        total_item_count: '3',
+        completed_item_count: '0',
     },
 ];
 
@@ -69,8 +69,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_DETAILS = [
         sub_inventory: 'MAIN_WAREHOUSE',
         schedule_date: '2026-01-21',
         cc_status: 'Open',
-        total_CC_count: '24',
-        completed_CC_count: '0',
+        total_item_count: '2',
+        completed_item_count: '0',
         items: [
             {
                 item_id: 'ITEM-A1-001',
@@ -103,8 +103,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_DETAILS = [
         sub_inventory: 'SECURE_CAGE',
         schedule_date: '2026-01-22',
         cc_status: 'In Progress',
-        total_CC_count: '18',
-        completed_CC_count: '6',
+        total_item_count: '4',
+        completed_item_count: '0',
         items: [
             {
                 item_id: 'ITEM-HV-001',
@@ -159,8 +159,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_DETAILS = [
         sub_inventory: 'PICK_FACE',
         schedule_date: '2026-01-23',
         cc_status: 'In Progress',
-        total_CC_count: '30',
-        completed_CC_count: '19',
+        total_item_count: '5',
+        completed_item_count: '0',
         items: [
             {
                 item_id: 'ITEM-FM-001',
@@ -226,8 +226,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_DETAILS = [
         sub_inventory: 'RACK_STORAGE',
         schedule_date: '2026-01-18',
         cc_status: 'Completed',
-        total_CC_count: '40',
-        completed_CC_count: '40',
+        total_item_count: '3',
+        completed_item_count: '0',
         items: [
             {
                 item_id: 'ITEM-RK-001',
@@ -271,8 +271,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_DETAILS = [
         sub_inventory: 'RECEIVING_BAY',
         schedule_date: '2026-01-20',
         cc_status: 'Open',
-        total_CC_count: '15',
-        completed_CC_count: '0',
+        total_item_count: '4',
+        completed_item_count: '0',
         items: [
             {
                 item_id: 'ITEM-RB-001',
@@ -327,8 +327,8 @@ export const MOCK_ACTIVE_CYCLE_COUNT_DETAILS = [
         sub_inventory: 'DAMAGED_AREA',
         schedule_date: '2026-01-19',
         cc_status: 'In Progress',
-        total_CC_count: '12',
-        completed_CC_count: '4',
+        total_item_count: '3',
+        completed_item_count: '0',
         items: [
             {
                 item_id: 'ITEM-DM-001',
