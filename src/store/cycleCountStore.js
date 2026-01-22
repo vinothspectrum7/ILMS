@@ -6,6 +6,7 @@ export const useCycleCountStore = create((set, get) => ({
   cycleCount: {
     selectedListItemDetails: [],
     countProgressMap: {},
+    createdSchedules: [], 
   },
 
   setSelectedList: (payload) => {
@@ -41,6 +42,20 @@ export const useCycleCountStore = create((set, get) => ({
       };
     }),
 
+  addCreatedSchedule: (payload) => {
+    console.log('Schedule Payload (Store):', payload);
+
+    set(state => ({
+      cycleCount: {
+        ...state.cycleCount,
+        createdSchedules: [
+          ...state.cycleCount.createdSchedules,
+          payload,
+        ],
+      },
+    }));
+  },
+
   saveCountProgress: (countId, totalItems) => {
     const items = get().cycleCount.selectedListItemDetails;
 
@@ -73,12 +88,13 @@ export const useCycleCountStore = create((set, get) => ({
     }));
   },
 
-   resetStore: () => {
+  resetStore: () => {
     set({
       selectedList: null,
       cycleCount: {
         selectedListItemDetails: [],
         countProgressMap: {},
+        createdSchedules: [],
       },
     });
   },
@@ -88,8 +104,8 @@ export const useCycleCountStore = create((set, get) => ({
       cycleCount: {
         selectedListItemDetails: [],
         countProgressMap: {},
+        createdSchedules: [],
       },
     }));
   },
-
 }));
