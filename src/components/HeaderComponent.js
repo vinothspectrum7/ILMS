@@ -95,16 +95,17 @@ export default function HeaderComponent({
           const orgformatdata = maporgdata(orgsdata);
           setOrganizations(orgformatdata);
           const defaultOrg = orgformatdata.find(o => o.is_default);
+          console.log(defaultOrg,"defaultorggggggggggggg")
           if (OrgData?.selectedOrg) {
+            BusinessName?.(OrgData?.BusinessName);
             setSelectedOrganization(OrgData?.selectedOrg);
             Defaultorg?.(OrgData?.selectedOrg);
             OrgCode?.(OrgData?.selectedOrgCode);
-            BusinessName?.(OrgData?.BusinessName);
           } else {
+            BusinessName?.(defaultOrg?.business_unit_name ?? orgformatdata[0]?.business_unit_name);
             Defaultorg?.(defaultOrg?.value ?? orgformatdata[0]?.value);
             OrgCode?.(defaultOrg?.org_code ?? orgformatdata[0]?.org_code);
             setSelectedOrganization(defaultOrg?.value ?? orgformatdata[0]?.value);
-            BusinessName?.(defaultOrg?.business_unit_name ?? orgformatdata[0]?.business_unit_name);
           }
         } else {
           setOrganizations([]);

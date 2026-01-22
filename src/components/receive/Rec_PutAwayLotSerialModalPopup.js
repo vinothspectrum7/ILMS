@@ -131,39 +131,37 @@ export default function Rec_PutAwayLotSerialModalPopup({
     [fetchLocators, inventoryItems],
   );
 
-  useEffect(() => {
-    if (!visible) return;
+useEffect(() => {
+  if (!visible) return;
 
-    const pre = initialPutAwayData || null;
+  const pre = initialPutAwayData || null;
 
-    const preSubInv = pre?.subInventory ?? pre?.fromSubInventory ?? defaultSubInventory ?? null;
-    const preLocator = pre?.locator ?? pre?.targetLocator ?? defaultLocator ?? null;
+  const preSubInv =
+    pre?.subInventory ??
+    pre?.fromSubInventory ??
+    defaultSubInventory ??
+    null;
 
-    const preQtyRaw = safeNum(pre?.putAwayQty ?? pre?.qty ?? putAwayTargetQty ?? 0);
-    const preQty = preQtyRaw > 0 ? preQtyRaw : safeNum(putAwayTargetQty);
+  if (preSubInv !== subInv) setSubInv(preSubInv);
 
-    const preLots =
-      pre?.putAwayLotLines ??
-      pre?.putAwayLots ??
-      pre?.lotLines ??
-      pre?.lots ??
-      [];
+}, [visible, initialPutAwayData, defaultSubInventory]);
 
-    setSubInv(preSubInv || null);
-    setLocator(preLocator || null);
-    setPutAwayQty(safeNum(putAwayTargetQty) > 0 ? preQty : 0);
-    setAddedPutAwayLots(Array.isArray(preLots) ? preLots : []);
-    setErrorMsg('');
+useEffect(() => {
+  if (!subInv) return;
 
-    (async () => {
-      const list = await loadLocators(preSubInv || null);
+  (async () => {
+    const list = await loadLocators(subInv);
 
-      if (preLocator) {
-        const ok = !!findItem(list, preLocator) || !!findItem(list, { id: asId(preLocator) });
-        if (!ok) setLocator(null);
-      }
-    })();
-  }, [visible, initialPutAwayData, defaultSubInventory, defaultLocator, putAwayTargetQty, loadLocators]);
+    if (locator) {
+      const ok =
+        !!findItem(list, locator) ||
+        !!findItem(list, { id: asId(locator) });
+
+      if (!ok) setLocator(null);
+    }
+  })();
+}, [subInv, loadLocators]);
+
 
   const subName = useMemo(() => asName(findItem(inventoryItems, subInv) || subInv), [inventoryItems, subInv]);
   const locName = useMemo(() => asName(findItem(locatorItems, locator) || locator), [locatorItems, locator]);

@@ -212,6 +212,8 @@ const [inspectPutawayViewModalVisible, setInspectPutawayViewModalVisible] = useS
   const [serialModalVisible, setSerialModalVisible] = useState(false);
   const [lotserialModalVisible, setLotSerialModalVisible] = useState(false);
   const [inspectSerialModalVisible, setInspectSerialModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState(false);
 
   const [putAwaySerialModalVisible, setPutAwaySerialModalVisible] = useState(false);
   const [putAwaySelectedSerialsMap, setPutAwaySelectedSerialsMap] = useState({});
@@ -1338,6 +1340,8 @@ const openPutAwayViewModal = (item) => {
 
     (async () => {
       try {
+        setLoading(true);
+        setApiError(false);
         const resp = await GetLotDetails(lotTxnId);
         const rows = Array.isArray(resp)
           ? resp.map(x => ({
@@ -1365,12 +1369,16 @@ const openPutAwayViewModal = (item) => {
             lotTotalQty: rows.reduce((s, r) => s + (Number(r.qty) || 0), 0),
           });
         }
+        setLoading(false);
+        setApiError(false);
       } catch (e) {
         if (!mounted) return;
         setReceivedLotsMap(prev => ({
           ...prev,
           [itemId]: { loading: false, rows: [] },
         }));
+        setLoading(false);
+        setApiError(true);
       }
     })();
 
@@ -3732,7 +3740,22 @@ const openPutAwayViewModal = (item) => {
                       disabled={(readOnly && !hasLots) || (!hasLots && Number(current.openQty ?? 0) === 0)
                       }
                     >
-                      {hasLots ? (
+                      {loading ? (
+                          <View style={styles.addLotGreen}>
+                              <ActivityIndicator size="small" color="#FFFFFF" />
+                              <Text style={[styles.addLotGreenText, { marginLeft: 8 }]}>
+                                  Loading...
+                              </Text>
+                          </View>
+                      ) : apiError ? (
+                          <View style={styles.addLotError}>
+                              <ReceiveAddIcon width={20} height={20} />
+                              <Text style={styles.addLotErrorText}>
+                                  Error Loading Lots
+                              </Text>
+                          </View>
+                      ) :
+                      hasLots ? (
                         <View style={styles.addLotGreen}>
                           <ReceiveAddIcon width={20} height={20} />
                           <Text style={styles.addLotGreenText}>
@@ -5257,6 +5280,22 @@ putAwayTableRowPending: {
 putAwayTableRowRejected: {
   backgroundColor: '#fef2f2',
 },
+    addLotError: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: ms(12),
+        paddingVertical: ms(10),
+        borderRadius: ms(12),
+        alignSelf: 'stretch',
+        justifyContent: 'center',
+        backgroundColor: '#FF6B6B',
+    },
+    addLotErrorText: {
+        marginLeft: ms(6),
+        fontSize: ms(11),
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
 });
 
 export default Rec_ViewReceivedItemDetailsScreen;
