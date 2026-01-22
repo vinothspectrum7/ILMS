@@ -62,7 +62,7 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert('Login failed', 'Invalid credentials.');
     }
   } catch (error) {
-      Alert.alert('Login failed', 'Invalid credentials.');
+      Alert.alert('Login failed', error.message);
         console.log('errror response login',error);
     // navigation.replace('Home');
     // if (error.response && error.response.data) {
