@@ -67,7 +67,7 @@ export default function GlobalHeaderComponent({
   onMenu = () => { },
   onNotificationPress = () => { },
   onMenuSelect = () => { },
-  menuVersion = '25121921',
+  menuVersion = '26012107',
   navRowStyle,
 }) {
   const title = `${org3(organizationName)} – ${screenTitle}${contextInfo ? `(${contextInfo})` : ''}`;

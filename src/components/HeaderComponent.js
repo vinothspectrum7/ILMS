@@ -78,7 +78,7 @@ export default function HeaderComponent({
   notificationCount = 0,
   onCardPress = () => { },
   onMenuSelect = () => { },
-  menuVersion = '25121921',
+  menuVersion = '26012107',
 }) {
   const [selectedOrganization, setSelectedOrganization] = useState(null);
   const [organizations, setOrganizations] = useState([]);
