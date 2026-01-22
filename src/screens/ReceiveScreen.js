@@ -640,7 +640,7 @@ loadPO();
   const handleSearch = (text) => {
     setSearchText(text);
     // if (activeKey !== 'poir') {
-    //   applyVisible(activeKey, text, activeFilter);
+      applyVisible(activeKey, text, activeFilter);
     // }
   };
 

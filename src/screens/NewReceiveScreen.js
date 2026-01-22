@@ -178,6 +178,8 @@ const NewReceiveScreen = () => {
       purchaseReceipt: posingledata?.next_receipt_num || '',
       name: backend.item?.item_code || '',
       description: backend.item?.description || '',
+      supplier_site_code:backend?.supplier_site_code || null,
+      location_code:backend?.location_code || null,
       orderedQty: backend.ord_qty,
       orderqty: backend.ord_qty,
       itemtype: getLabel(backend.item?.lot_enabled, backend.item?.serial_enabled),
