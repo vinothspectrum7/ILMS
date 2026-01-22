@@ -8,7 +8,7 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
-import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
+import Ship_GlobalHeaderComponent from '../../components/shipping/Ship_GlobalHeaderComponent';
 import GrowthIcon from '../../assets/icons/Ship_Icons/GrowthIcon.svg';
 import ReleasedIcon from '../../assets/icons/Ship_Icons/ReleasedIcon.svg';
 import UnreleasedIcon from '../../assets/icons/Ship_Icons/UnreleasedIcon.svg';
@@ -20,6 +20,8 @@ import SearchIcon from '../../assets/icons/Ship_Icons/SearchIcon.svg';
 import PrintIcon from '../../assets/icons/Ship_Icons/PrintIcon.svg';
 import Ship_PickPopupConfirmation from '../../components/shipping/Ship_PickPopupConfirmation';
 import { useShippingStore } from '../../store/shippingStore';
+import { useReceivingStore } from '../../store/receivingStore';
+import { GetShippingPickSlipNumData, GetShippingSummaryData } from '../../api/ApiServices';
 
 function Ship_Dashboard({ navigation, route }) {
   const status = route?.params?.status;
@@ -27,6 +29,16 @@ function Ship_Dashboard({ navigation, route }) {
   const [showPrintMenu, setShowPrintMenu] = useState(false);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [totalorders, settotalorders] = useState(null);
+  const [releasedorers, setreleasedorers] = useState(null);
+  const [unreleasedorers, setunreleasedorers] = useState(null);
+  const [pickedorders, setpickedorders] = useState(null);
+  const [intransit, setintransit] = useState(null);
+
+  const {
+    OrgData,
+  } = useReceivingStore();
+
   const [filters, setFilters] = useState({
     pickType: 'Sales Order',
     selectedPickSlip: null,
@@ -35,7 +47,7 @@ function Ship_Dashboard({ navigation, route }) {
     selectedException: null,
     selectedOrganization: null,
   });
-const packMode = route.params?.packMode || 'AUTO';
+  const packMode = route.params?.packMode || 'AUTO';
 
 
   useEffect(() => {
@@ -52,16 +64,41 @@ const packMode = route.params?.packMode || 'AUTO';
     });
   }, [status]);
 
- const handlePickPress = order => {
-  setSelectedOrder(order);
+  useEffect(() => {
+    const loadShippingSummaryData = async () => {
+      try {
+        const orgCode = parseInt(
+          useReceivingStore.getState()?.OrgData?.selectedOrg ??
+          OrgData?.selectedOrg,
+          10
+        );
+        console.log(OrgData, 'orgCodeorgCodeorgCodeorgCodeorgCode')        
+        const shippingsummarydata = await GetShippingSummaryData(orgCode);
+        if (shippingsummarydata) {
+          settotalorders(shippingsummarydata?.total_orders);
+          setreleasedorers(shippingsummarydata?.released_count);
+          setunreleasedorers(shippingsummarydata?.unreleased_count);
+          setpickedorders(shippingsummarydata?.picked_count);
+          setintransit(shippingsummarydata?.intransit_count);
+          console.log(shippingsummarydata, 'shippingsummarydatashippingsummarydatashippingsummarydatashippingsummarydata')
+        }
+      } catch (err) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInvItems. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    };
+    loadShippingSummaryData();
+  }, []);
 
-  if (packMode === 'MANUAL') {
-    setSelectedTransaction(order);
-    navigation.navigate('ManualPick');
-  } else {
-    setIsPopupVisible(true);
-  }
-};
+  const handlePickPress = order => {
+    setSelectedOrder(order);
+
+    if (packMode === 'MANUAL') {
+      setSelectedTransaction(order);
+      navigation.navigate('ManualPick');
+    } else {
+      setIsPopupVisible(true);
+    }
+  };
 
 
   const handleClosePopup = () => {
@@ -109,7 +146,7 @@ const packMode = route.params?.packMode || 'AUTO';
     <View style={styles.container}>
       <StatusBar backgroundColor="#233E55" barStyle="light-content" />
 
-      <GlobalHeaderComponent
+      <Ship_GlobalHeaderComponent
         screenTitle="Shipping"
         organizationName="ENV"
         onBack={handleBack}
@@ -120,7 +157,7 @@ const packMode = route.params?.packMode || 'AUTO';
         <View style={styles.shippingSummaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryText}>
-              Total Orders Delivered - 269
+              Total Orders Delivered - {totalorders}
             </Text>
             <View style={styles.growthBox}>
               <Text style={styles.growthText}>10%</Text>
@@ -131,10 +168,10 @@ const packMode = route.params?.packMode || 'AUTO';
 
         <View style={styles.cardsContainer}>
           <View style={styles.cardRow}>
-            <StatusCard title="Released Orders" value="34" Icon={ReleasedIcon} />
-            <StatusCard title="Unreleased Orders" value="34" Icon={UnreleasedIcon} />
-            <StatusCard title="Picked Orders" value="34" Icon={PickedIcon} />
-            <StatusCard title="In Transit" value="34" Icon={TransitIcon} />
+            <StatusCard title="Released Orders" value={releasedorers} Icon={ReleasedIcon} />
+            <StatusCard title="Unreleased Orders" value={unreleasedorers} Icon={UnreleasedIcon} />
+            <StatusCard title="Picked Orders" value={pickedorders} Icon={PickedIcon} />
+            <StatusCard title="In Transit" value={intransit} Icon={TransitIcon} />
           </View>
         </View>
 

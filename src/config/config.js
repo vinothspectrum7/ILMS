@@ -54,5 +54,6 @@ export const API_ENDPOINTS = {
   GETAVAILABLELOCATORSTOCK: (org_id,item_code,sub_inv,loc_id) => `${BASE_URL}/inventory/locator-available-qty?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}&Loc=${loc_id}`,
   GETTOSUBINVLIST: (org_id) => `${BASE_URL}/inventory/Get-To-Subinventory?Org_code=${org_id}`,
   GETTOLOCATORINVLIST: (org_id,sub_inv_id) => `${BASE_URL}/inventory/Get-To-Locator?Org_code=${org_id}&Sub_inv=${sub_inv_id}`,
- 
+ GET_SHIPPING_EBS_SUMMARY_DATA: (org_id) => `${BASE_URL}/shipment/summary?p_org_id=${org_id}`,
+ GET_SHIPPING_EBS_PICKSLIP_NUM_DATA: (org_id,pickslip_no) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_pickslip=${pickslip_no}`,
 };

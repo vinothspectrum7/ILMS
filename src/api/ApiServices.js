@@ -420,4 +420,26 @@ export const GetTOLocatorData = async(org_id,sub_inv_id)=>{
     console.error("Get TOLOCATOR ERROR:", error.message, error.response?.data);
     throw error;
   }
+} 
+
+export const GetShippingSummaryData = async(org_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_SUMMARY_DATA(org_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_SUMMARY_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+} 
+
+export const GetShippingPickSlipNumData = async(org_id,pickslip_no)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PICKSLIP_NUM_DATA(org_id,pickslip_no));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_PICKSLIP_NUM_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
 }

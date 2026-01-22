@@ -9,10 +9,10 @@ import {
 import { useNavigation } from '@react-navigation/native';
 
 import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
-import CreateCountIcon from '../../assets/icons/CycleCount_Icons/InvAdjustIcon';
-import ViewCountsIcon from '../../assets/icons/CycleCount_Icons/InvAdjustIcon';
-import CountHistoryIcon from '../../assets/icons/CycleCount_Icons/InvAdjustIcon';
-import CountSettingsIcon from '../../assets/icons/CycleCount_Icons/InvAdjustIcon';
+import CreateCountIcon from '../../assets/icons/CycleCount_Icons/CreateCountIcon.svg';
+import ViewCountsIcon from '../../assets/icons/CycleCount_Icons/OrgTransferIcon.svg';
+import CountHistoryIcon from '../../assets/icons/CycleCount_Icons/CountHistoryIcon.svg';
+import CountSettingsIcon from '../../assets/icons/CycleCount_Icons/CountSettingsIcon.svg';
 import { useReceivingStore } from '../../store/receivingStore';
 
 
@@ -57,7 +57,7 @@ const CycleCount = () => {
           <MenuCard
             title="Active Cycle Counts"
             Icon={ViewCountsIcon}
-            onPress={() => navigation.navigate('CC_ViewCounts')}
+            onPress={() => navigation.navigate('CC_ActiveCount')}
           />
 
           <MenuCard

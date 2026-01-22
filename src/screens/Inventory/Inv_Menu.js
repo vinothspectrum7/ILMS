@@ -11,11 +11,11 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
 
 import SubInvIcon from '../../assets/icons/CycleCount_Icons/SubInvIcon';
-import OrgTransferIcon from '../../assets/icons/CycleCount_Icons/SubInvIcon.svg';
+import OrgTransferIcon from '../../assets/icons/CycleCount_Icons/OrgTransferIcon.svg';
 import InvAdjustIcon from '../../assets/icons/CycleCount_Icons/InvAdjustIcon.svg';
-import CycleCountIcon from '../../assets/icons/CycleCount_Icons/InvAdjustIcon';
-import ItemInquiryIcon from '../../assets/icons/CycleCount_Icons/InvAdjustIcon';
-import ItemOnHandIcon from '../../assets/icons/CycleCount_Icons/InvAdjustIcon';
+import CycleCountIcon from '../../assets/icons/CycleCount_Icons/CycleCountIcon.svg';
+import ItemInquiryIcon from '../../assets/icons/CycleCount_Icons/ItemInquiryIcon.svg';
+import ItemOnHandIcon from '../../assets/icons/CycleCount_Icons/ItemOnHandIcon.svg';
 
 import { useReceivingStore } from '../../store/receivingStore';
 
