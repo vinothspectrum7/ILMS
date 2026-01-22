@@ -77,7 +77,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
     
-    namespace "com.ilms.ebs"
+    namespace "com.ilms"
     defaultConfig {
         applicationId "com.ilms.ebs"
         minSdkVersion rootProject.ext.minSdkVersion
