@@ -585,7 +585,7 @@ const ReceiveScreen = () => {
     //   }
     // };
 loadPO();
-// loadReceived();
+loadReceived();
     // Promise.all([loadASN(), loadPO(), loadReceived(), loadIC()]).finally(() => setPhase('success'));
   }, [OrgData?.selectedOrg]);
 
