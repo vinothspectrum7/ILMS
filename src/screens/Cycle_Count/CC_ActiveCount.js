@@ -142,7 +142,6 @@ const CC_ActiveCount = () => {
     ).length;
   };
   const resetCyclecountStore = useCycleCountStore(s => s.resetStore);
-
     const handleBack = () => {
     resetCyclecountStore();
     navigation.goBack();
