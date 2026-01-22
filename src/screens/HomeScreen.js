@@ -81,7 +81,7 @@ useEffect(() => {
   if (!OrgCode) return;
   // setLoadingRecent(true);
   // setloadingPriority(true);
-  console.log(OrgCode,"OrgCodeOrgCode")
+  console.log(OrgCode,BusinessName,"OrgCodeOrgCode")
   Setdefaultinventory(null);
     setOrgData({
     selectedOrg: Defaultorg,
@@ -171,7 +171,7 @@ useEffect(() => {
   //   selectedOrgCode: OrgCode,
   //   BusinessName: BusinessName
   // });
-  // loadinventrydata();
+  loadinventrydata();
   // loadrecentactivity();
   // loadpriorityList();
 
