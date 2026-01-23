@@ -193,7 +193,8 @@ export const GetLocatorsData = async(sub_id)=>{
 }
 export const Submit_Receive_Qty = async(data)=>{
     try {
-    const response = await api.post(API_ENDPOINTS.UPDATE_FUSION_RECEIVED_QTY,data);
+      console.log(data,"Submit_Receive_QtySubmit_Receive_Qty")
+    const response = await api.post(API_ENDPOINTS.UPDATE_EBS_RECEIVED_QTY,data);
     console.log("Response Data:", response);
     return response.data;
   } catch (error) {
