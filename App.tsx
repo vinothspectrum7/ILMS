@@ -63,6 +63,7 @@ import CC_CreateCount from './src/screens/Cycle_Count/CC_CreateCount';
 import CC_ActiveCount from './src/screens/Cycle_Count/CC_ActiveCount';
 import CC_ViewActiveCount from './src/screens/Cycle_Count/CC_ViewActiveCount';
 import CC_CreateActiveCount from './src/screens/Cycle_Count/CC_CreateActiveCount';
+import CC_CountHistoryScreen from './src/screens/Cycle_Count/CC_CountHistoryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -380,6 +381,11 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="CC_CreateActiveCount"
 component={CC_CreateActiveCount}
+options={{ headerShown: false }}
+/>
+<Stack.Screen
+name="CC_CountHistoryScreen"
+component={CC_CountHistoryScreen}
 options={{ headerShown: false }}
 />
 

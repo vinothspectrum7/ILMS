@@ -366,3 +366,65 @@ export const MOCK_ACTIVE_CYCLE_COUNT_DETAILS = [
         ],
     },
 ];
+
+
+
+export const MOCK_CYCLE_COUNT_HISTORY = [
+  {
+    id: 'HIS-0001',
+    count_name: 'Q3 2024 - Full Count',
+    sub_inventory: 'ALL_ZONES',
+    completed_date: '2024-10-15',
+
+    summary: {
+      total_items: '658',
+      total_variances: '12',
+      accuracy_percentage: '97.4',
+    },
+
+    cc_status: 'Completed',
+
+    actions: {
+      can_export: true,
+      can_view_report: true,
+    },
+  },
+  {
+    id: 'HIS-0002',
+    count_name: 'Q2 2024 - Full Count',
+    sub_inventory: 'ALL_ZONES',
+    completed_date: '2024-07-14',
+
+    summary: {
+      total_items: '612',
+      total_variances: '9',
+      accuracy_percentage: '98.5',
+    },
+
+    cc_status: 'InProgress',
+
+    actions: {
+      can_export: true,
+      can_view_report: true,
+    },
+  },
+  {
+    id: 'HIS-0003',
+    count_name: 'Q1 2024 - Full Count',
+    sub_inventory: 'ALL_ZONES',
+    completed_date: '2024-04-12',
+
+    summary: {
+      total_items: '590',
+      total_variances: '18',
+      accuracy_percentage: '96.9',
+    },
+
+    cc_status: 'Pending',
+
+    actions: {
+      can_export: true,
+      can_view_report: true,
+    },
+  },
+];
