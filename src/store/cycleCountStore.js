@@ -108,4 +108,14 @@ export const useCycleCountStore = create((set, get) => ({
       },
     }));
   },
+
+  viewReportData:null,
+  setViewReportData: (payload) => {
+    console.log('View Report Payload (store)', payload);
+
+    set(state => ({
+      ...state,
+      viewReportData: payload,
+    }))
+  }
 }));
