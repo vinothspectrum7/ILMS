@@ -15,7 +15,7 @@ import DropdownIcon from '../../assets/icons/Ship_Icons/DropdownIcon.svg';
 import DropDown from '../../assets/icons/Ship_Icons/DropDown.svg';
 import Ship_DropDown from './Ship_DropDown';
 import { useReceivingStore } from '../../store/receivingStore';
-import { GetShippingPickSlipNumData } from '../../api/ApiServices';
+import { GetShippingSalesOrderNumData, GetShippingDeliveryIdData, GetShippingPickSlipNumData } from '../../api/ApiServices';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -171,6 +171,76 @@ function FilterBar({ filters, onFilterChange }) {
       return;
     }
 
+    if (filters?.pickType === 'Delivery'){
+
+      debounceRef.current = setTimeout(async () => {
+      try {
+        setPickLoading(true);
+
+        const currentReq = ++activeRequestRef.current;
+
+        const orgCode = parseInt(
+          useReceivingStore.getState()?.OrgData?.selectedOrg ??
+            useReceivingStore.getState()?.OrgData?.selectedOrg,
+          10
+        );
+
+        const resp = await GetShippingDeliveryIdData(orgCode, text.trim());
+        console.log(resp,'GetShippingPickSlipNumDataGetShippingPickSlipNumDataGetShippingPickSlipNumData')
+        if (currentReq !== activeRequestRef.current) return;
+
+        const rows = resp?.shipment_orders ?? [];
+        const normalized = normalizeSuggestions(rows);
+
+        setPickSuggestions(normalized);
+        onFilterChange('pickSuggestions', normalized);
+
+        setPickLoading(false);
+      } catch (e) {
+        setPickLoading(false);
+        setPickSuggestions([]);
+        onFilterChange('pickSuggestions', []);
+      }
+    }, 450);
+
+    }
+
+    else if (filters?.pickType === 'Sales Order'){ 
+
+      debounceRef.current = setTimeout(async () => {
+      try {
+        setPickLoading(true);
+
+        const currentReq = ++activeRequestRef.current;
+
+        const orgCode = parseInt(
+          useReceivingStore.getState()?.OrgData?.selectedOrg ??
+            useReceivingStore.getState()?.OrgData?.selectedOrg,
+          10
+        );
+
+        const resp = await GetShippingSalesOrderNumData(orgCode, text.trim());
+        console.log(resp,'GetShippingPickSlipNumDataGetShippingPickSlipNumDataGetShippingPickSlipNumData')
+        if (currentReq !== activeRequestRef.current) return;
+
+        const rows = resp?.shipment_orders ?? [];
+        const normalized = normalizeSuggestions(rows);
+
+        setPickSuggestions(normalized);
+        onFilterChange('pickSuggestions', normalized);
+
+        setPickLoading(false);
+      } catch (e) {
+        setPickLoading(false);
+        setPickSuggestions([]);
+        onFilterChange('pickSuggestions', []);
+      }
+    }, 450);
+
+    } 
+
+    else {
+
     debounceRef.current = setTimeout(async () => {
       try {
         setPickLoading(true);
@@ -184,9 +254,10 @@ function FilterBar({ filters, onFilterChange }) {
         );
 
         const resp = await GetShippingPickSlipNumData(orgCode, text.trim());
+        console.log(resp,'GetShippingPickSlipNumDataGetShippingPickSlipNumDataGetShippingPickSlipNumData')
         if (currentReq !== activeRequestRef.current) return;
 
-        const rows = resp?.shipment_pickslip_orders ?? [];
+        const rows = resp?.shipment_orders ?? [];
         const normalized = normalizeSuggestions(rows);
 
         setPickSuggestions(normalized);
@@ -199,6 +270,8 @@ function FilterBar({ filters, onFilterChange }) {
         onFilterChange('pickSuggestions', []);
       }
     }, 450);
+
+  }
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -256,7 +329,8 @@ function FilterBar({ filters, onFilterChange }) {
       );
 
       const resp = await GetShippingPickSlipNumData(orgCode, text);
-      const rows = resp?.shipment_pickslip_orders ?? [];
+      console.log(resp,'GetShippingPickSlipNumDataGetShippingPickSlipNumDataGetShippingPickSlipNumData')
+      const rows = resp?.shipment_orders ?? [];
 
       onFilterChange('pickOptionResults', rows);
       onFilterChange('pickOptionSelected', { type: 'SEARCH', value: text });

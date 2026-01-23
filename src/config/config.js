@@ -55,5 +55,8 @@ export const API_ENDPOINTS = {
   GETTOSUBINVLIST: (org_id) => `${BASE_URL}/inventory/Get-To-Subinventory?Org_code=${org_id}`,
   GETTOLOCATORINVLIST: (org_id,sub_inv_id) => `${BASE_URL}/inventory/Get-To-Locator?Org_code=${org_id}&Sub_inv=${sub_inv_id}`,
  GET_SHIPPING_EBS_SUMMARY_DATA: (org_id) => `${BASE_URL}/shipment/summary?p_org_id=${org_id}`,
- GET_SHIPPING_EBS_PICKSLIP_NUM_DATA: (org_id,pickslip_no) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_pickslip=${pickslip_no}`,
+ GET_SHIPPING_EBS_PICKSLIP_NUM_DATA: (org_id,pickslip_no) => `${BASE_URL}/shipment/by-pickslip?p_org_id=204&p_pickslip=426`,
+ GET_SHIPPING_EBS_DELIVERY_ID_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
+ GET_SHIPPING_EBS_SALES_ORDER_NUM_DATA: (org_id,so_number) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_so_number=${so_number}`,
+ 
 };

@@ -443,3 +443,25 @@ export const GetShippingPickSlipNumData = async(org_id,pickslip_no)=>{
     throw error;
   }
 }
+
+export const GetShippingDeliveryIdData = async(org_id,delivery_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_DELIVERY_ID_DATA(org_id,delivery_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_DELIVERY_ID_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetShippingSalesOrderNumData = async(org_id,so_number)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_SALES_ORDER_NUM_DATA(org_id,so_number));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_SALES_ORDER_NUM_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}

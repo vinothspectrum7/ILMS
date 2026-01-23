@@ -23,14 +23,14 @@ function Ship_TransactionTable({ onPickPress, filters }) {
     const rows = Array.isArray(filters?.pickOptionResults) ? filters.pickOptionResults : [];
 
     return rows.map(r => ({
-      deliveryId: String(r?.delivery_id ?? ''),
-      salesOrderNo: String(r?.sales_order_no ?? ''),
-      pickSlipNo: String(r?.pick_slip_number ?? ''),
+      deliveryId: String(r?.delivery_id ?? '-'),
+      salesOrderNo: String(r?.sales_order_no ?? '-'),
+      pickSlipNo: String(r?.pick_slip_number ?? '-'),
       lines: r?.total_lines ?? '',
       quantity: r?.total_qty ?? '',
       status: String(r?.status ?? ''),
-      customer: '',
-      carrier: '',
+      customer: (r?.customer_name ?? '-'),
+      carrier: (r?.carrier_name ?? '-'),
     }));
   }, [filters?.pickOptionResults, hasPickOptionSelection]);
 
@@ -161,11 +161,17 @@ function Ship_TransactionTable({ onPickPress, filters }) {
                     <Text style={styles.cellBold} numberOfLines={1}>
                       {item.deliveryId}
                     </Text>
+                    <Text style={styles.cellSmall} numberOfLines={1}>
+                      {item.customer}
+                    </Text>
                   </View>
 
                   <View style={styles.colSales}>
                     <Text style={styles.cellBold} numberOfLines={1}>
                       {item.salesOrderNo}
+                    </Text>
+                    <Text style={styles.cellSmall} numberOfLines={1}>
+                      {item.carrier}
                     </Text>
                   </View>
 
@@ -214,7 +220,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 2,
   },
 
   headerContainer: {
@@ -231,7 +237,7 @@ const styles = StyleSheet.create({
   },
 
   sideGradient: {
-    width: 6,
+    width: 2,
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
   },
@@ -248,15 +254,15 @@ const styles = StyleSheet.create({
 
   headerRow: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 6,
     alignItems: 'center',
   },
 
   dataRow: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#000000',
     alignItems: 'flex-start',
@@ -264,8 +270,8 @@ const styles = StyleSheet.create({
 
   headerText: {
     fontFamily: 'Mulish',
-    fontWeight: '500',
-    fontSize: 12,
+    fontWeight: '700',
+    fontSize: 10,
     lineHeight: 16,
     letterSpacing: 0,
     color: '#595A5C',
@@ -275,14 +281,14 @@ const styles = StyleSheet.create({
   },
 
   cellBold: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
     color: '#233E55',
     textAlign: 'left',
   },
 
   cellSmall: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#242424',
     marginTop: 2,
     textAlign: 'left',
@@ -301,8 +307,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   colPick: {
-    flex: 1,
-    paddingHorizontal: 4,
+    flex: 1.3,
+    paddingHorizontal: 0,
   },
 
   centerHeader: {
@@ -323,7 +329,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     minWidth: 34,
     minHeight: 13,
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     paddingVertical: 4,
     borderRadius: 4,
     backgroundColor: '#ECF1F7',
@@ -342,7 +348,7 @@ const styles = StyleSheet.create({
     minWidth: 64,
     borderRadius: 4,
     backgroundColor: '#E6F4EA',
-    paddingHorizontal: 12,
+    paddingHorizontal: 5,
     paddingVertical: 4,
     alignItems: 'center',
     justifyContent: 'center',
