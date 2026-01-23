@@ -32,7 +32,7 @@ import RadioGlossySelected from "../../assets/icons/RadioGlossySelected.svg";
 import RadioGlossyUnselected from "../../assets/icons/RadioGlossyUnselected.svg";
 import Toast from 'react-native-toast-message';
 import { colors } from '../../theme/colors';
-import { GetAvailableItemStockData, GetAvailableLocatorStockData, GetAvailableStockData, GetFROMSubInvData, GetOrgsData, GetSubInvItemList, GetTOLocatorData, GetTOSubInvData } from '../../api/ApiServices';
+import { GetAvailableItemStockData, GetAvailableLocatorStockData, GetAvailableStockData, GetFromLocatorsData, GetFROMSubInvData, GetOrgsData, GetSubInvItemList, GetTOLocatorData, GetTOSubInvData } from '../../api/ApiServices';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -83,24 +83,14 @@ export default function Inv_Adjustment_Add() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [controlType,setControlType] = useState(null);
-     const [SubInvItemList,setSubInvItemList] = useState([]);
-      const [FromSubInvList,setFromSubInvList] = useState([]);
-      const [TOSubInvList,setTOSubInvList] = useState([]);
-      const [FromLocatorList,setFromLocatorList] = useState([
-      {
-        id: '1.2.1',
-        name: '1.2.1',
-        code: '1.2.1'
-      },
-      { id: '1.2.2',
-        name: '1.2.2',
-        code: '1.2.2'
-      }
-      ]);
-      const [UOMList,setUOMList] = useState([]);
-      const [ToLocatorList,setToLocatorList] = useState([]);
-      const [StockLoader,setStockLoader] = useState(false);
-      const [AvailableData, setAvailableData] = useState(null);
+  const [SubInvItemList,setSubInvItemList] = useState([]);
+  const [FromSubInvList,setFromSubInvList] = useState([]);
+  const [TOSubInvList,setTOSubInvList] = useState([]);
+  const [FromLocatorList,setFromLocatorList] = useState([]);
+  const [UOMList,setUOMList] = useState([]);
+  const [ToLocatorList,setToLocatorList] = useState([]);
+  const [StockLoader,setStockLoader] = useState(false);
+  const [AvailableData, setAvailableData] = useState(null);
 
 
   const itemAvailableQty = AvailableData?.availableStock ?? 0;
@@ -175,6 +165,20 @@ export default function Inv_Adjustment_Add() {
             Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load availableStock. Please try again.', position: 'top', visibilityTime: 5000 });
           }
         };
+        const loadFromLocatorData = async () => {
+          try {
+            const fromlocatordata = await GetFromLocatorsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
+            if (fromlocatordata) {
+              const fromlocatorList = maptoLocatorlist(fromlocatordata);
+              setFromLocatorList(fromlocatorList);
+            } else {
+              setFromLocatorList([]);
+            }
+          } catch (err) {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromLocator. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+        loadFromLocatorData();
         loadAvailablestockData();
   
     },[selectedItem,fromSub]);
@@ -830,6 +834,8 @@ const lineValid =
         initialLots={currentLots}
         onSave={handleSaveLots}
         lineLabel={baseLineLabel}
+        selectedItem={selectedItem}
+        fromSub={fromSub}
       />
 
       <Inv_SerialModalPopup
@@ -853,6 +859,8 @@ const lineValid =
         lineQty={qty}
         lineLabel={baseLineLabel}
         initialLots={currentLotSerials}
+        selectedItem={selectedItem}
+        fromSub={fromSub}
       />
 
 

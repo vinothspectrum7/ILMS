@@ -97,6 +97,7 @@ export const GetFilterPoItems = async(status,org_id)=>{
 }
 export const GetReceivedItems = async(org_id)=>{
   try {
+    console.log(API_ENDPOINTS.GET_RECEIVED_FUSION_DATA(org_id),"API_ENDPOINTS.GET_RECEIVED_FUSION_DATA(org_id)")
     const response = await api.get(API_ENDPOINTS.GET_RECEIVED_FUSION_DATA(org_id));
         console.log("Response Data:popopo", response);
     return response.data;
@@ -150,9 +151,10 @@ export const GetSavedSingleASN = async(asn_id,interface_id)=>{
   }
 }
 
-export const GetSingleReceipt = async(receipt_num,po_num)=>{
+export const GetSingleReceipt = async(org_id,receipt_num,po_num)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(receipt_num,po_num));
+    console.log(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(org_id,receipt_num,po_num),"API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(org_id,receipt_num,po_num)")
+    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(org_id,receipt_num,po_num));
     console.log(response,"GET_SINGLE_PO_DATA");
     return response.data;
     
@@ -440,6 +442,30 @@ export const GetShippingPickSlipNumData = async(org_id,pickslip_no)=>{
     
   }catch (error) {
     console.error("Get SHIPPING_EBS_PICKSLIP_NUM_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetFromLocatorsData = async(org_id,item_code,sub_inv_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETFROMLOCATORSDATA(org_id,item_code,sub_inv_id));
+    console.log(response.data)
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get FROM LOCATOR ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetInventoryLotsData = async(org_id,item_code,sub_inv_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETINVENTORYLOCATORSDATA(org_id,item_code,sub_inv_id));
+    console.log(response.data)
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get INVENTORY LOTS ERROR:", error.message, error.response?.data);
     throw error;
   }
 }

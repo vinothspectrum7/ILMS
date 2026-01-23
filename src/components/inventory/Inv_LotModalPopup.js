@@ -21,6 +21,8 @@ import { MOCK_LOTS } from '../../data/inventoryMockData';
 import LotSerialItemIcon from '../../assets/icons/lotserialitem.svg';
 import LotSerialDeleteIcon from '../../assets/icons/lotserialdelete.svg';
 import ErrorIcon from '../../assets/icons/error.svg';
+import { useReceivingStore } from '../../store/receivingStore';
+import { GetInventoryLotsData } from '../../api/ApiServices';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -47,18 +49,6 @@ const parseDate = str => {
   return d;
 };
 
-const findLotOption = lotCode => {
-  if (!lotCode) return null;
-  const target = String(lotCode).toLowerCase().trim();
-  return (
-    MOCK_LOTS.find(l => {
-      const code = String(l.code || '').toLowerCase().trim();
-      const name = String(l.name || '').toLowerCase().trim();
-      return code === target || name === target;
-    }) || null
-  );
-};
-
 export default function Inv_LotModalPopup({
   visible,
   onClose,
@@ -67,6 +57,8 @@ export default function Inv_LotModalPopup({
   initialLots = [],
   onSave,
   lineLabel,
+  selectedItem,
+  fromSub
 }) {
   const [lots, setLots] = useState([]);
   const [scannerVisible, setScannerVisible] = useState(false);
@@ -76,6 +68,20 @@ export default function Inv_LotModalPopup({
   const [datePickerLotIdx, setDatePickerLotIdx] = useState(null);
   const [datePickerField, setDatePickerField] = useState(null);
   const [showQtyError, setShowQtyError] = useState(false);
+  const [LotsList,setLotsList] = useState([]);
+  const {OrgData} = useReceivingStore();
+
+  const findLotOption = lotCode => {
+  if (!lotCode) return null;
+  const target = String(lotCode).toLowerCase().trim();
+  return (
+    LotsList.find(l => {
+      const code = String(l.code || '').toLowerCase().trim();
+      const name = String(l.name || '').toLowerCase().trim();
+      return code === target || name === target;
+    }) || null
+  );
+};
 
   useEffect(() => {
     if (visible) {
@@ -108,6 +114,33 @@ export default function Inv_LotModalPopup({
       setShowQtyError(false);
     }
   }, [visible, initialLots]);
+
+      useEffect(()=>{
+      if(!selectedItem || !fromSub) return;
+
+        const loadInventoryLotData = async () => {
+          try {
+            const Lotsdata = await GetInventoryLotsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
+            if (Lotsdata) {
+              const LotsdataList = mapLotslist(Lotsdata);
+              setLotsList(LotsdataList);
+            } else {
+              setLotsList([]);
+            }
+          } catch (err) {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromLocator. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+        loadInventoryLotData();
+  
+    },[selectedItem,fromSub]);
+
+  const mapLotslist = data =>
+    data.map(element => ({
+    id: element.Lot,
+    name: element.Lot,
+    code: element.Lot,
+    }));
 
   const totalQty = useMemo(
     () => lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0),
@@ -346,7 +379,7 @@ export default function Inv_LotModalPopup({
                             lotNumber: item?.name || item?.code || '',
                           })
                         }
-                        items={MOCK_LOTS}
+                        items={LotsList}
                         displayValue={it => it.name || it.code}
                         renderCode={() => ''}
                         showBarcodeIcon

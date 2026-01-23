@@ -24,7 +24,7 @@ export const API_ENDPOINTS = {
   GET_SINGLE_PO_DATA: (po_id) => `${BASE_URL}/purchase_orders/${po_id}`,
   GET_SAVED_SINGLE_PO_DATA: (po_id,interface_id) => `${BASE_URL}/receipt_interface/${po_id}/${interface_id}`,
   GET_SAVED_SINGLE_ASN_DATA: (asn_id,interface_id) => `${BASE_URL}/receipt_interface/asn/${asn_id}/${interface_id}`,
-  GET_SINGLE_PURCHASE_RECEPT: (receipt_num,po_num) => `${BASE_URL}/receipts/lines/${po_num}/${receipt_num}/details`,
+  GET_SINGLE_PURCHASE_RECEPT: (org_id,receipt_num,po_num) => `${BASE_URL}/receipts/lines/${org_id}/${po_num}/${receipt_num}/details`,
   GET_SINGLE_ASN_RECEPT: (asn_rcpt_id,asn_id) => `${BASE_URL}/purchase_orders/receipts/${asn_rcpt_id}/details?received_type=asn&asn_hdr_uuid=${asn_id}`,
   GET_ORGS_DATA: `${BASE_URL}/organization/organization-list`,
   GET_SUB_INVENTORY_DATA: (po_id) => `${BASE_URL}/organizations/${po_id}/subinventories`,
@@ -56,4 +56,6 @@ export const API_ENDPOINTS = {
   GETTOLOCATORINVLIST: (org_id,sub_inv_id) => `${BASE_URL}/inventory/Get-To-Locator?Org_code=${org_id}&Sub_inv=${sub_inv_id}`,
  GET_SHIPPING_EBS_SUMMARY_DATA: (org_id) => `${BASE_URL}/shipment/summary?p_org_id=${org_id}`,
  GET_SHIPPING_EBS_PICKSLIP_NUM_DATA: (org_id,pickslip_no) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_pickslip=${pickslip_no}`,
+ GETFROMLOCATORSDATA: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Get-Locators?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
+ GETINVENTORYLOCATORSDATA: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Get-Lots?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
 };

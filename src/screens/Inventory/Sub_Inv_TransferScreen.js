@@ -28,7 +28,7 @@ import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg'
 import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
 import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
 import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
-import { GetAvailableItemStockData, GetAvailableLocatorStockData, GetAvailableStockData, GetFROMSubInvData, GetSubInvItemList, GetTOLocatorData, GetTOSubInvData } from '../../api/ApiServices';
+import { GetAvailableItemStockData, GetAvailableLocatorStockData, GetAvailableStockData, GetFromLocatorsData, GetFROMSubInvData, GetSubInvItemList, GetTOLocatorData, GetTOSubInvData } from '../../api/ApiServices';
 import Toast from 'react-native-toast-message';
 import { colors } from '../../theme/colors';
 
@@ -82,17 +82,7 @@ export default function Sub_Inv_TransferScreen() {
   const [SubInvItemList,setSubInvItemList] = useState([]);
   const [FromSubInvList,setFromSubInvList] = useState([]);
   const [TOSubInvList,setTOSubInvList] = useState([]);
-  const [FromLocatorList,setFromLocatorList] = useState([
-  {
-    id: '1.2.1',
-    name: '1.2.1',
-    code: '1.2.1'
-  },
-  { id: '1.2.2',
-    name: '1.2.2',
-    code: '1.2.2'
-  }
-  ]);
+  const [FromLocatorList,setFromLocatorList] = useState([]);
   const [UOMList,setUOMList] = useState([]);
   const [ToLocatorList,setToLocatorList] = useState([]);
   const [StockLoader,setStockLoader] = useState(false);
@@ -176,6 +166,20 @@ export default function Sub_Inv_TransferScreen() {
           Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load availableStock. Please try again.', position: 'top', visibilityTime: 5000 });
         }
       };
+      const loadFromLocatorData = async () => {
+        try {
+          const fromlocatordata = await GetFromLocatorsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
+          if (fromlocatordata) {
+            const fromlocatorList = maptoLocatorlist(fromlocatordata);
+            setFromLocatorList(fromlocatorList);
+          } else {
+            setFromLocatorList([]);
+          }
+        } catch (err) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromLocator. Please try again.', position: 'top', visibilityTime: 5000 });
+        }
+      };
+      loadFromLocatorData();
       loadAvailablestockData();
 
   },[selectedItem,fromSub]);
@@ -796,6 +800,8 @@ const handlePersistMainLine = () => {
         initialLots={currentLots}
         onSave={handleSaveLots}
         lineLabel={baseLineLabel}
+        selectedItem={selectedItem}
+        fromSub={fromSub}
       />
 
       <Inv_SerialModalPopup
@@ -819,6 +825,8 @@ const handlePersistMainLine = () => {
         lineQty={qty}
         lineLabel={baseLineLabel}
         initialLots={currentLotSerials}
+        selectedItem={selectedItem}
+        fromSub={fromSub}
       />
 
 
