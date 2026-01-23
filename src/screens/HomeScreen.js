@@ -175,7 +175,7 @@ useEffect(() => {
   // loadrecentactivity();
   // loadpriorityList();
 
-}, [Defaultorg, OrgCode, setInventoryList, setOrgData,BusinessName]);
+}, [Defaultorg, OrgCode, setInventoryList, setOrgData]);
 
 useEffect(() => {
   if (defaultinventory) {
