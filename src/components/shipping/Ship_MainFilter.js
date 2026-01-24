@@ -9,13 +9,17 @@ import {
   TextInput,
   ActivityIndicator,
   Keyboard,
+  Pressable,
 } from 'react-native';
 import FilterIcon from '../../assets/icons/Ship_Icons/FilterIcon.svg';
 import DropdownIcon from '../../assets/icons/Ship_Icons/DropdownIcon.svg';
-import DropDown from '../../assets/icons/Ship_Icons/DropDown.svg';
 import Ship_DropDown from './Ship_DropDown';
 import { useReceivingStore } from '../../store/receivingStore';
-import { GetShippingSalesOrderNumData, GetShippingDeliveryIdData, GetShippingPickSlipNumData } from '../../api/ApiServices';
+import {
+  GetShippingSalesOrderNumData,
+  GetShippingDeliveryIdData,
+  GetShippingPickSlipNumData,
+} from '../../api/ApiServices';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -143,9 +147,61 @@ function FilterBar({ filters, onFilterChange }) {
     setPickSuggestions([]);
   };
 
+  const getOrgCode = () => {
+    const val = useReceivingStore.getState()?.OrgData?.selectedOrg;
+    return parseInt(val, 10);
+  };
+
+  const callPickApi = async (pickType, orgCode, text) => {
+    if (pickType === 'Delivery') return GetShippingDeliveryIdData(orgCode, text);
+    if (pickType === 'Sales Order') return GetShippingSalesOrderNumData(orgCode, text);
+    return GetShippingPickSlipNumData(orgCode, text);
+  };
+
+  const performPickSearch = async (textRaw, closeDropdown = true) => {
+    const text = String(textRaw ?? '').trim();
+    if (!text) {
+      resetPickOptionResultsOnly();
+      return;
+    }
+
+    try {
+      setPickLoading(true);
+
+      const orgCode = getOrgCode();
+      const resp = await callPickApi(filters?.pickType, orgCode, text);
+      const rows = resp?.shipment_orders ?? [];
+
+      onFilterChange('pickOptionResults', rows);
+      onFilterChange('pickOptionSelected', { type: 'SEARCH', value: text });
+
+      setPickSuggestions([]);
+      onFilterChange('pickSuggestions', []);
+
+      setPickLoading(false);
+
+      if (closeDropdown) {
+        setActiveDropdown(null);
+        Keyboard.dismiss();
+      }
+    } catch (e) {
+      setPickLoading(false);
+      onFilterChange('pickOptionResults', []);
+      onFilterChange('pickOptionSelected', null);
+      setPickSuggestions([]);
+      onFilterChange('pickSuggestions', []);
+    }
+  };
+
   useEffect(() => {
     setPickSearchText(filters?.pickSearchText ?? '');
   }, [filters?.pickSearchText]);
+
+  useEffect(() => {
+    if (activeDropdown === 'Pick Option') {
+      Keyboard.dismiss();
+    }
+  }, [activeDropdown]);
 
   useEffect(() => {
     if (activeDropdown !== 'Pick Option') return;
@@ -155,7 +211,6 @@ function FilterBar({ filters, onFilterChange }) {
     }
 
     const text = String(pickSearchText ?? '');
-
     onFilterChange('pickSearchText', text);
 
     if (text.trim().length === 0) {
@@ -171,90 +226,14 @@ function FilterBar({ filters, onFilterChange }) {
       return;
     }
 
-    if (filters?.pickType === 'Delivery'){
-
-      debounceRef.current = setTimeout(async () => {
-      try {
-        setPickLoading(true);
-
-        const currentReq = ++activeRequestRef.current;
-
-        const orgCode = parseInt(
-          useReceivingStore.getState()?.OrgData?.selectedOrg ??
-            useReceivingStore.getState()?.OrgData?.selectedOrg,
-          10
-        );
-
-        const resp = await GetShippingDeliveryIdData(orgCode, text.trim());
-        console.log(resp,'GetShippingPickSlipNumDataGetShippingPickSlipNumDataGetShippingPickSlipNumData')
-        if (currentReq !== activeRequestRef.current) return;
-
-        const rows = resp?.shipment_orders ?? [];
-        const normalized = normalizeSuggestions(rows);
-
-        setPickSuggestions(normalized);
-        onFilterChange('pickSuggestions', normalized);
-
-        setPickLoading(false);
-      } catch (e) {
-        setPickLoading(false);
-        setPickSuggestions([]);
-        onFilterChange('pickSuggestions', []);
-      }
-    }, 450);
-
-    }
-
-    else if (filters?.pickType === 'Sales Order'){ 
-
-      debounceRef.current = setTimeout(async () => {
-      try {
-        setPickLoading(true);
-
-        const currentReq = ++activeRequestRef.current;
-
-        const orgCode = parseInt(
-          useReceivingStore.getState()?.OrgData?.selectedOrg ??
-            useReceivingStore.getState()?.OrgData?.selectedOrg,
-          10
-        );
-
-        const resp = await GetShippingSalesOrderNumData(orgCode, text.trim());
-        console.log(resp,'GetShippingPickSlipNumDataGetShippingPickSlipNumDataGetShippingPickSlipNumData')
-        if (currentReq !== activeRequestRef.current) return;
-
-        const rows = resp?.shipment_orders ?? [];
-        const normalized = normalizeSuggestions(rows);
-
-        setPickSuggestions(normalized);
-        onFilterChange('pickSuggestions', normalized);
-
-        setPickLoading(false);
-      } catch (e) {
-        setPickLoading(false);
-        setPickSuggestions([]);
-        onFilterChange('pickSuggestions', []);
-      }
-    }, 450);
-
-    } 
-
-    else {
-
     debounceRef.current = setTimeout(async () => {
       try {
         setPickLoading(true);
 
         const currentReq = ++activeRequestRef.current;
+        const orgCode = getOrgCode();
 
-        const orgCode = parseInt(
-          useReceivingStore.getState()?.OrgData?.selectedOrg ??
-            useReceivingStore.getState()?.OrgData?.selectedOrg,
-          10
-        );
-
-        const resp = await GetShippingPickSlipNumData(orgCode, text.trim());
-        console.log(resp,'GetShippingPickSlipNumDataGetShippingPickSlipNumDataGetShippingPickSlipNumData')
+        const resp = await callPickApi(filters?.pickType, orgCode, text.trim());
         if (currentReq !== activeRequestRef.current) return;
 
         const rows = resp?.shipment_orders ?? [];
@@ -271,20 +250,10 @@ function FilterBar({ filters, onFilterChange }) {
       }
     }, 450);
 
-  }
-
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [pickSearchText, filters?.pickType, activeDropdown]);
-
-  useEffect(() => {
-    if (activeDropdown !== 'Pick Option') return;
-    const t = setTimeout(() => {
-      pickInputRef.current?.focus();
-    }, 50);
-    return () => clearTimeout(t);
-  }, [activeDropdown]);
 
   const handlePickTypeChange = type => {
     onFilterChange('pickType', type);
@@ -295,59 +264,21 @@ function FilterBar({ filters, onFilterChange }) {
     setPickSuggestions([]);
     setPickSearchText('');
     setPickLoading(false);
-
-    const t = setTimeout(() => {
-      pickInputRef.current?.focus();
-    }, 80);
-    return () => clearTimeout(t);
   };
 
-  const handlePickSuggestionSelect = row => {
-    const display = getDisplayValueFromRow(row);
-    setPickSearchText(display);
-    onFilterChange('pickSearchText', display);
+  const handlePickSuggestionSelect = async row => {
+    const value = getDisplayValueFromRow(row);
+    setPickSearchText(value);
+    onFilterChange('pickSearchText', value);
+
     setPickSuggestions([]);
     onFilterChange('pickSuggestions', []);
-    const t = setTimeout(() => pickInputRef.current?.focus(), 50);
-    return () => clearTimeout(t);
+
+    await performPickSearch(value, true);
   };
 
   const handleSearchPress = async () => {
-    const text = String(pickSearchText ?? '').trim();
-    if (text.length === 0) {
-      resetPickOptionResultsOnly();
-      return;
-    }
-
-    try {
-      setPickLoading(true);
-
-      const orgCode = parseInt(
-        useReceivingStore.getState()?.OrgData?.selectedOrg ??
-          useReceivingStore.getState()?.OrgData?.selectedOrg,
-        10
-      );
-
-      const resp = await GetShippingPickSlipNumData(orgCode, text);
-      console.log(resp,'GetShippingPickSlipNumDataGetShippingPickSlipNumDataGetShippingPickSlipNumData')
-      const rows = resp?.shipment_orders ?? [];
-
-      onFilterChange('pickOptionResults', rows);
-      onFilterChange('pickOptionSelected', { type: 'SEARCH', value: text });
-
-      setPickSuggestions([]);
-      onFilterChange('pickSuggestions', []);
-
-      setPickLoading(false);
-      setActiveDropdown(null);
-      Keyboard.dismiss();
-    } catch (e) {
-      setPickLoading(false);
-      onFilterChange('pickOptionResults', []);
-      onFilterChange('pickOptionSelected', null);
-      setPickSuggestions([]);
-      onFilterChange('pickSuggestions', []);
-    }
+    await performPickSearch(pickSearchText, true);
   };
 
   const handleStatusChange = status => {
@@ -392,6 +323,8 @@ function FilterBar({ filters, onFilterChange }) {
   };
 
   const renderPickOptionContent = () => {
+    const disabled = String(pickSearchText ?? '').trim().length === 0;
+
     return (
       <View style={[styles.pickDropdown, { padding: responsiveStyles.dropdownPadding }]}>
         <Text style={styles.pickHeading}>Pick Option</Text>
@@ -443,40 +376,35 @@ function FilterBar({ filters, onFilterChange }) {
               <TouchableOpacity
                 style={styles.searchBox}
                 onPress={handleSearchPress}
-                disabled={String(pickSearchText ?? '').trim().length === 0}
+                disabled={disabled}
               >
-                <Text
-                  style={[
-                    styles.searchText,
-                    String(pickSearchText ?? '').trim().length === 0 && { opacity: 0.35 },
-                  ]}
-                >
-                  Search
-                </Text>
+                <Text style={[styles.searchText, disabled && { opacity: 0.35 }]}>Search</Text>
               </TouchableOpacity>
             )}
           </View>
 
           {Array.isArray(pickSuggestions) && pickSuggestions.length > 0 && (
-            <View style={styles.suggestionBox}>
+            <View style={styles.suggestionCard}>
               <ScrollView
-                keyboardShouldPersistTaps="handled"
+                keyboardShouldPersistTaps="always"
                 showsVerticalScrollIndicator={true}
                 style={styles.suggestionScroll}
               >
                 {pickSuggestions.map((row, idx) => {
                   const label = getDisplayValueFromRow(row);
                   return (
-                    <TouchableOpacity
+                    <Pressable
                       key={`${label}-${idx}`}
-                      style={styles.suggestionRow}
                       onPress={() => handlePickSuggestionSelect(row)}
+                      style={({ pressed }) => [
+                        styles.suggestionItem,
+                        pressed && styles.suggestionItemPressed,
+                      ]}
                     >
-                      <Text style={styles.suggestionText} numberOfLines={1}>
+                      <Text style={styles.suggestionLabel} numberOfLines={1}>
                         {label}
                       </Text>
-                      <DropDown width={14} height={14} />
-                    </TouchableOpacity>
+                    </Pressable>
                   );
                 })}
               </ScrollView>
@@ -503,7 +431,6 @@ function FilterBar({ filters, onFilterChange }) {
         return (
           <View style={[styles.pickDropdown, { padding: responsiveStyles.dropdownPadding }]}>
             <Text style={styles.pickHeading}>Status</Text>
-
             <View
               style={[
                 styles.pickRow,
@@ -615,6 +542,7 @@ function FilterBar({ filters, onFilterChange }) {
             styles.scrollContent,
             { minWidth: Math.min(getTotalItemsWidth(), screenWidth - 50) },
           ]}
+          keyboardShouldPersistTaps="always"
         >
           {headers.map(item => (
             <TouchableOpacity
@@ -630,12 +558,7 @@ function FilterBar({ filters, onFilterChange }) {
               ]}
               onPress={() => setActiveDropdown(activeDropdown === item ? null : item)}
             >
-              <Text
-                style={styles.dropdownText}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                adjustsFontSizeToFit={false}
-              >
+              <Text style={styles.dropdownText} numberOfLines={1} ellipsizeMode="tail">
                 {item}
               </Text>
               <DropdownIcon
@@ -652,11 +575,7 @@ function FilterBar({ filters, onFilterChange }) {
 
       {activeDropdown && (
         <>
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.overlay}
-            onPress={handleCloseDropdown}
-          />
+          <TouchableOpacity activeOpacity={1} style={styles.overlay} onPress={handleCloseDropdown} />
           <View style={styles.fullScreenDropdownWrapper}>
             <View style={styles.fullScreenDropdownContainer}>{renderDropdownContent()}</View>
           </View>
@@ -868,7 +787,7 @@ const styles = StyleSheet.create({
   },
   searchBox: {
     height: 36,
-    width: 58,
+    width: 80,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#EFEFF0',
@@ -882,34 +801,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#233E55',
   },
-  suggestionBox: {
-    marginTop: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#D9E4EE',
+  suggestionCard: {
+    marginTop: 5,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
-    maxHeight: 220,
+    borderWidth: 1,
+    borderColor: '#E6ECF3',
     overflow: 'hidden',
+    maxHeight: 200,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 8,
   },
   suggestionScroll: {
-    maxHeight: 220,
+    maxHeight: 260,
   },
-  suggestionRow: {
-    height: 40,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  suggestionItem: {
+    height: 30,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#D9E4EE',
+    borderBottomColor: '#EEF3F8',
   },
-  suggestionText: {
+  suggestionItemPressed: {
+    backgroundColor: '#ECF1F7',
+  },
+  suggestionLabel: {
     fontFamily: 'Mulish',
-    fontWeight: '700',
+    fontWeight: '500',
     fontSize: 12,
-    color: '#233E55',
-    flex: 1,
-    marginRight: 10,
+    color: '#1F2D3D',
+    letterSpacing: 0.2,
   },
   helperText: {
     marginTop: 6,
