@@ -16,7 +16,9 @@ import { MOCK_CYCLE_COUNT_HISTORY } from '../../data/CycleCountMockData';
 import GreenItemBox from '../../assets/icons/CycleCount_Icons/GreenItemBox.svg';
 import Accuracy from '../../assets/icons/CycleCount_Icons/Accuracy.svg';
 import LinearGradient from 'react-native-linear-gradient';
-
+import ExportDownloadIcon from '../../assets/icons/CycleCount_Icons/ExportDownloadIcon.svg';
+import { useCycleCountStore } from '../../store/cycleCountStore';
+import WhiteEyeIcon from '../../assets/icons/CycleCount_Icons/WhiteEyeIcon.svg';
 const { width } = Dimensions.get('window');
 const TABS = ['All', 'Pending', 'In Progress', 'Completed'];
 
@@ -45,6 +47,30 @@ const CC_CountHistoryScreen = () => {
         if (activeTab === 'Completed') return item.cc_status === 'Completed';
         return true;
     });
+
+    const { setViewReportData } = useCycleCountStore();
+    const onViewReport = (item) => {
+        const payload = {
+            id: item.id,
+            count_name: item.count_name,
+            cc_status: item.cc_status,
+            sub_inventory: item.sub_inventory,
+            location: item.location,
+            completed_date: item.completed_date,
+
+            summary: item.summary,
+            variance_breakdown: item.variance_breakdown,
+            top_total_variances: item.top_total_variances,
+
+            actions: item.actions,
+        };
+
+        console.log('View Report clicked Payload:', payload);
+
+        setViewReportData(payload);
+        navigation.navigate('CC_ViewReportScreen');
+    };
+
 
     return (
         <View style={styles.container}>
@@ -153,7 +179,9 @@ const CC_CountHistoryScreen = () => {
                                         </View>
                                         <View style={styles.statTextContainer}>
                                             <Text style={[styles.statLabel, styles.accuracyLabel]}>Accuracy</Text>
-                                            <Text style={[styles.statValue, styles.accuracyValue]}>{item.summary.accuracy_percentage}%</Text>
+                                            <Text style={[styles.statValue, styles.accuracyValue]}>
+                                                {item.summary.accuracy_percentage}
+                                            </Text>
                                         </View>
                                     </View>
                                 </View>
@@ -161,11 +189,18 @@ const CC_CountHistoryScreen = () => {
 
                             <View style={styles.cardFooter}>
                                 <TouchableOpacity
-                                    style={[styles.footerButton, styles.exportButton]}
+                                    style={[
+                                        styles.footerButton,
+                                        styles.exportButton,
+                                        styles.footerButtonContent
+                                    ]}
                                     disabled={!item.actions.can_export}
                                 >
+                                    <ExportDownloadIcon width={14} height={14} />
                                     <Text style={styles.exportButtonText}>Export</Text>
                                 </TouchableOpacity>
+
+
 
 
                                 <LinearGradient
@@ -175,12 +210,18 @@ const CC_CountHistoryScreen = () => {
                                     style={[styles.footerButton, styles.viewReportButton]}
                                 >
                                     <TouchableOpacity
-                                        style={styles.gradientTouchable}
+                                        style={[
+                                            styles.gradientTouchable,
+                                            styles.footerButtonContent
+                                        ]}
                                         disabled={!item.actions.can_view_report}
-                                        onPress={() => console.log('View Report pressed')}
+                                        onPress={() => onViewReport(item)}
                                     >
+                                        <WhiteEyeIcon width={14} height={14} fill="#FFFFFF" />
                                         <Text style={styles.viewReportButtonText}>View Report</Text>
                                     </TouchableOpacity>
+
+
                                 </LinearGradient>
                             </View>
                         </View>
@@ -432,6 +473,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    footerButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+    },
+
     exportButton: {
         backgroundColor: '#ECF1F7',
         borderBottomLeftRadius: 8,
