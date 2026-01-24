@@ -21,7 +21,7 @@ import {
   GetShippingPickSlipNumData,
 } from '../../api/ApiServices';
 
-const screenWidth = Dimensions.get('window').width;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 function FilterBar({ filters, onFilterChange }) {
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -29,6 +29,9 @@ function FilterBar({ filters, onFilterChange }) {
   const [pickSearchText, setPickSearchText] = useState(filters?.pickSearchText ?? '');
   const [pickSuggestions, setPickSuggestions] = useState(filters?.pickSuggestions ?? []);
   const [pickLoading, setPickLoading] = useState(false);
+
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const debounceRef = useRef(null);
   const activeRequestRef = useRef(0);
@@ -69,19 +72,19 @@ function FilterBar({ filters, onFilterChange }) {
   );
 
   const getChipLayout = () => {
-    if (screenWidth < 375) return 'column';
+    if (SCREEN_WIDTH < 375) return 'column';
     return 'row';
   };
 
   const getChipGap = () => {
-    if (screenWidth < 375) return 6;
-    if (screenWidth < 414) return 8;
+    if (SCREEN_WIDTH < 375) return 6;
+    if (SCREEN_WIDTH < 414) return 8;
     return 10;
   };
 
   const getDropdownPadding = () => {
-    if (screenWidth < 375) return 12;
-    if (screenWidth < 414) return 14;
+    if (SCREEN_WIDTH < 375) return 12;
+    if (SCREEN_WIDTH < 414) return 14;
     return 16;
   };
 
@@ -196,6 +199,30 @@ function FilterBar({ filters, onFilterChange }) {
   useEffect(() => {
     setPickSearchText(filters?.pickSearchText ?? '');
   }, [filters?.pickSearchText]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', e => {
+      const h = e?.endCoordinates?.height ?? 0;
+      setKeyboardVisible(true);
+      setKeyboardHeight(h);
+    });
+
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+
+      if (activeDropdown === 'Pick Option') {
+        try {
+          pickInputRef.current?.blur();
+        } catch (e) {}
+      }
+    });
+
+    return () => {
+      showSub?.remove?.();
+      hideSub?.remove?.();
+    };
+  }, [activeDropdown]);
 
   useEffect(() => {
     if (activeDropdown === 'Pick Option') {
@@ -322,8 +349,17 @@ function FilterBar({ filters, onFilterChange }) {
     }
   };
 
+  const getSuggestionMaxHeight = () => {
+    const reservedTop = 48 + 10;
+    const reservedInsideCard = 16 + 14 + 36 + 16 + 36 + 12;
+    const bottomPadding = 16;
+    const available = SCREEN_HEIGHT - reservedTop - reservedInsideCard - bottomPadding - (keyboardVisible ? keyboardHeight : 0);
+    return Math.max(120, Math.min(260, available));
+  };
+
   const renderPickOptionContent = () => {
     const disabled = String(pickSearchText ?? '').trim().length === 0;
+    const suggestionMaxHeight = getSuggestionMaxHeight();
 
     return (
       <View style={[styles.pickDropdown, { padding: responsiveStyles.dropdownPadding }]}>
@@ -384,11 +420,11 @@ function FilterBar({ filters, onFilterChange }) {
           </View>
 
           {Array.isArray(pickSuggestions) && pickSuggestions.length > 0 && (
-            <View style={styles.suggestionCard}>
+            <View style={[styles.suggestionCard, { maxHeight: suggestionMaxHeight }]}>
               <ScrollView
                 keyboardShouldPersistTaps="always"
                 showsVerticalScrollIndicator={true}
-                style={styles.suggestionScroll}
+                style={{ maxHeight: suggestionMaxHeight }}
               >
                 {pickSuggestions.map((row, idx) => {
                   const label = getDisplayValueFromRow(row);
@@ -540,7 +576,7 @@ function FilterBar({ filters, onFilterChange }) {
           style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContent,
-            { minWidth: Math.min(getTotalItemsWidth(), screenWidth - 50) },
+            { minWidth: Math.min(getTotalItemsWidth(), SCREEN_WIDTH - 50) },
           ]}
           keyboardShouldPersistTaps="always"
         >
@@ -802,21 +838,17 @@ const styles = StyleSheet.create({
     color: '#233E55',
   },
   suggestionCard: {
-    marginTop: 5,
+    marginTop: 0,
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E6ECF3',
     overflow: 'hidden',
-    maxHeight: 200,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
-    elevation: 8,
-  },
-  suggestionScroll: {
-    maxHeight: 260,
+    elevation: 2,
   },
   suggestionItem: {
     height: 30,
