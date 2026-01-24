@@ -18,6 +18,7 @@ import BarcodeScanner from '../BarCodeScanner';
 import SingleFooterBtnComponent from '../../components/shipping/Ship_SingleFooterBtnComponent';
 import ConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
 import { useShippingStore } from '../../store/shippingStore';
+import { useReceivingStore } from '../../store/receivingStore';
 
 function Pick({ navigation }) {
   const selectedTransaction = useShippingStore(s => s.selectedTransaction);
@@ -27,7 +28,11 @@ function Pick({ navigation }) {
 
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [showScanner, setShowScanner] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false); 
+
+    const {
+      OrgData,
+    } = useReceivingStore();
 
   const pickLines = useMemo(() => {
     const list = selectedTransaction?.items;
@@ -116,8 +121,8 @@ function Pick({ navigation }) {
     <View style={styles.container}>
       <StatusBar backgroundColor="#233E55" barStyle="light-content" />
       <GlobalHeaderComponent
-        screenTitle="Express Pick"
-        organizationName="ENV"
+        screenTitle="Auto Pick"
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         onBack={() => navigation.goBack()}
       />
 

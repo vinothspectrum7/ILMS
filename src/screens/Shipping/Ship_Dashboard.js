@@ -100,14 +100,17 @@ function Ship_Dashboard({ navigation, route }) {
   const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
 
   const handlePickPress = order => {
-    
-
     if (packMode === 'MANUAL') {
       setSelectedTransaction(order);
+      console.log('Ship_Dashboard -> setSelectedTransaction (MANUAL immediate):', order);
+      console.log(
+        'Ship_Dashboard -> store selectedTransaction:',
+        useShippingStore.getState()?.selectedTransaction
+      );
       navigation.navigate('ManualPick');
     } else if (packMode === 'AUTO') {
-      setIsPopupVisible(true);
       setSelectedOrder(order);
+      setIsPopupVisible(true);
     }
   };
 
@@ -118,12 +121,31 @@ function Ship_Dashboard({ navigation, route }) {
 
   const handleManualPick = () => {
     setIsPopupVisible(false);
-    setSelectedTransaction(selectedOrder);
+
+    if (selectedOrder) {
+      setSelectedTransaction(selectedOrder);
+      console.log('Ship_Dashboard -> setSelectedTransaction (Manual from popup):', selectedOrder);
+      console.log(
+        'Ship_Dashboard -> store selectedTransaction:',
+        useShippingStore.getState()?.selectedTransaction
+      );
+    }
+
     navigation.navigate('ManualPick');
   };
 
   const handleExpressPick = () => {
     setIsPopupVisible(false);
+
+    if (selectedOrder) {
+      setSelectedTransaction(selectedOrder);
+      console.log('Ship_Dashboard -> setSelectedTransaction (Auto/Yes from popup):', selectedOrder);
+      console.log(
+        'Ship_Dashboard -> store selectedTransaction:',
+        useShippingStore.getState()?.selectedTransaction
+      );
+    }
+
     navigation.navigate('Pick', { order: selectedOrder });
   };
 

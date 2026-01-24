@@ -71,7 +71,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
 
     setSelectedTransaction(payload);
 
-    if (payload?.status === 'Pick' || 'Pick Released') {
+    if (payload?.status === 'Pick' || payload?.status === 'Pick Released') {
       handlePickButtonPress(payload);
       return;
     }

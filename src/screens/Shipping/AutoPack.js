@@ -17,13 +17,18 @@ import RadioGlossyUnselected from '../../assets/icons/RadioGlossyUnselected.svg'
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import ShipConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
 import DropdownIcon from '../../assets/icons/dropdown.svg';
-import { useShippingStore } from '../../store/shippingStore';
+import { useShippingStore } from '../../store/shippingStore'; 
+import { useReceivingStore } from '../../store/receivingStore';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const AutoPack = () => {
   const navigation = useNavigation();
-  const selectedTransaction = useShippingStore(s => s.selectedTransaction);
+  const selectedTransaction = useShippingStore(s => s.selectedTransaction); 
+
+    const {
+    OrgData,
+  } = useReceivingStore();
 
   const cardWidth = screenWidth - 42;
   const newCardWidth = Math.min(372, screenWidth - 42);
@@ -133,7 +138,7 @@ const AutoPack = () => {
 
       <GlobalHeaderComponent
         screenTitle="Pack"
-        organizationName="ENV"
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         onBack={() => navigation.goBack()}
       />
 

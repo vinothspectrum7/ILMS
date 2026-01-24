@@ -31,6 +31,7 @@ const Ship_ConfirmModalComponent = ({
   widthRatio = 0.85,
   confirmAction,
   onCancel,
+  onClose,
   onSuccess,
   onFailure,
   successMessage = 'Order receipt created successfully',
@@ -58,7 +59,7 @@ const Ship_ConfirmModalComponent = ({
   useEffect(() => {
     if (phase === 'success' && autoDismissMsSuccess > 0) {
       const t = setTimeout(() => {
-        onCancel?.();
+        onClose?.();
         onSuccess?.();
       }, autoDismissMsSuccess);
       return () => clearTimeout(t);
@@ -66,12 +67,12 @@ const Ship_ConfirmModalComponent = ({
 
     if (phase === 'failure' && autoDismissMsFailure > 0) {
       const t = setTimeout(() => {
-        onCancel?.();
+        onClose?.();
         onFailure?.();
       }, autoDismissMsFailure);
       return () => clearTimeout(t);
     }
-  }, [phase, autoDismissMsSuccess, autoDismissMsFailure, onCancel, onSuccess, onFailure]);
+  }, [phase, autoDismissMsSuccess, autoDismissMsFailure, onClose, onSuccess, onFailure]);
 
   const handleYes = async () => {
     if (!confirmAction) return;
@@ -95,8 +96,12 @@ const Ship_ConfirmModalComponent = ({
     }
   };
 
-  const handleNo = () => {
+  const handleManual = () => {
     onCancel?.();
+  };
+
+  const handleClose = () => {
+    onClose?.();
   };
 
   if (!visible) return null;
@@ -105,12 +110,12 @@ const Ship_ConfirmModalComponent = ({
     <Modal transparent visible animationType="fade">
       <Pressable
         style={[styles.modalOverlay, { backgroundColor: backdropColor }]}
-        onPress={phase === 'confirm' ? onCancel : undefined}
+        onPress={phase === 'confirm' ? handleClose : undefined}
       >
         <Pressable style={[styles.modalWrapper, { width: modalWidth }]} onPress={() => {}}>
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={phase === 'confirm' ? handleNo : undefined}
+            onPress={phase === 'confirm' ? handleClose : undefined}
             style={styles.closeBtn}
             hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
           >
@@ -129,7 +134,7 @@ const Ship_ConfirmModalComponent = ({
 
                   <View style={styles.buttonGroup}>
                     <TouchableOpacity
-                      onPress={handleNo}
+                      onPress={handleManual}
                       activeOpacity={0.85}
                       style={[styles.buttonBase, styles.half]}
                     >
@@ -166,7 +171,12 @@ const Ship_ConfirmModalComponent = ({
                       />
 
                       <LinearGradient
-                        colors={['rgba(0,0,0,0.16)', 'transparent', 'transparent', 'rgba(0,0,0,0.16)']}
+                        colors={[
+                          'rgba(0,0,0,0.16)',
+                          'transparent',
+                          'transparent',
+                          'rgba(0,0,0,0.16)',
+                        ]}
                         locations={[0, 0.2, 0.8, 1]}
                         start={{ x: 0, y: 0.5 }}
                         end={{ x: 1, y: 0.5 }}
