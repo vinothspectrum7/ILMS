@@ -26,6 +26,9 @@ import LotSerialDownArrowIcon from '../../assets/icons/lotserialdownarrowicon.sv
 import SerialUpIcon from '../../assets/icons/serialupicon.svg';
 import SerialDownIcon from '../../assets/icons/serialdownicon.svg';
 import ErrorIcon from '../../assets/icons/error.svg';
+import Inv_Dropdown from './Inv_Dropdown';
+import { GetInventoryLotsData } from '../../api/ApiServices';
+import { useReceivingStore } from '../../store/receivingStore';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -94,6 +97,8 @@ export default function Inv_LotSerialModalPopup({
   lineLabel,
   mode = 'receive', // 'receive' | 'putAway'
   putAwayMode = false,
+  selectedItem,
+  fromSub
 }) {
 
   const isPutAway = String(mode || '').toLowerCase() === 'putaway' || !!putAwayMode;
@@ -110,6 +115,8 @@ export default function Inv_LotSerialModalPopup({
   const [datePickerLotIdx, setDatePickerLotIdx] = useState(null);
   const [datePickerField, setDatePickerField] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [LotsList,setLotsList] = useState([]);
+  const {OrgData} = useReceivingStore();
 
   const clearError = () => setErrorMsg('');
 
@@ -161,6 +168,26 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
     setDatePickerVisible(false);
   }, [visible, initialLots]);
 
+    useEffect(()=>{
+    if(!selectedItem || !fromSub) return;
+
+      const loadInventoryLotData = async () => {
+        try {
+          const Lotsdata = await GetInventoryLotsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
+          if (Lotsdata) {
+            const LotsdataList = mapLotslist(Lotsdata);
+            setLotsList(LotsdataList);
+          } else {
+            setLotsList([]);
+          }
+        } catch (err) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromLocator. Please try again.', position: 'top', visibilityTime: 5000 });
+        }
+      };
+      loadInventoryLotData();
+
+  },[selectedItem,fromSub]);
+
   const totalQty = useMemo(() => lots.reduce((sum, l) => sum + (Number(l.qty) || 0), 0), [lots]);
 
   const remainingQty = Math.max(lineQty - totalQty, 0);
@@ -169,6 +196,13 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
   const updateLot = (idx, patch) => {
     setLots(prev => prev.map(l => (l.idx === idx ? { ...l, ...patch } : l)));
   };
+
+  const mapLotslist = data =>
+    data.map(element => ({
+    id: element.Lot,
+    name: element.Lot,
+    code: element.Lot,
+    }));
 
   const updateLotSerials = (idx, updater) => {
     setLots(prev =>
@@ -821,7 +855,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
                         </TouchableOpacity>
                       </View>
 
-                      <Text style={styles.fieldLabel}>
+                      {/* <Text style={styles.fieldLabel}>
                         Lot Number<Text style={styles.required}>*</Text>
                       </Text>
 
@@ -849,7 +883,25 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
                         >
                           <Text style={styles.generateLotText}>Generate</Text>
                         </TouchableOpacity>
-                      </View>
+                      </View> */}
+
+                      <Inv_Dropdown
+                        label="Lot Number"
+                        required
+                        placeholder="Select LOT"
+                        value={lot.selectedLot}
+                        onChange={item =>
+                          updateLot(lot.idx, {
+                            selectedLot: item,
+                            lotNumber: item?.name || item?.code || '',
+                          })
+                        }
+                        items={LotsList}
+                        displayValue={it => it.name || it.code}
+                        renderCode={() => ''}
+                        showBarcodeIcon
+                        onBarcodePress={() => openScannerForLot(lot.idx)}
+                      />
 
                       <View style={styles.row2}>
                         <View style={styles.col}>
