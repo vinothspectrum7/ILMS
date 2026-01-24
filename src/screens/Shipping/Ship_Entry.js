@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
@@ -20,10 +20,15 @@ import ShipConfirmIcon from '../../assets/icons/Ship_Icons/ShipConfirmIcon.svg';
 const BG = '#F5F5F6';
 const TEXT_DARK = '#242424';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 function ShipEntry() {
   const navigation = useNavigation();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
+
+  const scale = size => (SCREEN_WIDTH / 375) * size;
+
+  const CARD_GAP = scale(14);
+  const CARD_WIDTH = (SCREEN_WIDTH - scale(22 * 2) - CARD_GAP * 2) / 3;
+  const CARD_HEIGHT = CARD_WIDTH * 0.75;
 
   const MENU_ITEMS = [
     {
@@ -51,7 +56,6 @@ function ShipEntry() {
       id: 4,
       title: 'Label\nPrinting',
       route: 'Ship_LabelPrintListScreen',
-      Icon: LabelPrintingIcon,
     },
     {
       id: 5,
@@ -62,27 +66,42 @@ function ShipEntry() {
     },
   ];
 
-  const CARD_WIDTH = 118;
-  const CARD_HEIGHT = 89;
-
   const renderCard = item => (
     <TouchableOpacity
       key={item.id}
-      style={styles.card}
+      style={[
+        styles.card,
+        {
+          width: CARD_WIDTH,
+          height: CARD_HEIGHT,
+          marginBottom: scale(20),
+        },
+      ]}
       onPress={() => {
         if (item.route) {
           const params = item.status ? { status: item.status } : undefined;
-          console.log('statusstatusstatusstatusstatus', params)
           navigation.navigate(item.route, params);
         }
       }}
       activeOpacity={0.7}
     >
-      <View style={styles.iconContainer}>
-        <item.Icon width={22.32} height={22.32} />
+      <View style={{ marginBottom: scale(6) }}>
+        {item.Icon && (
+          <item.Icon width={scale(22)} height={scale(22)} />
+        )}
       </View>
 
-      <Text style={styles.cardTitle}>{item.title}</Text>
+      <Text
+        style={[
+          styles.cardTitle,
+          {
+            fontSize: scale(11),
+            lineHeight: scale(13),
+          },
+        ]}
+      >
+        {item.title}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -99,17 +118,17 @@ function ShipEntry() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ paddingTop: scale(40) }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.container}>
-          <View style={[styles.row, { marginBottom: 20 }]}>
+        <View style={{ paddingHorizontal: scale(22), marginTop: scale(20) }}>
+          <View style={styles.row}>
             {MENU_ITEMS.slice(0, 3).map(renderCard)}
           </View>
 
           <View style={styles.row}>
             {MENU_ITEMS.slice(3, 5).map(renderCard)}
-            <View style={styles.emptyCard} />
+            <View style={{ width: CARD_WIDTH }} />
           </View>
         </View>
       </ScrollView>
@@ -117,29 +136,16 @@ function ShipEntry() {
   );
 }
 
-export default ShipEntry;
-
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: BG,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingTop: 40,
-  },
-  container: {
-    paddingHorizontal: 22,
-    marginTop: 20,
-  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
   },
   card: {
-    width: 118,
-    height: 89,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
     alignItems: 'center',
@@ -150,24 +156,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  emptyCard: {
-    width: 118,
-    height: 89,
-    backgroundColor: 'transparent',
-  },
-  iconContainer: {
-    marginBottom: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   cardTitle: {
     fontFamily: 'Mulish',
     fontWeight: '700',
-    fontSize: 11,
-    lineHeight: 13,
-    letterSpacing: 0,
     textAlign: 'center',
     color: TEXT_DARK,
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
   },
 });
+
+
+export default ShipEntry;

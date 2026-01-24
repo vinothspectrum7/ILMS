@@ -465,3 +465,25 @@ export const GetShippingSalesOrderNumData = async(org_id,so_number)=>{
     throw error;
   }
 }
+
+export const GetShippingPickOrderData = async(org_id,delivery_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PICK_ORDER_DATA(org_id,delivery_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_PICK_ORDER_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+} 
+
+export const GetShippingPickItemsData = async(org_id,delivery_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PICK_ITEMS_DATA(org_id,delivery_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_PICK_ITEMS_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
