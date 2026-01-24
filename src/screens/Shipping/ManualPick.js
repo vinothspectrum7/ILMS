@@ -326,7 +326,7 @@ function ManualPick({ route, navigation }) {
         <View style={styles.container}>
             <StatusBar backgroundColor="#233E55" barStyle="light-content" />
             <GlobalHeaderComponent
-                screenTitle="Pick"
+                screenTitle="Manual Pick"
                 organizationName="ENV"
                 onBack={() => navigation.goBack()}
             />

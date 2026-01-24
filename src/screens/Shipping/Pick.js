@@ -116,7 +116,7 @@ function Pick({ navigation }) {
     <View style={styles.container}>
       <StatusBar backgroundColor="#233E55" barStyle="light-content" />
       <GlobalHeaderComponent
-        screenTitle="Pick"
+        screenTitle="Express Pick"
         organizationName="ENV"
         onBack={() => navigation.goBack()}
       />

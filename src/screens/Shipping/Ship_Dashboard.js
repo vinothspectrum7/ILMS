@@ -105,7 +105,7 @@ function Ship_Dashboard({ navigation, route }) {
     if (packMode === 'MANUAL') {
       setSelectedTransaction(order);
       navigation.navigate('ManualPick');
-    } else {
+    } else if (packMode === 'AUTO') {
       setIsPopupVisible(true);
       setSelectedOrder(order);
     }
