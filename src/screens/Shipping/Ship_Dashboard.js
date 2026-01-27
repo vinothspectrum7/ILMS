@@ -9,6 +9,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Ship_GlobalHeaderComponent from '../../components/shipping/Ship_GlobalHeaderComponent';
@@ -30,6 +31,7 @@ function Ship_Dashboard({ navigation, route }) {
   const status = route?.params?.status;
   const resetShippingStore = useShippingStore(s => s.resetShippingStore);
 
+  const [phase, setPhase] = useState('idle');
   const [showPrintMenu, setShowPrintMenu] = useState(false);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -76,6 +78,9 @@ function Ship_Dashboard({ navigation, route }) {
           10
         );
 
+        if (!orgCode) return;
+        setPhase('loading');
+
         const shippingsummarydata = await GetShippingSummaryData(orgCode);
         if (shippingsummarydata) {
           settotalorders(shippingsummarydata?.total_orders);
@@ -84,6 +89,7 @@ function Ship_Dashboard({ navigation, route }) {
           setpickedorders(shippingsummarydata?.picked_count);
           setintransit(shippingsummarydata?.intransit_count);
         }
+        setPhase('success');
       } catch (err) {
         Toast.show({
           type: 'error',
@@ -92,6 +98,8 @@ function Ship_Dashboard({ navigation, route }) {
           position: 'top',
           visibilityTime: 5000,
         });
+        setPhase('error');
+        navigation.navigate('Ship_Entry');
       }
     };
     loadShippingSummaryData();
@@ -179,93 +187,104 @@ function Ship_Dashboard({ navigation, route }) {
         navRowStyle={{ backgroundColor: '#233E55' }}
       />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
-        <View style={styles.fixedContent}>
-          <View style={styles.shippingSummaryCard}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryText}>Total Orders Delivered - {totalorders}</Text>
-              <View style={styles.growthBox}>
-                <Text style={styles.growthText}>10%</Text>
-                <GrowthIcon width={16} height={16} />
-              </View>
-            </View>
-          </View>
 
-          <View style={styles.cardsContainer}>
-            <View style={styles.cardRow}>
-              <StatusCard title="Released Orders" value={releasedorers} Icon={ReleasedIcon} />
-              <StatusCard title="Unreleased Orders" value={unreleasedorers} Icon={UnreleasedIcon} />
-              <StatusCard title="Picked Orders" value={pickedorders} Icon={PickedIcon} />
-              <StatusCard title="In Transit" value={intransit} Icon={TransitIcon} />
-            </View>
-          </View>
-
-          <View style={styles.shippingTransactionHeader}>
-            <Text style={styles.shippingTransactionTitle}>Shipping Transaction</Text>
-            <View style={styles.transactionIcons}>
-              <TouchableOpacity style={styles.iconButton}>
-                <SearchIcon width={20} height={20} />
-              </TouchableOpacity>
-
-              <View style={styles.printWrapper}>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setShowPrintMenu(prev => !prev)}
-                >
-                  <PrintIcon width={20} height={20} />
-                </TouchableOpacity>
-
-                {showPrintMenu && (
-                  <View style={styles.printDropdown}>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.printOption,
-                        pressed && styles.printOptionPressed,
-                      ]}
-                      onPress={handleLabelPrint}
-                    >
-                      <Text style={styles.printText}>Label Print</Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.printOption,
-                        pressed && styles.printOptionPressed,
-                      ]}
-                      onPress={handlePrintDocument}
-                    >
-                      <Text style={styles.printText}>Print Document</Text>
-                    </Pressable>
-                  </View>
-                )}
-              </View>
-            </View>
-          </View>
-
-          <Ship_MainFilter filters={filters} onFilterChange={handleFilterChange} />
+      {phase === 'loading' && (
+        <View style={styles.loaderWrapper}>
+          <ActivityIndicator size="large" color="#233E55" />
         </View>
+      )}
+      {phase !== 'loading' && (
+        <>
 
-        <ScrollView
-          style={styles.tableScrollView}
-          showsVerticalScrollIndicator={true}
-          contentContainerStyle={styles.tableScrollContent}
-          keyboardShouldPersistTaps="always"
-        >
-          <Ship_TransactionTable filters={filters} onPickPress={handlePickPress} />
-        </ScrollView>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+          >
+            <View style={styles.fixedContent}>
+              <View style={styles.shippingSummaryCard}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryText}>Total Orders Delivered - {totalorders}</Text>
+                  <View style={styles.growthBox}>
+                    <Text style={styles.growthText}>10%</Text>
+                    <GrowthIcon width={16} height={16} />
+                  </View>
+                </View>
+              </View>
 
-        <Ship_PickPopupConfirmation
-          visible={isPopupVisible}
-          onClose={handleClosePopup}
-          onManual={handleManualPick}
-          onYes={handleExpressPick}
-          deliveryId={selectedOrder?.deliveryId}
-        />
-      </KeyboardAvoidingView>
+              <View style={styles.cardsContainer}>
+                <View style={styles.cardRow}>
+                  <StatusCard title="Released Orders" value={releasedorers} Icon={ReleasedIcon} />
+                  <StatusCard title="Unreleased Orders" value={unreleasedorers} Icon={UnreleasedIcon} />
+                  <StatusCard title="Picked Orders" value={pickedorders} Icon={PickedIcon} />
+                  <StatusCard title="In Transit" value={intransit} Icon={TransitIcon} />
+                </View>
+              </View>
+
+              <View style={styles.shippingTransactionHeader}>
+                <Text style={styles.shippingTransactionTitle}>Shipping Transaction</Text>
+                <View style={styles.transactionIcons}>
+                  <TouchableOpacity style={styles.iconButton}>
+                    <SearchIcon width={20} height={20} />
+                  </TouchableOpacity>
+
+                  <View style={styles.printWrapper}>
+                    <TouchableOpacity
+                      style={styles.iconButton}
+                      onPress={() => setShowPrintMenu(prev => !prev)}
+                    >
+                      <PrintIcon width={20} height={20} />
+                    </TouchableOpacity>
+
+                    {showPrintMenu && (
+                      <View style={styles.printDropdown}>
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.printOption,
+                            pressed && styles.printOptionPressed,
+                          ]}
+                          onPress={handleLabelPrint}
+                        >
+                          <Text style={styles.printText}>Label Print</Text>
+                        </Pressable>
+
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.printOption,
+                            pressed && styles.printOptionPressed,
+                          ]}
+                          onPress={handlePrintDocument}
+                        >
+                          <Text style={styles.printText}>Print Document</Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              <Ship_MainFilter filters={filters} onFilterChange={handleFilterChange} />
+            </View>
+
+            <ScrollView
+              style={styles.tableScrollView}
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.tableScrollContent}
+              keyboardShouldPersistTaps="always"
+            >
+              <Ship_TransactionTable filters={filters} onPickPress={handlePickPress} />
+            </ScrollView>
+
+            <Ship_PickPopupConfirmation
+              visible={isPopupVisible}
+              onClose={handleClosePopup}
+              onManual={handleManualPick}
+              onYes={handleExpressPick}
+              deliveryId={selectedOrder?.deliveryId}
+            />
+          </KeyboardAvoidingView>
+        </>
+      )}
     </View>
   );
 }
@@ -441,7 +460,8 @@ const styles = StyleSheet.create({
   tableScrollContent: {
     paddingHorizontal: 12,
     paddingBottom: 20,
-  },
+  }, 
+  loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default Ship_Dashboard;

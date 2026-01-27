@@ -7,7 +7,8 @@ import {
     TouchableOpacity,
     StatusBar,
     Modal,
-    FlatList,
+    FlatList, 
+    ActivityIndicator,
 } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
@@ -418,153 +419,163 @@ function ManualPick({ route, navigation }) {
                 onBack={() => navigation.goBack()}
             />
 
-            <View style={styles.mainContent}>
-                <LinearGradient
-                    colors={['#F5F5F6', '#D9E4EE']}
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                    style={styles.infoGradientCard}
-                >
-                    <View style={styles.infoItem}>
-                        <Text style={styles.infoLabel}>Customer Name</Text>
-                        <Text style={styles.infoValue}>{PickListOrders?.customer_name ?? '-'}</Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Text style={styles.infoLabel}>Carrier Name</Text>
-                        <Text style={styles.infoValue}>{PickListOrders?.carrier_name ?? '-'}</Text>
-                    </View>
-
-                    <View style={styles.infoItem}>
-                        <Text style={styles.infoLabel}>Ship from location</Text>
-                        <Text style={styles.infoValue}>{PickListOrders?.ship_from_location ?? '-'}</Text>
-                    </View>
-                </LinearGradient>
-
-                <View style={styles.whiteCard}>
-                    <TouchableOpacity
-                        style={styles.barcodeField}
-                        onPress={handleScanPress}
-                        activeOpacity={0.8}
-                    >
-                        {scannedBarcode ? (
-                            <Text style={styles.barcodeScannedText}>
-                                {scannedBarcode}
-                            </Text>
-                        ) : (
-                            <Text style={styles.barcodePlaceholder}>
-                                Scan Barcode
-                            </Text>
-                        )}
-                        <Barcodescanner width={18} height={18} />
-                    </TouchableOpacity>
-
-                    <View style={styles.tableHeader}>
-                        <View style={styles.headerGreyArea}>
-                            <CheckBox
-                                value={allSelected}
-                                onValueChange={toggleAllCheckboxes}
-                                tintColors={{ true: '#145DA0', false: '#667085' }}
-                                boxType="square"
-                                style={styles.headerCheckbox}
-                            />
-                        </View>
-
-                        <View style={[styles.headerColumn, styles.leftColumn]}>
-                            <Text style={styles.headerText}>Items</Text>
-                        </View>
-                        <View style={[styles.headerColumn, styles.rightColumn]}>
-                            <Text style={styles.headerText}>Qty To Pick</Text>
-                        </View>
-                    </View>
-
-                    <ScrollView
-                        style={styles.tableScrollView}
-                        showsVerticalScrollIndicator={true}
-                        contentContainerStyle={styles.tableScrollContent}
-                    >
-                        <FlatList
-                            data={PickListItems}
-                            renderItem={renderPickItem}
-                            keyExtractor={(item, index) => `${item.itemCode}-${index}`}
-                            scrollEnabled={false}
-                        />
-                    </ScrollView>
+            {phase === 'loading' && (
+                <View style={styles.loaderWrapper}>
+                    <ActivityIndicator size="large" color="#233E55" />
                 </View>
-            </View>
-
-            <View style={styles.buttonContainer}>
-                <SingleFooterBtnComponent
-                    label="Confirm Pick"
-                    onPress={handleConfirmPick}
-                    enabled={selectedCount > 0}
-                    containerStyle={styles.buttonWrapper}
-                />
-            </View>
-
-            <Modal
-                visible={showScanner}
-                animationType="slide"
-                onRequestClose={handleScannerClose}
-            >
-                <BarcodeScanner
-                    onScan={handleBarcodeScan}
-                    onClose={handleScannerClose}
-                />
-            </Modal>
-
-
-            <ManPickConfirmPopup
-                visible={showConfirmation}
-                selectedCount={selectedCount}
-                onCancel={() => setShowConfirmation(false)}
-                onYes={() => {
-                    const pickedItems = getPickedItems();
-                    setPickItemsData(pickedItems);
-                    setShowConfirmation(false);
-                    navigation.navigate('ManualPack');
-                }}
-                onNo={() => {
-                    setShowConfirmation(false);
-                    navigation.navigate('ShipDashboard', {
-                        status: 'All',
-                        refresh: true,
-                        packMode: 'MANUAL',
-                    });
-                }}
-                selectedTransaction={selectedTransaction}
-            />
-            {selectedItem && selectedItem.itemType === 'Lot' && (
-                <Ship_LotPopupModal
-                    visible={showLotPopup}
-                    onClose={closeLotPopup}
-                    onConfirm={handleLotConfirm}
-                    item={selectedItem}
-                    pickedQuantity={0}
-                    totalQuantity={selectedItem.quantity}
-                    lotTransactionId={selectedItem.lot_transaction_id}
-                />
             )}
+            {phase !== 'loading' && (
+                <>
 
-            {selectedItem && selectedItem.itemType === 'Serial' && (
-                <Ship_SerialPopupModal
-                    visible={showSerialPopup}
-                    onClose={closeSerialPopup}
-                    item={selectedItem}
-                    pickedQuantity={0}
-                    totalQuantity={selectedItem.quantity}
-                    onConfirm={handleSerialConfirm}
-                    lotTransactionId={selectedItem.lot_transaction_id}
-                />
-            )}
-            {selectedItem && selectedItem.itemType === 'Lot+Serial' && (
-                <Ship_LotSerialPopup
-                    visible={showLotSerialPopup}
-                    onClose={closeLotSerialPopup}
-                    onConfirm={handleLotSerialConfirm}
-                    item={selectedItem}
-                    totalQuantity={selectedItem.quantity}
-                />
+                    <View style={styles.mainContent}>
+                        <LinearGradient
+                            colors={['#F5F5F6', '#D9E4EE']}
+                            start={{ x: 0.5, y: 0 }}
+                            end={{ x: 0.5, y: 1 }}
+                            style={styles.infoGradientCard}
+                        >
+                            <View style={styles.infoItem}>
+                                <Text style={styles.infoLabel}>Customer Name</Text>
+                                <Text style={styles.infoValue}>{PickListOrders?.customer_name ?? '-'}</Text>
+                            </View>
+
+                            <View style={styles.infoItem}>
+                                <Text style={styles.infoLabel}>Carrier Name</Text>
+                                <Text style={styles.infoValue}>{PickListOrders?.carrier_name ?? '-'}</Text>
+                            </View>
+
+                            <View style={styles.infoItem}>
+                                <Text style={styles.infoLabel}>Ship from location</Text>
+                                <Text style={styles.infoValue}>{PickListOrders?.ship_from_location ?? '-'}</Text>
+                            </View>
+                        </LinearGradient>
+
+                        <View style={styles.whiteCard}>
+                            <TouchableOpacity
+                                style={styles.barcodeField}
+                                onPress={handleScanPress}
+                                activeOpacity={0.8}
+                            >
+                                {scannedBarcode ? (
+                                    <Text style={styles.barcodeScannedText}>
+                                        {scannedBarcode}
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.barcodePlaceholder}>
+                                        Scan Barcode
+                                    </Text>
+                                )}
+                                <Barcodescanner width={18} height={18} />
+                            </TouchableOpacity>
+
+                            <View style={styles.tableHeader}>
+                                <View style={styles.headerGreyArea}>
+                                    <CheckBox
+                                        value={allSelected}
+                                        onValueChange={toggleAllCheckboxes}
+                                        tintColors={{ true: '#145DA0', false: '#667085' }}
+                                        boxType="square"
+                                        style={styles.headerCheckbox}
+                                    />
+                                </View>
+
+                                <View style={[styles.headerColumn, styles.leftColumn]}>
+                                    <Text style={styles.headerText}>Items</Text>
+                                </View>
+                                <View style={[styles.headerColumn, styles.rightColumn]}>
+                                    <Text style={styles.headerText}>Qty To Pick</Text>
+                                </View>
+                            </View>
+
+                            <ScrollView
+                                style={styles.tableScrollView}
+                                showsVerticalScrollIndicator={true}
+                                contentContainerStyle={styles.tableScrollContent}
+                            >
+                                <FlatList
+                                    data={PickListItems}
+                                    renderItem={renderPickItem}
+                                    keyExtractor={(item, index) => `${item.itemCode}-${index}`}
+                                    scrollEnabled={false}
+                                />
+                            </ScrollView>
+                        </View>
+                    </View>
+
+                    <View style={styles.buttonContainer}>
+                        <SingleFooterBtnComponent
+                            label="Confirm Pick"
+                            onPress={handleConfirmPick}
+                            enabled={selectedCount > 0}
+                            containerStyle={styles.buttonWrapper}
+                        />
+                    </View>
+
+                    <Modal
+                        visible={showScanner}
+                        animationType="slide"
+                        onRequestClose={handleScannerClose}
+                    >
+                        <BarcodeScanner
+                            onScan={handleBarcodeScan}
+                            onClose={handleScannerClose}
+                        />
+                    </Modal>
+
+
+                    <ManPickConfirmPopup
+                        visible={showConfirmation}
+                        selectedCount={selectedCount}
+                        onCancel={() => setShowConfirmation(false)}
+                        onYes={() => {
+                            const pickedItems = getPickedItems();
+                            setPickItemsData(pickedItems);
+                            setShowConfirmation(false);
+                            navigation.navigate('ManualPack');
+                        }}
+                        onNo={() => {
+                            setShowConfirmation(false);
+                            navigation.navigate('ShipDashboard', {
+                                status: 'All',
+                                refresh: true,
+                                packMode: 'MANUAL',
+                            });
+                        }}
+                        selectedTransaction={selectedTransaction}
+                    />
+                    {selectedItem && selectedItem.itemType === 'Lot' && (
+                        <Ship_LotPopupModal
+                            visible={showLotPopup}
+                            onClose={closeLotPopup}
+                            onConfirm={handleLotConfirm}
+                            item={selectedItem}
+                            pickedQuantity={0}
+                            totalQuantity={selectedItem.quantity}
+                            lotTransactionId={selectedItem.lot_transaction_id}
+                        />
+                    )}
+
+                    {selectedItem && selectedItem.itemType === 'Serial' && (
+                        <Ship_SerialPopupModal
+                            visible={showSerialPopup}
+                            onClose={closeSerialPopup}
+                            item={selectedItem}
+                            pickedQuantity={0}
+                            totalQuantity={selectedItem.quantity}
+                            onConfirm={handleSerialConfirm}
+                            lotTransactionId={selectedItem.lot_transaction_id}
+                        />
+                    )}
+                    {selectedItem && selectedItem.itemType === 'Lot+Serial' && (
+                        <Ship_LotSerialPopup
+                            visible={showLotSerialPopup}
+                            onClose={closeLotSerialPopup}
+                            onConfirm={handleLotSerialConfirm}
+                            item={selectedItem}
+                            totalQuantity={selectedItem.quantity}
+                        />
+                    )}
+                </>
             )}
         </View>
     );
@@ -871,6 +882,7 @@ const styles = StyleSheet.create({
     buttonWrapper: {
         width: '100%',
     },
+    loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default ManualPick;
