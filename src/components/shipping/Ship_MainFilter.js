@@ -874,6 +874,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#7A7A7A',
   },
+  loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default FilterBar;
