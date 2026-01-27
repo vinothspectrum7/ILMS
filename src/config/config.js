@@ -58,6 +58,8 @@ export const API_ENDPOINTS = {
  GET_SHIPPING_EBS_PICKSLIP_NUM_DATA: (org_id,pickslip_no) => `${BASE_URL}/shipment/by-pickslip?p_org_id=204&p_pickslip=426`,
  GET_SHIPPING_EBS_DELIVERY_ID_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
  GET_SHIPPING_EBS_SALES_ORDER_NUM_DATA: (org_id,so_number) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_so_number=${so_number}`,
+ GET_SHIPPING_EBS_PACK_ORDER_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/pack-order?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
+ GET_SHIPPING_EBS_PACK_ITEMS_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/picked-items?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
  GET_SHIPPING_EBS_PICK_ORDER_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/pick-order?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
  GET_SHIPPING_EBS_PICK_ITEMS_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/pick-items?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
  GET_SHIPPING_EBS_PICK_CONFIRM_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/pick-confirm?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,

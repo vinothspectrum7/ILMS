@@ -533,3 +533,24 @@ export const Submit_Sub_Inventory_Transfer_Qty = async (data) => {
     throw error.response?.data;
   }
 }
+
+export const GetShippingPackOrderData = async (org_id, delivery_id) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PACK_ORDER_DATA(org_id, delivery_id));
+    return response.data;
+
+  } catch (error) {
+    console.error("Get SHIPPING_EBS_PACK_ORDER_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetShippingPackItemsData = async (org_id, delivery_id) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PACK_ITEMS_DATA(org_id, delivery_id));
+    return response.data;
+
+  } catch (error) {
+    console.error("Get SHIPPING_EBS_PACK_ITEMS_DATA ERROR:", error.message, error.response?.data);
+  }
+}

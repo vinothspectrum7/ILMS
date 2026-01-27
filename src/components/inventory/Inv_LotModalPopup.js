@@ -69,20 +69,36 @@ export default function Inv_LotModalPopup({
   const [datePickerLotIdx, setDatePickerLotIdx] = useState(null);
   const [datePickerField, setDatePickerField] = useState(null);
   const [showQtyError, setShowQtyError] = useState(false);
-  const [LotsList,setLotsList] = useState([]);
-  const {OrgData} = useReceivingStore();
+  const [LotsList, setLotsList] = useState([
+    {
+      id: 'LOT251113-528',
+      name: 'LOT251113-528',
+      code: 'LOT251113-528',
+    },
+    {
+      id: 'LOT176356-379',
+      name: 'LOT176356-379',
+      code: 'LOT176356-379',
+    },
+    {
+      id: 'LOT365807-977',
+      name: 'LOT365807-977',
+      code: 'LOT365807-977',
+    },
+  ]);
+  const { OrgData } = useReceivingStore();
 
   const findLotOption = lotCode => {
-  if (!lotCode) return null;
-  const target = String(lotCode).toLowerCase().trim();
-  return (
-    LotsList.find(l => {
-      const code = String(l.code || '').toLowerCase().trim();
-      const name = String(l.name || '').toLowerCase().trim();
-      return code === target || name === target;
-    }) || null
-  );
-};
+    if (!lotCode) return null;
+    const target = String(lotCode).toLowerCase().trim();
+    return (
+      LotsList.find(l => {
+        const code = String(l.code || '').toLowerCase().trim();
+        const name = String(l.name || '').toLowerCase().trim();
+        return code === target || name === target;
+      }) || null
+    );
+  };
 
   useEffect(() => {
     if (visible) {
@@ -116,31 +132,31 @@ export default function Inv_LotModalPopup({
     }
   }, [visible, initialLots]);
 
-      useEffect(()=>{
-      if(!selectedItem || !fromSub) return;
+  useEffect(() => {
+    if (!selectedItem || !fromSub) return;
 
-        const loadInventoryLotData = async () => {
-          try {
-            const Lotsdata = await GetInventoryLotsData('M1','CM11222','FGI');
-            if (Lotsdata) {
-              const LotsdataList = mapLotslist(Lotsdata);
-              setLotsList(LotsdataList);
-            } else {
-              setLotsList([]);
-            }
-          } catch (err) {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Lot Number. Please try again.', position: 'top', visibilityTime: 5000 });
-          }
-        };
-        loadInventoryLotData();
-  
-    },[selectedItem,fromSub]);
+    const loadInventoryLotData = async () => {
+      try {
+        const Lotsdata = await GetInventoryLotsData('M1', 'CM11222', 'FGI');
+        if (Lotsdata) {
+          const LotsdataList = mapLotslist(Lotsdata);
+          setLotsList(LotsdataList);
+        } else {
+          setLotsList([]);
+        }
+      } catch (err) {
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Lot Number. Please try again.', position: 'top', visibilityTime: 5000 });
+      }
+    };
+    loadInventoryLotData();
+
+  }, [selectedItem, fromSub]);
 
   const mapLotslist = data =>
     data.map(element => ({
-    id: element.Lot,
-    name: element.Lot,
-    code: element.Lot,
+      id: element.Lot,
+      name: element.Lot,
+      code: element.Lot,
     }));
 
   const totalQty = useMemo(
