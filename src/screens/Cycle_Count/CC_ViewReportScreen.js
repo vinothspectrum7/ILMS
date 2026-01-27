@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
@@ -8,90 +8,183 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-
 import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
 import { useReceivingStore } from '../../store/receivingStore';
 import { useCycleCountStore } from '../../store/cycleCountStore';
 import ExpandDownIcon from '../../assets/icons/CycleCount_Icons/ExpandDownIcon.svg';
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
-import Share from 'react-native-share';
 import WhiteLocation from '../../assets/icons/CycleCount_Icons/WhiteLocation.svg';
 import WhiteDownload from '../../assets/icons/CycleCount_Icons/WhiteDownload.svg';
 import Email from '../../assets/icons/CycleCount_Icons/Email.svg';
 import PrintIcon from '../../assets/icons/CycleCount_Icons/Print.svg';
-
+import RNPrint from 'react-native-print';
+import Share from 'react-native-share';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import RNFS from 'react-native-fs';
 
 const CC_ViewReportScreen = () => {
     const navigation = useNavigation();
     const { OrgData } = useReceivingStore();
     const { viewReportData } = useCycleCountStore();
 
-    const onBack = useCallback(() => navigation.goBack(), [navigation]);
-    const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
-
-    console.log('View Report Screen Data:', viewReportData);
-
-    const getBarWidth = (value) => {
-        const numValue = parseInt(value || 0);
-        return (numValue / 10) * 90;
-    };
+    const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+    const [isVarianceExpanded, setIsVarianceExpanded] = useState(true);
 
     const topVariances = viewReportData?.top_total_variances || [];
 
-    const [isSummaryExpanded, setIsSummaryExpanded] = React.useState(true);
-    const [isVarianceExpanded, setIsVarianceExpanded] = React.useState(true);
-    const generatePdf = async () => {
+    const onBack = useCallback(() => navigation.goBack(), [navigation]);
+    const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
+
+    const MAX_VARIANCE_COUNT = 10;
+
+    const getBarWidth = (value) => {
+        const safeValue = Number(value) || 0;
+        const percentage = Math.min((safeValue / MAX_VARIANCE_COUNT) * 100, 100);
+        return `${percentage}%`;
+    };
+
+    const buildReportHtml = () => `
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <style>
+        body { font-family: Arial; background:#F7F9FB; padding:16px; color:#242424 }
+        .header { background:linear-gradient(90deg,#5D768B,#233E55); color:#fff;
+                  border-radius:12px; padding:12px 16px; margin-bottom:20px }
+        .row { display:flex; justify-content:space-between; align-items:center }
+        .card { background:#fff; border:1px solid #D9E4EE; border-radius:8px;
+                margin-bottom:20px; overflow:hidden }
+        .card-h { background:#ECF1F7; padding:8px 16px; font-weight:700; font-size:12px }
+        .card-b { padding:16px }
+        .grid { display:flex; flex-wrap:wrap }
+        .cell { width:33.33%; margin-bottom:12px }
+        .label { font-size:10px; color:#9D9FA3; font-weight:600 }
+        .value { font-size:14px; font-weight:700 }
+        .green { color:#168035 } .red { color:#DA1E28 }
+
+        .bar-wrap { display:flex; align-items:center }
+        .bar-bg { width:90px; height:7px; background:#F0F0F0;
+                  border-radius:8px; margin-right:8px }
+        .bar { height:100%; background:#DA1E28; border-radius:8px }
+
+        table { width:100%; border-collapse:collapse }
+        th { font-size:10px; color:#595A5C; border-bottom:1px solid #CCCED2; text-align:left }
+        td { font-size:12px; font-weight:700; padding:6px 0 }
+        .right { text-align:right }
+      </style>
+    </head>
+
+    <body>
+
+      <div class="header">
+        <div class="row">
+          <div>${viewReportData?.count_name || '--'}</div>
+          <div>${viewReportData?.location || '--'}</div>
+        </div>
+      </div>
+
+      <!-- SUMMARY -->
+      <div class="card">
+        <div class="card-h">Summary Statistics</div>
+        <div class="card-b grid">
+          <div class="cell"><div class="label">Total Items</div><div class="value">${viewReportData?.summary?.total_items || '--'}</div></div>
+          <div class="cell"><div class="label">Items Matched</div><div class="value green">${viewReportData?.summary?.items_matched || '--'}</div></div>
+          <div class="cell"><div class="label">Variances</div><div class="value red">${viewReportData?.summary?.total_variances || '--'}</div></div>
+          <div class="cell"><div class="label">Accuracy</div><div class="value green">${viewReportData?.summary?.accuracy_percentage || '--'}</div></div>
+          <div class="cell"><div class="label">Value Variance</div><div class="value red">${viewReportData?.summary?.value_variance || '--'}</div></div>
+          <div class="cell"><div class="label">Duration</div><div class="value">${viewReportData?.summary?.duration || '--'}</div></div>
+        </div>
+      </div>
+
+      <!-- VARIANCE BREAKDOWN -->
+      <div class="card">
+        <div class="card-h">Variance Breakdown</div>
+        <div class="card-b">
+          ${[
+            ['Data Entry Error', 'data_entry_error'],
+            ['Physical Count Error', 'physical_count_error'],
+            ['Damaged / Spoiled', 'damaged_spoiled'],
+        ].map(([label, key]) => `
+            <div class="row" style="margin-bottom:10px">
+              <div>${label}</div>
+              <div class="bar-wrap">
+                <div class="bar-bg">
+                  <div class="bar" style="width:${getBarWidth(viewReportData?.variance_breakdown?.[key])}"></div>
+                </div>
+                <div>${viewReportData?.variance_breakdown?.[key] || 0}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- TOP VARIANCES -->
+      <div class="card">
+        <div class="card-h">Top Variances</div>
+        <div class="card-b">
+          <table>
+            <thead><tr><th>Item Code</th><th class="right">Variances</th></tr></thead>
+            <tbody>
+              ${topVariances.length
+            ? topVariances.map(i => `
+                      <tr>
+                        <td>${i.item_code}</td>
+                        <td class="right red">${i.variance}</td>
+                      </tr>
+                    `).join('')
+            : `<tr><td>--</td><td class="right">--</td></tr>`
+        }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </body>
+  </html>
+  `;
+
+    const handlePdf = async () => {
+        await RNPrint.print({ html: buildReportHtml() });
+    };
+
+    const handlePrint = async () => {
+        await RNPrint.print({ html: buildReportHtml() });
+    };
+
+
+    const handleEmail = async () => {
+        await RNPrint.print({ html: buildReportHtml() });
+        Alert.alert(
+            'Email Report',
+            'To email the report:\n1. Use the print dialog\n2. Choose "Save as PDF"\n3. Then attach the PDF to email'
+        );
+    };
+
+    const handleExcel = async () => {
         try {
-            const html = `
-            <html>
-            <head>
-                <style>
-                    body { font-family: Arial; padding: 16px; }
-                    h1 { color: #233E55; }
-                    h2 { margin-top: 20px; }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 10px;
-                    }
-                    th, td {
-                        border: 1px solid #ccc;
-                        padding: 8px;
-                        font-size: 12px;
-                    }
-                    th {
-                        background-color: #ECF1F7;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Count History Report</h1>
-                <p><strong>Count Name:</strong> ${viewReportData?.count_name || '--'}</p>
-                <p><strong>Location:</strong> ${viewReportData?.location || '--'}</p>
-            </body>
-            </html>
-            `;
+            const headers = ['Item Code', 'Variances'];
+            const rows = viewReportData?.top_total_variances || [];
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(r => `${r.item_code || '--'},${r.variance || 0}`)
+            ].join('\n');
 
-            const file = await RNHTMLtoPDF.convert({
-                html,
-                fileName: `Count_Report_${Date.now()}`,
-                base64: false,
-                directory: 'Documents',
-            });
-
-            console.log('PDF generated at:', file.filePath);
-            alert(`PDF saved at:\n${file.filePath}`);
-
+            const path = `${RNFS.DocumentDirectoryPath}/CycleCountReport_${Date.now()}.csv`;
+            await RNFS.writeFile(path, csvContent, 'utf8');
 
             await Share.open({
-                url: `file://${file.filePath}`,
-                type: 'application/pdf',
+                url: `file://${path}`,
+                type: 'text/csv',
+                title: 'Cycle Count Report',
             });
 
-        } catch (error) {
-            console.log('PDF generation error:', error);
+            console.log('Excel file created at:', path);
+
+        } catch (e) {
+            console.log('Excel Export Error:', e);
         }
     };
+
+
 
     return (
         <View style={styles.container}>
@@ -120,12 +213,11 @@ const CC_ViewReportScreen = () => {
                             </Text>
                         </View>
                         <View style={styles.locationRow}>
-  <WhiteLocation width={12} height={12} />
-  <Text style={styles.locationText}>
-    {viewReportData?.location || '--'}
-  </Text>
-</View>
-
+                            <WhiteLocation width={12} height={12} />
+                            <Text style={styles.locationText}>
+                                {viewReportData?.location || '--'}
+                            </Text>
+                        </View>
                     </View>
                 </LinearGradient>
 
@@ -299,54 +391,60 @@ const CC_ViewReportScreen = () => {
                         <TouchableOpacity
                             activeOpacity={0.8}
                             style={styles.primaryButtonTouchable}
-                            onPress={generatePdf}
+                            onPress={handlePdf}
                         >
-
-                           <LinearGradient
-  colors={['#5D768B', '#233E55']}
-  start={{ x: 0, y: 0 }}
-  end={{ x: 1, y: 0 }}
-  style={styles.primaryButtonGradient}
->
-  <View style={styles.buttonContentRow}>
-    <WhiteDownload width={14} height={14} />
-    <Text style={styles.primaryButtonText}>PDF</Text>
-  </View>
-</LinearGradient>
-
+                            <LinearGradient
+                                colors={['#5D768B', '#233E55']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.primaryButtonGradient}
+                            >
+                                <View style={styles.buttonContentRow}>
+                                    <WhiteDownload width={14} height={14} />
+                                    <Text style={styles.primaryButtonText}>PDF</Text>
+                                </View>
+                            </LinearGradient>
                         </TouchableOpacity>
 
-                        <TouchableOpacity activeOpacity={0.8} style={styles.primaryButtonTouchable}>
-                           <LinearGradient
-  colors={['#5D768B', '#233E55']}
-  start={{ x: 0, y: 0 }}
-  end={{ x: 1, y: 0 }}
-  style={styles.primaryButtonGradient}
->
-  <View style={styles.buttonContentRow}>
-    <WhiteDownload width={14} height={14} />
-    <Text style={styles.primaryButtonText}>Excel</Text>
-  </View>
-</LinearGradient>
-
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            style={styles.primaryButtonTouchable}
+                            // onPress={handleExcel}
+                        >
+                            <LinearGradient
+                                colors={['#5D768B', '#233E55']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.primaryButtonGradient}
+                            >
+                                <View style={styles.buttonContentRow} >
+                                    <WhiteDownload width={14} height={14} />
+                                    <Text style={styles.primaryButtonText}>Excel</Text>
+                                </View>
+                            </LinearGradient>
                         </TouchableOpacity>
                     </View>
 
                     <View style={styles.buttonRow}>
-                       <TouchableOpacity activeOpacity={0.8} style={styles.secondaryButton}>
-  <View style={styles.buttonContentRow}>
-    <Email width={14} height={14} />
-    <Text style={styles.secondaryButtonText}>Email</Text>
-  </View>
-</TouchableOpacity>
+                        <TouchableOpacity activeOpacity={0.8} style={styles.secondaryButton}
+                            // onPress={handleEmail}
+                        >
+                            <View style={styles.buttonContentRow}>
+                                <Email width={14} height={14} />
+                                <Text style={styles.secondaryButtonText}>Email</Text>
+                            </View>
+                        </TouchableOpacity>
 
-<TouchableOpacity activeOpacity={0.8} style={styles.secondaryButton}>
-  <View style={styles.buttonContentRow}>
-    <PrintIcon width={14} height={14} />
-    <Text style={styles.secondaryButtonText}>Print</Text>
-  </View>
-</TouchableOpacity>
-
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            style={styles.secondaryButton}
+                            onPress={handlePrint}
+                        >
+                            <View style={styles.buttonContentRow}>
+                                <PrintIcon width={14} height={14} />
+                                <Text style={styles.secondaryButtonText}>Print</Text>
+                            </View>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </ScrollView>
@@ -390,6 +488,10 @@ const styles = StyleSheet.create({
     leftSection: {
         flex: 1,
     },
+    locationRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     locationText: {
         fontFamily: 'Mulish',
         fontSize: 10,
@@ -430,7 +532,7 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'row',
         flexWrap: 'wrap',
-        padding: 16,
+        padding: 15,
     },
     statColumn: {
         width: '33.33%',
@@ -500,14 +602,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         height: 24,
         marginBottom: 0,
-
     },
     breakdownLabel: {
         fontFamily: 'Mulish',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '600',
         color: '#242424',
-        width: 120,
+        width: 122,
     },
     barWrapper: {
         flexDirection: 'row',
@@ -547,6 +648,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     topVariancesHeader: {
+        paddingTop: 10,
         width: 372,
         height: 32,
         borderTopLeftRadius: 7,
@@ -643,7 +745,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#ECF1F7',
         elevation: 2,
-
     },
     secondaryButtonText: {
         fontFamily: 'Mulish',
@@ -651,17 +752,10 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#5D768B',
     },
-    locationRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 6,
-},
-buttonContentRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 6,
-},
-
-
+    buttonContentRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+    },
 });
