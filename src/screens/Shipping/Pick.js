@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Modal,
   FlatList,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
@@ -18,6 +19,11 @@ import BarcodeScanner from '../BarCodeScanner';
 import SingleFooterBtnComponent from '../../components/shipping/Ship_SingleFooterBtnComponent';
 import ConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
 import { useShippingStore } from '../../store/shippingStore';
+import { useReceivingStore } from '../../store/receivingStore';
+import {
+  GetShippingPickOrderData,
+  GetShippingPickItemsData,
+} from '../../api/ApiServices';
 
 function Pick({ navigation }) {
   const selectedTransaction = useShippingStore(s => s.selectedTransaction);
@@ -25,14 +31,97 @@ function Pick({ navigation }) {
   const setTransactionStatus = useShippingStore(s => s.setTransactionStatus);
   const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
 
+  const [phase, setPhase] = useState('idle');
+  const [PickListItems, setPickListItems] = useState([]);
+  const [PickListOrders, setPickListOrders] = useState();
+
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const {
+    OrgData,
+  } = useReceivingStore();
+
+  const getOrgCode = () => {
+    const val = useReceivingStore.getState()?.OrgData?.selectedOrg;
+    return parseInt(val, 10);
+  };
 
   const pickLines = useMemo(() => {
     const list = selectedTransaction?.items;
     return Array.isArray(list) ? list : [];
   }, [selectedTransaction]);
+
+
+  const maptopickItemslist = data =>
+    data.map(backend => ({
+      item_code: backend.item_code || '-',
+      qty_to_pick: backend.qty_to_pick || '-',
+      unit_of_measure: backend.unit_of_measure,
+      sub_inventory: backend.sub_inventory || '-',
+      locator: backend.locator || '-',
+    }));
+
+  useEffect(() => {
+    console.log(selectedTransaction, "selectedTransaction_delivery_id")
+    const orgCode = getOrgCode();
+    console.log(orgCode, "orgCodeorgCodeorgCodeorgCode")
+    if (!selectedTransaction?.deliveryId) return;
+    setPhase('loading');
+    const loadPickItemsData = async () => {
+      try {
+        console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
+        const pickitemsdata = await GetShippingPickItemsData(orgCode, selectedTransaction?.deliveryId);
+        if (pickitemsdata?.pick_items) {
+          console.log(pickitemsdata, "pickitemsdatapickitemsdatapickitemsdatapickitemsdata")
+          const frontendArray = maptopickItemslist(pickitemsdata?.pick_items);
+          setPickListItems(frontendArray);
+        } else {
+          setPickListItems([]);
+        }
+        setPhase('success');
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: `${error}`,
+          position: 'top',
+          visibilityTime: 10000,
+        });
+        setPhase('error');
+        navigation.navigate('Ship_Entry');
+      }
+    };
+    loadPickItemsData();
+
+    if (!selectedTransaction?.deliveryId) return;
+    setPhase('loading');
+    const loadPickOrderData = async () => {
+      try {
+        console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
+        const pickorderdata = await GetShippingPickOrderData(orgCode, selectedTransaction?.deliveryId);
+        if (pickorderdata?.pick_order_header) {
+          console.log(pickorderdata, "pickorderdatapickorderdatapickorderdatapickorderdata")
+          setPickListOrders(pickorderdata?.pick_order_header);
+        } else {
+          setPickListOrders([]);
+        }
+        setPhase('success');
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: `${error}`,
+          position: 'top',
+          visibilityTime: 10000,
+        });
+        setPhase('error');
+        navigation.navigate('Ship_Entry');
+      }
+    };
+    loadPickOrderData();
+  }, [selectedTransaction?.deliveryId]);
 
   const handleBarcodeScan = barcode => {
     setScannedBarcode(barcode);
@@ -80,16 +169,16 @@ function Pick({ navigation }) {
       <View style={styles.itemContent}>
         <View style={styles.leftSection}>
           <View style={styles.itemInfo}>
-            <Text style={styles.itemText}>{item.item}</Text>
-            <Text style={styles.itemCodeText}>{item.itemCode}</Text>
+            <Text style={styles.itemText}>{item.item_code || '-'}</Text>
+            <Text style={styles.itemCodeText}>{item.item_id || '-'}</Text>
           </View>
 
           <View style={styles.locationContainer}>
             <Text style={styles.locationLabel}>Sub Inventory:</Text>
-            <Text style={styles.locationValue}>{item.subInventory}</Text>
+            <Text style={styles.locationValue}>{item.sub_inventory || '-'}</Text>
             <View style={styles.spacer} />
             <Text style={styles.locationLabel}>Locator:</Text>
-            <Text style={styles.locationValue}>{item.location}</Text>
+            <Text style={styles.locationValue}>{item.locator || '-'}</Text>
           </View>
         </View>
 
@@ -101,12 +190,12 @@ function Pick({ navigation }) {
             </View>
 
             <View style={styles.quantitySection}>
-              <Text style={styles.quantityText}>{item.quantity}</Text>
-              <Text style={styles.eachText}>{item.uom}</Text>
+              <Text style={styles.quantityText}>{item.qty_to_pick || '-'}</Text>
+              <Text style={styles.eachText}>{item.unit_of_measure || '-'}</Text>
             </View>
           </View>
 
-          <Text style={styles.pendingText}>{item.status}</Text>
+          <Text style={styles.pendingText}>{item.status || '-'}</Text>
         </View>
       </View>
     </View>
@@ -116,102 +205,112 @@ function Pick({ navigation }) {
     <View style={styles.container}>
       <StatusBar backgroundColor="#233E55" barStyle="light-content" />
       <GlobalHeaderComponent
-        screenTitle="Pick"
-        organizationName="ENV"
+        screenTitle="Auto Pick"
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         onBack={() => navigation.goBack()}
       />
 
-      <View style={styles.mainContent}>
-        <LinearGradient
-          colors={['#F5F5F6', '#D9E4EE']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.infoGradientCard}
-        >
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Customer Name</Text>
-            <Text style={styles.infoValue}>{selectedTransaction?.customer ?? '-'}</Text>
-          </View>
-
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Carrier Name</Text>
-            <Text style={styles.infoValue}>{selectedTransaction?.carrier ?? '-'}</Text>
-          </View>
-
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Ship from location</Text>
-            <Text style={styles.infoValue}>{selectedTransaction?.organization ?? '-'}</Text>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.whiteCard}>
-          <TouchableOpacity
-            style={styles.barcodeField}
-            onPress={handleScanPress}
-            activeOpacity={0.8}
-          >
-            {scannedBarcode ? (
-              <Text style={styles.barcodeScannedText}>{scannedBarcode}</Text>
-            ) : (
-              <Text style={styles.barcodePlaceholder}>Scan Barcode</Text>
-            )}
-            <Barcodescanner width={18} height={18} />
-          </TouchableOpacity>
-
-          <View style={styles.tableHeader}>
-            <View style={[styles.headerColumn, styles.leftColumn]}>
-              <Text style={styles.headerText}>Items</Text>
-            </View>
-            <View style={[styles.headerColumn, styles.rightColumn]}>
-              <Text style={styles.headerText}>Qty To Pick</Text>
-            </View>
-          </View>
-
-          <ScrollView
-            style={styles.tableScrollView}
-            showsVerticalScrollIndicator={true}
-            contentContainerStyle={styles.tableScrollContent}
-          >
-            <FlatList
-              data={pickLines}
-              renderItem={renderPickItem}
-              keyExtractor={(it, idx) => `${it.itemCode || 'ITEM'}-${idx}`}
-              scrollEnabled={false}
-              showsVerticalScrollIndicator={false}
-              ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-            />
-          </ScrollView>
+      {phase === 'loading' && (
+        <View style={styles.loaderWrapper}>
+          <ActivityIndicator size="large" color="#233E55" />
         </View>
-      </View>
+      )}
+      {phase !== 'loading' && (
+        <>
 
-      <View style={styles.buttonContainer}>
-        <SingleFooterBtnComponent
-          label="Confirm Pick"
-          onPress={handleConfirmPick}
-          enabled={true}
-          containerStyle={styles.buttonWrapper}
-        />
-      </View>
+          <View style={styles.mainContent}>
+            <LinearGradient
+              colors={['#F5F5F6', '#D9E4EE']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.infoGradientCard}
+            >
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Customer Name</Text>
+                <Text style={styles.infoValue}>{PickListOrders?.customer_name ?? '-'}</Text>
+              </View>
 
-      <Modal
-        visible={showScanner}
-        animationType="slide"
-        onRequestClose={handleScannerClose}
-      >
-        <BarcodeScanner
-          onScan={handleBarcodeScan}
-          onClose={handleScannerClose}
-        />
-      </Modal>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Carrier Name</Text>
+                <Text style={styles.infoValue}>{PickListOrders?.carrier_name ?? '-'}</Text>
+              </View>
 
-      <ConfirmationModal
-        visible={showConfirmation}
-        onClose={handleConfirmationNo}
-        onYes={handleConfirmationYes}
-        onNo={handleConfirmationNo}
-        type="CONFIRM_PICK"
-        itemCount={pickLines.length}
-      />
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Ship from location</Text>
+                <Text style={styles.infoValue}>{PickListOrders?.ship_from_location ?? '-'}</Text>
+              </View>
+            </LinearGradient>
+
+            <View style={styles.whiteCard}>
+              <TouchableOpacity
+                style={styles.barcodeField}
+                onPress={handleScanPress}
+                activeOpacity={0.8}
+              >
+                {scannedBarcode ? (
+                  <Text style={styles.barcodeScannedText}>{scannedBarcode}</Text>
+                ) : (
+                  <Text style={styles.barcodePlaceholder}>Scan Barcode</Text>
+                )}
+                <Barcodescanner width={18} height={18} />
+              </TouchableOpacity>
+
+              <View style={styles.tableHeader}>
+                <View style={[styles.headerColumn, styles.leftColumn]}>
+                  <Text style={styles.headerText}>Items</Text>
+                </View>
+                <View style={[styles.headerColumn, styles.rightColumn]}>
+                  <Text style={styles.headerText}>Qty To Pick</Text>
+                </View>
+              </View>
+
+              <ScrollView
+                style={styles.tableScrollView}
+                showsVerticalScrollIndicator={true}
+                contentContainerStyle={styles.tableScrollContent}
+              >
+                <FlatList
+                  data={PickListItems}
+                  renderItem={renderPickItem}
+                  keyExtractor={(it, idx) => `${it.item_code || 'ITEM'}-${idx}`}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                  ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                />
+              </ScrollView>
+            </View>
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <SingleFooterBtnComponent
+              label="Confirm Pick"
+              onPress={handleConfirmPick}
+              enabled={true}
+              containerStyle={styles.buttonWrapper}
+            />
+          </View>
+
+          <Modal
+            visible={showScanner}
+            animationType="slide"
+            onRequestClose={handleScannerClose}
+          >
+            <BarcodeScanner
+              onScan={handleBarcodeScan}
+              onClose={handleScannerClose}
+            />
+          </Modal>
+
+          <ConfirmationModal
+            visible={showConfirmation}
+            onClose={handleConfirmationNo}
+            onYes={handleConfirmationYes}
+            onNo={handleConfirmationNo}
+            type="CONFIRM_PICK"
+            itemCount={pickLines.length}
+          />
+        </>
+      )}
     </View>
   );
 }
@@ -251,18 +350,18 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontFamily: 'Mulish',
     fontWeight: '500',
-    fontSize: 10,
+    fontSize: 9,
     lineHeight: 10,
     letterSpacing: 0,
     color: '#233E55',
-    marginBottom: 2,
+    marginBottom: 5,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },
   infoValue: {
     fontFamily: 'Mulish',
     fontWeight: '700',
-    fontSize: 13,
+    fontSize: 10,
     color: '#233E55',
     includeFontPadding: false,
     textAlignVertical: 'center',
@@ -488,4 +587,5 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     width: '100%',
   },
+  loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

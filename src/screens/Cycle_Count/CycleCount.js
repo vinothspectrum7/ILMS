@@ -63,7 +63,7 @@ const CycleCount = () => {
           <MenuCard
             title="Count History"
             Icon={CountHistoryIcon}
-            onPress={() => navigation.navigate('CC_CountHistory')}
+            onPress={() => navigation.navigate('CC_CountHistoryScreen')}
           />
 
           <MenuCard
