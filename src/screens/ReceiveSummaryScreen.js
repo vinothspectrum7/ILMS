@@ -348,7 +348,7 @@ const ReceiveSummaryScreen = () => {
     const target = Number(line?.qtyToReceive ?? line?.receivingQty ?? 0);
     if (!Number.isFinite(target) || target <= 0) return false;
     if (line.serialLines.length !== target) return false;
-    return line.serialLines.every(s => !!String(s?.serialNumber ?? s?.serial ?? '').trim());
+    return line.serialLines.every(s => !!String(s?.serialNumber ?? s?.serial ?? s ?? '').trim());
   };
 
   const hasValidLotSerialForLine = line => {
@@ -389,8 +389,9 @@ const ReceiveSummaryScreen = () => {
     if (isStandardDelivery(dt) || isInspectionRequired(dt)) return true;
 
     if (isDirectDelivery(dt)) {
-      const subInvOk = !!String(line?.subInventory ?? '').trim();
-      if (!subInvOk) return false;
+      // const subInvOk = !!String(line?.subInventory ?? '').trim();
+      // if (!subInvOk) return false;
+      console.log(isLineItemTypeValidForDirect(line),"isLineItemTypeValidForDirect(line)")
       return isLineItemTypeValidForDirect(line);
     }
 
@@ -429,16 +430,25 @@ const ReceiveSummaryScreen = () => {
         source_doc_code: 'PO',
         received_qty: Number(backend?.qtyToReceive ?? backend?.receivingQty ?? 0),
         delivery_type: dt,
+  ...(backend?.itemtype === 'Serial'
+    ? {
+        item_serials: Array.isArray(backend?.serialLines)?
+        backend?.serialLines:[],
+      }
+    : {
         lot_item_lots: Array.isArray(backend?.lotLines)
           ? backend.lotLines.map(l => ({
               lot_number: l?.lotNumber,
               transaction_quantity: l?.qty,
-              lot_expiration_date: l?.expDate ? (() => {
-                const [dd, mm, yyyy] = String(l.expDate).split('/');
-                return dd && mm && yyyy ? `${yyyy}-${mm}-${dd}` : null;
-              })() : null,
+              lot_expiration_date: l?.expDate
+                ? (() => {
+                    const [dd, mm, yyyy] = String(l.expDate).split('/');
+                    return dd && mm && yyyy ? `${yyyy}-${mm}-${dd}` : null;
+                  })()
+                : null,
             }))
           : [],
+      }),
       };
 
       if (subInvId != null) base.sub_inv_id = subInvId;
@@ -453,9 +463,9 @@ const ReceiveSummaryScreen = () => {
 
   const pickConfirmDeliveryType = (lines = []) => {
     const norm = v => String(v ?? '').trim().toLowerCase();
-    if (lines.some(l => norm(l?.deliverytype) === 'inspection required')) return 'Inspection required';
-    if (lines.some(l => norm(l?.deliverytype) === 'standard receipt')) return 'Standard receipt';
-    return 'Direct delivery';
+    if (lines.some(l => norm(l?.deliverytype) === 'Inspection Required')) return 'Inspection required';
+    if (lines.some(l => norm(l?.deliverytype) === 'Standard Receipt')) return 'Standard receipt';
+    return 'Direct Delivery';
   };
 
   const openConfirmModal = () => {
@@ -466,7 +476,10 @@ const ReceiveSummaryScreen = () => {
   };
 
   const confirmAction = async () => {
+    console.log(renderItems,"renderItemsrenderItemsrenderItems")
+
     const eligibleLines = getConfirmEligibleLines(renderItems);
+        console.log(eligibleLines,"eligibleLineseligibleLines")
 
     if (!eligibleLines.length) {
       Toast.show({
@@ -478,8 +491,8 @@ const ReceiveSummaryScreen = () => {
       });
       return { success: false, message: 'No eligible lines to confirm' };
     }
-
     const formatdata = mapConfirmData(eligibleLines);
+    console.log(formatdata,"mapConfirmDatamapConfirmData")
 
     try {
       const response = await Submit_Receive_Qty(formatdata);

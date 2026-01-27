@@ -64,4 +64,5 @@ export const API_ENDPOINTS = {
  GET_SHIPPING_EBS_PICKSLIP_NUM_DATA: (org_id,pickslip_no) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_pickslip=${pickslip_no}`,
  GETFROMLOCATORSDATA: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Get-Locators?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
  GETINVENTORYLOCATORSDATA: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Get-Lots?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
+ SUBMIT_SUBINVENTORY_TRANSFER: `${BASE_URL}/inventory/subinventory-transfer`,
 };

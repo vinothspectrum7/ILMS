@@ -216,6 +216,7 @@ const [inspectPutawayViewModalVisible, setInspectPutawayViewModalVisible] = useS
   const [putAwaySerialModalVisible, setPutAwaySerialModalVisible] = useState(false);
   const [putAwaySelectedSerialsMap, setPutAwaySelectedSerialsMap] = useState({});
   const [putAwayEditedMap, setPutAwayEditedMap] = useState({});
+  const [apiError, setApiError] = useState(false);
 
 
   const listRef = useRef(null);
@@ -1300,6 +1301,54 @@ const openPutAwayViewModal = (item) => {
   const deliverytypeRaw = current?.deliverytype ?? '';
   const deliverytype = String(deliverytypeRaw).trim();
 
+ const retryAPIcall = async()=>{
+      const itemId = current?.id;
+      const lotTxnId =
+      current?.lot_transaction_id ??
+      current?.lotTransactionId ??
+      current?.lot_txn_id ??
+      null;
+      if(!lotTxnId) return;
+      try {
+        setApiError(false);
+        const resp = await GetLotDetails(lotTxnId);
+        const rows = Array.isArray(resp)
+          ? resp.map(x => ({
+            lotNumber: String(x?.lot_number ?? ''),
+            qty: Number(x?.lot_qty ?? 0),
+          }))
+          : [];
+
+        // if (!mounted) return;
+
+        setReceivedLotsMap(prev => ({
+          ...prev,
+          [itemId]: { loading: false, rows },
+        }));
+
+        if (rows.length) {
+          mergePatchIntoReceiveItems({
+            id: String(itemId),
+            lotLines: rows.map(r => ({
+              lotNumber: r.lotNumber,
+              mfgDate: '',
+              expDate: '',
+              qty: Number(r.qty) || 0,
+            })),
+            lotTotalQty: rows.reduce((s, r) => s + (Number(r.qty) || 0), 0),
+          });
+        }
+        setApiError(false);
+      } catch (e) {
+        // if (!mounted) return;
+        setReceivedLotsMap(prev => ({
+          ...prev,
+          [itemId]: { loading: false, rows: [] },
+        }));
+        setApiError(true);
+      }
+ }
+
   useEffect(() => {
     let mounted = true;
     const itemId = current?.id;
@@ -1338,6 +1387,7 @@ const openPutAwayViewModal = (item) => {
 
     (async () => {
       try {
+        setApiError(false);
         const resp = await GetLotDetails(lotTxnId);
         const rows = Array.isArray(resp)
           ? resp.map(x => ({
@@ -1365,12 +1415,14 @@ const openPutAwayViewModal = (item) => {
             lotTotalQty: rows.reduce((s, r) => s + (Number(r.qty) || 0), 0),
           });
         }
+        setApiError(false);
       } catch (e) {
         if (!mounted) return;
         setReceivedLotsMap(prev => ({
           ...prev,
           [itemId]: { loading: false, rows: [] },
         }));
+        setApiError(true);
       }
     })();
 
@@ -3732,24 +3784,38 @@ const openPutAwayViewModal = (item) => {
                       disabled={(readOnly && !hasLots) || (!hasLots && Number(current.openQty ?? 0) === 0)
                       }
                     >
-                      {hasLots ? (
+                      {apiError && (
+                          <View style={styles.errorContainer}>
+                              <Text style={styles.errorText}>
+                                  Failed to load lot data
+                              </Text>
+                              <TouchableOpacity 
+                                  style={styles.retryButton}
+                                  onPress={retryAPIcall}
+                              >
+                                  <Text style={styles.retryButtonText}>Retry</Text>
+                              </TouchableOpacity>
+                          </View>
+                      )}
+                      {apiError ? (
+                          <View style={styles.addLotError}>
+                              <ReceiveAddIcon width={20} height={20} />
+                              <Text style={styles.addLotErrorText}>
+                                  Error Loading Lots
+                              </Text>
+                          </View>
+                      ):(
                         <View style={styles.addLotGreen}>
                           <ReceiveAddIcon width={20} height={20} />
                           <Text style={styles.addLotGreenText}>
-                            {`${lotsCount} Lots Added - ${LottotalQty} QTY`}
+                            {receivedLotsMap[current?.id]?.loading
+                              ? 'Loading Lots...'
+                              : hasLots
+                              ? `${lotsCount} Lots Added - ${LottotalQty} QTY`
+                              : 'Lot Not Found'}
+                            {/* {`${lotsCount} Lots Added - ${LottotalQty} QTY`} */}
                           </Text>
-                        </View>
-                      ) : (
-                        <LinearGradient
-                          colors={['#7392AA', '#89ADC9']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.addLotGrad}
-                        >
-                          <ReceiveAddIcon width={20} height={20} />
-                          <Text style={styles.addLotText}>Add Lot</Text>
-                        </LinearGradient>
-                      )}
+                        </View>)}
                     </TouchableOpacity>
                   </View>
                 )}
@@ -3776,7 +3842,7 @@ const openPutAwayViewModal = (item) => {
                           style={styles.addLotGrad}
                         >
                           <ReceiveAddIcon width={20} height={20} />
-                          <Text style={styles.addLotText}>Add Serial</Text>
+                          <Text style={styles.addLotText}>Serial not found</Text>
                         </LinearGradient>
                       )}
                     </TouchableOpacity>
@@ -5257,6 +5323,50 @@ putAwayTableRowPending: {
 putAwayTableRowRejected: {
   backgroundColor: '#fef2f2',
 },
+    errorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: ms(10),
+        backgroundColor: '#FFEFEF',
+        borderRadius: ms(6),
+        marginTop: ms(10),
+        borderWidth: 1,
+        borderColor: '#FFCCCC',
+        marginBottom:20
+    },
+    errorText: {
+        fontSize: ms(11),
+        color: '#D32F2F',
+        fontWeight: '500',
+    },
+    retryButton: {
+        paddingHorizontal: ms(12),
+        paddingVertical: ms(4),
+        backgroundColor: '#D32F2F',
+        borderRadius: ms(4),
+    },
+    retryButtonText: {
+        fontSize: ms(10),
+        color: '#FFFFFF',
+        fontWeight: '600',
+    },
+    addLotError: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: ms(12),
+        paddingVertical: ms(10),
+        borderRadius: ms(12),
+        alignSelf: 'stretch',
+        justifyContent: 'center',
+        backgroundColor: '#FF6B6B',
+    },
+    addLotErrorText: {
+        marginLeft: ms(6),
+        fontSize: ms(11),
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
 });
 
 export default Rec_ViewReceivedItemDetailsScreen;
