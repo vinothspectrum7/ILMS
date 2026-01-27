@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { SHIPPING_TABLE_DATA } from '../../data/shippingMockData';
 import LinearGradient from 'react-native-linear-gradient';
 import { useShippingStore } from '../../store/shippingStore';
 
@@ -16,20 +15,31 @@ function Ship_TransactionTable({ onPickPress, filters }) {
   const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
   const transactionStatusMap = useShippingStore(s => s.transactionStatusMap);
 
+  const hasPickOptionSelection = !!filters?.pickOptionSelected;
+
+  const tableData = useMemo(() => {
+    if (!hasPickOptionSelection) return [];
+
+    const rows = Array.isArray(filters?.pickOptionResults) ? filters.pickOptionResults : [];
+
+    return rows.map(r => ({
+      deliveryId: String(r?.delivery_id ?? '-'),
+      salesOrderNo: String(r?.sales_order_no ?? '-'),
+      pickSlipNo: String(r?.pick_slip_number ?? '-'),
+      lines: r?.total_lines ?? '',
+      quantity: r?.total_qty ?? '',
+      status: String(r?.status ?? ''),
+      customer: (r?.customer_name ?? '-'),
+      carrier: (r?.carrier_name ?? '-'),
+    }));
+  }, [filters?.pickOptionResults, hasPickOptionSelection]);
+
   const filteredData = useMemo(() => {
-    return SHIPPING_TABLE_DATA.filter(item => {
+    if (!hasPickOptionSelection) return [];
+
+    return tableData.filter(item => {
       const effectiveStatus =
-        (transactionStatusMap && transactionStatusMap[String(item.deliveryId)]) ||
-        item.status;
-
-      if (filters?.selectedPickSlip) {
-        const filterPickSlip = filters.selectedPickSlip.name?.trim();
-        const itemPickSlip = item.pickSlipNo?.trim();
-
-        if (filterPickSlip && itemPickSlip !== filterPickSlip) {
-          return false;
-        }
-      }
+        (transactionStatusMap && transactionStatusMap[String(item.deliveryId)]) || item.status;
 
       if (filters?.selectedStatus) {
         const filterStatusRaw =
@@ -37,7 +47,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
             ? filters.selectedStatus
             : filters.selectedStatus?.name;
 
-        const filterStatus = filterStatusRaw?.trim();
+        const filterStatus = String(filterStatusRaw || '').trim();
         const itemStatus = String(effectiveStatus || '').trim();
 
         if (filterStatus && itemStatus !== filterStatus) {
@@ -45,59 +55,23 @@ function Ship_TransactionTable({ onPickPress, filters }) {
         }
       }
 
-      if (filters?.selectedItem) {
-        const filterItem = filters.selectedItem.name?.toLowerCase();
-        const itemItems = item.items || [];
-
-        const hasMatchingItem = itemItems.some(itemObj => {
-          const name = itemObj?.item ?? itemObj?.name ?? '';
-          return String(name).toLowerCase().includes((filterItem || '').toLowerCase());
-        });
-
-        if (!hasMatchingItem) {
-          return false;
-        }
-      }
-
-      if (filters?.selectedException) {
-        const filterException = filters.selectedException.name?.toLowerCase();
-        const itemException = item.exception?.toLowerCase();
-
-        if (filterException && itemException !== filterException) {
-          return false;
-        }
-      }
-
-      if (filters?.selectedOrganization) {
-        const filterOrg = filters.selectedOrganization.name?.trim();
-        const itemOrg = item.organization?.trim();
-
-        if (filterOrg && itemOrg !== filterOrg) {
-          return false;
-        }
-      }
-
       return true;
     });
-  }, [filters, transactionStatusMap]);
+  }, [filters?.selectedStatus, tableData, transactionStatusMap, hasPickOptionSelection]);
 
   const handlePickButtonPress = item => {
-    if (onPickPress) {
-      onPickPress(item);
-    }
+    if (onPickPress) onPickPress(item);
   };
 
   const handleStatusPillPress = item => {
     const effectiveStatus =
-      (transactionStatusMap && transactionStatusMap[String(item.deliveryId)]) ||
-      item.status;
+      (transactionStatusMap && transactionStatusMap[String(item.deliveryId)]) || item.status;
 
     const payload = { ...item, status: effectiveStatus };
 
     setSelectedTransaction(payload);
-    console.log('ShippingStore Selected Transaction Payload:', payload);
 
-    if (payload?.status === 'Pick') {
+    if (payload?.status === 'Pick' || payload?.status === 'Pick Released') {
       handlePickButtonPress(payload);
       return;
     }
@@ -112,6 +86,26 @@ function Ship_TransactionTable({ onPickPress, filters }) {
     }
   };
 
+  if (!hasPickOptionSelection) {
+    return (
+      <View style={styles.mainContainer}>
+        <View style={styles.headerContainer}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.headerText, styles.colDelivery]}>Delivery</Text>
+            <Text style={[styles.headerText, styles.colSales]}>Sales Order No</Text>
+            <Text style={[styles.headerText, styles.colLines]}>Line/Qty</Text>
+            <Text style={[styles.headerText, styles.colPick]}>Pick Slip No</Text>
+          </View>
+        </View>
+
+        <View style={styles.noDataContainer}>
+          <Text style={styles.noDataText}>No Data Found</Text>
+          <Text style={styles.noDataSubText}>Select a Pick Option value to load shipments</Text>
+        </View>
+      </View>
+    );
+  }
+
   if (filteredData.length === 0) {
     return (
       <View style={styles.mainContainer}>
@@ -124,13 +118,9 @@ function Ship_TransactionTable({ onPickPress, filters }) {
           </View>
         </View>
 
-        <View style={styles.container}>
-          <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>
-              No shipments found matching the selected filters
-            </Text>
-            <Text style={styles.noDataSubText}>Try changing your filter criteria</Text>
-          </View>
+        <View style={styles.noDataContainer}>
+          <Text style={styles.noDataText}>No shipments found</Text>
+          <Text style={styles.noDataSubText}>Try changing your filter criteria</Text>
         </View>
       </View>
     );
@@ -166,7 +156,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
                 item.status;
 
               return (
-                <View key={item.deliveryId} style={styles.dataRow}>
+                <View key={String(item.deliveryId)} style={styles.dataRow}>
                   <View style={styles.colDelivery}>
                     <Text style={styles.cellBold} numberOfLines={1}>
                       {item.deliveryId}
@@ -213,7 +203,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
                         ]}
                         numberOfLines={1}
                       >
-                        {effectiveStatus}
+                        {String(effectiveStatus)}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -230,7 +220,7 @@ function Ship_TransactionTable({ onPickPress, filters }) {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 2,
   },
 
   headerContainer: {
@@ -247,7 +237,7 @@ const styles = StyleSheet.create({
   },
 
   sideGradient: {
-    width: 6,
+    width: 2,
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
   },
@@ -264,15 +254,15 @@ const styles = StyleSheet.create({
 
   headerRow: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 6,
     alignItems: 'center',
   },
 
   dataRow: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#000000',
     alignItems: 'flex-start',
@@ -280,8 +270,8 @@ const styles = StyleSheet.create({
 
   headerText: {
     fontFamily: 'Mulish',
-    fontWeight: '500',
-    fontSize: 12,
+    fontWeight: '700',
+    fontSize: 10,
     lineHeight: 16,
     letterSpacing: 0,
     color: '#595A5C',
@@ -291,14 +281,14 @@ const styles = StyleSheet.create({
   },
 
   cellBold: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
     color: '#233E55',
     textAlign: 'left',
   },
 
   cellSmall: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#242424',
     marginTop: 2,
     textAlign: 'left',
@@ -317,8 +307,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   colPick: {
-    flex: 1,
-    paddingHorizontal: 4,
+    flex: 1.3,
+    paddingHorizontal: 0,
   },
 
   centerHeader: {
@@ -339,7 +329,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     minWidth: 34,
     minHeight: 13,
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     paddingVertical: 4,
     borderRadius: 4,
     backgroundColor: '#ECF1F7',
@@ -358,7 +348,7 @@ const styles = StyleSheet.create({
     minWidth: 64,
     borderRadius: 4,
     backgroundColor: '#E6F4EA',
-    paddingHorizontal: 12,
+    paddingHorizontal: 5,
     paddingVertical: 4,
     alignItems: 'center',
     justifyContent: 'center',

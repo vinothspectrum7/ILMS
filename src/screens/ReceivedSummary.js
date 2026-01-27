@@ -181,8 +181,10 @@ const mapBackendArrayToFrontend = useCallback(
 
     const loadReceipt = async () => {
       try {
-        const resp = await GetSingleReceipt(sourceId, PONUMBER);
+        const resp = await GetSingleReceipt(OrgData?.selectedOrg,sourceId, PONUMBER);
+        console.log(resp,"!sourceId && !PONUMBER")
         const frontendArray = mapBackendArrayToFrontend(resp);
+                console.log(frontendArray,"!frontendArrayfrontendArray && !PONUMBER")
         setApiItems(frontendArray);
         setPhase('success');
       } catch (err) {

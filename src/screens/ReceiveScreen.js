@@ -585,7 +585,7 @@ const ReceiveScreen = () => {
     //   }
     // };
 loadPO();
-// loadReceived();
+loadReceived();
     // Promise.all([loadASN(), loadPO(), loadReceived(), loadIC()]).finally(() => setPhase('success'));
   }, [OrgData?.selectedOrg]);
 
@@ -640,7 +640,7 @@ loadPO();
   const handleSearch = (text) => {
     setSearchText(text);
     // if (activeKey !== 'poir') {
-    //   applyVisible(activeKey, text, activeFilter);
+      applyVisible(activeKey, text, activeFilter);
     // }
   };
 

@@ -6,6 +6,7 @@ export const BASE_URL ='http://3.17.31.222:7003';
 // export const BASE_URL = 'http://192.168.1.15:3003/api/v1/';
 export const API_ENDPOINTS = {
   LOGIN: `${BASE_URL}/auth/token`,
+  REFRESH: `${BASE_URL}/auth/refresh`,
   GET_ASN_DATA: (org_uuid) => `${BASE_URL}/asn/asn_headers/${org_uuid}/all/`,
   GET_SINGLE_ASN_DATA: (asn_id) => `${BASE_URL}/asn/asn_lines_po/${asn_id}/details`,
   GET_PO_DATA: (orgId) => `${BASE_URL}/purchase_orders/${orgId}/all`,
@@ -23,7 +24,7 @@ export const API_ENDPOINTS = {
   GET_SINGLE_PO_DATA: (po_id) => `${BASE_URL}/purchase_orders/${po_id}`,
   GET_SAVED_SINGLE_PO_DATA: (po_id,interface_id) => `${BASE_URL}/receipt_interface/${po_id}/${interface_id}`,
   GET_SAVED_SINGLE_ASN_DATA: (asn_id,interface_id) => `${BASE_URL}/receipt_interface/asn/${asn_id}/${interface_id}`,
-  GET_SINGLE_PURCHASE_RECEPT: (receipt_num,po_num) => `${BASE_URL}/receipts/lines/${po_num}/${receipt_num}/details`,
+  GET_SINGLE_PURCHASE_RECEPT: (org_id,receipt_num,po_num) => `${BASE_URL}/receipts/lines/${org_id}/${po_num}/${receipt_num}/details`,
   GET_SINGLE_ASN_RECEPT: (asn_rcpt_id,asn_id) => `${BASE_URL}/purchase_orders/receipts/${asn_rcpt_id}/details?received_type=asn&asn_hdr_uuid=${asn_id}`,
   GET_ORGS_DATA: `${BASE_URL}/organization/organization-list`,
   GET_SUB_INVENTORY_DATA: (po_id) => `${BASE_URL}/organizations/${po_id}/subinventories`,
@@ -31,6 +32,7 @@ export const API_ENDPOINTS = {
   GET_LOCATOR_DATA: (sub_inven_id) => `${BASE_URL}/organizations/${sub_inven_id}/locators`,
   UPDATE_RECEIVED_QTY: `${BASE_URL}/purchase_orders/update/batch_received_qty`,
   UPDATE_FUSION_RECEIVED_QTY: `${BASE_URL}/receipts/create/batch_received_qty`,
+  UPDATE_EBS_RECEIVED_QTY: `${BASE_URL}/receipts/create_receipt`,
   SAVE_RECEIVED_QTY: `${BASE_URL}/receipt_interface/batch_received_qty`,
   GET_IC_PO_DATA: (orgId) => `${BASE_URL}/receipt_interface/list/${orgId}/all`,
   DELETE_INCOMPLETE_RECORD: (header_id) => `${BASE_URL}/receipt_interface/delete/${header_id}`,
@@ -48,7 +50,17 @@ export const API_ENDPOINTS = {
   GETSUBINVITEMLIST: (org_id) => `${BASE_URL}/inventory/Get_All-Inventory-Items?Org_code=${org_id}`,
   GETFROMSUBINVLIST: (org_id,item_code) => `${BASE_URL}/inventory/Get-Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}`,
   GETITEMAVAILABLESTOCK: (org_id,item_code) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}`,
-  GETAVAILABLESTOCK: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`
-
- 
+  GETAVAILABLESTOCK: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Sub-Inventory?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
+  GETAVAILABLELOCATORSTOCK: (org_id,item_code,sub_inv,loc_id) => `${BASE_URL}/inventory/locator-available-qty?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}&Loc=${loc_id}`,
+  GETTOSUBINVLIST: (org_id) => `${BASE_URL}/inventory/Get-To-Subinventory?Org_code=${org_id}`,
+  GETTOLOCATORINVLIST: (org_id,sub_inv_id) => `${BASE_URL}/inventory/Get-To-Locator?Org_code=${org_id}&Sub_inv=${sub_inv_id}`,
+ GET_SHIPPING_EBS_SUMMARY_DATA: (org_id) => `${BASE_URL}/shipment/summary?p_org_id=${org_id}`,
+ GET_SHIPPING_EBS_PICKSLIP_NUM_DATA: (org_id,pickslip_no) => `${BASE_URL}/shipment/by-pickslip?p_org_id=204&p_pickslip=426`,
+ GET_SHIPPING_EBS_DELIVERY_ID_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
+ GET_SHIPPING_EBS_SALES_ORDER_NUM_DATA: (org_id,so_number) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_so_number=${so_number}`,
+ GET_SHIPPING_EBS_PICK_ORDER_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/pick-order?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
+ GET_SHIPPING_EBS_PICK_ITEMS_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/pick-items?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
+ GET_SHIPPING_EBS_PICKSLIP_NUM_DATA: (org_id,pickslip_no) => `${BASE_URL}/shipment/by-pickslip?p_org_id=${org_id}&p_pickslip=${pickslip_no}`,
+ GETFROMLOCATORSDATA: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Get-Locators?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
+ GETINVENTORYLOCATORSDATA: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Get-Lots?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
 };

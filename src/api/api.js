@@ -43,10 +43,11 @@ const refreshAccessToken = async () => {
 
   const response = await axios.post(
     `${BASE_URL}/auth/refresh`,
-    { refresh_token: refreshToken },
+    {},
     {
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${refreshToken}`,
       },
     }
   );
@@ -57,6 +58,7 @@ const refreshAccessToken = async () => {
 
   return newAccessToken;
 };
+
 
 api.interceptors.request.use(async (config) => {
   // Attach access token

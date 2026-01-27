@@ -412,15 +412,17 @@ const ReceiveSummaryScreen = () => {
       const lpnNumber = backend?.lpn?.id != null ? backend.lpn.id : null;
 
       const base = {
-        po_id: currentPO,
+        // po_id: currentPO,
         po_number: poHeader?.poNumber,
-        po_line_id: backend?.po_line_id,
+        // po_line_id: backend?.po_line_id,
         po_line_num: backend?.po_line_number,
-        item_id: backend?.item_id,
+        // item_id: backend?.item_id,
         item_code: backend?.name,
-        org_id: backend?.org_id,
+        // org_id: backend?.org_id,
         org_code: backend?.org_code,
-        business_unit: OrgData?.BusinessName,
+        supplier_site_code: backend?.supplier_site_code, //new param
+        location_code: backend?.location_code, //new param
+        // business_unit: OrgData?.BusinessName,
         supplier_name: poHeader?.supplier,
         uom_code: backend?.uomCode,
         uom: backend?.uom,

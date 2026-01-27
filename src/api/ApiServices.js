@@ -97,6 +97,7 @@ export const GetFilterPoItems = async(status,org_id)=>{
 }
 export const GetReceivedItems = async(org_id)=>{
   try {
+    console.log(API_ENDPOINTS.GET_RECEIVED_FUSION_DATA(org_id),"API_ENDPOINTS.GET_RECEIVED_FUSION_DATA(org_id)")
     const response = await api.get(API_ENDPOINTS.GET_RECEIVED_FUSION_DATA(org_id));
         console.log("Response Data:popopo", response);
     return response.data;
@@ -150,9 +151,10 @@ export const GetSavedSingleASN = async(asn_id,interface_id)=>{
   }
 }
 
-export const GetSingleReceipt = async(receipt_num,po_num)=>{
+export const GetSingleReceipt = async(org_id,receipt_num,po_num)=>{
   try {
-    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(receipt_num,po_num));
+    console.log(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(org_id,receipt_num,po_num),"API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(org_id,receipt_num,po_num)")
+    const response = await api.get(API_ENDPOINTS.GET_SINGLE_PURCHASE_RECEPT(org_id,receipt_num,po_num));
     console.log(response,"GET_SINGLE_PO_DATA");
     return response.data;
     
@@ -193,7 +195,8 @@ export const GetLocatorsData = async(sub_id)=>{
 }
 export const Submit_Receive_Qty = async(data)=>{
     try {
-    const response = await api.post(API_ENDPOINTS.UPDATE_FUSION_RECEIVED_QTY,data);
+      console.log(data,"Submit_Receive_QtySubmit_Receive_Qty")
+    const response = await api.post(API_ENDPOINTS.UPDATE_EBS_RECEIVED_QTY,data);
     console.log("Response Data:", response);
     return response.data;
   } catch (error) {
@@ -383,6 +386,127 @@ export const GetAvailableItemStockData = async(org_id,item_code)=>{
     
   }catch (error) {
     console.error("Get AvailableStock ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetAvailableLocatorStockData = async(org_id,item_code,sub_inv_id,locator_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETAVAILABLELOCATORSTOCK(org_id,item_code,sub_inv_id,locator_id));
+    console.log(response.data)
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get AvailableLocatorStock ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetTOSubInvData = async(org_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETTOSUBINVLIST(org_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get TOSUBINV ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetTOLocatorData = async(org_id,sub_inv_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETTOLOCATORINVLIST(org_id,sub_inv_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get TOLOCATOR ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+} 
+
+export const GetShippingSummaryData = async(org_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_SUMMARY_DATA(org_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_SUMMARY_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+} 
+
+export const GetShippingPickSlipNumData = async(org_id,pickslip_no)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PICKSLIP_NUM_DATA(org_id,pickslip_no));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_PICKSLIP_NUM_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetShippingDeliveryIdData = async(org_id,delivery_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_DELIVERY_ID_DATA(org_id,delivery_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_DELIVERY_ID_DATA ERROR:", error.message, error.response?.data); 
+  }
+}
+export const GetFromLocatorsData = async(org_id,item_code,sub_inv_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETFROMLOCATORSDATA(org_id,item_code,sub_inv_id));
+    console.log(response.data)
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get FROM LOCATOR ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetShippingSalesOrderNumData = async(org_id,so_number)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_SALES_ORDER_NUM_DATA(org_id,so_number));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_SALES_ORDER_NUM_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+}
+
+export const GetShippingPickOrderData = async(org_id,delivery_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PICK_ORDER_DATA(org_id,delivery_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_PICK_ORDER_DATA ERROR:", error.message, error.response?.data);
+    throw error;
+  }
+} 
+
+export const GetShippingPickItemsData = async(org_id,delivery_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PICK_ITEMS_DATA(org_id,delivery_id));
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_PICK_ITEMS_DATA ERROR:", error.message, error.response?.data); 
+  }
+}
+
+export const GetInventoryLotsData = async(org_id,item_code,sub_inv_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GETINVENTORYLOCATORSDATA(org_id,item_code,sub_inv_id));
+    console.log(response.data)
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get INVENTORY LOTS ERROR:", error.message, error.response?.data);
     throw error;
   }
 }
