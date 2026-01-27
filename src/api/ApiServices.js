@@ -469,3 +469,15 @@ export const GetInventoryLotsData = async(org_id,item_code,sub_inv_id)=>{
     throw error;
   }
 }
+
+export const Submit_Sub_Inventory_Transfer_Qty = async(data)=>{
+    try {
+      console.log(data,"Submit_Receive_QtySubmit_Receive_Qty")
+    const response = await api.post(API_ENDPOINTS.SUBMIT_SUBINVENTORY_TRANSFER,data);
+    console.log("Sub Inventory Transfer Data:", response);
+    return response.data;
+  } catch (error) {
+    console.error("Sub Inventory Transfer Error:", error.message, error.response?.data);
+    throw error.response?.data;
+  }  
+}

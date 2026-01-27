@@ -71,11 +71,29 @@ const ReceivedSummaryScreen = () => {
   const isStandardReceipt = dt => norm(dt) === 'standard receipt' || norm(dt) === 'standard';
   const isDirectDelivery = dt => norm(dt) === 'direct delivery' || norm(dt) === 'direct';
 
+  const normalizeDeliveryType = value => {
+  if (!value || typeof value !== 'string') return '';
+
+  const parts = value.trim().split(' ');
+
+  if (parts.length === 1) return value;
+
+  return parts
+    .map((word, index) =>
+      index === 0
+        ? word.charAt(0).toUpperCase() + word.slice(1)
+        : word.toLowerCase()
+    )
+    .join(' ');
+};
+
+
 const mapBackendArrayToFrontend = useCallback(
   data => {
     const arr = Array.isArray(data) ? data : [];
 
     const getDeliveryType = backend =>
+      normalizeDeliveryType(
       backend?.delivery_type ??
       backend?.deliveryType ??
       backend?.delivery_type_name ??
@@ -83,7 +101,7 @@ const mapBackendArrayToFrontend = useCallback(
       backend?.deliverytype ??
       backend?.delivery_type_code ??
       backend?.delivery_type_desc ??
-      '';
+      '');
 
     const allDirectDelivery = arr.every(
       backend => getDeliveryType(backend) === 'Direct delivery'

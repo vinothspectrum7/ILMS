@@ -18,6 +18,7 @@ import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg'
 import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
 import SummaryDividerIcon from '../../assets/icons/summarydivider.svg';
 import SummaryViewEyeIcon from '../../assets/icons/summaryvieweye.svg';
+import FailureSvg from '../../assets/icons/failure.svg';
 import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
 import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
 import LinearGradient from 'react-native-linear-gradient';
@@ -40,6 +41,7 @@ export default function Sub_Inv_TransferSummaryScreen() {
   const [successVisible, setSuccessVisible] = useState(false);
   const [serialModalVisible,setserialModalVisible] = useState(false);
   const [lotserialModalVisible,setLotserialModalVisible] = useState(false);
+  const [FailureVisible,setFailureVisible] = useState(false);
 
   const handleOpenLot = index => {
     setActiveLineIndex(index);
@@ -113,15 +115,68 @@ export default function Sub_Inv_TransferSummaryScreen() {
     setConfirmVisible(true);
   };
 
-  const handleConfirmTransfer = () => {
-    setConfirmVisible(false);
-    console.log('SUB_INV_TRANSFER_SUBMIT', subInvTransferItems);
-    setSuccessVisible(true);
-    setTimeout(() => {
-      resetSubInvTransfer();
-      setSuccessVisible(false);
-      navigation.navigate('Inventory');
-    }, 1500);
+    const mapConfirmData = data => {
+    return (data || []).map(backend => {
+
+      const base = {
+            item_code: "string",
+            from_subinventory: "string",
+            to_subinventory: "string",
+            quantity: 0,
+            uom: "string",
+            from_locator: "string",
+            to_locator: "string",
+            from_serial: "",
+            to_serial: "",
+            from_lot: "",
+            to_lot: ""
+        // lot_item_lots: Array.isArray(backend?.lotLines)
+        //   ? backend.lotLines.map(l => ({
+        //       lot_number: l?.lotNumber,
+        //       transaction_quantity: l?.qty,
+        //       lot_expiration_date: l?.expDate ? (() => {
+        //         const [dd, mm, yyyy] = String(l.expDate).split('/');
+        //         return dd && mm && yyyy ? `${yyyy}-${mm}-${dd}` : null;
+        //       })() : null,
+        //     }))
+        //   : [],
+      };
+
+      return base;
+    });
+  };
+
+  const handleConfirmTransfer = async() => {
+      setConfirmVisible(false);
+  
+      console.log('SUB_INV_TRANSFER_SUBMIT', subInvTransferItems);
+      const formatdata = mapConfirmData(subInvTransferItems);
+    
+        // try {
+        //   const response = await Submit_Receive_Qty(formatdata);
+        //   if (response?.status === 'SUCCESS') {
+        //     setSuccessVisible(true);
+        //     setTimeout(() => {
+        //       resetSubInvTransfer();
+        //       setSuccessVisible(false);
+        //       navigation.navigate('Inventory');
+        //     }, 3500);
+        //   }
+        //     setFailureVisible(true);
+        //     setTimeout(() => {
+        //       resetSubInvTransfer();
+        //       setFailureVisible(false);
+        //       navigation.navigate('Inventory');
+        //     }, 3500);
+
+        // } catch (err) {
+        //     setFailureVisible(true);
+        //     setTimeout(() => {
+        //       resetSubInvTransfer();
+        //       setFailureVisible(false);
+        //       navigation.navigate('Inventory');
+        //     }, 3500);
+        // }
   };
 
   useEffect(()=>{
@@ -286,6 +341,11 @@ export default function Sub_Inv_TransferSummaryScreen() {
         visible={successVisible}
         onClose={() => setSuccessVisible(false)}
       />
+
+      <FailureModal
+        visible={FailureVisible}
+        onClose={() => setSuccessVisible(false)}
+      />
     </View>
   );
 }
@@ -375,7 +435,28 @@ function SuccessModal({ visible, onClose }) {
           </View>
           <View style={styles.successmodalBody}>
             <Text style={styles.modalTitle}>
-              Org Transfer created successfully
+              Sub Inventory Transfer created successfully
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function FailureModal({ visible, onClose }) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={styles.successmodalTop}>
+            <FailureSvg width={rs(150)} height={rs(150)} />
+          </View>
+          <View style={styles.successmodalBody}>
+            <Text style={styles.modalTitle}>
+              Sub Inventory Transfer Failed
             </Text>
           </View>
         </View>

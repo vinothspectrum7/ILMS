@@ -23,6 +23,7 @@ import LotSerialDeleteIcon from '../../assets/icons/lotserialdelete.svg';
 import ErrorIcon from '../../assets/icons/error.svg';
 import { useReceivingStore } from '../../store/receivingStore';
 import { GetInventoryLotsData } from '../../api/ApiServices';
+import Toast from 'react-native-toast-message';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -120,7 +121,7 @@ export default function Inv_LotModalPopup({
 
         const loadInventoryLotData = async () => {
           try {
-            const Lotsdata = await GetInventoryLotsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
+            const Lotsdata = await GetInventoryLotsData('M1','CM11222','FGI');
             if (Lotsdata) {
               const LotsdataList = mapLotslist(Lotsdata);
               setLotsList(LotsdataList);
@@ -128,7 +129,7 @@ export default function Inv_LotModalPopup({
               setLotsList([]);
             }
           } catch (err) {
-            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromLocator. Please try again.', position: 'top', visibilityTime: 5000 });
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Lot Number. Please try again.', position: 'top', visibilityTime: 5000 });
           }
         };
         loadInventoryLotData();
@@ -202,8 +203,6 @@ export default function Inv_LotModalPopup({
     lots.every(
       l =>
         l.lotNumber &&
-        l.mfgDate &&
-        l.expDate &&
         Number(l.qty) > 0,
     );
 
@@ -388,7 +387,7 @@ export default function Inv_LotModalPopup({
 
                       <View style={styles.row2}>
                         <View style={styles.col}>
-                          <Text style={styles.fieldLabel}>
+                          {/* <Text style={styles.fieldLabel}>
                             Mfg Date<Text style={styles.required}>*</Text>
                           </Text>
                           <View style={styles.dateRow}>
@@ -406,11 +405,11 @@ export default function Inv_LotModalPopup({
                             >
                               <CalendarIcon width={rs(16)} height={rs(16)} />
                             </TouchableOpacity>
-                          </View>
+                          </View> */}
                         </View>
 
                         <View style={styles.col}>
-                          <Text style={styles.fieldLabel}>
+                          {/* <Text style={styles.fieldLabel}>
                             Exp Date<Text style={styles.required}>*</Text>
                           </Text>
                           <View style={styles.dateRow}>
@@ -428,7 +427,7 @@ export default function Inv_LotModalPopup({
                             >
                               <CalendarIcon width={rs(16)} height={rs(16)} />
                             </TouchableOpacity>
-                          </View>
+                          </View> */}
                         </View>
 
                         <View style={styles.colQty}>
@@ -441,7 +440,7 @@ export default function Inv_LotModalPopup({
                             min={0}
                             max={lotMax}
                             disabledinput={false}
-                            width={rs(90)}
+                            width={rs(120)}
                             height={rs(40)}
                           />
                         </View>
@@ -660,7 +659,7 @@ const styles = StyleSheet.create({
     marginRight: rs(8),
   },
   colQty: {
-    width: rs(90),
+    width: rs(120),
     marginStart: rs(10),
   },
   dateRow: {
