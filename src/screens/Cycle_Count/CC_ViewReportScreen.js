@@ -17,9 +17,6 @@ import WhiteDownload from '../../assets/icons/CycleCount_Icons/WhiteDownload.svg
 import Email from '../../assets/icons/CycleCount_Icons/Email.svg';
 import PrintIcon from '../../assets/icons/CycleCount_Icons/Print.svg';
 import RNPrint from 'react-native-print';
-import Share from 'react-native-share';
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
-import RNFS from 'react-native-fs';
 
 const CC_ViewReportScreen = () => {
     const navigation = useNavigation();
@@ -151,38 +148,38 @@ const CC_ViewReportScreen = () => {
     };
 
 
-    const handleEmail = async () => {
-        await RNPrint.print({ html: buildReportHtml() });
-        Alert.alert(
-            'Email Report',
-            'To email the report:\n1. Use the print dialog\n2. Choose "Save as PDF"\n3. Then attach the PDF to email'
-        );
-    };
+    // const handleEmail = async () => {
+    //     await RNPrint.print({ html: buildReportHtml() });
+    //     Alert.alert(
+    //         'Email Report',
+    //         'To email the report:\n1. Use the print dialog\n2. Choose "Save as PDF"\n3. Then attach the PDF to email'
+    //     );
+    // };
 
-    const handleExcel = async () => {
-        try {
-            const headers = ['Item Code', 'Variances'];
-            const rows = viewReportData?.top_total_variances || [];
-            const csvContent = [
-                headers.join(','),
-                ...rows.map(r => `${r.item_code || '--'},${r.variance || 0}`)
-            ].join('\n');
+    // const handleExcel = async () => {
+    //     try {
+    //         const headers = ['Item Code', 'Variances'];
+    //         const rows = viewReportData?.top_total_variances || [];
+    //         const csvContent = [
+    //             headers.join(','),
+    //             ...rows.map(r => `${r.item_code || '--'},${r.variance || 0}`)
+    //         ].join('\n');
 
-            const path = `${RNFS.DocumentDirectoryPath}/CycleCountReport_${Date.now()}.csv`;
-            await RNFS.writeFile(path, csvContent, 'utf8');
+    //         const path = `${RNFS.DocumentDirectoryPath}/CycleCountReport_${Date.now()}.csv`;
+    //         await RNFS.writeFile(path, csvContent, 'utf8');
 
-            await Share.open({
-                url: `file://${path}`,
-                type: 'text/csv',
-                title: 'Cycle Count Report',
-            });
+    //         await Share.open({
+    //             url: `file://${path}`,
+    //             type: 'text/csv',
+    //             title: 'Cycle Count Report',
+    //         });
 
-            console.log('Excel file created at:', path);
+    //         console.log('Excel file created at:', path);
 
-        } catch (e) {
-            console.log('Excel Export Error:', e);
-        }
-    };
+    //     } catch (e) {
+    //         console.log('Excel Export Error:', e);
+    //     }
+    // };
 
 
 
