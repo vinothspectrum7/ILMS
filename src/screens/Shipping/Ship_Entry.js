@@ -16,6 +16,7 @@ import PickIcon from '../../assets/icons/Ship_Icons/PickIcon.svg';
 import PackIcon from '../../assets/icons/Ship_Icons/PackIcon.svg';
 import LabelPrintingIcon from '../../assets/icons/Ship_Icons/LabelPrintingIcon.svg';
 import ShipConfirmIcon from '../../assets/icons/Ship_Icons/ShipConfirmIcon.svg';
+import { useReceivingStore } from '../../store/receivingStore';
 
 const BG = '#F5F5F6';
 const TEXT_DARK = '#242424';
@@ -28,7 +29,11 @@ function ShipEntry() {
 
   const CARD_GAP = scale(14);
   const CARD_WIDTH = (SCREEN_WIDTH - scale(22 * 2) - CARD_GAP * 2) / 3;
-  const CARD_HEIGHT = CARD_WIDTH * 0.75;
+  const CARD_HEIGHT = CARD_WIDTH * 0.75; 
+
+    const {
+      OrgData,
+    } = useReceivingStore();
 
   const MENU_ITEMS = [
     {
@@ -112,7 +117,7 @@ function ShipEntry() {
       <View style={{ backgroundColor: '#233E55' }}>
         <GlobalHeaderComponent
           screenTitle="Shipping"
-          organizationName="ENV"
+          organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
           onBack={() => navigation.goBack()}
         />
       </View>

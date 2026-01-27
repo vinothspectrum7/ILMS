@@ -510,3 +510,13 @@ export const GetInventoryLotsData = async(org_id,item_code,sub_inv_id)=>{
     throw error;
   }
 }
+export const GetShippingPickConfirmData = async(org_id,delivery_id)=>{
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PICK_CONFIRM_DATA(org_id,delivery_id));
+    console.log(response, "ShippingPickConfirmresponseresponseresponse")
+    return response.data;
+    
+  }catch (error) {
+    console.error("Get SHIPPING_EBS_PICK_CONFIRM_DATA ERROR:", error.message, error.response?.data); 
+  }
+}
