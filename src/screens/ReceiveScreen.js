@@ -13,6 +13,7 @@ import BackFilterIcon from '../assets/icons/filterbackicon.svg';
 import InputSearchIcon from '../assets/icons/search_receivelist.svg';
 import ViewLessIcon from '../assets/icons/viewless.svg';
 import { useReceivingStore } from '../store/receivingStore';
+import { useIsFocused } from '@react-navigation/native';
 import { FetchData, GetPoItems, GetReceivedItems, GetICPoItems, DeleteIncompleteRecord, GetSearchPoItems, GetFilterPoItems, GetSearchReceivedItems } from '../api/ApiServices';
 
 const initialLayout = { width: Dimensions.get('window').width };
@@ -124,6 +125,7 @@ const ReceiveScreen = () => {
     { key: 'InComplete', title: 'Incomplete' },
   ]);
   const activeKey = routes[index].key;
+  const isFocused = useIsFocused();
 
   const pagerRef = useRef(null);
   const scrollRef = useRef(null);
@@ -513,6 +515,7 @@ const ReceiveScreen = () => {
 
   useEffect(() => {
     console.log("Response Data:popopo", '204');
+    if (!isFocused) return;
     if (!OrgData?.selectedOrg) return;
     setPhase('loading');
 

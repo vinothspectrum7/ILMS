@@ -19,6 +19,10 @@ import BarcodeIcon from '../../assets/icons/barcodeicon.svg';
 import LotSerialItemIcon from '../../assets/icons/lotserialitem.svg';
 import BarcodeScanner from '../../screens/BarCodeScanner';
 import ErrorIcon from '../../assets/icons/error.svg';
+import Inv_Dropdown from './Inv_Dropdown';
+import { useReceivingStore } from '../../store/receivingStore';
+import { GetInventoryLotsData } from '../../api/ApiServices';
+import Toast from 'react-native-toast-message';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -49,14 +53,43 @@ export default function Inv_SerialModalPopup({
   itemCode = '',
   initialSerials = [],
   initialMode = 'ranges',
+  selectedItem,
+  fromSub
 }) {
   const qty = Number(lineQty || 0);
   const initialSerialsNormalized = useMemo(() => normalizeInitialSerials(initialSerials), [initialSerials]);
 
   const normalizeMode = m => (m === 'manual' || m === 'individual' ? 'manual' : 'ranges');
   const [activeMode, setActiveMode] = useState(normalizeMode(initialMode));
-
+  const findLotOption = lotCode => {
+    if (!lotCode) return null;
+    const target = String(lotCode).toLowerCase().trim();
+    return (
+      SerialList.find(l => {
+        const code = String(l.code || '').toLowerCase().trim();
+        const name = String(l.name || '').toLowerCase().trim();
+        return code === target || name === target;
+      }) || null
+    );
+  };
   const [rangesRows, setRangesRows] = useState([]);
+  const [SerialList, setSerialList] = useState([
+      {
+        id: 'LOT251113-528',
+        name: 'LOT251113-528',
+        code: 'LOT251113-528',
+      },
+      {
+        id: 'LOT176356-379',
+        name: 'LOT176356-379',
+        code: 'LOT176356-379',
+      },
+      {
+        id: 'LOT365807-977',
+        name: 'LOT365807-977',
+        code: 'LOT365807-977',
+      },
+    ]);
   const [rangesHasGenerated, setRangesHasGenerated] = useState(false);
   const [prefix, setPrefix] = useState('SN');
   const [startNumberText, setStartNumberText] = useState('1');
@@ -128,6 +161,7 @@ export default function Inv_SerialModalPopup({
   const shouldShowFooter = activeMode === 'ranges' ? rangesHasGenerated : true;
 
   const trimmedAddText = useMemo(() => String(addSerialText || '').trim(), [addSerialText]);
+  const {OrgData} = useReceivingStore();
 
   const canAddByTyping = useMemo(() => {
     if (!showTouchArea) return false;
@@ -146,11 +180,13 @@ export default function Inv_SerialModalPopup({
     setStartNumberText('1');
 
     if (mode === 'manual') {
+              console.log(initialSerialsNormalized,"initialSerialsNormalized")
       if (initialSerialsNormalized.length > 0) {
         const list = initialSerialsNormalized.slice(0, qty).map((s, i) => ({
           id: makeId(),
           entry: i + 1,
           serial: s,
+          selectedserial:{id:s,name:s,code:s},
           source: 'manual',
         }));
         setManualRows(list.length ? list : [{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
@@ -182,6 +218,27 @@ export default function Inv_SerialModalPopup({
     if (visible) hydrateOnOpen();
   }, [visible, hydrateOnOpen]);
 
+    useEffect(() => {
+      if (!selectedItem || !fromSub) return;
+  
+      const loadInventorySerialData = async () => {
+        try {
+          const Lotsdata = await GetInventoryLotsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
+          if (Lotsdata) {
+            console.log(Lotsdata,"LotsdataLotsdataLotsdata")
+            const LotsdataList = mapSeriallist(Lotsdata);
+            setSerialList(LotsdataList);
+          } else {
+            setSerialList([]);
+          }
+        } catch (err) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Serial Number. Please try again.', position: 'top', visibilityTime: 5000 });
+        }
+      };
+      loadInventorySerialData();
+  
+    }, [selectedItem, fromSub]);
+
   const openScannerForRow = useCallback(
     rowId => {
       clearError();
@@ -190,6 +247,14 @@ export default function Inv_SerialModalPopup({
     },
     [clearError],
   );
+
+    const mapSeriallist = data =>
+    data.map(element => ({
+      id: element.serial,
+      name: element.serial,
+      code: element.serial,
+      qty:element.qty
+    }));
 
   const openScannerForAddBar = useCallback(() => {
     clearError();
@@ -230,8 +295,11 @@ export default function Inv_SerialModalPopup({
     (rowId, value) => {
       clearError();
       setActiveRows(list => {
+        const lotOpt = findLotOption(value);
+        console.log(list,rowId,value,"SETLISTSTSTSTST")
         const idx = list.findIndex(r => r.id === rowId);
-        if (idx >= 0) list[idx] = { ...list[idx], serial: value };
+        console.log(idx,"idxxxxxxxx")
+        list[idx] = { ...list[idx], serial: value,selectedserial:lotOpt };
         return list;
       });
     },
@@ -248,7 +316,7 @@ export default function Inv_SerialModalPopup({
 
   const addRowFromTyping = useCallback(() => {
     clearError();
-    if (!canAddByTyping) return;
+    // if (!canAddByTyping) return;
     const v = trimmedAddText;
     setActiveRows(list => [...list, { id: makeId(), entry: list.length + 1, serial: v, source: 'added' }]);
     setAddSerialText('');
@@ -297,7 +365,7 @@ export default function Inv_SerialModalPopup({
       return;
     }
     clearError();
-    onSave?.(v.serials, activeMode);
+    onSave?.(v.serials, activeMode, qty);
     setAddSerialText('');
     if (activeMode === 'ranges') {
       setManualRows([{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
@@ -515,7 +583,7 @@ export default function Inv_SerialModalPopup({
                   </View>
                 ) : (
                   <View style={styles.sectionCard}>
-                    <View style={[styles.addTouchWrap, (!showTouchArea || !canAddRow) && styles.addTouchDisabled]}>
+                    {/* <View style={[styles.addTouchWrap, (!showTouchArea || !canAddRow) && styles.addTouchDisabled]}>
                       <TextInput
                         value={addSerialText}
                         onChangeText={t => {
@@ -539,7 +607,7 @@ export default function Inv_SerialModalPopup({
                       >
                         <BarcodeIcon width={rs(18)} height={rs(18)} />
                       </TouchableOpacity>
-                    </View>
+                    </View> */}
 
                     <View style={styles.tableHeader}>
                       <Text style={styles.tableHeaderTxt}>Serial Numbers</Text>
@@ -563,6 +631,23 @@ export default function Inv_SerialModalPopup({
                                 dupIds.has(r.id) && styles.inputBoxError,
                               ]}
                             >
+                              {activeMode=='manual'?<Inv_Dropdown
+                                required
+                                placeholder="Enter Serial"
+                                value={r.selectedserial}
+                                onChange={item =>{
+                                  setRowSerial(r.id,item?.code)
+                                  console.log(item,"itemssssssssss")
+                                  console.log(activeRows,"activeRowssssss")
+                                }
+                                }
+                                items={SerialList}
+                                displayValue={it => it.name || it.code}
+                                renderCode={() => ''}
+                                showBarcodeIcon
+                                onBarcodePress={() => openScannerForRow(lot.idx)}
+                                // disabled={!locked}
+                              />:
                               <TextInput
                                 value={r.serial}
                                 onChangeText={txt => setRowSerial(r.id, txt)}
@@ -570,16 +655,16 @@ export default function Inv_SerialModalPopup({
                                 placeholderTextColor="#91A3B3"
                                 style={[styles.serialInput, locked && styles.serialInputLocked]}
                                 editable={!locked}
-                              />
+                              />}
                             </View>
-                            <TouchableOpacity
+                            {/* <TouchableOpacity
                               onPress={() => openScannerForRow(r.id)}
                               activeOpacity={0.85}
                               disabled={locked}
                               style={[styles.scanBtn, locked && styles.scanBtnDisabled]}
                             >
                               <BarcodeIcon width={rs(18)} height={rs(18)} />
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                           </View>
                           <TouchableOpacity
                             onPress={() => deleteRow(r.id)}
@@ -604,12 +689,12 @@ export default function Inv_SerialModalPopup({
                     <Text style={styles.saveText}>Save</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.addBtn, (!canAddByTyping || !canAddRow) && styles.addBtnDisabled]}
-                    disabled={!canAddByTyping || !canAddRow}
+                    style={[styles.addBtn, (!canAddRow) && styles.addBtnDisabled]}
+                    disabled={!canAddRow}
                     onPress={addRowFromTyping}
                     activeOpacity={0.9}
                   >
-                    <Text style={[styles.addText, (!canAddByTyping || !canAddRow) && styles.addTextDisabled]}>
+                    <Text style={[styles.addText, (!canAddRow) && styles.addTextDisabled]}>
                       Add Serial
                     </Text>
                   </TouchableOpacity>
@@ -786,7 +871,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: rs(8),
-    paddingHorizontal: rs(6),
+    // paddingHorizontal: rs(6),
     borderRadius: rs(10),
     backgroundColor: '#D9E4EE',
     marginBottom: rs(10),
@@ -796,16 +881,11 @@ const styles = StyleSheet.create({
   inputWrap: { flex: 1, position: 'relative' },
   inputBox: {
     height: rs(40),
-    borderRadius: rs(8),
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D7DEE6',
-    paddingHorizontal: rs(12),
-    justifyContent: 'center',
-    ...Platform.select({
-      android: { elevation: 2 },
-      ios: { shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } },
-    }),
+    // borderRadius: rs(8),
+    // backgroundColor: '#FFFFFF',
+    // borderWidth: 1,
+    // borderColor: '#D7DEE6',
+    paddingTop:'auto',
   },
   inputBoxLocked: { backgroundColor: '#F6F8FA' },
   inputBoxError: { borderColor: '#D32F2F' },

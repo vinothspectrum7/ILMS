@@ -250,9 +250,9 @@ export default function Sub_Inv_TransferScreen() {
 
   const mapfromsubInvlist = data =>
     data.map(element => ({
-    id: element.R_SUBINVENTORY_CODE,
-    name: element.R_SUBINVENTORY_CODE,
-    code: element.R_SUBINVENTORY_CODE,
+    id: element.subinv_type,
+    name: element.subinv_type,
+    code: element.subinv_type,
     }));
 
   const maptoLocatorlist = data =>
@@ -272,7 +272,9 @@ export default function Sub_Inv_TransferScreen() {
     availableUom:null,
     availableStock: element?.Total_available_qty??element?.available_qty ?? 0,
     code: element.item_code,
-    controlType: element.control_type ?? 'Lot'
+    controlType: element.control_type?.replace(/\s+/g, '').toLowerCase() === 'lot+serial'
+    ? 'Lot+Serial'
+    : element.control_type
     // description:
     //   'Lorem ipsum dolor sit amet.',
     // controlType: 'Lot',
@@ -401,6 +403,10 @@ const handlePersistMainLine = () => {
     persistedIndex != null
       ? subInvTransferItems[persistedIndex]?.serials || []
       : [];
+  const currentSerialsmode =
+    persistedIndex != null
+      ? subInvTransferItems[persistedIndex]?.mode || []
+      : [];
     const currentLotSerials =
     persistedIndex != null
       ? subInvTransferItems[persistedIndex]?.lotSerials || []
@@ -446,7 +452,7 @@ const handlePersistMainLine = () => {
     setStatus({ count: lots.length, totalQty });
   };
 
-  const handleSaveSerials = (serials, totalQty) => {
+  const handleSaveSerials = (serials, mode, totalQty) => {
     if (persistedIndex == null) return;
     const updated = {
       item: selectedItem,
@@ -459,6 +465,7 @@ const handlePersistMainLine = () => {
       notes,
       serials,
       controlType,
+      mode,
       serialStatus: {
         count: serials.length,
         totalQty,
@@ -744,7 +751,7 @@ const handlePersistMainLine = () => {
               </View>
             )}
 
-            {controlType=='Lot+Serial' && (
+            {/* {controlType=='Lot+Serial' && ( */}
               <View style={styles.lotRow}>
                 <Text style={styles.fieldLabel}>
                   Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
@@ -752,12 +759,12 @@ const handlePersistMainLine = () => {
                 </Text>
 
                 <TouchableAddLotSerial
-                  enabled={lineValid}
+                  enabled={true}
                   lotSerialStatus={status}
                   onPress={handleOpenLotSerialModal}
                 />
               </View>
-            )}
+            {/* )} */}
 
             <View style={styles.notesWrapper}>
               <Text style={styles.fieldLabel}>
@@ -814,7 +821,9 @@ const handlePersistMainLine = () => {
         lineQty={qty}
         lineLabel={baseLineLabel}
         initialSerials={currentSerials}
-        // initialMode={serialMode}
+        initialMode={currentSerialsmode}
+        selectedItem={selectedItem}
+        fromSub={fromSub}
       />
 
       <Inv_LotSerialModalPopup

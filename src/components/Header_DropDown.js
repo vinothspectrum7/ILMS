@@ -10,6 +10,8 @@ import {
   Keyboard,
   Dimensions,
 } from 'react-native';
+import { TextInput } from 'react-native';
+
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -42,6 +44,7 @@ export default function Header_DropDown({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [cardHeight, setCardHeight] = useState(0);
   const anchorRef = useRef(null);
+  const [searchText, setSearchText] = useState('');
 
   const resolvedSelectedItem = useMemo(() => {
     if (!value || items.length === 0) return null;
@@ -50,6 +53,27 @@ export default function Header_DropDown({
 
     return items.find(it => String(getItemId(it)) === String(valueId)) || null;
   }, [value, items]);
+
+  useEffect(() => {
+  if (!open) setSearchText('');
+   }, [open]);
+
+  const filteredItems = useMemo(() => {
+  if (!searchText.trim()) return items;
+
+  const q = searchText.toLowerCase();
+
+  return items.filter(it => {
+    const label =
+      it?.label ??
+      it?.name ??
+      it?.org_code ??
+      '';
+
+    return String(label).toLowerCase().includes(q);
+  });
+}, [items, searchText]);
+
 
   const selectedLabel = useMemo(() => {
     if (!value) return '';
@@ -168,8 +192,17 @@ export default function Header_DropDown({
           style={dropdownCardStyle}
           onLayout={e => setCardHeight(e.nativeEvent.layout.height)}
         >
+        <TextInput
+          value={searchText}
+          onChangeText={setSearchText}
+          placeholder="Search org..."
+          placeholderTextColor="rgba(255,255,255,0.6)"
+          style={styles.searchInput}
+          autoFocus
+        />
+
           <FlatList
-            data={items}
+            data={filteredItems}
             keyExtractor={(item, index) => String(getItemId(item) || index)}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -282,4 +315,19 @@ const styles = StyleSheet.create({
     opacity: 0.3,
     marginTop: rs(6),
   },
+  searchInput: {
+  height: rs(35),
+  borderRadius: rs(4),
+  // backgroundColor: '#1B3347',
+  // paddingHorizontal: rs(12),
+  color: WHITE,
+  fontSize: rs(14),
+  marginBottom: rs(6),
+  borderBottomWidth:1,
+  marginTop:2,
+  borderColor:WHITE
+  // textAlign:'center',
+  // paddingTop:5
+},
+
 });

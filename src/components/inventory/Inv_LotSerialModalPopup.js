@@ -176,6 +176,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
           const Lotsdata = await GetInventoryLotsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
           if (Lotsdata) {
             const LotsdataList = mapLotslist(Lotsdata);
+            console.log(Lotsdata,"LotsdataLotsdataLotsdataLotsdata")
             setLotsList(LotsdataList);
           } else {
             setLotsList([]);
@@ -199,9 +200,10 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
 
   const mapLotslist = data =>
     data.map(element => ({
-    id: element.Lot,
-    name: element.Lot,
-    code: element.Lot,
+      id: element.lot,
+      name: element.lot,
+      code: element.lot,
+      qty:element.qty
     }));
 
   const updateLotSerials = (idx, updater) => {
@@ -894,6 +896,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
                           updateLot(lot.idx, {
                             selectedLot: item,
                             lotNumber: item?.name || item?.code || '',
+                            maxqty:item?.qty
                           })
                         }
                         items={LotsList}
@@ -946,7 +949,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
                             value={lot.qty}
                             setValue={next => handleQtyChange(lot.idx, next)}
                             min={0}
-                            max={lotMax}
+                            max={lot?.maxqty}
                             disabledinput={false}
                             width={rs(90)}
                             height={rs(40)}
