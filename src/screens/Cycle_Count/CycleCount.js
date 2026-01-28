@@ -69,7 +69,7 @@ const CycleCount = () => {
           <MenuCard
             title="Review Variances"
             Icon={CountSettingsIcon}
-            onPress={() => navigation.navigate('CC_Settings')}
+            onPress={() => navigation.navigate('CC_ReviewVarianceScreen')}
           />
         </View>
 

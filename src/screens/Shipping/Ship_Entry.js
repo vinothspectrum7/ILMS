@@ -14,7 +14,7 @@ import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import ShippingTransactionsIcon from '../../assets/icons/Ship_Icons/ShippingTransactionsIcon.svg';
 import PickIcon from '../../assets/icons/Ship_Icons/PickIcon.svg';
 import PackIcon from '../../assets/icons/Ship_Icons/PackIcon.svg';
-import LabelPrintingIcon from '../../assets/icons/Ship_Icons/LabelPrintingIcon.svg';
+import LabelPrintIcon from '../../assets/icons/Ship_Icons/LabelPrintIcon.svg';
 import ShipConfirmIcon from '../../assets/icons/Ship_Icons/ShipConfirmIcon.svg';
 import { useReceivingStore } from '../../store/receivingStore';
 
@@ -60,6 +60,7 @@ function ShipEntry() {
     {
       id: 4,
       title: 'Label\nPrinting',
+      Icon: LabelPrintIcon,
       route: 'Ship_LabelPrintListScreen',
     },
     {

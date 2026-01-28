@@ -19,6 +19,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import ExportDownloadIcon from '../../assets/icons/CycleCount_Icons/ExportDownloadIcon.svg';
 import { useCycleCountStore } from '../../store/cycleCountStore';
 import WhiteEyeIcon from '../../assets/icons/CycleCount_Icons/WhiteEyeIcon.svg';
+import VarianceIcon from '../../assets/icons/CycleCount_Icons/VarianceIcon.svg'; <GreenItemBox width={12} height={12} fill="#168035" />
 const { width } = Dimensions.get('window');
 const TABS = ['All', 'Pending', 'In Progress', 'Completed'];
 
@@ -166,6 +167,8 @@ const CC_CountHistoryScreen = () => {
 
                                     <View style={[styles.statItem, styles.variancesStat]}>
                                         <View style={styles.iconContainer}>
+                                            <VarianceIcon width={13} height={13} />
+
                                         </View>
                                         <View style={styles.statTextContainer}>
                                             <Text style={[styles.statLabel, styles.variancesLabel]}>Variances</Text>
@@ -217,7 +220,7 @@ const CC_CountHistoryScreen = () => {
                                         disabled={!item.actions.can_view_report}
                                         onPress={() => onViewReport(item)}
                                     >
-                                        <WhiteEyeIcon width={14} height={14} fill="#FFFFFF" />
+                                        <WhiteEyeIcon width={14} height={14} />
                                         <Text style={styles.viewReportButtonText}>View Report</Text>
                                     </TouchableOpacity>
 
