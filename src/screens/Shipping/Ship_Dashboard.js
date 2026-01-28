@@ -182,7 +182,7 @@ function Ship_Dashboard({ navigation, route }) {
 
       <Ship_GlobalHeaderComponent
         screenTitle="Shipping"
-        organizationName="ENV"
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         onBack={handleBack}
         navRowStyle={{ backgroundColor: '#233E55' }}
       />

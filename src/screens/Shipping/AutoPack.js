@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Dimensions,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
   Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +20,11 @@ import ShipConfirmationModal from '../../components/shipping/Ship_ConfirmationMo
 import DropdownIcon from '../../assets/icons/dropdown.svg';
 import { useShippingStore } from '../../store/shippingStore'; 
 import { useReceivingStore } from '../../store/receivingStore';
+import {
+  GetShippingPackOrderData,
+  GetShippingPackItemsData,
+  GetShippingPackConfirmData,
+} from '../../api/ApiServices';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -30,6 +36,11 @@ const AutoPack = () => {
     OrgData,
   } = useReceivingStore();
 
+  const getOrgCode = () => {
+      const val = useReceivingStore.getState()?.OrgData?.selectedOrg;
+      return parseInt(val, 10);
+    };
+
   const cardWidth = screenWidth - 42;
   const newCardWidth = Math.min(372, screenWidth - 42);
   const newCardLeft = (screenWidth - cardWidth) / 2;
@@ -39,10 +50,84 @@ const AutoPack = () => {
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
   const [animation] = useState(new Animated.Value(0));
 
-  const pickItems = useMemo(() => {
+  const [phase, setPhase] = useState('idle');
+    const [PackListItems, setPackListItems] = useState([]);
+    const [PackListOrders, setPackListOrders] = useState();
+
+  const PackItems = useMemo(() => {
     const list = selectedTransaction?.items;
     return Array.isArray(list) ? list : [];
   }, [selectedTransaction]);
+
+  const maptoPackItemslist = data =>
+      data.map(backend => ({
+        item_code: backend.item_code || '-',
+        qty_to_Pack: backend.qty_to_Pack || '-',
+        unit_of_measure: backend.unit_of_measure,
+        sub_inventory: backend.sub_inventory || '-',
+        locator: backend.locator || '-',
+        item_status: backend.item_status || '-',
+      }));
+  
+    useEffect(() => {
+      console.log(selectedTransaction, "selectedTransaction_delivery_id")
+      const orgCode = getOrgCode();
+      console.log(orgCode, "orgCodeorgCodeorgCodeorgCode")
+      if (!selectedTransaction?.deliveryId) return;
+      setPhase('loading');
+      const loadPackItemsData = async () => {
+        try {
+          console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
+          const Packitemsdata = await GetShippingPackItemsData(orgCode, selectedTransaction?.deliveryId);
+          if (Packitemsdata?.Pack_items) {
+            console.log(Packitemsdata, "PackitemsdataPackitemsdataPackitemsdataPackitemsdata")
+            const frontendArray = maptoPackItemslist(Packitemsdata?.Pack_items);
+            setPackListItems(frontendArray);
+          } else {
+            setPackListItems([]);
+          }
+          setPhase('success');
+        } catch (error) {
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: `${error}`,
+            position: 'top',
+            visibilityTime: 10000,
+          });
+          setPhase('error');
+          navigation.navigate('Ship_Entry');
+        }
+      };
+      loadPackItemsData();
+  
+      if (!selectedTransaction?.deliveryId) return;
+      setPhase('loading');
+      const loadPackOrderData = async () => {
+        try {
+          console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
+          const Packorderdata = await GetShippingPackOrderData(orgCode, selectedTransaction?.deliveryId);
+          if (Packorderdata?.Pack_order_header) {
+            console.log(Packorderdata, "PackorderdataPackorderdataPackorderdataPackorderdata")
+            setPackListOrders(Packorderdata?.Pack_order_header);
+          } else {
+            setPackListOrders([]);
+          }
+          setPhase('success');
+        } catch (error) {
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: `${error}`,
+            position: 'top',
+            visibilityTime: 10000,
+          });
+          setPhase('error');
+          navigation.navigate('Ship_Entry');
+        }
+      };
+      loadPackOrderData();
+    }, [selectedTransaction?.deliveryId]);
 
   const packOptions = [
     { id: 'lpn', label: 'Pack with LPN' },
@@ -118,14 +203,14 @@ const AutoPack = () => {
       <View key={`${item.item}-${index}`} style={styles.rowCard}>
         <View style={styles.tableRow}>
           <View style={styles.itemCell}>
-            <Text style={styles.itemName}>{item.item || ''}</Text>
-            <Text style={styles.itemCode}>{code}</Text>
+            <Text style={styles.itemName}>{item.item_code || '-'}</Text>
+            <Text style={styles.itemCode}>{item.item_id || '-'}</Text>
           </View>
 
           <View style={styles.qtyCell}>
-            <Text style={styles.qtyText}>{qty}</Text>
-            <Text style={styles.eachText}>{uom}</Text>
-            <Text style={styles.statusText}>{status}</Text>
+            <Text style={styles.qtyText}>{item.qty_to_pick || '-'}</Text>
+            <Text style={styles.eachText}>{item.unit_of_measure || '-'}</Text>
+            <Text style={styles.statusText}>{item.item_status || '-'}</Text>
           </View>
         </View>
       </View>
@@ -140,7 +225,15 @@ const AutoPack = () => {
         screenTitle="Pack"
         organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         onBack={() => navigation.goBack()}
-      />
+      /> 
+
+      {phase === 'loading' && (
+              <View style={styles.loaderWrapper}>
+                <ActivityIndicator size="large" color="#233E55" />
+              </View>
+            )}
+            {phase !== 'loading' && (
+              <>
 
       <View style={styles.mainContent}>
         <View style={[styles.cardContainerWrapper, { width: cardWidth }]}>
@@ -149,12 +242,12 @@ const AutoPack = () => {
               <View style={styles.topRow}>
                 <View style={styles.topLeft}>
                   <Text style={styles.label}>Customer Name</Text>
-                  <Text style={styles.value}>1100002</Text>
+                  <Text style={styles.value}>{PackListOrders?.customer_name ?? '-'}</Text>
                 </View>
 
                 <View style={styles.topRight}>
-                  <Text style={styles.label}>Company Name</Text>
-                  <Text style={styles.value}>1100002</Text>
+                  <Text style={styles.label}>Carrier Name</Text>
+                  <Text style={styles.value}>{PackListOrders?.carrier_name ?? '-'}</Text>
                 </View>
               </View>
 
@@ -172,12 +265,12 @@ const AutoPack = () => {
               >
                 <View style={styles.bottomLeft}>
                   <Text style={styles.label}>Ship from location</Text>
-                  <Text style={styles.value}>3DIng</Text>
+                  <Text style={styles.value}>{PackListOrders?.ship_from_location ?? '-'}</Text>
                 </View>
 
                 <View style={styles.bottomRight}>
                   <Text style={styles.label}>Pick Slip Number</Text>
-                  <Text style={styles.value}>3DIng</Text>
+                  <Text style={styles.value}>{selectedTransaction?.pickSlipNumber}</Text>
                 </View>
               </Animated.View>
             </LinearGradient>
@@ -207,11 +300,11 @@ const AutoPack = () => {
             <View style={styles.tableHeader}>
               <View style={styles.headerContent}>
                 <Text style={styles.headerText}>Items</Text>
-                <Text style={styles.headerText}>Qty To Pick</Text>
+                <Text style={styles.headerText}>Qty To Pack</Text>
               </View>
             </View>
 
-            <View style={styles.tableBody}>{pickItems.map((item, index) => renderTableRow(item, index))}</View>
+            <View style={styles.tableBody}>{PackListItems.map((item, index) => renderTableRow(item, index))}</View>
           </ScrollView>
         </View>
       </View>
@@ -228,10 +321,13 @@ const AutoPack = () => {
       <ShipConfirmationModal
         visible={showConfirmPackModal}
         type="CONFIRM_PACK"
-        itemCount={pickItems.length}
+        itemCount={PackListItems.length}
         onClose={() => setShowConfirmPackModal(false)}
       />
+      </>
+    )}
     </View>
+    
   );
 };
 
@@ -486,6 +582,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#595A5C',
   },
+  loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default AutoPack;

@@ -228,7 +228,7 @@ export default function Sub_Inv_TransferScreen() {
             setToLocatorList([]);
           }
         } catch (err) {
-          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromSubInv. Please try again.', position: 'top', visibilityTime: 5000 });
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load To Locator. Please try again.', position: 'top', visibilityTime: 5000 });
         }
       };
       loadToLocatorData();
@@ -664,6 +664,7 @@ const handlePersistMainLine = () => {
                   onChange={it => {
                     setToSub(it);
                     setToLocator(null);
+                    setToLocatorList([]);
                   }}
                   items={TOSubInvList}
                   displayValue={it => it.name}

@@ -23,6 +23,7 @@ import { useReceivingStore } from '../../store/receivingStore';
 import {
   GetShippingPickOrderData,
   GetShippingPickItemsData,
+  GetShippingPickConfirmData,
 } from '../../api/ApiServices';
 
 function Pick({ navigation }) {
@@ -49,9 +50,9 @@ function Pick({ navigation }) {
   };
 
   const pickLines = useMemo(() => {
-    const list = selectedTransaction?.items;
+    const list = PickListItems?.items;
     return Array.isArray(list) ? list : [];
-  }, [selectedTransaction]);
+  }, [PickListItems]);
 
 
   const maptopickItemslist = data =>
@@ -61,6 +62,7 @@ function Pick({ navigation }) {
       unit_of_measure: backend.unit_of_measure,
       sub_inventory: backend.sub_inventory || '-',
       locator: backend.locator || '-',
+      item_status: backend.item_status || '-',
     }));
 
   useEffect(() => {
@@ -136,12 +138,38 @@ function Pick({ navigation }) {
     setShowScanner(false);
   };
 
-  const handleConfirmPick = () => {
-    if (!selectedTransaction?.deliveryId) {
-      setShowConfirmation(true);
-      return;
-    }
+  const handleConfirmPick = async () => {
 
+    if (!selectedTransaction?.deliveryId) return;
+    setPhase('loading');
+    const orgCode = getOrgCode();
+
+    try {
+      console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
+      const pickconfirmdata = await GetShippingPickConfirmData(orgCode, selectedTransaction?.deliveryId);
+      console.log(pickconfirmdata, "ShippingPickConfirmShippingPickConfirmShippingPickConfirm")
+
+      if (pickconfirmdata?.status) {
+        console.log(pickconfirmdata, "ShippingPickConfirmShippingPickConfirmShippingPickConfirm")
+        if (!selectedTransaction?.deliveryId) {
+          setShowConfirmation(true);
+          return;
+        }
+      } else {
+        Toast.show({ type: 'error', text1: pickconfirmdata?.status });
+      }
+      setPhase('success');
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: `${error}`,
+        position: 'top',
+        visibilityTime: 10000,
+      });
+      setPhase('error');
+      navigation.navigate('Ship_Entry');
+    }
     const updated = { ...selectedTransaction, status: 'Ready To Pack' };
 
     setPickItemsData(updated);
@@ -195,7 +223,7 @@ function Pick({ navigation }) {
             </View>
           </View>
 
-          <Text style={styles.pendingText}>{item.status || '-'}</Text>
+          <Text style={styles.pendingText}>{item.item_status || '-'}</Text>
         </View>
       </View>
     </View>
@@ -307,7 +335,7 @@ function Pick({ navigation }) {
             onYes={handleConfirmationYes}
             onNo={handleConfirmationNo}
             type="CONFIRM_PICK"
-            itemCount={pickLines.length}
+            itemCount={PickListItems.length}
           />
         </>
       )}

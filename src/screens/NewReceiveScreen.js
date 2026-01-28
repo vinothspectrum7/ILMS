@@ -196,7 +196,7 @@ const NewReceiveScreen = () => {
       imageUri: backend?.image_uri || null,
       org_id: OrgData?.selectedOrg,
       org_code:OrgData?.selectedOrgCode,
-      business_name:OrgData?.BusinessName,
+      business_name:OrgData?.BusinessName??null,
       locator: '',
       status: backend.line_status,
       uom: backend.item?.uom,
@@ -817,9 +817,9 @@ const NewReceiveScreen = () => {
             leftLabel="Save"
             rightLabel="Receive"
             onLeftPress={hasAnyItems ? () => { commitDraftToStore(); handlesave(); } : undefined}
-            onRightPress={canReceive ? handleReceive : undefined}
+            onRightPress={ handleReceive}
             leftEnabled={hasAnyItems}
-            rightEnabled={canReceive}
+            rightEnabled={true}
           />
           <Modal visible={showScanner} animationType="slide">
             <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />

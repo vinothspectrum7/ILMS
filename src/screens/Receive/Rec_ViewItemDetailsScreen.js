@@ -30,7 +30,7 @@ import Rec_LotSerialModalPopup from '../../components/receive/Rec_LotSerialModal
 import Rec_SerialModalPopup from '../../components/receive/Rec_SerialModalPopup';
 import Rec_InspectSerialModalPopup from '../../components/receive/Rec_InspectSerialModalPopup';
 import { useReceivingStore } from '../../store/receivingStore';
-import { GetItemImage, GetLocatorsData, LPNList } from '../../api/ApiServices';
+import { GetFROMSubInvData, GetItemImage, GetLocatorsData, LPNList } from '../../api/ApiServices';
 import ReceiveItemBoxIcon from '../../assets/icons/receiveitemboxicon.svg';
 import ReceiveQtyIcon from '../../assets/icons/receiveqtyicon.svg';
 import ReceiveLocationIcon from '../../assets/icons/receivelocationicon.svg';
@@ -118,6 +118,7 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const {
     InventoryList,
+    setInventoryList,
     OrgData,
     receiveItems,
     mergePatchIntoReceiveItems,
@@ -179,6 +180,33 @@ const Rec_ViewItemDetailsScreen = () => {
     setCopies(next);
   }, [current?.id, currentStoreLine?.copies, route?.params?.copies]);
 
+  const mapfromsubInvlist = data =>
+    data.map(element => ({
+    id: element.R_SUBINVENTORY_CODE,
+    name: element.R_SUBINVENTORY_CODE,
+    code: element.R_SUBINVENTORY_CODE,
+    }));
+
+    useEffect(()=>{
+      // if (!InventoryList) return;
+        const loadSubInvData = async () => {
+          try {
+            const fromsubinvdata = await GetFROMSubInvData('M1','CSD004');
+            if (fromsubinvdata) {
+              const fromSubInvList = mapfromsubInvlist(fromsubinvdata);
+              console.log(fromSubInvList,"fromrrifsubinvvv")
+              setInventoryList(fromSubInvList);
+            } else {
+              setInventoryList([]);
+            }
+          } catch (err) {
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load SubInv. Please try again.', position: 'top', visibilityTime: 5000 });
+          }
+        };
+
+        loadSubInvData();
+  
+    },[current?.itemCode]);
 
   const [inspectRowsMap, setInspectRowsMap] = useState({}); // { [itemId]: [rows] }
   const [inspectRowModalVisible, setInspectRowModalVisible] = useState(false);
