@@ -169,7 +169,7 @@ const AutoPack = () => {
       if (packconfirmdata?.status) {
         console.log(packconfirmdata, "ShippingPackConfirmShippingPackConfirmShippingPackConfirm")
         if (!selectedTransaction?.deliveryId) {
-          setShowConfirmation(true);
+          Toast.show({ type: 'success', text1: packconfirmdata?.status });
           return;
         }
       } else {
@@ -244,7 +244,7 @@ const AutoPack = () => {
       <StatusBar backgroundColor="#233E55" barStyle="light-content" />
 
       <GlobalHeaderComponent
-        screenTitle="Pack"
+        screenTitle="Auto Pack"
         organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         onBack={() => navigation.goBack()}
       />
