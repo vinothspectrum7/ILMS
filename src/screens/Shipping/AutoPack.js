@@ -454,15 +454,17 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 12,
-    color: '#333',
-    marginBottom: 2,
+    fontFamily: 'Mulish',
+    fontSize: 10,
+    color: '#667085',    
   },
 
   value: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000',
+    fontFamily: 'Mulish',
+    fontWeight: '800',
+    fontSize: 12,
+    color: '#233E55',
+    marginBottom: 2,
   },
 
   newCard: {
@@ -497,6 +499,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     width: '100%',
+    marginBottom: 10,
   },
 
   radioContainer: {
