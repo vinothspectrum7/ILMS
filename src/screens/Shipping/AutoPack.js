@@ -18,7 +18,7 @@ import RadioGlossyUnselected from '../../assets/icons/RadioGlossyUnselected.svg'
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import ShipConfirmationModal from '../../components/shipping/Ship_ConfirmationModal';
 import DropdownIcon from '../../assets/icons/dropdown.svg';
-import { useShippingStore } from '../../store/shippingStore'; 
+import { useShippingStore } from '../../store/shippingStore';
 import { useReceivingStore } from '../../store/receivingStore';
 import {
   GetShippingPackOrderData,
@@ -29,30 +29,31 @@ import {
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const AutoPack = () => {
-  const navigation = useNavigation();
-  const selectedTransaction = useShippingStore(s => s.selectedTransaction); 
 
-    const {
-    OrgData,
-  } = useReceivingStore();
+
+  const setPackItemsData = useShippingStore(s => s.setPickItemsData);
+  const setTransactionStatus = useShippingStore(s => s.setTransactionStatus);
+  const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
+
+  const navigation = useNavigation();
+  const selectedTransaction = useShippingStore(s => s.selectedTransaction);
+  const { OrgData } = useReceivingStore();
 
   const getOrgCode = () => {
-      const val = useReceivingStore.getState()?.OrgData?.selectedOrg;
-      return parseInt(val, 10);
-    };
+    const val = useReceivingStore.getState()?.OrgData?.selectedOrg;
+    return parseInt(val, 10);
+  };
 
   const cardWidth = screenWidth - 42;
-  const newCardWidth = Math.min(372, screenWidth - 42);
   const newCardLeft = (screenWidth - cardWidth) / 2;
 
   const [showConfirmPackModal, setShowConfirmPackModal] = useState(false);
   const [selectedOption, setSelectedOption] = useState('Auto Pack');
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
   const [animation] = useState(new Animated.Value(0));
-
   const [phase, setPhase] = useState('idle');
-    const [PackListItems, setPackListItems] = useState([]);
-    const [PackListOrders, setPackListOrders] = useState();
+  const [PackListItems, setPackListItems] = useState([]);
+  const [PackListOrders, setPackListOrders] = useState(null);
 
   const PackItems = useMemo(() => {
     const list = selectedTransaction?.items;
@@ -60,74 +61,73 @@ const AutoPack = () => {
   }, [selectedTransaction]);
 
   const maptoPackItemslist = data =>
-      data.map(backend => ({
-        item_code: backend.item_code || '-',
-        qty_to_Pack: backend.qty_to_Pack || '-',
-        unit_of_measure: backend.unit_of_measure,
-        sub_inventory: backend.sub_inventory || '-',
-        locator: backend.locator || '-',
-        item_status: backend.item_status || '-',
-      }));
-  
-    useEffect(() => {
-      console.log(selectedTransaction, "selectedTransaction_delivery_id")
-      const orgCode = getOrgCode();
-      console.log(orgCode, "orgCodeorgCodeorgCodeorgCode")
-      if (!selectedTransaction?.deliveryId) return;
-      setPhase('loading');
-      const loadPackItemsData = async () => {
-        try {
-          console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
-          const Packitemsdata = await GetShippingPackItemsData(orgCode, selectedTransaction?.deliveryId);
-          if (Packitemsdata?.Pack_items) {
-            console.log(Packitemsdata, "PackitemsdataPackitemsdataPackitemsdataPackitemsdata")
-            const frontendArray = maptoPackItemslist(Packitemsdata?.Pack_items);
-            setPackListItems(frontendArray);
-          } else {
-            setPackListItems([]);
-          }
-          setPhase('success');
-        } catch (error) {
-          Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: `${error}`,
-            position: 'top',
-            visibilityTime: 10000,
-          });
-          setPhase('error');
-          navigation.navigate('Ship_Entry');
+    data.map(backend => ({
+      item_code: backend.item_code || '-',
+      qty_to_pick: backend.qty_to_pick || '-',
+      unit_of_measure: backend.unit_of_measure || '-',
+      sub_inventory: backend.sub_inventory || '-',
+      locator: backend.locator || '-',
+      item_status: backend.status || '-',
+    }));
+
+  const mapToPickOrderHeader = backend => ({
+    customer_name: backend?.customer_name || '-',
+    carrier_name: backend?.carrier_name || '-',
+    ship_from_location: backend?.ship_from_location || '-',
+    pick_slip_number: backend?.pick_slip_number || '-',
+  });
+
+  useEffect(() => {
+    if (!selectedTransaction?.deliveryId) return;
+
+    const orgCode = getOrgCode();
+    setPhase('loading');
+
+    const loadPackItemsData = async () => {
+      try {
+        const Packitemsdata = await GetShippingPackItemsData(
+          orgCode,
+          selectedTransaction.deliveryId
+        );
+
+        if (Packitemsdata?.pick_items?.length) {
+          setPackListItems(maptoPackItemslist(Packitemsdata.pick_items));
+        } else {
+          setPackListItems([]);
         }
-      };
-      loadPackItemsData();
-  
-      if (!selectedTransaction?.deliveryId) return;
-      setPhase('loading');
-      const loadPackOrderData = async () => {
-        try {
-          console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
-          const Packorderdata = await GetShippingPackOrderData(orgCode, selectedTransaction?.deliveryId);
-          if (Packorderdata?.Pack_order_header) {
-            console.log(Packorderdata, "PackorderdataPackorderdataPackorderdataPackorderdata")
-            setPackListOrders(Packorderdata?.Pack_order_header);
-          } else {
-            setPackListOrders([]);
-          }
-          setPhase('success');
-        } catch (error) {
-          Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: `${error}`,
-            position: 'top',
-            visibilityTime: 10000,
-          });
-          setPhase('error');
-          navigation.navigate('Ship_Entry');
+
+        setPhase('success');
+      } catch (error) {
+        setPhase('error');
+        navigation.navigate('Ship_Entry');
+      }
+    };
+
+    const loadPackOrderData = async () => {
+      try {
+        const Packorderdata = await GetShippingPackOrderData(
+          orgCode,
+          selectedTransaction.deliveryId
+        );
+
+        if (Packorderdata?.pack_order_result?.length) {
+          setPackListOrders(
+            mapToPickOrderHeader(Packorderdata.pack_order_result[0])
+          );
+        } else {
+          setPackListOrders(null);
         }
-      };
-      loadPackOrderData();
-    }, [selectedTransaction?.deliveryId]);
+
+        setPhase('success');
+      } catch (error) {
+        setPhase('error');
+        navigation.navigate('Ship_Entry');
+      }
+    };
+
+    loadPackItemsData();
+    loadPackOrderData();
+  }, [selectedTransaction?.deliveryId]);
 
   const packOptions = [
     { id: 'lpn', label: 'Pack with LPN' },
@@ -136,10 +136,8 @@ const AutoPack = () => {
   ];
 
   const toggleHeader = () => {
-    const toValue = isHeaderExpanded ? 0 : 1;
-
     Animated.timing(animation, {
-      toValue,
+      toValue: isHeaderExpanded ? 0 : 1,
       duration: 300,
       useNativeDriver: false,
     }).start();
@@ -157,7 +155,45 @@ const AutoPack = () => {
     outputRange: ['0deg', '180deg'],
   });
 
-  const handlePackPress = () => {
+  const handlePackPress = async () => {
+
+    if (!selectedTransaction?.deliveryId) return;
+    setPhase('loading');
+    const orgCode = getOrgCode();
+
+    try {
+      console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
+      const packconfirmdata = await GetShippingPackConfirmData(orgCode, selectedTransaction?.deliveryId);
+      console.log(packconfirmdata, "ShippingPackConfirmShippingPackConfirm")
+
+      if (packconfirmdata?.status) {
+        console.log(packconfirmdata, "ShippingPackConfirmShippingPackConfirmShippingPackConfirm")
+        if (!selectedTransaction?.deliveryId) {
+          Toast.show({ type: 'success', text1: packconfirmdata?.status });
+          return;
+        }
+      } else {
+        Toast.show({ type: 'error', text1: packconfirmdata?.status });
+      }
+      setPhase('success');
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: `${error}`,
+        position: 'top',
+        visibilityTime: 10000,
+      });
+      setPhase('error');
+      navigation.navigate('Ship_Entry');
+    }
+    const updated = { ...selectedTransaction, status: 'Ready To Ship' };
+
+    setPackItemsData(updated);
+    //add lot, serail, lot+serail data here - manualPick
+
+    setSelectedTransaction(updated);
+    setTransactionStatus(updated.deliveryId, 'Ready To Ship');
     navigation.navigate('Ship_ConfirmPack');
   };
 
@@ -172,10 +208,7 @@ const AutoPack = () => {
         style={styles.radioContainer}
         disabled={!isEnabled}
         activeOpacity={0.8}
-        onPress={() => {
-          if (!isEnabled) return;
-          setSelectedOption(option.label);
-        }}
+        onPress={() => isEnabled && setSelectedOption(option.label)}
       >
         <RadioIcon width={16} height={16} />
         <Text
@@ -191,143 +224,124 @@ const AutoPack = () => {
     );
   };
 
-  const renderTableRow = (item, index) => {
-    if (!item || !item.item) return null;
-
-    const code = item.code ?? item.itemCode ?? '';
-    const qty = item.quantity ?? '';
-    const uom = item.uom ?? 'Each';
-    const status = item.status ?? '';
-
-    return (
-      <View key={`${item.item}-${index}`} style={styles.rowCard}>
-        <View style={styles.tableRow}>
-          <View style={styles.itemCell}>
-            <Text style={styles.itemName}>{item.item_code || '-'}</Text>
-            <Text style={styles.itemCode}>{item.item_id || '-'}</Text>
-          </View>
-
-          <View style={styles.qtyCell}>
-            <Text style={styles.qtyText}>{item.qty_to_pick || '-'}</Text>
-            <Text style={styles.eachText}>{item.unit_of_measure || '-'}</Text>
-            <Text style={styles.statusText}>{item.item_status || '-'}</Text>
-          </View>
+  const renderTableRow = (item, index) => (
+    <View key={index} style={styles.rowCard}>
+      <View style={styles.tableRow}>
+        <View style={styles.itemCell}>
+          <Text style={styles.itemName}>{item.item_code}</Text>
+        </View>
+        <View style={styles.qtyCell}>
+          <Text style={styles.qtyText}>{item.qty_to_pick}</Text>
+          <Text style={styles.eachText}>{item.unit_of_measure}</Text>
+          <Text style={styles.statusText}>{item.item_status}</Text>
         </View>
       </View>
-    );
-  };
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#233E55" barStyle="light-content" />
 
       <GlobalHeaderComponent
-        screenTitle="Pack"
+        screenTitle="Auto Pack"
         organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         onBack={() => navigation.goBack()}
-      /> 
+      />
 
       {phase === 'loading' && (
-              <View style={styles.loaderWrapper}>
-                <ActivityIndicator size="large" color="#233E55" />
-              </View>
-            )}
-            {phase !== 'loading' && (
-              <>
-
-      <View style={styles.mainContent}>
-        <View style={[styles.cardContainerWrapper, { width: cardWidth }]}>
-          <Animated.View style={[styles.cardContainer, { height: cardHeight }]}>
-            <LinearGradient colors={['#F5F5F6', '#D9E4EE']} style={styles.gradientBackground}>
-              <View style={styles.topRow}>
-                <View style={styles.topLeft}>
-                  <Text style={styles.label}>Customer Name</Text>
-                  <Text style={styles.value}>{PackListOrders?.customer_name ?? '-'}</Text>
-                </View>
-
-                <View style={styles.topRight}>
-                  <Text style={styles.label}>Carrier Name</Text>
-                  <Text style={styles.value}>{PackListOrders?.carrier_name ?? '-'}</Text>
-                </View>
-              </View>
-
-              <Animated.View
-                style={[
-                  styles.bottomRow,
-                  {
-                    opacity: animation,
-                    height: animation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 40],
-                    }),
-                  },
-                ]}
-              >
-                <View style={styles.bottomLeft}>
-                  <Text style={styles.label}>Ship from location</Text>
-                  <Text style={styles.value}>{PackListOrders?.ship_from_location ?? '-'}</Text>
-                </View>
-
-                <View style={styles.bottomRight}>
-                  <Text style={styles.label}>Pick Slip Number</Text>
-                  <Text style={styles.value}>{selectedTransaction?.pickSlipNumber}</Text>
-                </View>
-              </Animated.View>
-            </LinearGradient>
-          </Animated.View>
-
-          <TouchableOpacity style={styles.toggleCircle} onPress={toggleHeader} activeOpacity={0.8}>
-            <View style={styles.circleOuter}>
-              <Animated.View style={{ transform: [{ rotate: rotateIcon }] }}>
-                <DropdownIcon width={16} height={16} />
-              </Animated.View>
-            </View>
-          </TouchableOpacity>
+        <View style={styles.loaderWrapper}>
+          <ActivityIndicator size="large" color="#233E55" />
         </View>
+      )}
 
-        <View style={[styles.newCard, { width: cardWidth, marginLeft: newCardLeft }]}>
-          <ScrollView
-            style={styles.cardContent}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.radioSection}>
-              <View style={styles.radioGroupHorizontal}>
-                {packOptions.map(option => renderRadioButton(option))}
-              </View>
+      {phase !== 'loading' && (
+        <>
+          <View style={styles.mainContent}>
+            <View style={[styles.cardContainerWrapper, { width: cardWidth }]}>
+              <Animated.View style={[styles.cardContainer, { height: cardHeight }]}>
+                <LinearGradient colors={['#F5F5F6', '#D9E4EE']} style={styles.gradientBackground}>
+                  <View style={styles.topRow}>
+                    <View style={styles.topLeft}>
+                      <Text style={styles.label}>Customer Name</Text>
+                      <Text style={styles.value}>{PackListOrders?.customer_name ?? '-'}</Text>
+                    </View>
+                    <View style={styles.topRight}>
+                      <Text style={styles.label}>Carrier Name</Text>
+                      <Text style={styles.value}>{PackListOrders?.carrier_name ?? '-'}</Text>
+                    </View>
+                  </View>
+
+                  <Animated.View
+                    style={[
+                      styles.bottomRow,
+                      {
+                        opacity: animation,
+                        height: animation.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, 40],
+                        }),
+                      },
+                    ]}
+                  >
+                    <View style={styles.bottomLeft}>
+                      <Text style={styles.label}>Ship from location</Text>
+                      <Text style={styles.value}>{PackListOrders?.ship_from_location ?? '-'}</Text>
+                    </View>
+                    <View style={styles.bottomRight}>
+                      <Text style={styles.label}>Pick Slip Number</Text>
+                      <Text style={styles.value}>{PackListOrders?.pick_slip_number ?? '-'}</Text>
+                    </View>
+                  </Animated.View>
+                </LinearGradient>
+              </Animated.View>
+
+              <TouchableOpacity style={styles.toggleCircle} onPress={toggleHeader}>
+                <View style={styles.circleOuter}>
+                  <Animated.View style={{ transform: [{ rotate: rotateIcon }] }}>
+                    <DropdownIcon width={16} height={16} />
+                  </Animated.View>
+                </View>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.tableHeader}>
-              <View style={styles.headerContent}>
-                <Text style={styles.headerText}>Items</Text>
-                <Text style={styles.headerText}>Qty To Pack</Text>
-              </View>
+            <View style={[styles.newCard, { width: cardWidth, marginLeft: newCardLeft }]}>
+              <ScrollView contentContainerStyle={styles.scrollContent}>
+                <View style={styles.radioGroupHorizontal}>
+                  {packOptions.map(renderRadioButton)}
+                </View>
+
+                <View style={styles.tableHeader}>
+                  <View style={styles.headerContent}>
+                    <Text style={styles.headerText}>Items</Text>
+                    <Text style={styles.headerText}>Qty To Pack</Text>
+                  </View>
+                </View>
+
+                <View style={styles.tableBody}>
+                  {PackListItems.map(renderTableRow)}
+                </View>
+              </ScrollView>
             </View>
+          </View>
 
-            <View style={styles.tableBody}>{PackListItems.map((item, index) => renderTableRow(item, index))}</View>
-          </ScrollView>
-        </View>
-      </View>
+          <View style={styles.buttonContainer}>
+            <SingleFooterBtnComponent
+              label="Pack"
+              onPress={handlePackPress}
+              enabled
+            />
+          </View>
 
-      <View style={styles.buttonContainer}>
-        <SingleFooterBtnComponent
-          label="Pack"
-          onPress={handlePackPress}
-          enabled={true}
-          containerStyle={styles.buttonWrapper}
-        />
-      </View>
-
-      <ShipConfirmationModal
-        visible={showConfirmPackModal}
-        type="CONFIRM_PACK"
-        itemCount={PackListItems.length}
-        onClose={() => setShowConfirmPackModal(false)}
-      />
-      </>
-    )}
+          <ShipConfirmationModal
+            visible={showConfirmPackModal}
+            type="CONFIRM_PACK"
+            itemCount={PackListItems.length}
+            onClose={() => setShowConfirmPackModal(false)}
+          />
+        </>
+      )}
     </View>
-    
   );
 };
 
