@@ -121,29 +121,48 @@ export default function Inv_LotSerialModalPopup({
   const {OrgData} = useReceivingStore();
 
   const clearError = () => setErrorMsg('');
+  
+  const findLotOption = lotCode => {
+    if (!lotCode) return null;
+    const target = String(lotCode).toLowerCase().trim();
+    return (
+      LotsList.find(l => {
+        const code = String(l.code || '').toLowerCase().trim();
+        const name = String(l.name || '').toLowerCase().trim();
+        return code === target || name === target;
+      }) || null
+    );
+  };
+const createEmptyLot = (idx, base = {}) => {
+  const lotOpt = findLotOption(base.lotNumber);
 
-  const createEmptyLot = (idx, base = {}) => ({
-  idx,
-  lotNumber: base.lotNumber || '',
-  mfgDate: base.mfgDate || '',
-  expDate: base.expDate || '',
-  qty: Number(base.qty) || 0,
-  serialMode: base.serialMode || null,
-  serialRows: Array.isArray(base.serials)
-    ? base.serials.map((s, i) => ({
-        id: makeId(),
-        entry: i + 1,
-        serial: String(s || ''),
-        source: base.serialMode === 'ranges' ? 'auto' : 'manual',
-      }))
-    : [],
-  serialExpanded: false,
-  prefix: 'SN',
-  startNumberText: '1',
-  rangesHasGenerated:
-    base.serialMode === 'ranges' && Array.isArray(base.serials) && base.serials.length > 0,
-  addSerialText: '',
-});
+  return {
+    idx,
+    lotNumber: base.lotNumber || '',
+    selectedLot: lotOpt,
+    mfgDate: base.mfgDate || '',
+    expDate: base.expDate || '',
+    qty: Number(base.qty) || 0,
+    serialMode: base.serialMode || null,
+    serialRows: Array.isArray(base.serials)
+      ? base.serials.map((s, i) => ({
+          id: makeId(),
+          entry: i + 1,
+          serial: String(s || ''),
+          source: base.serialMode === 'ranges' ? 'auto' : 'manual',
+        }))
+      : [],
+    serialExpanded: false,
+    prefix: 'SN',
+    startNumberText: '1',
+    rangesHasGenerated:
+      base.serialMode === 'ranges' &&
+      Array.isArray(base.serials) &&
+      base.serials.length > 0,
+    addSerialText: '',
+  };
+};
+
 
   useEffect(() => {
     if (!visible) return;
@@ -203,13 +222,22 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
     setLots(prev => prev.map(l => (l.idx === idx ? { ...l, ...patch } : l)));
   };
 
-  const mapLotslist = data =>
-    data.map(element => ({
-      id: element.lot,
-      name: element.lot,
-      code: element.lot,
-      qty:element.qty
-    }));
+const mapLotslist = data => {
+  const map = new Map();
+
+  data.forEach(element => {
+    if (!map.has(element.lot)) {
+      map.set(element.lot, {
+        id: element.lot,
+        name: element.lot,
+        code: element.lot,
+        qty: element.qty,
+      });
+    }
+  });
+
+  return Array.from(map.values());
+};
 
   const mapSeriallist = data =>
     data.map(element => ({
@@ -358,7 +386,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
       }
 
       updateLot(lotIdx, { serialMode: 'manual', rangesHasGenerated: false, serialExpanded: true });
-      updateLotSerials(lotIdx, () => [{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
+      // updateLotSerials(lotIdx, () => [{ id: makeId(), entry: 1, serial: '', source: 'manual' }]);
     }
   };
 
@@ -596,7 +624,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
     const canAddByTyping = !!hasSerialModeForAddBar && !!lot.serialExpanded && !!canAddRow && trimmedBarText.length > 0;
 
     const renderSerialTable = () => {
-      if (!lot.serialExpanded || !hasSerials) return null;
+      if (!lot.serialExpanded) return null;
       return (
         <View style={styles.serialTableCard}>
           <View style={styles.serialHeaderRow}>
@@ -629,7 +657,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
                     <TextInput
                       style={[styles.serialInput, locked && styles.serialInputLocked]}
                       value={r.serial}
-                      editable={!locked}
+                      editable={false}
                       placeholder="Enter Serial"
                       placeholderTextColor="#91A3B3"
                       onChangeText={txt => handleSerialChange(lot.idx, r.id, txt)}
@@ -766,6 +794,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
               clearError();
               console.log(item,"selectedseriallallalal")
               updateLot(lot.idx, { addSerialText: item?.code,selectedserial:item });
+              // handleSerialAddFromBar(lot.idx);
             }}
             items={SerialList}
             displayValue={it => it.name || it.code}
@@ -916,7 +945,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
 
                       <View style={styles.row2}>
                         <View style={styles.col}>
-                          <Text style={styles.fieldLabel}>
+                          {/* <Text style={styles.fieldLabel}>
                             Mfg Date<Text style={styles.required}></Text>
                           </Text>
                           <View style={styles.dateRow}>
@@ -929,11 +958,11 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
                             <TouchableOpacity style={styles.dateIconBtn} onPress={() => openDatePicker(lot.idx, 'mfg', lot.mfgDate)}>
                               <CalendarIcon width={rs(16)} height={rs(16)} />
                             </TouchableOpacity>
-                          </View>
+                          </View> */}
                         </View>
 
                         <View style={styles.col}>
-                          <Text style={styles.fieldLabel}>
+                          {/* <Text style={styles.fieldLabel}>
                             Exp Date <Text style={styles.required}>*</Text>
                           </Text>
                           <View style={styles.dateRow}>
@@ -946,7 +975,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
                             <TouchableOpacity style={styles.dateIconBtn} onPress={() => openDatePicker(lot.idx, 'exp', lot.expDate)}>
                               <CalendarIcon width={rs(16)} height={rs(16)} />
                             </TouchableOpacity>
-                          </View>
+                          </View> */}
                         </View>
 
                         <View style={styles.colQty}>
@@ -959,7 +988,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
                             min={0}
                             max={lot?.maxqty}
                             disabledinput={false}
-                            width={rs(90)}
+                            width={rs(120)}
                             height={rs(40)}
                           />
                         </View>
@@ -1110,7 +1139,7 @@ const styles = StyleSheet.create({
 
   row2: { flexDirection: 'row', marginTop: rs(4) },
   col: { flex: 1, marginRight: rs(8) },
-  colQty: { width: rs(90), marginStart: rs(10) },
+  colQty: { width: rs(120), marginStart: rs(10) },
 
   dateRow: { width: '100%', position: 'relative' },
   dateInput: {

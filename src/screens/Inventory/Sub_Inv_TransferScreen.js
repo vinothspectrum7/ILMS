@@ -17,6 +17,7 @@ import Inv_Dropdown from '../../components/inventory/Inv_Dropdown';
 import Inv_CustomNumericInput from '../../components/inventory/Inv_CustomNumericInput';
 import Inv_LotModalPopup from '../../components/inventory/Inv_LotModalPopup';
 import BarcodeScanner from '../../screens/BarCodeScanner';
+import FailureSvg from '../../assets/icons/failure.svg';
 import {
   MOCK_ITEMS,
   MOCK_SUB_INVENTORIES,
@@ -28,7 +29,7 @@ import ConfirmSubInventoryIcon from '../../assets/icons/confirmsubinventory.svg'
 import InventorySuccessIcon from '../../assets/icons/inventorysuccess.svg';
 import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
 import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
-import { GetAvailableItemStockData, GetAvailableLocatorStockData, GetAvailableStockData, GetFromLocatorsData, GetFROMSubInvData, GetSubInvItemList, GetTOLocatorData, GetTOSubInvData } from '../../api/ApiServices';
+import { GetAvailableItemStockData, GetAvailableLocatorStockData, GetAvailableStockData, GetFromLocatorsData, GetFROMSubInvData, GetSubInvItemList, GetTOLocatorData, GetTOSubInvData, Submit_Receive_Qty, Submit_Sub_Inventory_Transfer_Qty } from '../../api/ApiServices';
 import Toast from 'react-native-toast-message';
 import { colors } from '../../theme/colors';
 
@@ -47,6 +48,7 @@ export default function Sub_Inv_TransferScreen() {
     subInvTransferItems,
     addSubInvTransferItem,
     editSubInvTransferItem,
+    resetSubInvTransfer
   } = useReceivingStore();
 
   const [initialStoreCount] = useState(subInvTransferItems.length);
@@ -82,12 +84,15 @@ export default function Sub_Inv_TransferScreen() {
   const [SubInvItemList,setSubInvItemList] = useState([]);
   const [FromSubInvList,setFromSubInvList] = useState([]);
   const [TOSubInvList,setTOSubInvList] = useState([]);
-  const [FromLocatorList,setFromLocatorList] = useState([]);
-  const [UOMList,setUOMList] = useState([]);
+  const [FromLocatorList,setFromLocatorList] = useState([
+    {id:'1.2.1',name:'1.2.1',code:'1.2.1'}
+  ]);
+  const [UOMList,setUOMList] = useState([{id:'EA',name:'Each',code:'Each'}]);
   const [ToLocatorList,setToLocatorList] = useState([]);
   const [StockLoader,setStockLoader] = useState(false);
   const [AvailableData, setAvailableData] = useState(null);
   const [controlType,setControlType] = useState(null);
+  const [FailureVisible,setFailureVisible] = useState(false);
 
   // const availableLocatorsFrom = useMemo(() => {
   //   if (!fromSub) return [];
@@ -511,13 +516,77 @@ const handlePersistMainLine = () => {
     setConfirmVisible(true);
   };
 
-  const handleConfirmTransfer = () => {
-    setConfirmVisible(false);
-    setSuccessVisible(true);
-    setTimeout(() => {
-      setSuccessVisible(false);
-      navigation.navigate('Inventory');
-    }, 1500);
+      const mapConfirmData = data => {
+    return (data || []).map(backend => {
+
+      const base = {
+            org_code: OrgData?.selectedOrgCode,
+            item_code: backend?.item?.id,
+            from_subinventory: backend?.fromSub?.id,
+            to_subinventory: backend?.toSub?.id,
+            quantity: backend?.qty,
+            uom: backend?.uom?.id,
+            from_locator: backend?.fromLocator?.id,
+            to_locator: backend?.toLocator?.id,
+            comments: backend?.notes,
+          ...(backend?.controlType === 'Serial'
+    ? {
+        serial_details: Array.isArray(backend?.serial)?
+        backend?.serial:[],
+      }
+    : backend?.controlType === 'Lot'? {
+        lot_details: Array.isArray(backend?.lots)
+          ? backend.lots.map(l => ({
+              from_lot_num: l?.lotNumber,
+              lot_trans_quantity: l?.qty,
+            }))
+          : [],
+      }: backend?.controlType === 'Lot+Serial'? {
+        lot_serial_details: Array.isArray(backend?.lots)?
+        backend?.lots.map(l =>({
+              from_lot_num: l?.lotNumber,
+              lot_trans_quantity: l?.qty,
+              serial_details: l?.serial
+        })):[],
+      }:{}
+    ),
+      };
+
+      return base;
+    });
+  };
+
+  const handleConfirmTransfer = async() => {
+      setConfirmVisible(false);
+      console.log('SUB_INV_TRANSFER_SUBMIT', subInvTransferItems);
+      const formatdata = mapConfirmData(subInvTransferItems);
+      console.log('SUB_INV_TRANSFER_SUBMITformatdata', formatdata);
+
+        try {
+          const response = await Submit_Sub_Inventory_Transfer_Qty(formatdata);
+          if (response?.status === 'SUCCESS') {
+            setSuccessVisible(true);
+            setTimeout(() => {
+              resetSubInvTransfer();
+              setSuccessVisible(false);
+              navigation.navigate('Inventory');
+            }, 3500);
+          }
+            setFailureVisible(true);
+            setTimeout(() => {
+              resetSubInvTransfer();
+              setFailureVisible(false);
+              navigation.navigate('Inventory');
+            }, 3500);
+
+        } catch (err) {
+            setFailureVisible(true);
+            setTimeout(() => {
+              resetSubInvTransfer();
+              setFailureVisible(false);
+              navigation.navigate('Inventory');
+            }, 3500);
+        }
   };
 
   const handleBarcodePress = () => {
@@ -751,7 +820,7 @@ const handlePersistMainLine = () => {
               </View>
             )}
 
-            {/* {controlType=='Lot+Serial' && ( */}
+            {controlType=='Lot+Serial' && (
               <View style={styles.lotRow}>
                 <Text style={styles.fieldLabel}>
                   Lot/Serial Number<Text style={styles.required}>*</Text>{' '}
@@ -759,12 +828,12 @@ const handlePersistMainLine = () => {
                 </Text>
 
                 <TouchableAddLotSerial
-                  enabled={true}
+                  enabled={lineValid}
                   lotSerialStatus={status}
                   onPress={handleOpenLotSerialModal}
                 />
               </View>
-            {/* )} */}
+            )} 
 
             <View style={styles.notesWrapper}>
               <Text style={styles.fieldLabel}>
@@ -849,6 +918,11 @@ const handlePersistMainLine = () => {
       <SuccessModal
         visible={successVisible}
         onClose={() => setSuccessVisible(false)}
+      />
+
+      <FailureModal
+        visible={FailureVisible}
+        onClose={() => setFailureVisible(false)}
       />
     </View>
   );
@@ -1011,6 +1085,26 @@ function SuccessModal({ visible, onClose }) {
   );
 }
 
+function FailureModal({ visible, onClose }) {
+  if (!visible) return null;
+
+  return (
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <View style={styles.modalTop}>
+            <FailureSvg width={rs(150)} height={rs(150)} />
+          </View>
+          <View style={styles.modalBody}>
+            <Text style={styles.modalTitle}>
+              Sub Inventory Transfer Failed
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F5F6F8' },
   scroll: { flex: 1 },
