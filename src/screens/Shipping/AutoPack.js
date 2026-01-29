@@ -157,47 +157,69 @@ const AutoPack = () => {
   });
 
   const handlePackPress = async () => {
+  if (!selectedTransaction?.deliveryId) return;
 
-    if (!selectedTransaction?.deliveryId) return;
-    setPhase('loading');
-    const orgCode = getOrgCode();
+  setPhase('loading');
+  const orgCode = getOrgCode();
 
-    try {
-      console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
-      const packconfirmdata = await GetShippingPackConfirmData(orgCode, selectedTransaction?.deliveryId);
-      console.log(packconfirmdata, "ShippingPackConfirmShippingPackConfirm")
+  try {
+    const packconfirmdata = await GetShippingPackConfirmData(
+      orgCode,
+      selectedTransaction.deliveryId
+    );
 
-      if (packconfirmdata?.status ?? 'null') {
-        console.log(packconfirmdata, "ShippingPackConfirmShippingPackConfirmShippingPackConfirm")
-        if (!selectedTransaction?.deliveryId) {
-          Toast.show({ type: 'success', text1: packconfirmdata?.message });
-          const updated = { ...selectedTransaction, status: 'Ready To Ship' };
-
-          setPackItemsData(updated);
-          //add lot, serail, lot+serail data here - manualPick
-
-          setSelectedTransaction(updated);
-          setTransactionStatus(updated.deliveryId, 'Ready To Ship');
-          navigation.navigate('Ship_ConfirmPack');
-          return;
-        }
-      } else {
-        Toast.show({ type: 'error', text1: packconfirmdata?.message });
-      }
-      setPhase('success');
-    } catch (error) {
+    if (packconfirmdata?.status === null) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: `${error}`,
+        text1: packconfirmdata?.message || 'Auto Pack failed',
         position: 'top',
-        visibilityTime: 10000,
       });
-      setPhase('error');
-      navigation.navigate('Ship_Entry');
+      setPhase('success');
+      return;
     }
 
-  };
+    if (packconfirmdata?.status === 'Success') {
+      Toast.show({
+        type: 'success',
+        text1: packconfirmdata?.message || 'Packed successfully',
+        position: 'top',
+      });
+
+      const updated = {
+        ...selectedTransaction,
+        status: 'Ready To Ship',
+      };
+
+      setPackItemsData(updated);
+      setSelectedTransaction(updated);
+      setTransactionStatus(updated.deliveryId, 'Ready To Ship');
+
+      setPhase('success');
+      navigation.navigate('Ship_ConfirmPack');
+      return;
+    }
+
+    Toast.show({
+      type: 'error',
+      text1: packconfirmdata?.message || 'Unexpected response',
+      position: 'top',
+    });
+
+    setPhase('success');
+  } catch (error) {
+    Toast.show({
+      type: 'error',
+      text1: 'Error',
+      text2: String(error),
+      position: 'top',
+      visibilityTime: 10000,
+    });
+
+    setPhase('error');
+    navigation.navigate('Ship_Entry');
+  }
+};
+
 
   const renderRadioButton = option => {
     const isSelected = selectedOption === option.label;
