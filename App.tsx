@@ -65,6 +65,8 @@ import CC_ViewActiveCount from './src/screens/Cycle_Count/CC_ViewActiveCount';
 import CC_CreateActiveCount from './src/screens/Cycle_Count/CC_CreateActiveCount';
 import CC_CountHistoryScreen from './src/screens/Cycle_Count/CC_CountHistoryScreen';
 import CC_ViewReportScreen from './src/screens/Cycle_Count/CC_ViewReportScreen';
+import CC_ReviewVarianceScreen from './src/screens/Cycle_Count/CC_ReviewVarianceScreen';
+import ItemInquiryScreen from './src/screens/ItemInquiry/ItemInquiryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -392,6 +394,18 @@ options={{ headerShown: false }}
 <Stack.Screen
 name="CC_ViewReportScreen"
 component={CC_ViewReportScreen}
+options={{ headerShown: false }}
+/>
+
+<Stack.Screen
+name="CC_ReviewVarianceScreen"
+component={CC_ReviewVarianceScreen}
+options={{ headerShown: false }}
+/>
+
+<Stack.Screen
+name="ItemInquiryScreen"
+component={ItemInquiryScreen}
 options={{ headerShown: false }}
 />
 

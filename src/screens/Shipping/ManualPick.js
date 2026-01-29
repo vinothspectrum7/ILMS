@@ -59,6 +59,7 @@ function ManualPick({ route, navigation }) {
 
     const maptopickItemslist = data =>
         data.map(backend => ({
+            id: `${backend.item_code}|${backend.sub_inventory}`,
             item_code: backend.item_code || '-',
             qty_to_pick: backend.qty_to_pick || '-',
             unit_of_measure: backend.unit_of_measure,
@@ -156,22 +157,41 @@ function ManualPick({ route, navigation }) {
         setShowConfirmation(false);
     };
 
-    const toggleCheckbox = (itemCode) => {
+    //    const toggleCheckbox = (itemCode) => {
+    //     setCheckedItems(prev => ({
+    //         ...prev,
+    //         [itemCode]: !prev[itemCode],
+    //     }));
+    // };
+
+    const toggleCheckbox = (id) => {
         setCheckedItems(prev => ({
             ...prev,
-            [itemCode]: !prev[itemCode]
+            [id]: !prev[id],
         }));
     };
 
+
+    // const toggleAllCheckboxes = () => {
+    //     if (allSelected) {
+    //         setCheckedItems({});
+    //     } else {
+    //         const allChecked = {};
+    //         PickListItems.forEach(item => {
+    //             allChecked[item.item_code] = true;
+    //         });
+    //         setCheckedItems(allChecked);
+    //     }
+    //     setAllSelected(!allSelected);
+    // };
     const toggleAllCheckboxes = () => {
         if (allSelected) {
             setCheckedItems({});
         } else {
             const allChecked = {};
-            pickItems.forEach(item => {
-                allChecked[item.itemCode] = true;
+            PickListItems.forEach(item => {
+                allChecked[item.id] = true;
             });
-
             setCheckedItems(allChecked);
         }
         setAllSelected(!allSelected);
@@ -205,7 +225,7 @@ function ManualPick({ route, navigation }) {
     const handleLotConfirm = (itemData) => {
         console.log('Lot confirm data received:', itemData);
 
-        const itemCode = itemData.itemCode || (itemData.item && itemData.item.itemCode);
+        const itemCode = itemData.itemCode || (itemData.item && itemData.item.item_code);
 
         if (!itemCode) {
             console.error('No itemCode found in lot confirm data');
@@ -236,7 +256,7 @@ function ManualPick({ route, navigation }) {
     const handleSerialConfirm = (itemData) => {
         console.log('Serial confirm data received:', itemData);
 
-        const itemCode = itemData.itemCode || (itemData.item && itemData.item.itemCode);
+        const itemCode = itemData.itemCode || (itemData.item && itemData.item.item_code);
 
         if (!itemCode) {
             console.error('No itemCode found in serial confirm data');
@@ -266,7 +286,7 @@ function ManualPick({ route, navigation }) {
 
     const handleLotSerialConfirm = (itemData) => {
         console.log('LotSerial confirm data received:', itemData);
-        const itemCode = itemData.itemCode || (itemData.item && itemData.item.itemCode);
+        const itemCode = itemData.itemCode || (itemData.item && itemData.item.item_code);
 
         if (!itemCode) {
             console.error('No itemCode found in lotserial confirm data');
@@ -322,22 +342,22 @@ function ManualPick({ route, navigation }) {
     const setPickItemsData = useShippingStore(s => s.setPickItemsData);
 
     const getPickedItems = () => {
-        return pickItems
-            .filter(item => checkedItems[item.itemCode])
-            .map(item => {
-                const transactionData = itemTransactionData[item.itemCode];
-                return {
-                    ...item,
-                    transactionData: transactionData || null,
-                    isConfirmed: confirmedItems[item.itemCode] || false
-                };
-            });
+        return PickListItems
+            .filter(item => checkedItems[item.id])
+            .map(item => ({
+                ...item,
+                transactionData: itemTransactionData[item.id] || null,
+                isConfirmed: confirmedItems[item.id] || false,
+            }));
     };
 
+
     const renderPickItem = ({ item, index }) => {
-        const isChecked = checkedItems[item.itemCode] || false;
-        const isConfirmed = confirmedItems[item.itemCode] || false;
-        const hasTransactionData = itemTransactionData[item.itemCode];
+        // const isChecked = checkedItems[item.item_code] || false;
+        // const isConfirmed = confirmedItems[item.item_code] || false;
+        const isChecked = checkedItems[item.id] || false;
+        const isConfirmed = confirmedItems[item.id] || false;
+        const hasTransactionData = itemTransactionData[item.item_code];
 
         return (
             <View style={styles.itemContainer} key={index}>
@@ -347,7 +367,7 @@ function ManualPick({ route, navigation }) {
                     <View style={styles.greyBackgroundArea}>
                         <CheckBox
                             value={isChecked || isConfirmed}
-                            onValueChange={() => toggleCheckbox(item.itemCode)}
+                            onValueChange={() => toggleCheckbox(item.id)}
                             tintColors={{ true: '#145DA0', false: '#667085' }}
                             boxType="square"
                             style={styles.checkbox}

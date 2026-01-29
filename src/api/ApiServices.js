@@ -524,6 +524,18 @@ export const GetShippingPickConfirmData = async (org_id, delivery_id) => {
   }
 }
 
+export const GetShippingPackConfirmData = async (org_id, delivery_id) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_PACK_CONFIRM_DATA(org_id, delivery_id));
+    console.log(response, "ShippingPackConfirmresponseresponseresponse")
+    return response.data;
+
+  } catch (error) {
+    console.error("Get SHIPPING_EBS_PACK_CONFIRM_DATA ERROR:", error.message, error.response?.data);
+    throw error.response?.data;
+  }
+}
+
 export const Submit_Sub_Inventory_Transfer_Qty = async (data) => {
   try {
     console.log(data, "Submit_Receive_QtySubmit_Receive_Qty")
