@@ -95,7 +95,7 @@ const Inv_Menu = () => {
         <MenuCard
           title="Item Inquiry"
           Icon={ItemInquiryIcon}
-          onPress={() => navigation.navigate('ItemInquiry')}
+          onPress={() => navigation.navigate('ItemInquiryScreen')}
         />
 
         <MenuCard
