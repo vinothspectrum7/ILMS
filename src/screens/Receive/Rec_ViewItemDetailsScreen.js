@@ -182,9 +182,9 @@ const Rec_ViewItemDetailsScreen = () => {
 
   const mapfromsubInvlist = data =>
     data.map(element => ({
-    id: element.R_SUBINVENTORY_CODE,
-    name: element.R_SUBINVENTORY_CODE,
-    code: element.R_SUBINVENTORY_CODE,
+    id: element.subinv_type,
+    name: element.subinv_type,
+    code: element.subinv_type,
     }));
 
     useEffect(()=>{

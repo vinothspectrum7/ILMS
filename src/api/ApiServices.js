@@ -358,6 +358,8 @@ export const GetSubInvItemList = async (org_id) => {
 export const GetFROMSubInvData = async (org_id, item_code) => {
   try {
     const response = await api.post(API_ENDPOINTS.GETFROMSUBINVLIST(org_id, item_code));
+        console.log(response,"respoooooo")
+
     return response.data;
 
   } catch (error) {

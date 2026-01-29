@@ -113,6 +113,7 @@ export default function Inv_LotModalPopup({
               mfgDate: l.mfgDate || '',
               expDate: l.expDate || '',
               qty: Number(l.qty) || 0,
+              maxqty:0
             };
           }),
         );
@@ -125,6 +126,7 @@ export default function Inv_LotModalPopup({
             mfgDate: '',
             expDate: '',
             qty: 0,
+            maxqty:0
           },
         ]);
       }
@@ -137,8 +139,9 @@ export default function Inv_LotModalPopup({
 
     const loadInventoryLotData = async () => {
       try {
-        const Lotsdata = await GetInventoryLotsData('M1', 'CM11222', 'FGI');
+        const Lotsdata = await GetInventoryLotsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
         if (Lotsdata) {
+          console.log(Lotsdata,"LotsdataLotsdataLotsdata")
           const LotsdataList = mapLotslist(Lotsdata);
           setLotsList(LotsdataList);
         } else {
@@ -157,6 +160,7 @@ export default function Inv_LotModalPopup({
       id: element.Lot,
       name: element.Lot,
       code: element.Lot,
+      qty:element.qty
     }));
 
   const totalQty = useMemo(
@@ -192,6 +196,7 @@ export default function Inv_LotModalPopup({
         mfgDate: '',
         expDate: '',
         qty: 0,
+        maxqty:0
       },
     ]);
   };
@@ -209,6 +214,7 @@ export default function Inv_LotModalPopup({
         mfgDate: '',
         expDate: '',
         qty: 0,
+        maxqty:0
       },
     ]);
     setShowQtyError(false);
@@ -392,6 +398,7 @@ export default function Inv_LotModalPopup({
                           updateLot(lot.idx, {
                             selectedLot: item,
                             lotNumber: item?.name || item?.code || '',
+                            maxqty:item?.qty
                           })
                         }
                         items={LotsList}
@@ -454,7 +461,7 @@ export default function Inv_LotModalPopup({
                             value={lot.qty}
                             setValue={next => handleQtyChange(lot.idx, next)}
                             min={0}
-                            max={lotMax}
+                            max={lot.maxqty}
                             disabledinput={false}
                             width={rs(120)}
                             height={rs(40)}
