@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
@@ -166,14 +167,22 @@ const AutoPack = () => {
       const packconfirmdata = await GetShippingPackConfirmData(orgCode, selectedTransaction?.deliveryId);
       console.log(packconfirmdata, "ShippingPackConfirmShippingPackConfirm")
 
-      if (packconfirmdata?.status) {
+      if (packconfirmdata?.status ?? 'null') {
         console.log(packconfirmdata, "ShippingPackConfirmShippingPackConfirmShippingPackConfirm")
         if (!selectedTransaction?.deliveryId) {
-          Toast.show({ type: 'success', text1: packconfirmdata?.status });
+          Toast.show({ type: 'success', text1: packconfirmdata?.message });
+          const updated = { ...selectedTransaction, status: 'Ready To Ship' };
+
+          setPackItemsData(updated);
+          //add lot, serail, lot+serail data here - manualPick
+
+          setSelectedTransaction(updated);
+          setTransactionStatus(updated.deliveryId, 'Ready To Ship');
+          navigation.navigate('Ship_ConfirmPack');
           return;
         }
       } else {
-        Toast.show({ type: 'error', text1: packconfirmdata?.status });
+        Toast.show({ type: 'error', text1: packconfirmdata?.message });
       }
       setPhase('success');
     } catch (error) {
@@ -187,14 +196,7 @@ const AutoPack = () => {
       setPhase('error');
       navigation.navigate('Ship_Entry');
     }
-    const updated = { ...selectedTransaction, status: 'Ready To Ship' };
 
-    setPackItemsData(updated);
-    //add lot, serail, lot+serail data here - manualPick
-
-    setSelectedTransaction(updated);
-    setTransactionStatus(updated.deliveryId, 'Ready To Ship');
-    navigation.navigate('Ship_ConfirmPack');
   };
 
   const renderRadioButton = option => {
