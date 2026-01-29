@@ -29,6 +29,7 @@ import ErrorIcon from '../../assets/icons/error.svg';
 import Inv_Dropdown from './Inv_Dropdown';
 import { GetInventoryLotsData } from '../../api/ApiServices';
 import { useReceivingStore } from '../../store/receivingStore';
+import Toast from 'react-native-toast-message';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -116,6 +117,7 @@ export default function Inv_LotSerialModalPopup({
   const [datePickerField, setDatePickerField] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [LotsList,setLotsList] = useState([]);
+  const [SerialList, setSerialList] = useState([]);
   const {OrgData} = useReceivingStore();
 
   const clearError = () => setErrorMsg('');
@@ -173,13 +175,16 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
 
       const loadInventoryLotData = async () => {
         try {
-          const Lotsdata = await GetInventoryLotsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
-          if (Lotsdata) {
-            const LotsdataList = mapLotslist(Lotsdata);
-            console.log(Lotsdata,"LotsdataLotsdataLotsdataLotsdata")
+          const Lotandserialdata = await GetInventoryLotsData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code);
+          if (Lotandserialdata) {
+            const LotsdataList = mapLotslist(Lotandserialdata);
+            console.log(Lotandserialdata,"LotsdataLotsdataLotsdataLotsdata")
             setLotsList(LotsdataList);
+            const SerialsdataList = mapSeriallist(Lotandserialdata);
+            setSerialList(SerialsdataList);
           } else {
             setLotsList([]);
+            setSerialList([]);
           }
         } catch (err) {
           Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load FromLocator. Please try again.', position: 'top', visibilityTime: 5000 });
@@ -204,6 +209,13 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
       name: element.lot,
       code: element.lot,
       qty:element.qty
+    }));
+
+  const mapSeriallist = data =>
+    data.map(element => ({
+      id: element.serial,
+      name: element.serial,
+      code: element.serial,
     }));
 
   const updateLotSerials = (idx, updater) => {
@@ -420,7 +432,7 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
     if (!v) return;
 
     updateLotSerials(lotIdx, list => [...list, { id: makeId(), entry: list.length + 1, serial: v, source: 'manual' }]);
-    updateLot(lotIdx, { serialMode: lot.serialMode || 'manual', serialExpanded: true, addSerialText: '' });
+    updateLot(lotIdx, { serialMode: lot.serialMode || 'manual', serialExpanded: true, addSerialText: '',selectedserial:null });
   };
 
   const handleSerialDeleteRow = (lotIdx, rowId) => {
@@ -745,28 +757,24 @@ console.log(seedLots,"seedLotsseedLotsseedLotsseedLots")
       if (!hasSerialModeForAddBar || !lot.serialExpanded) return null;
 
       return (
-        <View style={[styles.addTouchWrap, !enabled && styles.addTouchDisabled]}>
-          <TextInput
-            value={lot.addSerialText}
-            onChangeText={t => {
-              clearError();
-              updateLot(lot.idx, { addSerialText: t });
-            }}
+        <View style={[!enabled && styles.addTouchDisabled,{marginTop:15}]}>
+          <Inv_Dropdown
+            required
             placeholder="Add Serial Number"
-            placeholderTextColor="#6B7C8B"
-            style={styles.addTouchInput}
-            editable={enabled}
-            autoCapitalize="characters"
+            value={lot.selectedserial}
+            onChange={item => {
+              clearError();
+              console.log(item,"selectedseriallallalal")
+              updateLot(lot.idx, { addSerialText: item?.code,selectedserial:item });
+            }}
+            items={SerialList}
+            displayValue={it => it.name || it.code}
+            renderCode={() => ''}
+            showBarcodeIcon
+            onBarcodePress={() => openScannerForSerial(lot.idx, null, true)}
+            // disabled={!locked}
           />
-          <TouchableOpacity
-            onPress={() => openScannerForSerial(lot.idx, null, true)}
-            activeOpacity={0.85}
-            disabled={!enabled}
-            style={[styles.addTouchScan, !enabled && styles.addTouchScanDisabled]}
-          >
-            <BarcodeIcon width={rs(18)} height={rs(18)} />
-          </TouchableOpacity>
-        </View>
+          </View>
       );
     };
 
