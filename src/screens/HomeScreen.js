@@ -329,7 +329,7 @@ function capitalizeFirstLetter(str) {
     }
   }}
         onMenuSelect={handleHeaderMenuSelect}
-        menuVersion="25102918"
+        menuVersion="26012905"
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: rs(40) }}>
         <View style={{ height: HEADER_METRICS.CONTENT_SPACER }} />
