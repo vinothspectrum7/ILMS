@@ -10,7 +10,6 @@ import {
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-
 import Inv_HeaderComponent from '../../components/inventory/Inv_HeaderComponent';
 import { useReceivingStore } from '../../store/receivingStore';
 import BarcodeScanner from '../../screens/BarCodeScanner';
@@ -18,12 +17,21 @@ import BarcodescannerIcon from '../../assets/icons/barcodescanner.svg';
 import ContainerIcon from '../../assets/icons/CycleCount_Icons/Container.svg';
 import OrgbuildingIcon from '../../assets/icons/CycleCount_Icons/OrgbuildingIcon.svg';
 import { Item_Inquiry_Mock_Data } from '../../data/ItemInquiryMockData';
-import { Organization_Dropdown_Mock_Data } from '../../data/ItemInquiryMockData'; // Your mock data
+import { Organization_Dropdown_Mock_Data } from '../../data/ItemInquiryMockData';
 import DocumentIcon from '../../assets/icons/Ship_Icons/DocumentIcon.svg';
 import GreenOutlineTick from '../../assets/icons/CycleCount_Icons/GreenOutlineTick.svg';
 import WhiteLocationIcon from '../../assets/icons/CycleCount_Icons/WhiteLocation.svg';
 import LinearGradient from 'react-native-linear-gradient';
 import ItemInquiry_Dropdown from '../../components/ItemInquiry/ItemInquiry_Dropdown';
+import StockTabContent from '../../components/ItemInquiry/ItemInquiry_StockTabComponent';
+import OrgTabComponent from '../../components/ItemInquiry/ItemInquiry_OrgTabComponent';
+import TransactionTabComponent from '../../components/ItemInquiry/ItemInquiry_TransactionTabComponent';
+import DetailsTabComponent from '../../components/ItemInquiry/ItemInquiry_DetailsTabComponent';
+import BlueOutlineTick from '../../assets/icons/CycleCount_Icons/BlueOutlineTick.svg';
+import PurpleOutlineTick from '../../assets/icons/CycleCount_Icons/PurpleOutlineTick.svg';
+import DownloadIcon from '../../assets/icons/CycleCount_Icons/Download.svg';
+import ClipboardIcon from '../../assets/icons/CycleCount_Icons/ClipboardIcon.svg'
+import ShareIcon from '../../assets/icons/CycleCount_Icons/ShareIcon.svg';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -32,14 +40,32 @@ const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 const TABS = ['Overview', 'Stock', 'Organization', 'Transactions', 'Details'];
 
-const AttributeCapsule = ({ value, backgroundColor, textColor = '#233E55' }) => (
-  <View style={[styles.attributeCapsule, { backgroundColor }]}>
-    <Text style={[styles.attributeValueOnly, { color: textColor }]}>
-      {value}
-    </Text>
-    <GreenOutlineTick width={ms(16)} height={ms(16)} />
-  </View>
-);
+const getAttributeIcon = (attributeValue) => {
+  const value = attributeValue?.toLowerCase() || '';
+
+  if (value.includes('lot')) {
+    return PurpleOutlineTick;
+  } else if (value.includes('serial')) {
+    return BlueOutlineTick;
+  } else if (value.includes('electronic') || value.includes('purchasable') ||
+    value.includes('stockable') || value.includes('transactable')) {
+    return GreenOutlineTick;
+  }
+  return GreenOutlineTick;
+};
+
+const AttributeCapsule = ({ value, backgroundColor, textColor = '#233E55' }) => {
+  const IconComponent = getAttributeIcon(value);
+
+  return (
+    <View style={[styles.attributeCapsule, { backgroundColor }]}>
+      <Text style={[styles.attributeValueOnly, { color: textColor }]}>
+        {value}
+      </Text>
+      <IconComponent width={ms(16)} height={ms(16)} />
+    </View>
+  );
+};
 
 const ItemInquiryScreen = () => {
   const navigation = useNavigation();
@@ -73,8 +99,11 @@ const ItemInquiryScreen = () => {
     setBarcodeInput(code);
     setShowScanner(false);
 
+    const scannedCode = code.trim().toLowerCase();
+
     const foundItem = Item_Inquiry_Mock_Data.find(
-      item => item.itemHeader.itemCode === code
+      item =>
+        item.itemHeader.itemCode?.toLowerCase() === scannedCode
     );
 
     if (foundItem) {
@@ -85,11 +114,15 @@ const ItemInquiryScreen = () => {
     }
   };
 
+
   const handleSearch = (text) => {
     setBarcodeInput(text);
 
+    const searchText = text.trim().toLowerCase();
+
     const foundItem = Item_Inquiry_Mock_Data.find(
-      item => item.itemHeader.itemCode.toLowerCase() === text.toLowerCase()
+      item =>
+        item.itemHeader.itemCode?.toLowerCase() === searchText
     );
 
     if (foundItem) {
@@ -98,6 +131,7 @@ const ItemInquiryScreen = () => {
       setItemData(null);
     }
   };
+
 
   return (
     <View style={styles.container}>
@@ -183,27 +217,19 @@ const ItemInquiryScreen = () => {
                   </View>
 
                   <View style={styles.whiteContainer}>
-                    <View style={styles.orgRow}>
-                      <View style={styles.orgLeft}>
-                        {/* <OrgbuildingIcon width={ms(20)} height={ms(20)} /> */}
-                        <View style={styles.orgTextWrapper}>
-                          <Text style={styles.orgLabel}>Organization</Text>
-                          <ItemInquiry_Dropdown
-                            value={selectedOrganization}
-                            onChange={handleOrganizationChange}
-                            items={Organization_Dropdown_Mock_Data}
-                            displayValue={(item) => item?.name || ''}
-                            renderCode={(item) => item?.code || ''}
-                            searchKeys={['name', 'code']}
-                            placeholder="Select Organization"
-                            disabled={false}
-                            showBarcodeIcon={false}
-                            multiple={false}
-                            label=""
-                          />
-                        </View>
-                      </View>
-                    </View>
+                    <ItemInquiry_Dropdown
+                      value={selectedOrganization}
+                      onChange={handleOrganizationChange}
+                      items={Organization_Dropdown_Mock_Data}
+                      displayValue={(item) => item?.name || ''}
+                      renderCode={(item) => item?.code || ''}
+                      searchKeys={['name', 'code']}
+                      placeholder="Select Organization"
+                      disabled={false}
+                      showBarcodeIcon={false}
+                      multiple={false}
+                      showOrganizationIcon={true}
+                    />
                   </View>
                 </View>
               )}
@@ -445,28 +471,53 @@ const ItemInquiryScreen = () => {
                 </>
               )}
 
-              {activeTab === 'Stock' && (
-                <View style={styles.stockContent}>
-                  <Text style={styles.tabTitle}>Stock</Text>
-                </View>
+              {activeTab === 'Stock' && itemData && (
+                <StockTabContent itemData={itemData} />
               )}
-              {activeTab === 'Organization' && (
-                <View style={styles.organizationContent}>
-                  <Text style={styles.tabTitle}>Organization</Text>
-                </View>
+              {activeTab === 'Organization' && itemData && (
+                <OrgTabComponent itemData={itemData} />
               )}
-              {activeTab === 'Transactions' && (
-                <View style={styles.transactionsContent}>
-                  <Text style={styles.tabTitle}>Transactions</Text>
-                </View>
+              {activeTab === 'Transactions' && itemData && (
+                <TransactionTabComponent itemData={itemData} />
               )}
-              {activeTab === 'Details' && (
-                <View style={styles.detailsContent}>
-                  <Text style={styles.tabTitle}>Details</Text>
-                </View>
+              {activeTab === 'Details' && itemData && (
+                <DetailsTabComponent itemData={itemData} />
               )}
             </View>
           </View>
+
+          {itemData && activeTab !== 'Overview' && (
+            <View style={styles.footerContainer}>
+              <View style={styles.footerButtons}>
+                <TouchableOpacity
+                  style={styles.footerButton}
+                  onPress={() => console.log('Download pressed')}
+                >
+                  <View style={styles.buttonCircle}>
+                    <DownloadIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.footerButton}
+                  onPress={() => console.log('Share pressed')}
+                >
+                  <View style={styles.buttonCircle}>
+                    <ShareIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.footerButton}
+                  onPress={() => console.log('Clipboard pressed')}
+                >
+                  <View style={styles.buttonCircle}>
+                    <ClipboardIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </ScrollView>
       )}
     </View>
@@ -603,41 +654,13 @@ const styles = StyleSheet.create({
   },
   whiteContainer: {
     width: '100%',
-    height: ms(41),
     backgroundColor: '#F3F8FF',
     borderWidth: 1,
     borderColor: '#ECF1F7',
     borderBottomLeftRadius: ms(4),
     borderBottomRightRadius: ms(4),
     paddingHorizontal: ms(12),
-    justifyContent: 'center',
-  },
-  orgRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  orgLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  orgTextWrapper: {
-    marginLeft: ms(0),
-  },
-  orgLabel: {
-    fontFamily: 'Mulish',
-    fontSize: ms(8),
-    fontWeight: '400',
-    lineHeight: ms(8),
-    color: '#595A5C',
-    marginBottom: ms(4),
-  },
-  orgName: {
-    fontFamily: 'Mulish',
-    fontSize: ms(10),
-    fontWeight: '700',
-    lineHeight: ms(10),
-    color: '#242424',
+    paddingVertical: ms(8),
   },
   tabSection: {
     width: '100%',
@@ -1042,9 +1065,35 @@ const styles = StyleSheet.create({
     lineHeight: ms(12),
     color: '#FFFFFF',
   },
-
-
-
+  footerContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: ms(20),
+    marginBottom: ms(40),
+  },
+  footerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: ms(20),
+  },
+  footerButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonCircle: {
+    width: ms(47.76),
+    height: ms(47.76),
+    borderRadius: ms(47.76) / 2,
+    backgroundColor: '#233E55',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
 });
 
 export default ItemInquiryScreen;

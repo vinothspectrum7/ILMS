@@ -67,6 +67,7 @@ import CC_CountHistoryScreen from './src/screens/Cycle_Count/CC_CountHistoryScre
 import CC_ViewReportScreen from './src/screens/Cycle_Count/CC_ViewReportScreen';
 import CC_ReviewVarianceScreen from './src/screens/Cycle_Count/CC_ReviewVarianceScreen';
 import ItemInquiryScreen from './src/screens/ItemInquiry/ItemInquiryScreen';
+import ItemOnHandScreen from './src/screens/Item_OnHand/ItemOnHandScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -409,6 +410,11 @@ component={ItemInquiryScreen}
 options={{ headerShown: false }}
 />
 
+<Stack.Screen
+name="ItemOnHandScreen"
+component={ItemOnHandScreen}
+options={{ headerShown: false }}
+/>
 </Stack.Navigator>
       <Toast config={toastConfig} />
 </NavigationContainer>

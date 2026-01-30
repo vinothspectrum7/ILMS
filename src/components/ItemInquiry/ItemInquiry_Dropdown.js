@@ -15,6 +15,7 @@ import DropdownIcon from '../../assets/icons/dropdown.svg';
 import SearchIcon from '../../assets/icons/search.svg';
 import BarcodeScannerIcon from '../../assets/icons/barcodescanner.svg';
 import CloseIcon from '../../assets/icons/close.svg';
+import OrgbuildingIcon from '../../assets/icons/CycleCount_Icons/OrgbuildingIcon.svg';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -27,7 +28,7 @@ const getItemId = it => {
   return '';
 };
 
-const isPrimitive = v => typeof v === 'string' || typeof v === 'number';
+const isPrimitive = v => typeof v === 'string' || typeof it === 'number';
 
 const SelectedChip = ({ item, onRemove, displayValue }) => {
   const label = displayValue ? displayValue(item) : (item?.name || item?.code || '');
@@ -63,6 +64,7 @@ export default function ItemInquiry_Dropdown({
   onBarcodePress,
   multiple = false,
   maxDisplayItems = 3,
+  showOrganizationIcon = false,
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -73,7 +75,7 @@ export default function ItemInquiry_Dropdown({
 
   const resolvedSelectedItems = useMemo(() => {
     if (!value) return [];
-    
+
     if (multiple) {
       return Array.isArray(value) ? value : [];
     } else {
@@ -92,10 +94,10 @@ export default function ItemInquiry_Dropdown({
     if (!multiple || resolvedSelectedItems.length === 0) {
       return { displayedChips: resolvedSelectedItems, remainingCount: 0 };
     }
-    
+
     const displayed = resolvedSelectedItems.slice(0, maxDisplayItems);
     const remaining = Math.max(0, resolvedSelectedItems.length - maxDisplayItems);
-    
+
     return { displayedChips: displayed, remainingCount: remaining };
   }, [resolvedSelectedItems, multiple, maxDisplayItems]);
 
@@ -103,7 +105,7 @@ export default function ItemInquiry_Dropdown({
     if (multiple && resolvedSelectedItems.length > 0) {
       return '';
     }
-    
+
     if (!multiple && resolvedSelectedItems.length > 0) {
       const item = resolvedSelectedItems[0];
       if (displayValue) {
@@ -112,7 +114,7 @@ export default function ItemInquiry_Dropdown({
       }
       return String(item?.name ?? item?.code ?? '');
     }
-    
+
     return '';
   }, [multiple, resolvedSelectedItems, displayValue]);
 
@@ -175,7 +177,7 @@ export default function ItemInquiry_Dropdown({
 
   const handleRemoveChip = (itemToRemove) => {
     if (!multiple || !Array.isArray(value)) return;
-    
+
     const updated = value.filter(
       v => String(getItemId(v)) !== String(getItemId(itemToRemove)),
     );
@@ -230,8 +232,7 @@ export default function ItemInquiry_Dropdown({
     return top;
   }, [anchorLayout, keyboardHeight, cardHeight]);
 
-  // Custom dropdown width based on your requirements
-  const dropdownWidth = rs(300); // Width from your specs
+  const dropdownWidth = rs(300);
   const dropdownLeft = anchorLayout ? anchorLayout.x : 0;
 
   const dropdownCardStyle = [
@@ -249,20 +250,19 @@ export default function ItemInquiry_Dropdown({
   return (
     <>
       <View style={styles.fieldWrapper}>
-        {label ? (
-          <Text style={styles.label}>
-            {label}
-            {required ? <Text style={styles.required}>*</Text> : null}
-          </Text>
-        ) : null}
+        {showOrganizationIcon && (
+          <View style={styles.iconAndLabel}>
+            <Text style={styles.organizationLabel}>Organization</Text>
+          </View>
+        )}
 
         <TouchableOpacity
           ref={anchorRef}
           collapsable={false}
           style={[
-            styles.inputContainer, 
+            styles.inputContainer,
             disabled && styles.disabledInput,
-            multiple && resolvedSelectedItems.length > 0 && styles.multipleInputContainer
+            multiple && resolvedSelectedItems.length > 0 && styles.multipleInputContainer,
           ]}
           onPress={openDropdown}
           onLayout={measureAnchor}
@@ -281,7 +281,7 @@ export default function ItemInquiry_Dropdown({
                 ))}
                 {remainingCount > 0 && (
                   <View style={styles.moreChip}>
-                    <Text style={styles.moreText}>more</Text>
+                    <Text style={styles.moreText}>+{remainingCount}</Text>
                   </View>
                 )}
                 {resolvedSelectedItems.length === 0 && (
@@ -291,15 +291,23 @@ export default function ItemInquiry_Dropdown({
                 )}
               </View>
             ) : (
-              <Text 
-                numberOfLines={1} 
-                style={[
-                  styles.inputText, 
-                  !selectedLabel && styles.placeholderText
-                ]}
-              >
-                {selectedLabel || placeholder}
-              </Text>
+              <>
+                {showOrganizationIcon && (
+                  <View style={styles.iconInsideContainer}>
+                    <OrgbuildingIcon width={rs(12)} height={rs(12)} />
+                  </View>
+                )}
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.inputText,
+                    !selectedLabel && styles.placeholderText,
+                    showOrganizationIcon && styles.inputTextWithIcon
+                  ]}
+                >
+                  {selectedLabel || placeholder}
+                </Text>
+              </>
             )}
           </View>
 
@@ -373,7 +381,7 @@ export default function ItemInquiry_Dropdown({
                         {isSelected && <Text style={styles.checkmark}>✓</Text>}
                       </View>
                     )}
-                    
+
                     <View style={{ flex: 1 }}>
                       <View style={styles.rowHeader}>
                         <Text style={styles.rowTitle} numberOfLines={1}>
@@ -402,29 +410,34 @@ export default function ItemInquiry_Dropdown({
 
 const styles = StyleSheet.create({
   fieldWrapper: {
-    marginBottom: 0, // Remove bottom margin for your layout
+    marginBottom: 0,
+    width: '100%',
   },
-  label: {
+  iconAndLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: rs(4),
+  },
+  organizationLabel: {
     fontSize: rs(8),
     color: '#595A5C',
-    marginBottom: rs(4),
     fontFamily: 'Mulish',
     fontWeight: '400',
-  },
-  required: {
-    color: '#E53935',
+    marginLeft: rs(4),
+    lineHeight: rs(8),
   },
   inputContainer: {
+    width: '100%',
+    height: rs(26),
     borderRadius: rs(4),
-    borderWidth: 0,
-    backgroundColor: 'transparent',
-    paddingHorizontal: 0,
-    height: rs(20),
+    borderWidth: 1,
+    borderColor: '#ECF1F7',
+    backgroundColor: '#F3F8FF',
+    paddingHorizontal: rs(12),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: rs(20),
-    width: '100%',
+    minHeight: rs(26),
   },
   multipleInputContainer: {
     minHeight: rs(48),
@@ -439,6 +452,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
+  },
+  iconInsideContainer: {
+    marginRight: rs(6),
   },
   chipsContainer: {
     flexDirection: 'row',
@@ -469,23 +485,20 @@ const styles = StyleSheet.create({
     padding: rs(2),
   },
   moreChip: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: rs(4),
     paddingHorizontal: rs(10),
     paddingVertical: rs(4),
-    minWidth: rs(73),
+    minWidth: rs(50),
     height: rs(25),
     justifyContent: 'center',
     alignItems: 'center',
   },
   moreText: {
     fontSize: rs(11),
-    color: '#033EFF',
+    color: '#2E7D32',
     fontFamily: 'Mulish',
-    fontWeight: '400',
-    fontStyle: 'italic',
-    textDecorationLine: 'underline',
-    textDecorationStyle: 'solid',
-    textDecorationColor: '#033EFF',
-    lineHeight: rs(11),
+    fontWeight: '600',
   },
   inputText: {
     fontSize: rs(10),
@@ -493,6 +506,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: '700',
     fontFamily: 'Mulish',
+    lineHeight: rs(10),
+  },
+  inputTextWithIcon: {
+    marginLeft: 0,
   },
   placeholderText: {
     color: '#9D9FA3',
