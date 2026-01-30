@@ -101,7 +101,7 @@ const Inv_Menu = () => {
         <MenuCard
           title="Item On-Hand"
           Icon={ItemOnHandIcon}
-          onPress={() => navigation.navigate('ItemOnHand')}
+          onPress={() => navigation.navigate('ItemOnHandScreen')}
         />
       </View>
     </View>
