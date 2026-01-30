@@ -568,3 +568,15 @@ export const GetShippingPackItemsData = async (org_id, delivery_id) => {
     console.error("Get SHIPPING_EBS_PACK_ITEMS_DATA ERROR:", error.message, error.response?.data);
   }
 }
+
+export const GetShippingLpnDetailsData = async (org_id, delivery_id) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.GET_SHIPPING_EBS_LPN_DETAILS_DATA(org_id, delivery_id));
+    console.log(response, "ShippingLpnDetailsresponseresponseresponse")
+    return response.data;
+
+  } catch (error) {
+    console.error("Get SHIPPING_EBS_LPN_DETAILS_DATA ERROR:", error.message, error.response?.data);
+    throw error.response?.data;
+  }
+}

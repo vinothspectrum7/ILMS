@@ -252,12 +252,12 @@ const AutoPack = () => {
     <View key={index} style={styles.rowCard}>
       <View style={styles.tableRow}>
         <View style={styles.itemCell}>
-          <Text style={styles.itemName}>{item.item_code}</Text>
+          <Text style={styles.itemName}>{item.item_code ?? '-'}</Text>
         </View>
         <View style={styles.qtyCell}>
-          <Text style={styles.qtyText}>{item.qty_to_pick}</Text>
-          <Text style={styles.eachText}>{item.unit_of_measure}</Text>
-          <Text style={styles.statusText}>{item.item_status}</Text>
+          <Text style={styles.qtyText}>{item.qty_to_pick ?? '-'}</Text>
+          <Text style={styles.eachText}>{item.unit_of_measure ?? '-'}</Text>
+          <Text style={styles.statusText}>{item.item_status ?? '-'}</Text>
         </View>
       </View>
     </View>
