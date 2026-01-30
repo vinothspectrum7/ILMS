@@ -30,7 +30,7 @@ import Rec_LotSerialModalPopup from '../../components/receive/Rec_LotSerialModal
 import Rec_SerialModalPopup from '../../components/receive/Rec_SerialModalPopup';
 import Rec_InspectSerialModalPopup from '../../components/receive/Rec_InspectSerialModalPopup';
 import { useReceivingStore } from '../../store/receivingStore';
-import { GetFROMSubInvData, GetItemImage, GetLocatorsData, LPNList } from '../../api/ApiServices';
+import { GetFROMSubInvData, GetItemImage, GetLocatorsData, GetTOLocatorData, GetTOSubInvData, LPNList } from '../../api/ApiServices';
 import ReceiveItemBoxIcon from '../../assets/icons/receiveitemboxicon.svg';
 import ReceiveQtyIcon from '../../assets/icons/receiveqtyicon.svg';
 import ReceiveLocationIcon from '../../assets/icons/receivelocationicon.svg';
@@ -180,20 +180,20 @@ const Rec_ViewItemDetailsScreen = () => {
     setCopies(next);
   }, [current?.id, currentStoreLine?.copies, route?.params?.copies]);
 
-  const mapfromsubInvlist = data =>
+    const maptosubInvlist = data =>
     data.map(element => ({
-    id: element.subinv_type,
-    name: element.subinv_type,
-    code: element.subinv_type,
+    id: element.sub_inv,
+    name: element.sub_inv,
+    code: element.sub_inv,
     }));
 
     useEffect(()=>{
       // if (!InventoryList) return;
         const loadSubInvData = async () => {
           try {
-            const fromsubinvdata = await GetFROMSubInvData('M1','CSD004');
+            const fromsubinvdata = await GetTOSubInvData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode);
             if (fromsubinvdata) {
-              const fromSubInvList = mapfromsubInvlist(fromsubinvdata);
+              const fromSubInvList = maptosubInvlist(fromsubinvdata);
               console.log(fromSubInvList,"fromrrifsubinvvv")
               setInventoryList(fromSubInvList);
             } else {
@@ -726,21 +726,25 @@ const Rec_ViewItemDetailsScreen = () => {
           edited[it.id]?.subInventory ?? it.subInventory ?? OrgData?.selectedinventory;
         if (!sub_id) return;
         const cached = getLocatorFromCache(sub_id?.id);
+        console.log(cached,"cachedcaheddd")
         if (cached) {
           setLocatorDataMap(prev => ({ ...prev, [it.id]: cached }));
         } else {
           try {
-            const locdata = await GetLocatorsData(sub_id?.id);
+            const locdata = await GetTOLocatorData(OrgData?.selectedOrgCode,sub_id?.id);
+            console.log(locdata,"locdatadadadaddddad")
             if (Array.isArray(locdata) && locdata.length) {
               const mapped = locdata.map(d => ({
-                id: d.locator_id,
-                name: d.locator_name,
-                enabled: d.locator_enabled,
+                id: d.locator,
+                name: d.locator,
+                code: d.locator,
               }));
               setLocatorDataMap(prev => ({ ...prev, [it.id]: mapped }));
               setLocatorInCache(sub_id?.id, mapped);
             }
-          } catch { }
+          } catch(error) {
+              setLocatorDataMap(prev => ({ ...prev, [it.id]: [] }));
+           }
         }
       });
     }
