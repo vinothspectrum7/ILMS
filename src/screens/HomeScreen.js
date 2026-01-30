@@ -5,7 +5,7 @@ import Toast from 'react-native-toast-message';
 import HeaderComponent, { HEADER_METRICS } from '../components/HeaderComponent';
 import { useFocusEffect } from '@react-navigation/native';
 import { useReceivingStore } from '../store/receivingStore';
-import { GetInventryData, GetLocatorsData, PriorityTaskList, RecentActivityList } from '../api/ApiServices';
+import { GetInventryData, GetLocatorsData, GetTOLocatorData, PriorityTaskList, RecentActivityList } from '../api/ApiServices';
 import StatusCountCard from '../components/dashboard/StatusCountCard';
 import TabbedCard from '../components/dashboard/TabbedCard';
 import DonutChart from '../components/dashboard/DonutChart';
@@ -179,7 +179,7 @@ useEffect(() => {
 
 useEffect(() => {
   if (defaultinventory) {
-    loadlocatordata(defaultinventory);
+    loadlocatordata(OrgCode,defaultinventory);
   }
 }, [defaultinventory]);
 
@@ -206,19 +206,20 @@ function capitalizeFirstLetter(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
-  const loadlocatordata = async sub_inv => {
-    // if (!sub_inv) return;
-    // try {
-    //   const locdata = await GetLocatorsData(sub_inv?.id);
-    //   if (locdata) {
-    //     const LocatorList = locdata.map(d => ({ id: d.locator_id, name: d.locator_name, enabled: d.locator_enabled }));
-    //     setLocatorList(LocatorList);
-    //     console.log(LocatorList,"LocatorList")
-    //     setLocatorInCache(sub_inv?.id, LocatorList);
-    //   }
-    // } catch (err) {
-    //   Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators. Please try again.', position: 'top', visibilityTime: 5000 });
-    // }
+  const loadlocatordata = async (org_id,sub_inv) => {
+    if (!sub_inv) return;
+    try {
+      const locdata = await GetTOLocatorData(org_id,sub_inv?.id);
+      if (locdata) {
+        const LocatorList = locdata.map(d => ({ id: d.locator, name: d.locator, code:d.locator }));
+        setLocatorList(LocatorList);
+        console.log(LocatorList,"LocatorList");
+        console.log(locdata,"locdatalocdata");
+        setLocatorInCache(sub_inv?.id, LocatorList);
+      }
+    } catch (err) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load Locators. Please try again.', position: 'top', visibilityTime: 5000 });
+    }
   };
 
   const STATUSCOUNT = [
