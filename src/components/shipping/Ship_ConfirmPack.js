@@ -41,7 +41,7 @@ const Ship_ConfirmPack = () => {
 
   const [phase, setPhase] = useState('idle');
   const [LPNListItems, setLPNListItems] = useState([]);
-  const [PackListOrders, setPackListOrders] = useState(null); 
+  const [PackListOrders, setPackListOrders] = useState(null);
 
   const maptoLPNitemslist = data =>
     data.map(backend => ({
@@ -58,59 +58,59 @@ const Ship_ConfirmPack = () => {
     carrier_name: backend?.carrier_name || '-',
     ship_from_location: backend?.ship_from_location || '-',
     pick_slip_number: backend?.pick_slip_number || '-',
-  }); 
+  });
 
-    useEffect(() => {
-      if (!selectedTransaction?.deliveryId) return;
-  
-      const orgCode = getOrgCode();
-      setPhase('loading');
-  
-      const loadLPNitemsData = async () => {
-        try {
-          const LPNitemsdata = await GetShippingLpnDetailsData(
-            orgCode,
-            selectedTransaction.deliveryId
-          );
-  
-          if (LPNitemsdata?.lpn_details?.length) {
-            setLPNListItems(maptoLPNitemslist(LPNitemsdata.lpn_details));
-          } else {
-            setLPNListItems([]);
-          }
-  
-          setPhase('success');
-        } catch (error) {
-          setPhase('error');
-          navigation.navigate('Ship_Entry');
+  useEffect(() => {
+    if (!selectedTransaction?.deliveryId) return;
+
+    const orgCode = getOrgCode();
+    setPhase('loading');
+
+    const loadLPNitemsData = async () => {
+      try {
+        const LPNitemsdata = await GetShippingLpnDetailsData(
+          orgCode,
+          selectedTransaction.deliveryId
+        );
+
+        if (LPNitemsdata?.lpn_details?.length) {
+          setLPNListItems(maptoLPNitemslist(LPNitemsdata.lpn_details));
+        } else {
+          setLPNListItems([]);
         }
-      };
-  
-      const loadPackOrderData = async () => {
-        try {
-          const Packorderdata = await GetShippingPackOrderData(
-            orgCode,
-            selectedTransaction.deliveryId
+
+        setPhase('success');
+      } catch (error) {
+        setPhase('error');
+        navigation.navigate('Ship_Entry');
+      }
+    };
+
+    const loadPackOrderData = async () => {
+      try {
+        const Packorderdata = await GetShippingPackOrderData(
+          orgCode,
+          selectedTransaction.deliveryId
+        );
+
+        if (Packorderdata?.pack_order_result?.length) {
+          setPackListOrders(
+            mapToPickOrderHeader(Packorderdata.pack_order_result[0])
           );
-  
-          if (Packorderdata?.pack_order_result?.length) {
-            setPackListOrders(
-              mapToPickOrderHeader(Packorderdata.pack_order_result[0])
-            );
-          } else {
-            setPackListOrders(null);
-          }
-  
-          setPhase('success');
-        } catch (error) {
-          setPhase('error');
-          navigation.navigate('Ship_Entry');
+        } else {
+          setPackListOrders(null);
         }
-      };
-  
-      loadLPNitemsData();
-      loadPackOrderData();
-    }, [selectedTransaction?.deliveryId]);
+
+        setPhase('success');
+      } catch (error) {
+        setPhase('error');
+        navigation.navigate('Ship_Entry');
+      }
+    };
+
+    loadLPNitemsData();
+    loadPackOrderData();
+  }, [selectedTransaction?.deliveryId]);
 
 
   const confirmList = useMemo(() => {
@@ -161,44 +161,55 @@ const Ship_ConfirmPack = () => {
         onBack={() => navigation.goBack()}
       />
 
-      <View style={styles.content}>
-        <View style={[styles.mainCard, { width: mainCardWidth, maxHeight: screenHeight * 0.72 }]}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.mainCardContent}>
-            {LPNListItems.map((item, index) => (
-              <View key={index} style={[styles.itemCard, { width: itemCardWidth }]}>
-                <View style={styles.itemHeader}>
-                  <Text style={styles.headerLabel}>LPN</Text>
-                  <Text style={styles.headerValue}>{item.lpn_number ?? '-'}</Text>
-                </View>
-
-                <View style={styles.itemBody}>
-                  <View style={styles.twoColRow}>
-                    <InfoBlock label="Delivery Number" value={item.delivery_number ?? '-'} />
-                    <InfoBlock label="Customer Name" value={item.customer_name ?? '-'} />
-                  </View>
-
-                  <View style={styles.twoColRow}>
-                    <InfoBlock label="Carrier" value={item.carrier_name ?? '-'} />
-                    <InfoBlock label="Pack Number" value={item.pack_number ?? '-'} />
-                  </View>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
+      {phase === 'loading' && (
+        <View style={styles.loaderWrapper}>
+          <ActivityIndicator size="large" color="#233E55" />
         </View>
-      </View>
+      )}
 
-      <View style={styles.footer}>
-        <SingleFooterBtnComponent label="Confirm pack" onPress={handleConfirm} enabled />
-      </View>
+      {phase !== 'loading' && (
+        <>
 
-      <ShipConfirmationModal
-        visible={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onNo={handleConfirmNo}
-        type="CONFIRM_PACK"
-        itemCount={confirmList.length}
-      />
+          <View style={styles.content}>
+            <View style={[styles.mainCard, { width: mainCardWidth, maxHeight: screenHeight * 0.72 }]}>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.mainCardContent}>
+                {LPNListItems.map((item, index) => (
+                  <View key={index} style={[styles.itemCard, { width: itemCardWidth }]}>
+                    <View style={styles.itemHeader}>
+                      <Text style={styles.headerLabel}>LPN</Text>
+                      <Text style={styles.headerValue}>{item.lpn_number ?? '-'}</Text>
+                    </View>
+
+                    <View style={styles.itemBody}>
+                      <View style={styles.twoColRow}>
+                        <InfoBlock label="Delivery Number" value={item.delivery_number ?? '-'} />
+                        <InfoBlock label="Customer Name" value={item.customer_name ?? '-'} />
+                      </View>
+
+                      <View style={styles.twoColRow}>
+                        <InfoBlock label="Carrier" value={item.carrier_name ?? '-'} />
+                        <InfoBlock label="Pack Number" value={item.pack_number ?? '-'} />
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+
+          <View style={styles.footer}>
+            <SingleFooterBtnComponent label="Confirm pack" onPress={handleConfirm} enabled />
+          </View>
+
+          <ShipConfirmationModal
+            visible={showConfirmModal}
+            onClose={() => setShowConfirmModal(false)}
+            onNo={handleConfirmNo}
+            type="CONFIRM_PACK"
+            itemCount={confirmList.length}
+          />
+        </>
+      )}
     </View>
   );
 };
@@ -323,4 +334,6 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     backgroundColor: '#F4F6F8',
   },
+
+  loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
