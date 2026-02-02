@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import LocationIcon from '../../assets/icons/Ship_Icons/LocationIcon.svg';
 import CloseIcon from '../../assets/icons/close.svg';
 import {Organization_Dropdown_Mock_Data,  Item_OnHand_Mock_Data,} from '../../data/ItemInquiryMockData';
 import ItemInquiry_Dropdown from '../../components/ItemInquiry/ItemInquiry_Dropdown';
+import { useRoute } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -42,6 +43,10 @@ const ItemOnHandScreen = () => {
   const [showSerialsModal, setShowSerialsModal] = useState(false);
   const [selectedLotSerials, setSelectedLotSerials] = useState([]);
   const [selectedLotNumber, setSelectedLotNumber] = useState('');
+
+  const route = useRoute();
+const passedItemCode = route.params?.itemCode;
+
 
   const onBack = useCallback(() => navigation.goBack(), [navigation]);
   const onMenu = useCallback(
@@ -121,6 +126,18 @@ const ItemOnHandScreen = () => {
       </Text>
     </View>
   );
+
+  useEffect(() => {
+  if (passedItemCode) {
+    setBarcodeInput(passedItemCode);
+
+    const foundItem = findItem(passedItemCode);
+    if (foundItem) {
+      setItemOnHandData(foundItem);
+      setExpandedLocation(null);
+    }
+  }
+}, [passedItemCode]);
 
   return (
     <View style={styles.container}>

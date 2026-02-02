@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { Item_Inquiry_Mock_Data } from '../../data/ItemInquiryMockData';
 import GreenOutlineTick from '../../assets/icons/CycleCount_Icons/GreenOutlineTick.svg';
 import GreyEyeIcon from '../../assets/icons/CycleCount_Icons/GreyEyeIcon.svg';
+import { useNavigation } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -11,6 +12,14 @@ const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 const OrgTabComponent = ({ itemData }) => {
     const orgData = itemData?.organization || Item_Inquiry_Mock_Data[0].organization;
+    const navigation = useNavigation();
+
+    const handleViewDetails = () => {
+        navigation.navigate('ItemOnHandScreen', {
+            itemCode: itemData?.itemHeader?.itemCode,
+        });
+    };
+
 
     return (
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -81,12 +90,16 @@ const OrgTabComponent = ({ itemData }) => {
                             </View>
                         </View>
                         {org.viewDetails && (
-                            <View style={styles.cardFooter}>
+                            <TouchableOpacity
+                                style={styles.cardFooter}
+                                activeOpacity={0.7}
+                                onPress={handleViewDetails}
+                            >
                                 <View style={styles.viewDetailsRow}>
                                     <GreyEyeIcon width={ms(14)} height={ms(14)} />
                                     <Text style={styles.viewDetailsText}>View Details</Text>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         )}
                     </View>
                 ))}
