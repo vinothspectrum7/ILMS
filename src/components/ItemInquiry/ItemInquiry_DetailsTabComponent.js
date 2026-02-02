@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   value: {
     fontFamily: 'Mulish',
-    fontWeight: '400',
+    fontWeight: '700',
     fontSize: ms(10),
     lineHeight: ms(14),
     color: '#242424',
