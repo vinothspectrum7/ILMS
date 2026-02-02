@@ -105,6 +105,7 @@ export default function Inv_LotModalPopup({
       if (initialLots && initialLots.length > 0) {
         setLots(
           initialLots.map((l, idx) => {
+            console.log(l,"intialLOTSSSSSS")
             const lotOpt = findLotOption(l.lotNumber);
             return {
               idx,
@@ -113,7 +114,7 @@ export default function Inv_LotModalPopup({
               mfgDate: l.mfgDate || '',
               expDate: l.expDate || '',
               qty: Number(l.qty) || 0,
-              maxqty:0
+              maxqty:l.maxqty
             };
           }),
         );
@@ -157,9 +158,9 @@ export default function Inv_LotModalPopup({
 
   const mapLotslist = data =>
     data.map(element => ({
-      id: element.Lot,
-      name: element.Lot,
-      code: element.Lot,
+      id: element.lot,
+      name: element.lot,
+      code: element.lot,
       qty:element.qty
     }));
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,23 +6,113 @@ import {
   ScrollView,
   StatusBar,
   Dimensions,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
 import SingleFooterBtnComponent from '../../components/SingleFooterBtnComponent';
 import ShipConfirmationModal from './Ship_ConfirmationModal';
 import { useShippingStore } from '../../store/shippingStore';
+import { useReceivingStore } from '../../store/receivingStore';
+import {
+  GetShippingLpnDetailsData,
+} from '../../api/ApiServices';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const Ship_ConfirmPack = () => {
   const navigation = useNavigation();
 
+  const setLPNitemsData = useShippingStore(s => s.setLpnItemsData);
   const selectedTransaction = useShippingStore(s => s.selectedTransaction);
   const setSelectedTransaction = useShippingStore(s => s.setSelectedTransaction);
   const setTransactionStatus = useShippingStore(s => s.setTransactionStatus);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const { OrgData } = useReceivingStore();
+
+  const getOrgCode = () => {
+    const val = useReceivingStore.getState()?.OrgData?.selectedOrg;
+    return parseInt(val, 10);
+  };
+
+  const [phase, setPhase] = useState('idle');
+  const [LPNListItems, setLPNListItems] = useState([]);
+  const [PackListOrders, setPackListOrders] = useState(null);
+
+  const maptoLPNitemslist = data =>
+    data.map(backend => ({
+      customer_name: backend.customer_name || '-',
+      carrier_name: backend.carrier_name || '-',
+      delivery_number: backend.delivery_number || '-',
+      lpn_number: backend.lpn_number || '-',
+      pack_number: backend.pack_number || '-',      
+    }));
+
+  const mapToPickOrderHeader = backend => ({
+    customer_name: backend?.customer_name || '-',
+    carrier_name: backend?.carrier_name || '-',
+    ship_from_location: backend?.ship_from_location || '-',
+    pick_slip_number: backend?.pick_slip_number || '-',
+  });
+
+  useEffect(() => {
+    if (!selectedTransaction?.deliveryId) return;
+
+    const orgCode = getOrgCode();
+    setPhase('loading');
+
+    console.log(selectedTransaction, "selectedTransactionselectedTransaction")
+
+    const loadLPNitemsData = async () => {
+      try {
+        const LPNitemsdata = await GetShippingLpnDetailsData(
+          orgCode,
+          selectedTransaction.deliveryId
+        );
+
+        if (LPNitemsdata?.lpn_details) {
+          setLPNListItems(maptoLPNitemslist(LPNitemsdata.lpn_details));
+        } else {
+          setLPNListItems([]);
+        }
+
+        setPhase('success');
+      } catch (error) {
+        setPhase('error');
+        navigation.navigate('Ship_Entry');
+      }
+    };
+
+    // const loadPackOrderData = async () => {
+    //   try {
+    //     const Packorderdata = await GetShippingPackOrderData(
+    //       orgCode,
+    //       selectedTransaction.deliveryId
+    //     );
+
+    //     if (Packorderdata?.pack_order_result?.length) {
+    //       setPackListOrders(
+    //         mapToPickOrderHeader(Packorderdata.pack_order_result[0])
+    //       );
+    //     } else {
+    //       setPackListOrders(null);
+    //     }
+
+    //     setPhase('success');
+    //   } catch (error) {
+    //     setPhase('error');
+    //     navigation.navigate('Ship_Entry');
+    //   }
+    // };
+
+    loadLPNitemsData();
+    // loadPackOrderData();
+  }, [selectedTransaction?.deliveryId]);
+
 
   const confirmList = useMemo(() => {
     const list = selectedTransaction?.confirm_data;
@@ -68,48 +158,59 @@ const Ship_ConfirmPack = () => {
 
       <GlobalHeaderComponent
         screenTitle="Confirm"
-        organizationName="ENV"
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         onBack={() => navigation.goBack()}
       />
 
-      <View style={styles.content}>
-        <View style={[styles.mainCard, { width: mainCardWidth, maxHeight: screenHeight * 0.72 }]}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.mainCardContent}>
-            {confirmList.map((item, index) => (
-              <View key={index} style={[styles.itemCard, { width: itemCardWidth }]}>
-                <View style={styles.itemHeader}>
-                  <Text style={styles.headerLabel}>LPN</Text>
-                  <Text style={styles.headerValue}>{item.lpn}</Text>
-                </View>
-
-                <View style={styles.itemBody}>
-                  <View style={styles.twoColRow}>
-                    <InfoBlock label="Delivery Number" value={item.deliveryNo} />
-                    <InfoBlock label="Customer Name" value={item.customer} />
-                  </View>
-
-                  <View style={styles.twoColRow}>
-                    <InfoBlock label="Carrier" value={item.carrier} />
-                    <InfoBlock label="Pack Number" value={item.packNo} />
-                  </View>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
+      {phase === 'loading' && (
+        <View style={styles.loaderWrapper}>
+          <ActivityIndicator size="large" color="#233E55" />
         </View>
-      </View>
+      )}
 
-      <View style={styles.footer}>
-        <SingleFooterBtnComponent label="Confirm pack" onPress={handleConfirm} enabled />
-      </View>
+      {phase !== 'loading' && (
+        <>
 
-      <ShipConfirmationModal
-        visible={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onNo={handleConfirmNo}
-        type="CONFIRM_PACK"
-        itemCount={confirmList.length}
-      />
+          <View style={styles.content}>
+            <View style={[styles.mainCard, { width: mainCardWidth, maxHeight: screenHeight * 0.72 }]}>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.mainCardContent}>
+                {LPNListItems.map((item, index) => (
+                  <View key={index} style={[styles.itemCard, { width: itemCardWidth }]}>
+                    <View style={styles.itemHeader}>
+                      <Text style={styles.headerLabel}>LPN</Text>
+                      <Text style={styles.headerValue}>{item.lpn_number ?? '-'}</Text>
+                    </View>
+
+                    <View style={styles.itemBody}>
+                      <View style={styles.twoColRow}>
+                        <InfoBlock label="Delivery Number" value={item.delivery_number ?? '-'} />
+                        <InfoBlock label="Customer Name" value={item.customer_name ?? '-'} />
+                      </View>
+
+                      <View style={styles.twoColRow}>
+                        <InfoBlock label="Carrier" value={item.carrier_name ?? '-'} />
+                        <InfoBlock label="Pack Number" value={item.pack_number ?? '-'} />
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+
+          <View style={styles.footer}>
+            <SingleFooterBtnComponent label="Confirm pack" onPress={handleConfirm} enabled />
+          </View>
+
+          <ShipConfirmationModal
+            visible={showConfirmModal}
+            onClose={() => setShowConfirmModal(false)}
+            onNo={handleConfirmNo}
+            type="CONFIRM_PACK"
+            itemCount={selectedTransaction?.lines}
+          />
+        </>
+      )}
     </View>
   );
 };
@@ -234,4 +335,6 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     backgroundColor: '#F4F6F8',
   },
+
+  loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

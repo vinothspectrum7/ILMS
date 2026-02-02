@@ -22,6 +22,7 @@ import FailureSvg from '../../assets/icons/failure.svg';
 import Inv_SerialModalPopup from '../../components/inventory/Inv_SerialModalPopup';
 import Inv_LotSerialModalPopup from '../../components/inventory/Inv_LotSerialModalPopup';
 import LinearGradient from 'react-native-linear-gradient';
+import { Submit_Sub_Inventory_Transfer_Qty } from '../../api/ApiServices';
 
 const { width: SCREEN_WIDTH } = require('react-native').Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -119,17 +120,35 @@ export default function Sub_Inv_TransferSummaryScreen() {
     return (data || []).map(backend => {
 
       const base = {
-            item_code: "string",
-            from_subinventory: "string",
-            to_subinventory: "string",
-            quantity: 0,
-            uom: "string",
-            from_locator: "string",
-            to_locator: "string",
-            from_serial: "",
-            to_serial: "",
-            from_lot: "",
-            to_lot: ""
+            item_code: backend?.item?.id,
+            from_subinventory: backend?.fromSub?.id,
+            to_subinventory: backend?.toSub?.id,
+            quantity: backend?.qty,
+            uom: backend?.uom?.id,
+            from_locator: backend?.fromLocator?.id,
+            to_locator: backend?.toLocator?.id,
+            comments: backend?.notes,
+          ...(backend?.controlType === 'Serial'
+    ? {
+        serial_details: Array.isArray(backend?.serial)?
+        backend?.serial:[],
+      }
+    : backend?.controlType === 'Lot'? {
+        lot_details: Array.isArray(backend?.lots)
+          ? backend.lots.map(l => ({
+              from_lot_num: l?.lotNumber,
+              lot_trans_quantity: l?.qty,
+            }))
+          : [],
+      }: backend?.controlType === 'Lot+Serial'? {
+        lot_serial_details: Array.isArray(backend?.lots)?
+        backend?.lots.map(l =>({
+              from_lot_num: l?.lotNumber,
+              lot_trans_quantity: l?.qty,
+              serial_details: l?.serial
+        })):[],
+      }:{}
+    ),
         // lot_item_lots: Array.isArray(backend?.lotLines)
         //   ? backend.lotLines.map(l => ({
         //       lot_number: l?.lotNumber,
@@ -148,35 +167,34 @@ export default function Sub_Inv_TransferSummaryScreen() {
 
   const handleConfirmTransfer = async() => {
       setConfirmVisible(false);
-  
-      console.log('SUB_INV_TRANSFER_SUBMIT', subInvTransferItems);
+                console.log('SUB_INV_TRANSFER_SUBMIT', subInvTransferItems);
       const formatdata = mapConfirmData(subInvTransferItems);
-    
-        // try {
-        //   const response = await Submit_Receive_Qty(formatdata);
-        //   if (response?.status === 'SUCCESS') {
-        //     setSuccessVisible(true);
-        //     setTimeout(() => {
-        //       resetSubInvTransfer();
-        //       setSuccessVisible(false);
-        //       navigation.navigate('Inventory');
-        //     }, 3500);
-        //   }
-        //     setFailureVisible(true);
-        //     setTimeout(() => {
-        //       resetSubInvTransfer();
-        //       setFailureVisible(false);
-        //       navigation.navigate('Inventory');
-        //     }, 3500);
+          console.log('SUB_INV_TRANSFER_SUBMITformatdata', formatdata);
+        try {
+          const response = await Submit_Sub_Inventory_Transfer_Qty(formatdata);
+          if (response?.status === 'SUCCESS') {
+            setSuccessVisible(true);
+            setTimeout(() => {
+              resetSubInvTransfer();
+              setSuccessVisible(false);
+              navigation.navigate('Inventory');
+            }, 3500);
+          }
+            setFailureVisible(true);
+            setTimeout(() => {
+              resetSubInvTransfer();
+              setFailureVisible(false);
+              navigation.navigate('Inventory');
+            }, 3500);
 
-        // } catch (err) {
-        //     setFailureVisible(true);
-        //     setTimeout(() => {
-        //       resetSubInvTransfer();
-        //       setFailureVisible(false);
-        //       navigation.navigate('Inventory');
-        //     }, 3500);
-        // }
+        } catch (err) {
+            setFailureVisible(true);
+            setTimeout(() => {
+              resetSubInvTransfer();
+              setFailureVisible(false);
+              navigation.navigate('Inventory');
+            }, 3500);
+        }
   };
 
   useEffect(()=>{
@@ -344,7 +362,7 @@ export default function Sub_Inv_TransferSummaryScreen() {
 
       <FailureModal
         visible={FailureVisible}
-        onClose={() => setSuccessVisible(false)}
+        onClose={() => setFailureVisible(false)}
       />
     </View>
   );

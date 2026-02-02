@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Keyboard,
   Pressable,
+  Modal,
 } from 'react-native';
 import FilterIcon from '../../assets/icons/Ship_Icons/FilterIcon.svg';
 import DropdownIcon from '../../assets/icons/Ship_Icons/DropdownIcon.svg';
@@ -29,6 +30,8 @@ function FilterBar({ filters, onFilterChange }) {
   const [pickSearchText, setPickSearchText] = useState(filters?.pickSearchText ?? '');
   const [pickSuggestions, setPickSuggestions] = useState(filters?.pickSuggestions ?? []);
   const [pickLoading, setPickLoading] = useState(false);
+  const filterBarRef = useRef(null);
+  const [dropdownTop, setDropdownTop] = useState(0);
 
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -214,7 +217,7 @@ function FilterBar({ filters, onFilterChange }) {
       if (activeDropdown === 'Pick Option') {
         try {
           pickInputRef.current?.blur();
-        } catch (e) {}
+        } catch (e) { }
       }
     });
 
@@ -562,7 +565,7 @@ function FilterBar({ filters, onFilterChange }) {
   };
 
   return (
-    <View style={styles.wrapper}>
+    <View ref={filterBarRef} style={styles.wrapper}>
       <View style={styles.container}>
         <View style={styles.filterIconContainer}>
           <FilterIcon width={25} height={26} />
@@ -592,7 +595,17 @@ function FilterBar({ filters, onFilterChange }) {
                 isFilterActive(item) && styles.dropdownFiltered,
                 activeDropdown === item && styles.dropdownActive,
               ]}
-              onPress={() => setActiveDropdown(activeDropdown === item ? null : item)}
+              onPress={() => {
+                if (activeDropdown === item) {
+                  setActiveDropdown(null);
+                  return;
+                }
+
+                filterBarRef.current?.measureInWindow((x, y, width, height) => {
+                  setDropdownTop(y + height); // 👈 BELOW filter bar
+                  setActiveDropdown(item);
+                });
+              }}
             >
               <Text style={styles.dropdownText} numberOfLines={1} ellipsizeMode="tail">
                 {item}
@@ -608,15 +621,27 @@ function FilterBar({ filters, onFilterChange }) {
           ))}
         </ScrollView>
       </View>
+      <Modal
+        visible={!!activeDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseDropdown}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={handleCloseDropdown}
+        />
+        <View
+          style={[
+            styles.modalDropdownWrapper,
+            { top: dropdownTop },
+          ]}
+        >
+          {renderDropdownContent()}
+        </View>
 
-      {activeDropdown && (
-        <>
-          <TouchableOpacity activeOpacity={1} style={styles.overlay} onPress={handleCloseDropdown} />
-          <View style={styles.fullScreenDropdownWrapper}>
-            <View style={styles.fullScreenDropdownContainer}>{renderDropdownContent()}</View>
-          </View>
-        </>
-      )}
+      </Modal>
+
     </View>
   );
 }
@@ -713,9 +738,9 @@ const styles = StyleSheet.create({
     top: 48,
     left: 0,
     right: 0,
-    width: '100%',
-    zIndex: 999,
-    elevation: 6,
+    // width: '100%',
+    zIndex: 10,
+    // elevation: 6,
   },
   fullScreenDropdownContainer: {
     width: '100%',
@@ -875,6 +900,19 @@ const styles = StyleSheet.create({
     color: '#7A7A7A',
   },
   loaderWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+  },
+
+  modalDropdownWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    paddingHorizontal: 8,
+    zIndex: 999,
+  },
+
 });
 
 export default FilterBar;

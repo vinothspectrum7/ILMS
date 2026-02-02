@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Animated,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
@@ -156,46 +157,65 @@ const AutoPack = () => {
   });
 
   const handlePackPress = async () => {
-
     if (!selectedTransaction?.deliveryId) return;
+
     setPhase('loading');
     const orgCode = getOrgCode();
 
     try {
-      console.log(selectedTransaction?.deliveryId, "selectedTransaction_delivery_id")
-      const packconfirmdata = await GetShippingPackConfirmData(orgCode, selectedTransaction?.deliveryId);
-      console.log(packconfirmdata, "ShippingPackConfirmShippingPackConfirm")
+      const packconfirmdata = await GetShippingPackConfirmData(
+        orgCode,
+        selectedTransaction.deliveryId
+      );
 
-      if (packconfirmdata?.status) {
-        console.log(packconfirmdata, "ShippingPackConfirmShippingPackConfirmShippingPackConfirm")
-        if (!selectedTransaction?.deliveryId) {
-          Toast.show({ type: 'success', text1: packconfirmdata?.status });
-          return;
-        }
-      } else {
-        Toast.show({ type: 'error', text1: packconfirmdata?.status });
+      if (packconfirmdata?.status === 'Success') {
+        Toast.show({
+          type: 'success',
+          text1: packconfirmdata?.message || 'Packed successfully',
+          position: 'top',
+        });
+
+        // const updated = {
+        //   ...selectedTransaction,
+        //   status: 'Ready To Ship',
+        // };
+
+        // setPackItemsData(updated);
+        // setSelectedTransaction(updated);
+        // setTransactionStatus(updated.deliveryId, 'Ready To Ship');
+
+        setPhase('success');
+        navigation.navigate('Ship_ConfirmPack');
+        return;
       }
-      setPhase('success');
+      else {
+
+        Toast.show({
+          type: 'success',
+          text1: 'Items are Already Packed.',
+          position: 'top',
+        });
+
+        setPhase('success');
+        navigation.navigate('Ship_ConfirmPack');
+        return;
+      }
+
+
     } catch (error) {
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: `${error}`,
+        text2: String(error),
         position: 'top',
         visibilityTime: 10000,
       });
+
       setPhase('error');
       navigation.navigate('Ship_Entry');
     }
-    const updated = { ...selectedTransaction, status: 'Ready To Ship' };
-
-    setPackItemsData(updated);
-    //add lot, serail, lot+serail data here - manualPick
-
-    setSelectedTransaction(updated);
-    setTransactionStatus(updated.deliveryId, 'Ready To Ship');
-    navigation.navigate('Ship_ConfirmPack');
   };
+
 
   const renderRadioButton = option => {
     const isSelected = selectedOption === option.label;
@@ -228,12 +248,12 @@ const AutoPack = () => {
     <View key={index} style={styles.rowCard}>
       <View style={styles.tableRow}>
         <View style={styles.itemCell}>
-          <Text style={styles.itemName}>{item.item_code}</Text>
+          <Text style={styles.itemName}>{item.item_code ?? '-'}</Text>
         </View>
         <View style={styles.qtyCell}>
-          <Text style={styles.qtyText}>{item.qty_to_pick}</Text>
-          <Text style={styles.eachText}>{item.unit_of_measure}</Text>
-          <Text style={styles.statusText}>{item.item_status}</Text>
+          <Text style={styles.qtyText}>{item.qty_to_pick ?? '-'}</Text>
+          <Text style={styles.eachText}>{item.unit_of_measure ?? '-'}</Text>
+          <Text style={styles.statusText}>{item.item_status ?? '-'}</Text>
         </View>
       </View>
     </View>
@@ -430,15 +450,17 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 12,
-    color: '#333',
-    marginBottom: 2,
+    fontFamily: 'Mulish',
+    fontSize: 10,
+    color: '#667085',
   },
 
   value: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000',
+    fontFamily: 'Mulish',
+    fontWeight: '800',
+    fontSize: 12,
+    color: '#233E55',
+    marginBottom: 2,
   },
 
   newCard: {
@@ -473,6 +495,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     width: '100%',
+    marginBottom: 10,
   },
 
   radioContainer: {
