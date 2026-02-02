@@ -45,12 +45,11 @@ const Ship_ConfirmPack = () => {
 
   const maptoLPNitemslist = data =>
     data.map(backend => ({
-      item_code: backend.item_code || '-',
-      qty_to_pick: backend.qty_to_pick || '-',
-      unit_of_measure: backend.unit_of_measure || '-',
-      sub_inventory: backend.sub_inventory || '-',
-      locator: backend.locator || '-',
-      item_status: backend.status || '-',
+      customer_name: backend.customer_name || '-',
+      carrier_name: backend.carrier_name || '-',
+      delivery_number: backend.delivery_number || '-',
+      lpn_number: backend.lpn_number || '-',
+      pack_number: backend.pack_number || '-',      
     }));
 
   const mapToPickOrderHeader = backend => ({
@@ -66,6 +65,8 @@ const Ship_ConfirmPack = () => {
     const orgCode = getOrgCode();
     setPhase('loading');
 
+    console.log(selectedTransaction, "selectedTransactionselectedTransaction")
+
     const loadLPNitemsData = async () => {
       try {
         const LPNitemsdata = await GetShippingLpnDetailsData(
@@ -73,7 +74,7 @@ const Ship_ConfirmPack = () => {
           selectedTransaction.deliveryId
         );
 
-        if (LPNitemsdata?.lpn_details?.length) {
+        if (LPNitemsdata?.lpn_details) {
           setLPNListItems(maptoLPNitemslist(LPNitemsdata.lpn_details));
         } else {
           setLPNListItems([]);
@@ -86,30 +87,30 @@ const Ship_ConfirmPack = () => {
       }
     };
 
-    const loadPackOrderData = async () => {
-      try {
-        const Packorderdata = await GetShippingPackOrderData(
-          orgCode,
-          selectedTransaction.deliveryId
-        );
+    // const loadPackOrderData = async () => {
+    //   try {
+    //     const Packorderdata = await GetShippingPackOrderData(
+    //       orgCode,
+    //       selectedTransaction.deliveryId
+    //     );
 
-        if (Packorderdata?.pack_order_result?.length) {
-          setPackListOrders(
-            mapToPickOrderHeader(Packorderdata.pack_order_result[0])
-          );
-        } else {
-          setPackListOrders(null);
-        }
+    //     if (Packorderdata?.pack_order_result?.length) {
+    //       setPackListOrders(
+    //         mapToPickOrderHeader(Packorderdata.pack_order_result[0])
+    //       );
+    //     } else {
+    //       setPackListOrders(null);
+    //     }
 
-        setPhase('success');
-      } catch (error) {
-        setPhase('error');
-        navigation.navigate('Ship_Entry');
-      }
-    };
+    //     setPhase('success');
+    //   } catch (error) {
+    //     setPhase('error');
+    //     navigation.navigate('Ship_Entry');
+    //   }
+    // };
 
     loadLPNitemsData();
-    loadPackOrderData();
+    // loadPackOrderData();
   }, [selectedTransaction?.deliveryId]);
 
 
@@ -206,7 +207,7 @@ const Ship_ConfirmPack = () => {
             onClose={() => setShowConfirmModal(false)}
             onNo={handleConfirmNo}
             type="CONFIRM_PACK"
-            itemCount={confirmList.length}
+            itemCount={selectedTransaction?.lines}
           />
         </>
       )}

@@ -157,68 +157,64 @@ const AutoPack = () => {
   });
 
   const handlePackPress = async () => {
-  if (!selectedTransaction?.deliveryId) return;
+    if (!selectedTransaction?.deliveryId) return;
 
-  setPhase('loading');
-  const orgCode = getOrgCode();
+    setPhase('loading');
+    const orgCode = getOrgCode();
 
-  try {
-    const packconfirmdata = await GetShippingPackConfirmData(
-      orgCode,
-      selectedTransaction.deliveryId
-    );
+    try {
+      const packconfirmdata = await GetShippingPackConfirmData(
+        orgCode,
+        selectedTransaction.deliveryId
+      );
 
-    if (packconfirmdata?.status === null) {
+      if (packconfirmdata?.status === 'Success') {
+        Toast.show({
+          type: 'success',
+          text1: packconfirmdata?.message || 'Packed successfully',
+          position: 'top',
+        });
+
+        // const updated = {
+        //   ...selectedTransaction,
+        //   status: 'Ready To Ship',
+        // };
+
+        // setPackItemsData(updated);
+        // setSelectedTransaction(updated);
+        // setTransactionStatus(updated.deliveryId, 'Ready To Ship');
+
+        setPhase('success');
+        navigation.navigate('Ship_ConfirmPack');
+        return;
+      }
+      else {
+
+        Toast.show({
+          type: 'success',
+          text1: 'Items are Already Packed.',
+          position: 'top',
+        });
+
+        setPhase('success');
+        navigation.navigate('Ship_ConfirmPack');
+        return;
+      }
+
+
+    } catch (error) {
       Toast.show({
         type: 'error',
-        text1: packconfirmdata?.message || 'Auto Pack failed',
+        text1: 'Error',
+        text2: String(error),
         position: 'top',
-      });
-      setPhase('success');
-      return;
-    }
-
-    if (packconfirmdata?.status === 'Success') {
-      Toast.show({
-        type: 'success',
-        text1: packconfirmdata?.message || 'Packed successfully',
-        position: 'top',
+        visibilityTime: 10000,
       });
 
-      const updated = {
-        ...selectedTransaction,
-        status: 'Ready To Ship',
-      };
-
-      setPackItemsData(updated);
-      setSelectedTransaction(updated);
-      setTransactionStatus(updated.deliveryId, 'Ready To Ship');
-
-      setPhase('success');
-      navigation.navigate('Ship_ConfirmPack');
-      return;
+      setPhase('error');
+      navigation.navigate('Ship_Entry');
     }
-
-    Toast.show({
-      type: 'error',
-      text1: packconfirmdata?.message || 'Unexpected response',
-      position: 'top',
-    });
-
-    setPhase('success');
-  } catch (error) {
-    Toast.show({
-      type: 'error',
-      text1: 'Error',
-      text2: String(error),
-      position: 'top',
-      visibilityTime: 10000,
-    });
-
-    setPhase('error');
-    navigation.navigate('Ship_Entry');
-  }
-};
+  };
 
 
   const renderRadioButton = option => {
@@ -456,7 +452,7 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Mulish',
     fontSize: 10,
-    color: '#667085',    
+    color: '#667085',
   },
 
   value: {

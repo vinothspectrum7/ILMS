@@ -82,7 +82,7 @@ const ShipConfirmationModal = ({
         <View style={styles.modalOverlay}>
           <View style={styles.confirmationModal}>
             <View style={styles.iconWrapper}>
-              <ConfirmTickIcon width={160} height={160} />
+              <ConfirmTickIcon width={100} height={100} />
             </View>
 
             {isConfirmPack ? (
@@ -148,7 +148,7 @@ const ShipConfirmationModal = ({
         <View style={styles.modalOverlay}>
           <View style={styles.confirmationModal}>
             <View style={styles.iconWrapper}>
-              <ConfirmTickIcon width={120} height={120} />
+              <ConfirmTickIcon width={100} height={100} />
             </View>
 
             <Text style={styles.successText}>
