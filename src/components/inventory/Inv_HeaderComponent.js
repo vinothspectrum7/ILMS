@@ -91,7 +91,7 @@ export default function Inv_HeaderComponent({
   cartCount = 0,
   onCartPress = () => {},
   onMenuSelect = () => {},
-  menuVersion = '26012905',
+  menuVersion = '26020206',
 }) {
   const title = `${org3(organizationName)} – ${screenTitle}${
     contextInfo ? `(${contextInfo})` : ''

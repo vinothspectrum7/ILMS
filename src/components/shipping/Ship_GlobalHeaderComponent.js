@@ -125,7 +125,7 @@ export default function Ship_GlobalHeaderComponent({
           <EnnVeeLogoSmall width={scale(140)} height={scale(36)} />
         </View>
         <View style={styles.brandRight}>
-          {/* <Text style={styles.version}>V: 26012905</Text> */}
+          {/* <Text style={styles.version}>V: 26020206</Text> */}
           <TouchableOpacity onPress={NotificationPress} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.bellWrap}>
             <BellIcon width={scale(22)} height={scale(22)} />
             {showDot && <View style={styles.dot} />}
