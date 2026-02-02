@@ -164,24 +164,24 @@ export const Item_Inquiry_Mock_Data = [
           organizationCode: 'ORG-001',
           quantity: +2,
           transactionDate: '23 Dec 2025',
-          location: 'A-01-01',   
+          location: 'A-01-01',
           status: 'Adjustment',
         },
       ],
     },
 
-    itemdetails:{
+    itemdetails: {
       itemCode: '001',
       uom: 'Each',
       category: 'Electronics',
       description: 'Dell XPS 15 9530, Intel Core i7',
       Status: 'Active',
-      lastUpdated: '23 Dec 2025, 14:30' 
+      lastUpdated: '23 Dec 2025, 14:30'
     }
   },
 
 
-   {
+  {
     itemHeader: {
       itemCode: 'ITEM-2024-002',
       itemName: 'Laptop Dell XPS 14',
@@ -276,7 +276,7 @@ export const Item_Inquiry_Mock_Data = [
           maxQuantity: 100,
           viewDetails: true,
         },
-       
+
       ],
     },
 
@@ -315,60 +315,180 @@ export const Item_Inquiry_Mock_Data = [
           organizationCode: 'ORG-001',
           quantity: +7,
           transactionDate: '23 Dec 2025',
-          location: 'A-01-01',   
+          location: 'A-01-01',
           status: 'Adjustment',
         },
       ],
     },
 
-    itemdetails:{
+    itemdetails: {
       itemCode: '002',
       uom: 'Each',
       category: 'Electronics',
       description: 'Dell XPS 15 9530, Intel Core i7',
       Status: 'Active',
-      lastUpdated: '23 Dec 2025, 14:30' 
+      lastUpdated: '23 Dec 2025, 14:30'
     }
   },
 ];
 
+export const Item_OnHand_Mock_Data = [
+  {
+    itemHeader: {
+      itemName: 'Laptop Dell XPS 15',
+      itemCode: 'ITEM-2024-001',
+      sku: 'SKU-12345',
+      status: 'Active',
+      organizationName: 'Atlanta Distribution Center',
+      orgCode: 'ORG-001',
+    },
 
-Item_OnHand_Mock_Data = {
-  "Item": "Laptop Dell XPS 15",
-  "ItemCode": "ITM-2024-001",
-  "TotalOnHand": 45,
-  "Organization": "Atlanta Distribution Center",
-  "OrgCode": "ORG-001",
-  "SummaryMetrics": {
-    "TotalAvailable": 38,
-    "TotalReserved": 5,
-    "TotalAvailableToTransit": 40,
-    "TotalAvailableToReserve": 38
+    onHandSummary: {
+      totalOnHand: 45,
+      totalAvailable: 38,
+      totalReserved: 5,
+      totalAvailableToTransit: 40,
+      totalAvailableToReserve: 38,
+    },
+
+    locations: [
+      {
+        locationName: 'Main Warehouse',
+        locationCode: 'LOC-001',
+        metrics: {
+          count: 15,
+          available: 12,
+          reserved: 5,
+          availableToTransit: 11,
+          availableToReserve: 12,
+        },
+        lots: [
+          {
+            lotNumber: 'LOT-2024-001',
+            mfgDate: '2024-01-15',
+            expDate: '2025-01-15',
+            totalUnits: 5,
+            uom: 'Each',
+            reserved: 2,
+            availableToTransit: 3,
+            availableToReserve: 4,
+            serials: ['SN11001', 'SN11002', 'SN11003', 'SN11004', 'SN11005', 'SN11006', 'SN11007', 'SN11008']
+          },
+          {
+            lotNumber: 'LOT-2024-002',
+            mfgDate: '2024-02-10',
+            expDate: '2025-02-10',
+            totalUnits: 5,
+            uom: 'Each',
+            reserved: 2,
+            availableToTransit: 4,
+            availableToReserve: 3,
+            serials: ['SN11003', 'SN11004', 'SN11003', 'SN11004']
+          },
+          {
+            lotNumber: 'LOT-2024-003',
+            mfgDate: '2024-03-05',
+            expDate: '2025-03-05',
+            totalUnits: 5,
+            uom: 'Each',
+            reserved: 1,
+            availableToTransit: 4,
+            availableToReserve: 5,
+            serials: ['SN11005', 'SN11006']
+          }
+        ]
+      },
+      {
+        locationName: 'Secondary Warehouse',
+        locationCode: 'LOC-002',
+        metrics: {
+          count: 15,
+          available: 12,
+          reserved: 5,
+          availableToTransit: 11,
+          availableToReserve: 12,
+        },
+        lots: [
+          {
+            lotNumber: 'LOT-2024-004',
+            mfgDate: '2024-01-20',
+            expDate: '2025-01-20',
+            totalUnits: 5,
+            uom: 'Each',
+            reserved: 2,
+            availableToTransit: 3,
+            availableToReserve: 4,
+            serials: ['SN11007', 'SN11008', 'SN11009']
+          },
+          {
+            lotNumber: 'LOT-2024-005',
+            mfgDate: '2024-02-15',
+            expDate: '2025-02-15',
+            totalUnits: 5,
+            reserved: 2,
+            availableToTransit: 4,
+            availableToReserve: 3,
+            serials: ['SN11010', 'SN11011']
+          },
+          {
+            lotNumber: 'LOT-2024-006',
+            mfgDate: '2024-03-10',
+            expDate: '2025-03-10',
+            totalUnits: 5,
+            uom: 'Each',
+            reserved: 1,
+            availableToTransit: 4,
+            availableToReserve: 5,
+            serials: ['SN11012', 'SN11013']
+          }
+        ]
+      },
+      {
+        locationName: 'Overflow Warehouse',
+        locationCode: 'LOC-003',
+        metrics: {
+          count: 15,
+          available: 15,
+          reserved: 0,
+          availableToTransit: 18,
+          availableToReserve: 14,
+        },
+        lots: [
+          {
+            lotNumber: 'LOT-2024-007',
+            mfgDate: '2024-01-25',
+            expDate: '2025-01-25',
+            totalUnits: 5,
+            uom: 'Each',
+            reserved: 0,
+            availableToTransit: 5,
+            availableToReserve: 4,
+            serials: ['SN11014', 'SN11015']
+          },
+          {
+            lotNumber: 'LOT-2024-008',
+            mfgDate: '2024-02-20',
+            expDate: '2025-02-20',
+            totalUnits: 5,
+            uom: 'Each',
+            reserved: 0,
+            availableToTransit: 5,
+            availableToReserve: 4,
+            serials: ['SN11016', 'SN11017', 'SN11018']
+          },
+          {
+            lotNumber: 'LOT-2024-009',
+            mfgDate: '2024-03-15',
+            expDate: '2025-03-15',
+            totalUnits: 5,
+            uom: 'Each',
+            reserved: 0,
+            availableToTransit: 8,
+            availableToReserve: 6,
+            serials: ['SN11019', 'SN11020']
+          }
+        ]
+      },
+    ],
   },
-  "Locations": [
-    {
-      "Location": "Main Warehouse",
-      "LocationCode": "LOC-001",
-      "Available": 12,
-      "Reserved": 5,
-      "AvailableToTransit": 11,
-      "AvailableToReserve": 12
-    },
-    {
-      "Location": "Main Warehouse",
-      "LocationCode": "LOC-001",
-      "Available": 12,
-      "Reserved": 5,
-      "AvailableToTransit": 11,
-      "AvailableToReserve": 12
-    },
-    {
-      "Location": "Main Warehouse",
-      "LocationCode": "LOC-001",
-      "Available": 15,
-      "Reserved": 0,
-      "AvailableToTransit": 11,
-      "AvailableToReserve": 12
-    }
-  ]
-}
+];
