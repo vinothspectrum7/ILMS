@@ -93,6 +93,7 @@ const ItemInquiryScreen = () => {
         setSelectedOrganization(org);
       }
     }
+    handleSearch('ITEM-2024-001');
   }, [itemData]);
 
   const handleScan = (code) => {
