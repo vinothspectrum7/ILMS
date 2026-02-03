@@ -90,12 +90,25 @@ function Ship_TransactionTable({ onPickPress, filters }) {
     return (
       <View style={styles.mainContainer}>
         <View style={styles.headerContainer}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerText, styles.colDelivery]}>Delivery</Text>
-            <Text style={[styles.headerText, styles.colSales]}>Sales Order No</Text>
-            <Text style={[styles.headerText, styles.colLines]}>Line/Qty</Text>
-            <Text style={[styles.headerText, styles.colPick]}>Pick Slip No</Text>
-          </View>
+<View style={styles.headerRow}>
+  <View style={styles.colDelivery}>
+    <Text style={styles.headerText}>Delivery ID</Text>
+  </View>
+
+  <View style={styles.colSales}>
+    <Text style={styles.headerText}>Sales Order No</Text>
+  </View>
+
+  <View style={styles.colLines}>
+    <Text style={styles.LineheaderText}>Lines/Qty</Text>
+  </View>
+
+  <View style={[styles.colPick, styles.centerColumn]}>
+    <Text style={[styles.headerText, styles.centerText]}>
+      Pick Slip No
+    </Text>
+  </View>
+</View>
         </View>
 
         <View style={styles.noDataContainer}>
@@ -110,12 +123,25 @@ function Ship_TransactionTable({ onPickPress, filters }) {
     return (
       <View style={styles.mainContainer}>
         <View style={styles.headerContainer}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerText, styles.colDelivery]}>Delivery</Text>
-            <Text style={[styles.headerText, styles.colSales]}>Sales Order No</Text>
-            <Text style={[styles.headerText, styles.colLines]}>Line/Qty</Text>
-            <Text style={[styles.headerText, styles.colPick]}>Pick Slip No</Text>
-          </View>
+<View style={styles.headerRow}>
+  <View style={styles.colDelivery}>
+    <Text style={styles.headerText}>Delivery ID</Text>
+  </View>
+
+  <View style={styles.colSales}>
+    <Text style={styles.headerText}>Sales Order No</Text>
+  </View>
+
+  <View style={styles.colLines}>
+    <Text style={styles.LineheaderText}>Lines/Qty</Text>
+  </View>
+
+  <View style={[styles.colPick, styles.centerColumn]}>
+    <Text style={[styles.headerText, styles.centerText]}>
+      Pick Slip No
+    </Text>
+  </View>
+</View>
         </View>
 
         <View style={styles.noDataContainer}>
@@ -129,14 +155,25 @@ function Ship_TransactionTable({ onPickPress, filters }) {
   return (
     <View style={styles.mainContainer}>
       <View style={styles.headerContainer}>
-        <View style={styles.headerRow}>
-          <Text style={[styles.headerText, styles.colDelivery]}>Delivery ID</Text>
-          <Text style={[styles.headerText, styles.colSales]}>Sales Order No</Text>
-          <Text style={[styles.headerText, styles.colLines]}>Lines/Qty</Text>
-          <Text style={[styles.headerText, styles.colPick, styles.centerHeader]}>
-            Pick Slip No
-          </Text>
-        </View>
+<View style={styles.headerRow}>
+  <View style={styles.colDelivery}>
+    <Text style={styles.headerText}>Delivery ID</Text>
+  </View>
+
+  <View style={styles.colSales}>
+    <Text style={styles.headerText}>Sales Order No</Text>
+  </View>
+
+  <View style={styles.colLines}>
+    <Text style={styles.LineheaderText}>Lines/Qty</Text>
+  </View>
+
+  <View style={[styles.colPick, styles.centerColumn]}>
+    <Text style={[styles.headerText, styles.centerText]}>
+      Pick Slip No
+    </Text>
+  </View>
+</View>
       </View>
 
       <View style={styles.tableWrapper}>
@@ -277,7 +314,19 @@ const styles = StyleSheet.create({
     color: '#595A5C',
     textAlign: 'left',
     includeFontPadding: false,
-    textAlignVertical: 'center',
+    // textAlignVertical: 'center',
+  },
+
+   LineheaderText: {
+    fontFamily: 'Mulish',
+    fontWeight: '700',
+    fontSize: 10,
+    lineHeight: 16,
+    letterSpacing: 0,
+    color: '#595A5C',
+    textAlign: 'center',
+    includeFontPadding: false,
+    // textAlignVertical: 'center',
   },
 
   cellBold: {
@@ -295,11 +344,11 @@ const styles = StyleSheet.create({
   },
 
   colDelivery: {
-    flex: 1.2,
+    flex: 1,
     paddingHorizontal: 4,
   },
   colSales: {
-    flex: 1.2,
+    flex: 1,
     paddingHorizontal: 4,
   },
   colLines: {
@@ -307,8 +356,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   colPick: {
-    flex: 1.3,
-    paddingHorizontal: 0,
+    flex: 1,
+    paddingHorizontal: 4,
+    alignItems:'center'
   },
 
   centerHeader: {

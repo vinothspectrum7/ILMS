@@ -22,6 +22,10 @@ import WhiteEyeIcon from '../../assets/icons/CycleCount_Icons/WhiteEyeIcon.svg';
 import VarianceIcon from '../../assets/icons/CycleCount_Icons/VarianceIcon.svg'; <GreenItemBox width={12} height={12} fill="#168035" />
 const { width } = Dimensions.get('window');
 const TABS = ['All', 'Pending', 'In Progress', 'Completed'];
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const scale = size => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 const CC_CountHistoryScreen = () => {
     const navigation = useNavigation();
@@ -327,8 +331,8 @@ const styles = StyleSheet.create({
         color: '#595A5C',
     },
     historyCard: {
-        width: 373,
-        height: 165,
+        width: ms(370),
+        height: ms(165),
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#E1E3E5',
@@ -471,7 +475,7 @@ const styles = StyleSheet.create({
         bottom: 0,
     },
     footerButton: {
-        width: 186,
+        width: ms(186),
         height: 37,
         alignItems: 'center',
         justifyContent: 'center',

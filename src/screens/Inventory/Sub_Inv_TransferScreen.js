@@ -85,9 +85,8 @@ export default function Sub_Inv_TransferScreen() {
   const [FromSubInvList,setFromSubInvList] = useState([]);
   const [TOSubInvList,setTOSubInvList] = useState([]);
   const [FromLocatorList,setFromLocatorList] = useState([
-    {id:'1.2.1',name:'1.2.1',code:'1.2.1'}
   ]);
-  const [UOMList,setUOMList] = useState([{id:'EA',name:'Each',code:'Each'}]);
+  const [UOMList,setUOMList] = useState([{id:'EA',name:'EA',code:'EA'}]);
   const [ToLocatorList,setToLocatorList] = useState([]);
   const [StockLoader,setStockLoader] = useState(false);
   const [AvailableData, setAvailableData] = useState(null);
@@ -190,12 +189,12 @@ export default function Sub_Inv_TransferScreen() {
   },[selectedItem,fromSub]);
 
     useEffect(()=>{
-    if(!selectedItem || !fromSub || !fromLocator) return;
+    if(!selectedItem || !fromSub) return;
       const loadAvailablestockData = async () => {
         try {
           console.log(fromLocator,"fromlocaadreref")
           setStockLoader(true);
-          const availableStock = await GetAvailableLocatorStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code,fromLocator?.code);
+          const availableStock = await GetAvailableLocatorStockData(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode,selectedItem?.code,fromSub?.code,fromLocator?.code ?? null);
           if (availableStock) {
             console.log(availableStock,"availableStocklocator");
             const availableUOMList = MapUOMList(availableStock);
@@ -240,19 +239,22 @@ export default function Sub_Inv_TransferScreen() {
 
   },[toSub]);
 
-  const mapsubInvitemlist = data =>
-    data.map(element => ({
-    id: element.R_INV_ITEM_CODE,
-    name: element.R_INV_ITEM_CODE,
-    code: element.R_INV_ITEM_CODE,
-    // description:
-    //   'Lorem ipsum dolor sit amet.',
-    // controlType: 'Lot',
-    // availableStock: 120,
-    // availableUom: 'Each',
-    // openQty: 120,
-    }));
 
+const mapsubInvitemlist = data => {
+  const map = new Map();
+
+  data.forEach(element => {
+    if (!map.has(element.R_INV_ITEM_CODE)) {
+      map.set(element.R_INV_ITEM_CODE, {
+        id: element.R_INV_ITEM_CODE,
+        name: element.R_INV_ITEM_CODE,
+        code: element.R_INV_ITEM_CODE,
+      });
+    }
+  });
+
+  return Array.from(map.values());
+};
   const mapfromsubInvlist = data =>
     data.map(element => ({
     id: element.subinv_type,
@@ -306,6 +308,7 @@ export default function Sub_Inv_TransferScreen() {
         try {
           const subinvdata = await GetSubInvItemList(useReceivingStore.getState()?.OrgData?.selectedOrgCode || OrgData?.selectedOrgCode);
           if (subinvdata) {
+            console.log(subinvdata,"subITMEEEEEEEEEEEEEE")
             const SubInvItemList = mapsubInvitemlist(subinvdata);
             setSubInvItemList(SubInvItemList);
           } else {
@@ -389,7 +392,6 @@ const handlePersistMainLine = () => {
   const lineValid =
     !!selectedItem &&
     !!fromSub &&
-    !!fromLocator &&
     !!toSub &&
     !!toLocator &&
     !!uom &&
@@ -720,7 +722,6 @@ const handlePersistMainLine = () => {
                 <View style={styles.colHalf}>
                   <Inv_Dropdown
                     label="From Locator"
-                    required
                     value={fromLocator}
                     onChange={setFromLocator}
                     items={FromLocatorList}

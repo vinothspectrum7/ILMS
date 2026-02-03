@@ -188,7 +188,7 @@ const formatDate = (dateStr) => {
         onPress={() => onViewDetails?.(item, index)}
         activeOpacity={0.8}
       >
-          {item.qtyToReceive==0?(<View style={{flexDirection:'row'}}>
+          {item.qtyToReceive==0?(<View style={{flexDirection:'row',alignItems:'center'}}>
             <Enterdetailsicon name="edit" size={14}  />
         <Text style={styles.enterDetailsText}>Enter Details</Text>
         </View>):(

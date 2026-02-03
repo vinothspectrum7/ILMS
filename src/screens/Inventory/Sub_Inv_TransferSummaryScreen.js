@@ -120,6 +120,7 @@ export default function Sub_Inv_TransferSummaryScreen() {
     return (data || []).map(backend => {
 
       const base = {
+            org_code: OrgData?.selectedOrgCode,
             item_code: backend?.item?.id,
             from_subinventory: backend?.fromSub?.id,
             to_subinventory: backend?.toSub?.id,
@@ -149,16 +150,6 @@ export default function Sub_Inv_TransferSummaryScreen() {
         })):[],
       }:{}
     ),
-        // lot_item_lots: Array.isArray(backend?.lotLines)
-        //   ? backend.lotLines.map(l => ({
-        //       lot_number: l?.lotNumber,
-        //       transaction_quantity: l?.qty,
-        //       lot_expiration_date: l?.expDate ? (() => {
-        //         const [dd, mm, yyyy] = String(l.expDate).split('/');
-        //         return dd && mm && yyyy ? `${yyyy}-${mm}-${dd}` : null;
-        //       })() : null,
-        //     }))
-        //   : [],
       };
 
       return base;
