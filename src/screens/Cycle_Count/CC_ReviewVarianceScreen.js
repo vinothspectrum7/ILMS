@@ -5,6 +5,7 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
@@ -14,7 +15,12 @@ import { MOCK_CC_REVIEW_VARIANCE } from '../../data/CycleCountMockData';
 import GreenTickIcon from '../../assets/icons/Ship_Icons/GreenTickIcon.svg';
 import RecountIcon from '../../assets/icons/CycleCount_Icons/RecountIcon.svg';
 import AdjustIcon from '../../assets/icons/CycleCount_Icons/AdjustIcon.svg';
-import FooterButtonsComponent from '../../components/FooterButtonsComponent'; 
+import FooterButtonsComponent from '../../components/FooterButtonsComponent';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const scale = size => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 const CC_ReviewVarianceScreen = () => {
     const navigation = useNavigation();
@@ -232,14 +238,14 @@ const styles = StyleSheet.create({
         fontFamily: 'Mulish',
     },
 
-    tabContainer: { 
+    tabContainer: {
         backgroundColor: '#F5F5F6', 
-        marginTop: 40 
+        marginTop: 40
     },
     tabsRow: { 
-        flexDirection: 'row', 
-        justifyContent: 'space-around', 
-        paddingHorizontal: 12 
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        paddingHorizontal: 12
     },
     tabItem: { 
         alignItems: 'center', 
@@ -272,12 +278,12 @@ const styles = StyleSheet.create({
     },
 
     cardsContainer: { 
-        paddingHorizontal: 20, 
+        paddingHorizontal: ms(20), 
         paddingTop: 20, 
         paddingBottom: 100 
     },
     varianceCard: {
-        width: 373,
+        width: ms(365),
         height: 135,
         backgroundColor: '#FFFFFF',
         borderRadius: 8,
@@ -389,7 +395,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
-        paddingLeft: 12,
     },
     recountButton: {
         width: 136,
@@ -398,7 +403,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
-        paddingLeft: 12,
     },
     adjustButton: {
         flex: 1,
@@ -407,7 +411,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
-        paddingLeft: 12,
         borderBottomRightRadius: 7,
     },
     acceptButtonText: {

@@ -18,8 +18,10 @@ import { useReceivingStore } from '../../store/receivingStore';
 import { MOCK_ACTIVE_CYCLE_COUNT_LIST } from '../../data/CycleCountMockData';
 import { useCycleCountStore } from '../../store/cycleCountStore';
 
-const { width } = Dimensions.get('window');
-
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const scale = size => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 const computePercent = (received, ordered) => {
   const r = Number(received ?? 0);
   const o = Number(ordered ?? 0);
@@ -419,8 +421,8 @@ const styles = StyleSheet.create({
     width: 22,
   },
   progressWrapper: {
-    width: 338,
-    height: 44,
+    // width: 'auto',
+    height: ms(44),
     borderRadius: 10,
     overflow: 'hidden',
     position: 'relative',
@@ -432,8 +434,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   progressContent: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: ms(10),
+    paddingVertical: ms(4),
   },
   progressTopRow: {
     flexDirection: 'row',

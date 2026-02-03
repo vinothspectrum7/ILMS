@@ -25,7 +25,10 @@ import CC_CreScheduleConfirmationPopupModal from '../../components/Cycle_Count/C
 import ConfirmationTickIcon from '../../assets/icons/Ship_Icons/ConfirmationTickIcon.svg';
 import { useCycleCountStore } from '../../store/cycleCountStore';
 
-const { width } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+const scale = size => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 const CC_CreateCount = () => {
   const navigation = useNavigation();
@@ -432,8 +435,8 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   card: {
-    width: 372,
-    minHeight: 746,
+    width: ms(365),
+    minHeight: ms(746),
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
     marginTop: 10,
