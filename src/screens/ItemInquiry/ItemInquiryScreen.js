@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,10 @@ import PurpleOutlineTick from '../../assets/icons/CycleCount_Icons/PurpleOutline
 import DownloadIcon from '../../assets/icons/CycleCount_Icons/Download.svg';
 import ClipboardIcon from '../../assets/icons/CycleCount_Icons/ClipboardIcon.svg'
 import ShareIcon from '../../assets/icons/CycleCount_Icons/ShareIcon.svg';
+import Share from 'react-native-share';
+import ItemInquiry_PrintComponent from '../../components/ItemInquiry/ItemInquiry_PrintComponent';
+import Clipboard from '@react-native-clipboard/clipboard';
+import ViewShot from 'react-native-view-shot';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -56,7 +60,6 @@ const getAttributeIcon = (attributeValue) => {
 
 const AttributeCapsule = ({ value, backgroundColor, textColor = '#233E55' }) => {
   const IconComponent = getAttributeIcon(value);
-
   return (
     <View style={[styles.attributeCapsule, { backgroundColor }]}>
       <Text style={[styles.attributeValueOnly, { color: textColor }]}>
@@ -84,17 +87,24 @@ const ItemInquiryScreen = () => {
     console.log('Selected Organization:', org);
   };
 
+  const viewShotRef = useRef(null);
+
+  // useEffect(() => {
+  //   if (itemData?.itemHeader?.organizationName) {
+  //     const org = Organization_Dropdown_Mock_Data.find(
+  //       org => org.name === itemData.itemHeader.organizationName
+  //     );
+  //     if (org) {
+  //       setSelectedOrganization(org);
+  //     }
+  //   }
+  //   handleSearch('ITEM-2024-001');
+  // }, [itemData]);
+
   useEffect(() => {
-    if (itemData?.itemHeader?.organizationName) {
-      const org = Organization_Dropdown_Mock_Data.find(
-        org => org.name === itemData.itemHeader.organizationName
-      );
-      if (org) {
-        setSelectedOrganization(org);
-      }
-    }
-    handleSearch('ITEM-2024-001');
-  }, [itemData]);
+  handleSearch('ITEM-2024-001');
+}, []);
+
 
   const handleScan = (code) => {
     setBarcodeInput(code);
@@ -133,8 +143,56 @@ const ItemInquiryScreen = () => {
     }
   };
 
+  const handlePrintPreview = async () => {
+    await ItemInquiry_PrintComponent.printItemInquiry(itemData, activeTab, selectedOrganization);
+  };
+
+  const handleCopyToClipboard = () => {
+    if (!itemData) {
+      Alert.alert('Error', 'No item data to copy');
+      return;
+    }
+
+    if (activeTab === 'Stock') {
+      const stockSummaryData = itemData?.overview?.stockSummary || Item_Inquiry_Mock_Data[0].overview.stockSummary;
+
+      const clipboardText = `
+STOCK SUMMARY - ${itemData.itemHeader.itemName}
+Item Code: ${itemData.itemHeader.itemCode}
+SKU: ${itemData.itemHeader.sku}
+Organization: ${selectedOrganization?.name || 'N/A'}
+
+• Total On Hand: ${stockSummaryData.totalOnHand}
+• Available: ${stockSummaryData.available}
+• Reserved: ${stockSummaryData.reserved}
+• Allocated: ${stockSummaryData.allocated}
+• In Transit: ${stockSummaryData.inTransit}
+• On Order: ${stockSummaryData.onOrder}
+
+Copied on: ${new Date().toLocaleDateString()}
+    `.trim();
+
+      Clipboard.setString(clipboardText);
+      Alert.alert('Copied', 'Stock summary copied to clipboard');
+    }
+  };
+
+  const handleScreenshotShare = async () => {
+    try {
+      const uri = await viewShotRef.current.capture();
+
+      await Share.open({
+        url: uri,
+        type: 'image/png',
+      });
+    } catch (error) {
+      console.log('Screenshot share error:', error);
+    }
+  };
+
 
   return (
+
     <View style={styles.container}>
       <Inv_HeaderComponent
         organizationName={OrgData?.selectedOrgCode}
@@ -155,367 +213,382 @@ const ItemInquiryScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.mainContainer}>
-            <View style={styles.scannerSection}>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.inputField}
-                  placeholder="Enter barcode or scan"
-                  placeholderTextColor="#999"
-                  value={barcodeInput}
-                  onChangeText={handleSearch}
-                />
-                <TouchableOpacity
-                  style={styles.scanButton}
-                  onPress={() => setShowScanner(true)}
-                >
-                  <BarcodescannerIcon width={ms(20)} height={ms(20)} />
-                </TouchableOpacity>
-              </View>
-
-              {itemData && (
-                <View style={styles.itemCard}>
-                  <View style={styles.blueContainer}>
-                    <View style={styles.blueRow}>
-                      <View style={styles.iconWrapper}>
-                        <ContainerIcon width={ms(45)} height={ms(45)} />
-                      </View>
-
-                      <View style={styles.contentWrapper}>
-                        <View style={styles.topRow}>
-                          <Text style={styles.itemName}>
-                            {itemData.itemHeader.itemName}
-                          </Text>
-                          <View style={styles.statusBadge}>
-                            <Text style={styles.statusText}>
-                              {itemData.itemHeader.status}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <Text style={styles.skuText}>
-                          {itemData.itemHeader.sku}
-                        </Text>
-
-                        <View style={styles.attributesRow}>
-                          {itemData.itemHeader.attributes.map((attr, index) => {
-                            let bgColor = '#329AFB';
-                            if (attr === 'Lot') bgColor = '#0055D5';
-                            else if (attr === 'Serial') bgColor = '#C767FF';
-                            else if (attr === 'Electronic') bgColor = '#329AFB';
-                            return (
-                              <View
-                                key={index}
-                                style={[styles.attributeBadge, { backgroundColor: bgColor }]}
-                              >
-                                <Text style={styles.attributeText}>{attr}</Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.whiteContainer}>
-                    <ItemInquiry_Dropdown
-                      value={selectedOrganization}
-                      onChange={handleOrganizationChange}
-                      items={Organization_Dropdown_Mock_Data}
-                      displayValue={(item) => item?.name || ''}
-                      renderCode={(item) => item?.code || ''}
-                      searchKeys={['name', 'code']}
-                      placeholder="Select Organization"
-                      disabled={false}
-                      showBarcodeIcon={false}
-                      multiple={false}
-                      showOrganizationIcon={true}
-                    />
-                  </View>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.tabSection}>
-              <View style={styles.tabContainer}>
-                <View style={styles.tabsRow}>
-                  {TABS.map(tab => {
-                    const isActive = activeTab === tab;
-                    return (
-                      <TouchableOpacity
-                        key={tab}
-                        style={styles.tabItem}
-                        onPress={() => setActiveTab(tab)}
-                      >
-                        <Text style={[
-                          styles.tabText,
-                          isActive && styles.activeTabText,
-                        ]}>
-                          {tab}
-                        </Text>
-                        {isActive && <View style={styles.activeIndicator} />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                <View style={styles.bottomDivider} />
-              </View>
-            </View>
-
-            <View style={styles.tabContent}>
-              {activeTab === 'Overview' && itemData && (
-                <>
-                  <View style={styles.overviewWrapper}>
-                    <View style={styles.overviewCard}>
-                      <View style={styles.viewingRow}>
-                        <OrgbuildingIcon width={ms(17)} height={ms(17)} />
-                        <Text style={styles.viewingForOrgText}>
-                          Viewing for Organization
-                        </Text>
-                      </View>
-                      <View style={styles.overviewRow}>
-                        <View style={styles.overviewTextWrapper}>
-                          <Text style={styles.overviewOrgName}>
-                            {itemData.overview.organizationInfo.organizationName}
-                          </Text>
-                          <Text style={styles.overviewDesc}>
-                            {itemData.overview.organizationInfo.desc}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.itemInfoSection}>
-                    <View style={styles.itemInfoHeader}>
-                      <DocumentIcon width={ms(18)} height={ms(18)} />
-                      <Text style={styles.itemInfoText}>Item Information</Text>
-                    </View>
-
-                    <View style={styles.itemInfoDivider} />
-                    <View style={styles.itemInfoGrid}>
-                      <View style={styles.itemInfoRow}>
-                        <View style={styles.itemInfoCell}>
-                          <Text style={styles.itemInfoLabel}>Item Class</Text>
-                          <Text style={styles.itemInfoValue}>
-                            {itemData.overview.itemInformation.itemClass}
-                          </Text>
-                        </View>
-                        <View style={styles.itemInfoCell}>
-                          <Text style={styles.itemInfoLabel}>Item Type</Text>
-                          <Text style={styles.itemInfoValue}>
-                            {itemData.overview.itemInformation.itemType}
-                          </Text>
-                        </View>
-                        <View style={styles.itemInfoCell}>
-                          <Text style={styles.itemInfoLabel}>Unit of Measure</Text>
-                          <Text style={styles.itemInfoValue}>
-                            {itemData.overview.itemInformation.unitOfMeasure}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.itemInfoRow}>
-                        <View style={styles.itemInfoCell}>
-                          <Text style={styles.itemInfoLabel}>Secondary UOM</Text>
-                          <Text style={styles.itemInfoValue}>
-                            {itemData.overview.itemInformation.secondaryUOM}
-                          </Text>
-                        </View>
-                        <View style={styles.itemInfoCell}>
-                          <Text style={styles.itemInfoLabel}>Version/Revision</Text>
-                          <Text style={styles.itemInfoValue}>
-                            {itemData.overview.itemInformation.revision}
-                          </Text>
-                        </View>
-                        <View style={styles.itemInfoCell}>
-                          <Text style={styles.itemInfoLabel}>Created By / Date</Text>
-                          <View style={styles.createdInfoWrapper}>
-                            <Text style={styles.createdByText}>
-                              {itemData.overview.itemInformation.createdBy}
-                            </Text>
-                            <Text style={styles.createdDateText}>
-                              {itemData.overview.itemInformation.createdDate}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.orgAttributesSection}>
-                    <View style={styles.orgAttributesHeader}>
-                      <DocumentIcon width={ms(18)} height={ms(18)} />
-                      <Text style={styles.orgAttributesText}>Organization Attributes</Text>
-                    </View>
-                    <View style={styles.orgAttributesDivider} />
-                    <View style={styles.orgAttributesGrid}>
-
-                      <View style={styles.orgAttributesRow}>
-                        <AttributeCapsule
-                          value={itemData.overview.organizationAttributes.purchasable}
-                          backgroundColor="#E8F5E9"
-                        />
-                        <AttributeCapsule
-                          value={itemData.overview.organizationAttributes.stockable}
-                          backgroundColor="#E8F5E9"
-                        />
-                      </View>
-
-                      <View style={styles.orgAttributesRow}>
-                        <AttributeCapsule
-                          value={itemData.overview.organizationAttributes.transactable}
-                          backgroundColor="#E8F5E9"
-                        />
-                        <AttributeCapsule
-                          value={itemData.overview.organizationAttributes.serialControlled}
-                          backgroundColor="#EEF6FF"
-                          textColor="#033EFF"
-                        />
-                      </View>
-
-                      <View style={styles.orgAttributesRow}>
-                        <AttributeCapsule
-                          value={itemData.overview.organizationAttributes.lotControlled}
-                          backgroundColor="#E9D8FF"
-                        />
-                        <AttributeCapsule
-                          value={itemData.overview.organizationAttributes.leadTime}
-                          backgroundColor="#ECF1F7"
-                        />
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.planningSection}>
-                    <View style={styles.planningHeader}>
-                      <DocumentIcon width={ms(18)} height={ms(18)} />
-                      <Text style={styles.planningText}>Planning Parameters</Text>
-                    </View>
-                    <View style={styles.planningDivider} />
-                    <View style={styles.planningGrid}>
-                      <View style={styles.planningRow}>
-                        <View style={styles.planningCell}>
-                          <Text style={styles.planningLabel}>Safety Stock</Text>
-                          <Text style={styles.planningValue}>
-                            {itemData.overview.planningParameters.safetyStock}
-                          </Text>
-                        </View>
-                        <View style={styles.planningCell}>
-                          <Text style={styles.planningLabel}>Min Order Qty</Text>
-                          <Text style={styles.planningValue}>
-                            {itemData.overview.planningParameters.minOrderQuantity}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.planningRow}>
-                        <View style={styles.planningCell}>
-                          <Text style={styles.planningLabel}>Max Order Qty</Text>
-                          <Text style={styles.planningValue}>
-                            {itemData.overview.planningParameters.maxOrderQuantity}
-                          </Text>
-                        </View>
-                        <View style={styles.planningCell}>
-                          <Text style={styles.planningLabel}>Self Life</Text>
-                          <Text style={styles.planningValue}>
-                            {itemData.overview.planningParameters.selfLife}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.costSection}>
-                    <View style={styles.costHeader}>
-                      <DocumentIcon width={ms(18)} height={ms(18)} />
-                      <Text style={styles.costText}>Cost Information</Text>
-                    </View>
-                    <View style={styles.costDivider} />
-                    <View style={styles.costGrid}>
-                      <View style={styles.costRow}>
-                        <View style={styles.costCell}>
-                          <Text style={styles.costLabel}>Average Cost</Text>
-                          <Text style={styles.costValue}>
-                            {itemData.overview.costInformation.averageCost}
-                          </Text>
-                        </View>
-                        <View style={styles.costCell}>
-                          <Text style={styles.costLabel}>Standard Cost</Text>
-                          <Text style={styles.costValue}>
-                            {itemData.overview.costInformation.standardCost}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-
+          <ViewShot
+            ref={viewShotRef}
+            options={{ format: 'png', quality: 0.9 }}
+          >
+            <View style={styles.mainContainer}>
+              <View style={styles.scannerSection}>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="Enter barcode or scan"
+                    placeholderTextColor="#999"
+                    value={barcodeInput}
+                    onChangeText={handleSearch}
+                  />
                   <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      console.log('View On-Hand by Location Clicked');
-                      // navigation.navigate('LocationStockScreen'); 
-                    }}
-                    style={styles.onHandBtnWrapper}
+                    style={styles.scanButton}
+                    onPress={() => setShowScanner(true)}
                   >
-                    <LinearGradient
-                      colors={['#5D768B', '#233E55']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.onHandBtn}
-                    >
-                      <View style={styles.onHandBtnContent}>
-                        <WhiteLocationIcon width={ms(16)} height={ms(16)} />
-                        <Text style={styles.onHandBtnText}>View On-Hand by Location</Text>
-                      </View>
-                    </LinearGradient>
+                    <BarcodescannerIcon width={ms(20)} height={ms(20)} />
                   </TouchableOpacity>
-                </>
-              )}
+                </View>
 
-              {activeTab === 'Stock' && itemData && (
-                <StockTabContent itemData={itemData} />
-              )}
-              {activeTab === 'Organization' && itemData && (
-                <OrgTabComponent itemData={itemData} />
-              )}
-              {activeTab === 'Transactions' && itemData && (
-                <TransactionTabComponent itemData={itemData} />
-              )}
-              {activeTab === 'Details' && itemData && (
-                <DetailsTabComponent itemData={itemData} />
-              )}
+                {itemData && (
+                  <View style={styles.itemCard}>
+                    <View style={styles.blueContainer}>
+                      <View style={styles.blueRow}>
+                        <View style={styles.iconWrapper}>
+                          <ContainerIcon width={ms(45)} height={ms(45)} />
+                        </View>
+
+                        <View style={styles.contentWrapper}>
+                          <View style={styles.topRow}>
+                            <Text style={styles.itemName}>
+                              {itemData.itemHeader.itemName}
+                            </Text>
+                            <View style={styles.statusBadge}>
+                              <Text style={styles.statusText}>
+                                {itemData.itemHeader.status}
+                              </Text>
+                            </View>
+                          </View>
+
+                          <Text style={styles.skuText}>
+                            {itemData.itemHeader.sku}
+                          </Text>
+
+                          <View style={styles.attributesRow}>
+                            {itemData.itemHeader.attributes.map((attr, index) => {
+                              let bgColor = '#329AFB';
+                              if (attr === 'Lot') bgColor = '#0055D5';
+                              else if (attr === 'Serial') bgColor = '#C767FF';
+                              else if (attr === 'Electronic') bgColor = '#329AFB';
+                              return (
+                                <View
+                                  key={index}
+                                  style={[styles.attributeBadge, { backgroundColor: bgColor }]}
+                                >
+                                  <Text style={styles.attributeText}>{attr}</Text>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.whiteContainer}>
+                      <ItemInquiry_Dropdown
+                        value={selectedOrganization}
+                        onChange={handleOrganizationChange}
+                        items={Organization_Dropdown_Mock_Data}
+                        displayValue={(item) => item?.name || ''}
+                        renderCode={(item) => item?.code || ''}
+                        searchKeys={['name', 'code']}
+                        placeholder="Select Organization"
+                        disabled={false}
+                        showBarcodeIcon={false}
+                        multiple={false}
+                        showOrganizationIcon={true}
+                      />
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.tabSection}>
+                <View style={styles.tabContainer}>
+                  <View style={styles.tabsRow}>
+                    {TABS.map(tab => {
+                      const isActive = activeTab === tab;
+                      return (
+                        <TouchableOpacity
+                          key={tab}
+                          style={styles.tabItem}
+                          onPress={() => setActiveTab(tab)}
+                        >
+                          <Text style={[
+                            styles.tabText,
+                            isActive && styles.activeTabText,
+                          ]}>
+                            {tab}
+                          </Text>
+                          {isActive && <View style={styles.activeIndicator} />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <View style={styles.bottomDivider} />
+                </View>
+              </View>
+
+              <View style={styles.tabContent}>
+                {activeTab === 'Overview' && itemData && (
+                  <>
+                    <View style={styles.overviewWrapper}>
+                      <View style={styles.overviewCard}>
+                        <View style={styles.viewingRow}>
+                          <OrgbuildingIcon width={ms(17)} height={ms(17)} />
+                          <Text style={styles.viewingForOrgText}>
+                            Viewing for Organization
+                          </Text>
+                        </View>
+                        <View style={styles.overviewRow}>
+                          <View style={styles.overviewTextWrapper}>
+                            <Text style={styles.overviewOrgName}>
+                              {itemData.overview.organizationInfo.organizationName}
+                            </Text>
+                            <Text style={styles.overviewDesc}>
+                              {itemData.overview.organizationInfo.desc}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.itemInfoSection}>
+                      <View style={styles.itemInfoHeader}>
+                        <DocumentIcon width={ms(18)} height={ms(18)} />
+                        <Text style={styles.itemInfoText}>Item Information</Text>
+                      </View>
+
+                      <View style={styles.itemInfoDivider} />
+                      <View style={styles.itemInfoGrid}>
+                        <View style={styles.itemInfoRow}>
+                          <View style={styles.itemInfoCell}>
+                            <Text style={styles.itemInfoLabel}>Item Class</Text>
+                            <Text style={styles.itemInfoValue}>
+                              {itemData.overview.itemInformation.itemClass}
+                            </Text>
+                          </View>
+                          <View style={styles.itemInfoCell}>
+                            <Text style={styles.itemInfoLabel}>Item Type</Text>
+                            <Text style={styles.itemInfoValue}>
+                              {itemData.overview.itemInformation.itemType}
+                            </Text>
+                          </View>
+                          <View style={styles.itemInfoCell}>
+                            <Text style={styles.itemInfoLabel}>Unit of Measure</Text>
+                            <Text style={styles.itemInfoValue}>
+                              {itemData.overview.itemInformation.unitOfMeasure}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.itemInfoRow}>
+                          <View style={styles.itemInfoCell}>
+                            <Text style={styles.itemInfoLabel}>Secondary UOM</Text>
+                            <Text style={styles.itemInfoValue}>
+                              {itemData.overview.itemInformation.secondaryUOM}
+                            </Text>
+                          </View>
+                          <View style={styles.itemInfoCell}>
+                            <Text style={styles.itemInfoLabel}>Version/Revision</Text>
+                            <Text style={styles.itemInfoValue}>
+                              {itemData.overview.itemInformation.revision}
+                            </Text>
+                          </View>
+                          <View style={styles.itemInfoCell}>
+                            <Text style={styles.itemInfoLabel}>Created By / Date</Text>
+                            <View style={styles.createdInfoWrapper}>
+                              <Text style={styles.createdByText}>
+                                {itemData.overview.itemInformation.createdBy}
+                              </Text>
+                              <Text style={styles.createdDateText}>
+                                {itemData.overview.itemInformation.createdDate}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.orgAttributesSection}>
+                      <View style={styles.orgAttributesHeader}>
+                        <DocumentIcon width={ms(18)} height={ms(18)} />
+                        <Text style={styles.orgAttributesText}>Organization Attributes</Text>
+                      </View>
+                      <View style={styles.orgAttributesDivider} />
+                      <View style={styles.orgAttributesGrid}>
+
+                        <View style={styles.orgAttributesRow}>
+                          <AttributeCapsule
+                            value={itemData.overview.organizationAttributes.purchasable}
+                            backgroundColor="#E8F5E9"
+                          />
+                          <AttributeCapsule
+                            value={itemData.overview.organizationAttributes.stockable}
+                            backgroundColor="#E8F5E9"
+                          />
+                        </View>
+
+                        <View style={styles.orgAttributesRow}>
+                          <AttributeCapsule
+                            value={itemData.overview.organizationAttributes.transactable}
+                            backgroundColor="#E8F5E9"
+                          />
+                          <AttributeCapsule
+                            value={itemData.overview.organizationAttributes.serialControlled}
+                            backgroundColor="#EEF6FF"
+                            textColor="#033EFF"
+                          />
+                        </View>
+
+                        <View style={styles.orgAttributesRow}>
+                          <AttributeCapsule
+                            value={itemData.overview.organizationAttributes.lotControlled}
+                            backgroundColor="#E9D8FF"
+                          />
+                          <AttributeCapsule
+                            value={itemData.overview.organizationAttributes.leadTime}
+                            backgroundColor="#ECF1F7"
+                          />
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.planningSection}>
+                      <View style={styles.planningHeader}>
+                        <DocumentIcon width={ms(18)} height={ms(18)} />
+                        <Text style={styles.planningText}>Planning Parameters</Text>
+                      </View>
+                      <View style={styles.planningDivider} />
+                      <View style={styles.planningGrid}>
+                        <View style={styles.planningRow}>
+                          <View style={styles.planningCell}>
+                            <Text style={styles.planningLabel}>Safety Stock</Text>
+                            <Text style={styles.planningValue}>
+                              {itemData.overview.planningParameters.safetyStock}
+                            </Text>
+                          </View>
+                          <View style={styles.planningCell}>
+                            <Text style={styles.planningLabel}>Min Order Qty</Text>
+                            <Text style={styles.planningValue}>
+                              {itemData.overview.planningParameters.minOrderQuantity}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.planningRow}>
+                          <View style={styles.planningCell}>
+                            <Text style={styles.planningLabel}>Max Order Qty</Text>
+                            <Text style={styles.planningValue}>
+                              {itemData.overview.planningParameters.maxOrderQuantity}
+                            </Text>
+                          </View>
+                          <View style={styles.planningCell}>
+                            <Text style={styles.planningLabel}>Self Life</Text>
+                            <Text style={styles.planningValue}>
+                              {itemData.overview.planningParameters.selfLife}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.costSection}>
+                      <View style={styles.costHeader}>
+                        <DocumentIcon width={ms(18)} height={ms(18)} />
+                        <Text style={styles.costText}>Cost Information</Text>
+                      </View>
+                      <View style={styles.costDivider} />
+                      <View style={styles.costGrid}>
+                        <View style={styles.costRow}>
+                          <View style={styles.costCell}>
+                            <Text style={styles.costLabel}>Average Cost</Text>
+                            <Text style={styles.costValue}>
+                              {itemData.overview.costInformation.averageCost}
+                            </Text>
+                          </View>
+                          <View style={styles.costCell}>
+                            <Text style={styles.costLabel}>Standard Cost</Text>
+                            <Text style={styles.costValue}>
+                              {itemData.overview.costInformation.standardCost}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        if (itemData?.itemHeader?.itemCode) {
+                          navigation.navigate('ItemOnHandScreen', {
+                            itemCode: itemData.itemHeader.itemCode
+                          });
+                        } else {
+                          Alert.alert('Error', 'Item code not found');
+                        }
+                      }}
+                      style={styles.onHandBtnWrapper}
+                    >
+                      <LinearGradient
+                        colors={['#5D768B', '#233E55']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.onHandBtn}
+                      >
+                        <View style={styles.onHandBtnContent}>
+                          <WhiteLocationIcon width={ms(16)} height={ms(16)} />
+                          <Text style={styles.onHandBtnText}>View On-Hand by Location</Text>
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {activeTab === 'Stock' && itemData && (
+                  <StockTabContent itemData={itemData} />
+                )}
+                {activeTab === 'Organization' && itemData && (
+                  <OrgTabComponent itemData={itemData} />
+                )}
+                {activeTab === 'Transactions' && itemData && (
+                  <TransactionTabComponent itemData={itemData} />
+                )}
+                {activeTab === 'Details' && itemData && (
+                  <DetailsTabComponent itemData={itemData} />
+                )}
+              </View>
             </View>
-          </View>
+          </ViewShot>
 
-          {itemData && activeTab !== 'Overview' && (
+          {itemData && (
             <View style={styles.footerContainer}>
               <View style={styles.footerButtons}>
-                <TouchableOpacity
-                  style={styles.footerButton}
-                  onPress={() => console.log('Download pressed')}
-                >
-                  <View style={styles.buttonCircle}>
-                    <DownloadIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
-                  </View>
-                </TouchableOpacity>
+                {activeTab !== 'Overview' && (
+                  <>
+                    <TouchableOpacity
+                      style={styles.footerButton}
+                      onPress={handlePrintPreview}
+                    >
+                      <View style={styles.buttonCircle}>
+                        <DownloadIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
+                      </View>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.footerButton}
-                  onPress={() => console.log('Share pressed')}
-                >
-                  <View style={styles.buttonCircle}>
-                    <ShareIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.footerButton}
-                  onPress={() => console.log('Clipboard pressed')}
-                >
-                  <View style={styles.buttonCircle}>
-                    <ClipboardIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
-                  </View>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.footerButton}
+                      onPress={handleScreenshotShare}
+                    >
+                      <View style={styles.buttonCircle}>
+                        <ShareIcon width={ms(24)} height={ms(24)} />
+                      </View>
+                    </TouchableOpacity>
+                    {activeTab === 'Stock' && (
+                      <TouchableOpacity
+                        style={styles.footerButton}
+                        onPress={handleCopyToClipboard}
+                      >
+                        <View style={styles.buttonCircle}>
+                          <ClipboardIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
               </View>
             </View>
           )}

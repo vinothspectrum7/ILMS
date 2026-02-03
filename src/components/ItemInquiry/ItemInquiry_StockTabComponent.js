@@ -1,6 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Alert 
+} from 'react-native';
 import { Dimensions } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import DocumentIcon from '../../assets/icons/Ship_Icons/DocumentIcon.svg';
 import { Item_Inquiry_Mock_Data } from '../../data/ItemInquiryMockData';
 import LinearGradient from 'react-native-linear-gradient';
@@ -12,6 +19,8 @@ const scale = size => (SCREEN_WIDTH / BASE_WIDTH) * size;
 const ms = (size, factor = 0.35) => size + (scale(size) - size) * factor;
 
 const StockTabContent = ({ itemData }) => {
+  const navigation = useNavigation();
+  
   const stockSummaryData = itemData?.overview?.stockSummary || Item_Inquiry_Mock_Data[0].overview.stockSummary;
   const stockStatusData = itemData?.overview?.stockStatus || Item_Inquiry_Mock_Data[0].overview.stockStatus;
 
@@ -50,6 +59,16 @@ const StockTabContent = ({ itemData }) => {
 
   const progressPercentage = (stockStatusData.currentStock / stockStatusData.maxStock) * 100;
 
+  const handleViewDetailedLocation = () => {
+    if (itemData?.itemHeader?.itemCode) {
+      navigation.navigate('ItemOnHandScreen', {
+        itemCode: itemData.itemHeader.itemCode
+      });
+    } else {
+      Alert.alert('Error', 'Item code not found');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.stockSection}>
@@ -69,17 +88,22 @@ const StockTabContent = ({ itemData }) => {
           ))}
 
           {stockSummaryData.viewDetailedLocationBreakdown && (
-            <LinearGradient
-              colors={['#5D768B', '#233E55']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.footerContainer}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleViewDetailedLocation}
             >
-              <View style={styles.footerContent}>
-                <WhiteEyeIcon width={ms(18)} height={ms(18)} />
-                <Text style={styles.footerText}>View Detailed Location Breakdown</Text>
-              </View>
-            </LinearGradient>
+              <LinearGradient
+                colors={['#5D768B', '#233E55']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.footerContainer}
+              >
+                <View style={styles.footerContent}>
+                  <WhiteEyeIcon width={ms(18)} height={ms(18)} />
+                  <Text style={styles.footerText}>View Detailed Location Breakdown</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
           )}
         </View>
       </View>
