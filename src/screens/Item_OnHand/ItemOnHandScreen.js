@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -127,16 +127,23 @@ const passedItemCode = route.params?.itemCode;
     </View>
   );
 
-  useEffect(() => {
-  if (passedItemCode) {
-    setBarcodeInput(passedItemCode);
+  const isInitialLoad = useRef(true);
 
-    const foundItem = findItem(passedItemCode);
-    if (foundItem) {
-      setItemOnHandData(foundItem);
-      setExpandedLocation(null);
-    }
+
+ useEffect(() => {
+  if (!isInitialLoad.current) return;
+
+  const initialCode = passedItemCode || 'ITEM-2024-001';
+
+  setBarcodeInput(initialCode);
+
+  const foundItem = findItem(initialCode);
+  if (foundItem) {
+    setItemOnHandData(foundItem);
+    setExpandedLocation(null);
   }
+
+  isInitialLoad.current = false;
 }, [passedItemCode]);
 
   return (
