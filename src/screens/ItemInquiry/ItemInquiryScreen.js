@@ -89,17 +89,22 @@ const ItemInquiryScreen = () => {
 
   const viewShotRef = useRef(null);
 
+  // useEffect(() => {
+  //   if (itemData?.itemHeader?.organizationName) {
+  //     const org = Organization_Dropdown_Mock_Data.find(
+  //       org => org.name === itemData.itemHeader.organizationName
+  //     );
+  //     if (org) {
+  //       setSelectedOrganization(org);
+  //     }
+  //   }
+  //   handleSearch('ITEM-2024-001');
+  // }, [itemData]);
+
   useEffect(() => {
-    if (itemData?.itemHeader?.organizationName) {
-      const org = Organization_Dropdown_Mock_Data.find(
-        org => org.name === itemData.itemHeader.organizationName
-      );
-      if (org) {
-        setSelectedOrganization(org);
-      }
-    }
-    handleSearch('ITEM-2024-001');
-  }, [itemData]);
+  handleSearch('ITEM-2024-001');
+}, []);
+
 
   const handleScan = (code) => {
     setBarcodeInput(code);
