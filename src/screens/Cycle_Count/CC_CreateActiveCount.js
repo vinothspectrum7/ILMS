@@ -412,7 +412,7 @@ const CC_CreateActiveCount = () => {
                   min={0}
                   max={currentItem.expected_quantity}
                   step={1}
-                  width={343}
+                  width={'100%'}
                   height={41.57}
                   isSelected={isInputModified || countedQty > 0}
                   disabledinput={false}
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
   errorBanner: {
     width: width * 0.9,
-    maxWidth: 372,
+    maxWidth: '100%',
     height: 32,
     borderRadius: 16,
     backgroundColor: '#FDECEC',
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   },
   successBanner: {
     width: width * 0.9,
-    maxWidth: 372,
+    maxWidth: '100%',
     height: 32,
     borderRadius: 16,
     backgroundColor: '#D9FFE4',
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
   },
   gradientCard: {
     width: width * 0.9,
-    maxWidth: 373,
+    maxWidth: '100%',
     height: 110,
     borderRadius: 12,
     marginBottom: 20,
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
   },
   mainWhiteCard: {
     width: width * 0.9,
-    maxWidth: 372,
+    maxWidth: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
   },
   notesOuterBorder: {
     width: '100%',
-    height: 112,
+    height: 130,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E5E7EB',

@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,15 @@ import BarcodeScanner from '../../screens/BarCodeScanner';
 import ItemBoxIcon from '../../assets/icons/Ship_Icons/ItemBoxIcon.svg';
 import { useCycleCountStore } from '../../store/cycleCountStore';
 
-const { width } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BASE_WIDTH = 375;
+
+const scale = size => (SCREEN_WIDTH / BASE_WIDTH) * size;
+const ms = (size, factor = 0.35) => Math.round(size + (scale(size) - size) * factor);
+const fs = (size, factor = 0.35) => Math.round(size + (scale(size) - size) * factor);
+
+const CONTENT_PADDING = ms(20);
+const CONTENT_WIDTH = SCREEN_WIDTH - CONTENT_PADDING * 2;
 
 const CC_ViewActiveCount = () => {
   const navigation = useNavigation();
@@ -38,9 +46,6 @@ const CC_ViewActiveCount = () => {
   const selectedListItemDetails = cycleCount?.selectedListItemDetails || [];
   const selectedCountId = selectedList?.id;
 
-  console.log('CC_ViewActiveCount → selectedList from store:', selectedList);
-  console.log('CC_ViewActiveCount → selectedListItemDetails from store:', selectedListItemDetails);
-
   const countDetails = useMemo(() => {
     if (!selectedCountId) return null;
     return MOCK_ACTIVE_CYCLE_COUNT_DETAILS.find(item => item.id === selectedCountId);
@@ -49,13 +54,13 @@ const CC_ViewActiveCount = () => {
   const onBack = useCallback(() => navigation.goBack(), [navigation]);
   const onMenu = useCallback(() => navigation.toggleDrawer?.(), [navigation]);
 
-  const handleBarcodeScan = (scannedCode) => {
+  const handleBarcodeScan = scannedCode => {
     setShowScanner(false);
     setSearchQuery(scannedCode);
     Alert.alert('Barcode Scanned', `Scanned code: ${scannedCode}\n\nSearching for item...`);
   };
 
-  const handleItemPress = (item) => {
+  const handleItemPress = item => {
     navigation.navigate('CC_CreateActiveCount', {
       countId: countDetails.id,
       itemId: item.item_id,
@@ -63,36 +68,28 @@ const CC_ViewActiveCount = () => {
     });
   };
 
-const calculateOverallProgress = useMemo(() => {
-  if (!countDetails || !countDetails.items) {
-    return {
-      completedCount: 0,
-      totalCount: 0,
-      progressPercent: 0,
-    };
-  }
-
-  const totalCount = countDetails.items.length;
-  
-  const completedCount = countDetails.items.filter(item => {
-    const updatedItem = selectedListItemDetails?.find(
-      storeItem => storeItem.itemId === item.item_id || storeItem.item_id === item.item_id
-    );
-    
-    if (updatedItem) {
-      return (updatedItem.countedQty > 0 || updatedItem.counted_quantity > 0);
+  const calculateOverallProgress = useMemo(() => {
+    if (!countDetails || !countDetails.items) {
+      return { completedCount: 0, totalCount: 0, progressPercent: 0 };
     }
-        return (item.counted_quantity > 0);
-  }).length;
 
-  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+    const totalCount = countDetails.items.length;
 
-  return {
-    completedCount,
-    totalCount,
-    progressPercent,
-  };
-}, [countDetails, selectedListItemDetails]);
+    const completedCount = countDetails.items.filter(item => {
+      const updatedItem = selectedListItemDetails?.find(
+        storeItem => storeItem.itemId === item.item_id || storeItem.item_id === item.item_id
+      );
+
+      if (updatedItem) {
+        return updatedItem.countedQty > 0 || updatedItem.counted_quantity > 0;
+      }
+      return item.counted_quantity > 0;
+    }).length;
+
+    const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+    return { completedCount, totalCount, progressPercent };
+  }, [countDetails, selectedListItemDetails]);
 
   const itemsWithUpdates = useMemo(() => {
     if (!countDetails || !countDetails.items) return [];
@@ -111,6 +108,7 @@ const calculateOverallProgress = useMemo(() => {
           comment: updatedItem.comment || '',
         };
       }
+
       return {
         ...item,
         counted_quantity: item.counted_quantity || 0,
@@ -142,21 +140,22 @@ const calculateOverallProgress = useMemo(() => {
   };
 
   const handleSubmit = () => {
-    if (!allItemsCompleted) {
-      return;
-    }
-    
+    if (!allItemsCompleted) return;
     saveCountProgress(countDetails.id, countDetails.items.length);
     navigation.navigate('CC_ActiveCount');
   };
 
+  const formatDate = dateString => {
+    const date = new Date(dateString);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = monthNames[date.getMonth()];
+    const day = date.getDate();
+    const year = date.getFullYear();
+    return `${month} ${day}, ${year}`;
+  };
+
   if (showScanner) {
-    return (
-      <BarcodeScanner
-        onScan={handleBarcodeScan}
-        onClose={() => setShowScanner(false)}
-      />
-    );
+    return <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setShowScanner(false)} />;
   }
 
   if (!countDetails) {
@@ -176,15 +175,6 @@ const calculateOverallProgress = useMemo(() => {
     );
   }
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const month = monthNames[date.getMonth()];
-    const day = date.getDate();
-    const year = date.getFullYear();
-    return `${month} ${day}, ${year}`;
-  };
-
   return (
     <View style={styles.container}>
       <Inv_HeaderComponent
@@ -195,11 +185,7 @@ const calculateOverallProgress = useMemo(() => {
         showCartIcon={false}
       />
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <LinearGradient
           colors={['#5D768B', '#233E55']}
           start={{ x: 0, y: 0 }}
@@ -209,24 +195,18 @@ const calculateOverallProgress = useMemo(() => {
           <View style={styles.gradientCardContent}>
             <View style={styles.locationDateRow}>
               <View style={styles.locationContainer}>
-                <WhiteLocation width={15} height={15} style={styles.locationIcon} />
-                <Text style={styles.gradientSubInventory}>
-                  {countDetails.sub_inventory}
-                </Text>
+                <WhiteLocation width={ms(15)} height={ms(15)} style={styles.locationIcon} />
+                <Text style={styles.gradientSubInventory}>{countDetails.sub_inventory}</Text>
               </View>
 
               <View style={styles.dateContainer}>
-                <WhiteCalendar width={15} height={15} style={styles.calendarIcon} />
-                <Text style={styles.gradientDate}>
-                  {formatDate(countDetails.schedule_date)}
-                </Text>
+                <WhiteCalendar width={ms(15)} height={ms(15)} style={styles.calendarIcon} />
+                <Text style={styles.gradientDate}>{formatDate(countDetails.schedule_date)}</Text>
               </View>
             </View>
 
             <View style={styles.totalRemainingRow}>
-              <Text style={styles.totalText}>
-                Total: {calculateOverallProgress.totalCount}
-              </Text>
+              <Text style={styles.totalText}>Total: {calculateOverallProgress.totalCount}</Text>
               <Text style={styles.remainingText}>
                 Remaining: {calculateOverallProgress.totalCount - calculateOverallProgress.completedCount}
               </Text>
@@ -234,40 +214,33 @@ const calculateOverallProgress = useMemo(() => {
 
             <View style={styles.progressContainer}>
               <View style={styles.progressBarBackground}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      width: `${calculateOverallProgress.progressPercent}%`,
-                    },
-                  ]}
-                />
+                <View style={[styles.progressBarFill, { width: `${calculateOverallProgress.progressPercent}%` }]} />
               </View>
             </View>
           </View>
         </LinearGradient>
 
         <View style={styles.searchContainer}>
-          <View style={styles.searchRow}>
-            <View style={styles.searchInputContainer}>
-              <SearchIcon width={16} height={16} style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search Item"
-                placeholderTextColor="#9D9FA3"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              <TouchableOpacity
-                style={styles.scannerButton}
-                onPress={() => setShowScanner(true)}
-              >
-                <BarcodeScannerIcon width={20} height={20} />
+          <View style={styles.searchContainerInner}>
+            <View style={styles.searchRow}>
+              <View style={styles.searchInputContainer}>
+                <SearchIcon width={ms(16)} height={ms(16)} style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search Item"
+                  placeholderTextColor="#9D9FA3"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                <TouchableOpacity style={styles.scannerButton} onPress={() => setShowScanner(true)}>
+                  <BarcodeScannerIcon width={ms(20)} height={ms(20)} />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={styles.filterButton}>
+                <FilterIcon width={ms(15)} height={ms(15)} style={styles.filterIcon} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.filterButton}>
-              <FilterIcon width={15} height={15} style={styles.filterIcon} />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -276,10 +249,8 @@ const calculateOverallProgress = useMemo(() => {
             const countedQty = Number(item.counted_quantity) || 0;
             const expectedQty = Number(item.expected_quantity) || 0;
 
-            let itemProgressPercent = expectedQty > 0
-              ? Math.min((countedQty / expectedQty) * 100, 100)
-              : 0;
-            
+            let itemProgressPercent = expectedQty > 0 ? Math.min((countedQty / expectedQty) * 100, 100) : 0;
+
             if (itemProgressPercent === 0 && expectedQty > 0) {
               itemProgressPercent = 2;
             }
@@ -329,17 +300,13 @@ const calculateOverallProgress = useMemo(() => {
               >
                 <View style={styles.itemTopRow}>
                   <View style={styles.leftIconBox}>
-                    <ItemBoxIcon width={25} height={25} />
+                    <ItemBoxIcon width={ms(25)} height={ms(25)} />
                   </View>
 
                   <View style={styles.itemTextBlock}>
                     <View style={styles.itemHeaderRow}>
                       <Text style={styles.itemNumber}>Item {index + 1}</Text>
-                      {itemStatus ? (
-                        <Text style={[styles.itemStatus, { color: progressBarColor }]}>
-                          {itemStatus}
-                        </Text>
-                      ) : null}
+                      {itemStatus ? <Text style={[styles.itemStatus, { color: progressBarColor }]}>{itemStatus}</Text> : null}
                     </View>
 
                     <Text style={styles.itemDescription}>{item.desc}</Text>
@@ -347,17 +314,10 @@ const calculateOverallProgress = useMemo(() => {
                 </View>
 
                 <View style={styles.progressWrapper}>
-                  <View
-                    style={[
-                      styles.progressWrapperBg,
-                      { backgroundColor: progressBgColor }
-                    ]}
-                  />
+                  <View style={[styles.progressWrapperBg, { backgroundColor: progressBgColor }]} />
 
                   <View style={styles.progressTextRow}>
-                    <Text style={[styles.progressLabel, progressStyle]}>
-                      Progress
-                    </Text>
+                    <Text style={[styles.progressLabel, progressStyle]}>Progress</Text>
                     <Text style={[styles.progressCount, countStyle]}>
                       {countedQty}/{expectedQty} Each
                     </Text>
@@ -368,10 +328,7 @@ const calculateOverallProgress = useMemo(() => {
                       <View
                         style={[
                           styles.itemProgressBarFill,
-                          {
-                            width: `${itemProgressPercent}%`,
-                            backgroundColor: progressBarColor,
-                          },
+                          { width: `${itemProgressPercent}%`, backgroundColor: progressBarColor },
                         ]}
                       />
                     </View>
@@ -411,27 +368,27 @@ const styles = StyleSheet.create({
   },
   notFoundText: {
     fontFamily: 'Mulish',
-    fontSize: 16,
+    fontSize: fs(16),
     color: '#595A5C',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 30,
+    paddingBottom: ms(30),
   },
   gradientCard: {
-    width: 373,
-    height: 100,
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 16,
+    width: CONTENT_WIDTH,
+    height: ms(100),
+    borderRadius: ms(12),
+    alignSelf: 'center',
+    marginTop: ms(16),
+    marginBottom: ms(16),
   },
   gradientCardContent: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: ms(16),
+    paddingVertical: ms(12),
     justifyContent: 'space-between',
   },
   locationDateRow: {
@@ -448,24 +405,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locationIcon: {
-    marginRight: 4,
+    marginRight: ms(4),
   },
   calendarIcon: {
-    marginRight: 4,
+    marginRight: ms(4),
   },
   gradientSubInventory: {
     fontFamily: 'Mulish',
     fontWeight: '700',
-    fontSize: 14,
-    lineHeight: 10,
+    fontSize: fs(14),
+    lineHeight: fs(10),
     letterSpacing: 0,
     color: '#FFFFFF',
   },
   gradientDate: {
     fontFamily: 'Mulish',
     fontWeight: '700',
-    fontSize: 14,
-    lineHeight: 10,
+    fontSize: fs(14),
+    lineHeight: fs(10),
     letterSpacing: 0,
     color: '#FFFFFF',
   },
@@ -473,82 +430,84 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 6,
+    marginTop: ms(4),
+    marginBottom: ms(6),
   },
   totalText: {
     fontFamily: 'Mulish',
     fontWeight: '700',
-    fontSize: 14,
-    lineHeight: 10,
+    fontSize: fs(14),
+    lineHeight: fs(10),
     letterSpacing: 0,
     color: '#FFFFFF',
   },
   remainingText: {
     fontFamily: 'Mulish',
     fontWeight: '700',
-    fontSize: 14,
-    lineHeight: 10,
+    fontSize: fs(14),
+    lineHeight: fs(10),
     letterSpacing: 0,
     color: '#FFFFFF',
   },
   progressContainer: {
-    width: 332,
-    height: 7,
-    borderRadius: 8,
+    width: '100%',
+    height: ms(7),
+    borderRadius: ms(8),
     alignSelf: 'center',
   },
   progressBarBackground: {
     width: '100%',
     height: '100%',
     backgroundColor: 'rgb(255, 255, 255)',
-    borderRadius: 8,
+    borderRadius: ms(8),
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: '#89ADC9',
-    borderRadius: 8,
+    borderRadius: ms(8),
   },
   searchContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: ms(16),
+  },
+  searchContainerInner: {
+    width: CONTENT_WIDTH,
+    alignSelf: 'center',
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: ms(10),
   },
   searchInputContainer: {
-    width: 331,
-    height: 40,
-    borderRadius: 8,
+    height: ms(40),
+    borderRadius: ms(8),
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#D9E4EE',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: ms(12),
     flex: 1,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: ms(8),
   },
   searchInput: {
     flex: 1,
     fontFamily: 'Mulish',
-    fontSize: 14,
+    fontSize: fs(14),
     color: '#242424',
     padding: 0,
   },
   scannerButton: {
-    padding: 4,
-    marginLeft: 8,
+    padding: ms(4),
+    marginLeft: ms(8),
   },
   filterButton: {
-    width: 35,
-    height: 40,
-    borderRadius: 8,
+    width: ms(35),
+    height: ms(40),
+    borderRadius: ms(8),
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#D9E4EE',
@@ -559,32 +518,32 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   itemsContainer: {
-    paddingHorizontal: 20,
+    width: CONTENT_WIDTH,
+    alignSelf: 'center',
   },
   itemCard: {
-    width: 373,
-    minHeight: 117,
-    borderRadius: 8,
+    width: '100%',
+    minHeight: ms(117),
+    borderRadius: ms(8),
     borderWidth: 1,
     borderColor: '#D9E4EE',
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    marginBottom: 12,
-    alignSelf: 'center',
+    padding: ms(16),
+    marginBottom: ms(12),
   },
   itemTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: ms(10),
   },
   leftIconBox: {
-    width: 42,
-    height: 36,
-    borderRadius: 5,
+    width: ms(42),
+    height: ms(36),
+    borderRadius: ms(5),
     backgroundColor: 'rgba(177, 202, 222, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: ms(10),
   },
   itemTextBlock: {
     flex: 1,
@@ -593,52 +552,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: ms(4),
   },
   itemNumber: {
     fontFamily: 'Mulish',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: fs(14),
     color: '#233E55',
   },
   itemStatus: {
     fontFamily: 'Mulish',
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: fs(12),
   },
   itemDescription: {
     fontFamily: 'Mulish',
     fontWeight: '400',
-    fontSize: 14,
+    fontSize: fs(14),
     color: '#233E55',
   },
   progressWrapper: {
     width: '100%',
-    height: 60,
-    borderRadius: 15,
+    height: ms(60),
+    borderRadius: ms(15),
     overflow: 'hidden',
     position: 'relative',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingHorizontal: ms(12),
+    paddingTop: ms(8),
+    paddingBottom: ms(12),
   },
   progressWrapperBg: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.23,
-    borderRadius: 10,
+    borderRadius: ms(10),
   },
   progressTextRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: ms(8),
     zIndex: 1,
   },
   progressLabel: {
     fontFamily: 'Mulish',
     fontWeight: '600',
-    fontSize: 12,
-    color: '#233E55', 
+    fontSize: fs(12),
+    color: '#233E55',
   },
   zeroProgressLabel: {
     color: '#DA1E28',
@@ -655,8 +614,8 @@ const styles = StyleSheet.create({
   progressCount: {
     fontFamily: 'Mulish',
     fontWeight: '700',
-    fontSize: 12,
-    color: '#233E55', 
+    fontSize: fs(12),
+    color: '#233E55',
   },
   zeroProgressCount: {
     color: '#DA1E28',
@@ -672,18 +631,18 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     position: 'relative',
-    height: 6,
+    height: ms(6),
     zIndex: 1,
   },
   itemProgressBarBackground: {
     width: '100%',
     height: '100%',
     backgroundColor: '#ECF1F7',
-    borderRadius: 3,
+    borderRadius: ms(3),
     overflow: 'hidden',
   },
   itemProgressBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: ms(3),
   },
 });
