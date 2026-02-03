@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
         color: '#595A5C',
     },
     historyCard: {
-        width: ms(370),
+        width: '100%',
         height: ms(165),
         borderRadius: 8,
         borderWidth: 1,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     cardContent: {
-        padding: 16,
+        padding: ms(12),
         paddingBottom: 0,
         flex: 1,
     },
