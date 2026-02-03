@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import CalenderIcon from '../../assets/icons/Ship_Icons/CalenderIcon.svg';
@@ -26,6 +27,10 @@ import ShippingProgressModal from '../../components/shipping/ShippingProgressMod
 import Ship_ViewDetails from '../../components/shipping/Ship_ViewDetails';
 import Rec_DropDown from '../../components/receive/Rec_DropDown';
 import { useShippingStore } from '../../store/shippingStore';
+import { useReceivingStore } from '../../store/receivingStore';
+import {
+  GetShippingDetailsData,
+} from '../../api/ApiServices';
 
 function Ship_ConfirmShippment({ navigation }) {
   const selectedTransaction = useShippingStore(s => s.selectedTransaction);
@@ -55,6 +60,85 @@ function Ship_ConfirmShippment({ navigation }) {
   const [freightTermValue, setFreightTermValue] = useState(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [freightCharges, setFreightCharges] = useState('');
+
+
+  const { OrgData } = useReceivingStore();
+
+  const getOrgCode = () => {
+    const val = useReceivingStore.getState()?.OrgData?.selectedOrg;
+    return parseInt(val, 10);
+  };
+
+  const [phase, setPhase] = useState('idle');
+  const [shippingdetails, setshippingdetails] = useState(null);
+  const [PackListOrders, setPackListOrders] = useState(null);
+
+  const maptoshippingdetailslist = backend => ({
+    customer_name: backend?.customer_name || '-',
+    delivery_number: backend?.delivery_number || '-',
+    lpn: backend?.lpn || '-',
+    ship_to_address: backend?.ship_to_address || '-',
+  });
+
+  useEffect(() => {
+    if (!selectedTransaction?.deliveryId) return;
+
+    const orgCode = getOrgCode();
+    setPhase('loading');
+
+    console.log(selectedTransaction, "selectedTransactionselectedTransaction")
+
+    const loadshippingdetailsData = async () => {
+      try {
+        const shippingdetailsdata = await GetShippingDetailsData(
+          orgCode,
+          selectedTransaction.deliveryId
+        );
+
+        console.log(shippingdetailsdata, "shippingdetailsdatashippingdetailsdata")
+
+        if (shippingdetailsdata?.picked_delivery_details?.length) {
+          setshippingdetails(
+            maptoshippingdetailslist(shippingdetailsdata.picked_delivery_details[0])
+          );
+        } else {
+          setshippingdetails(null);
+        }
+
+
+
+        setPhase('success');
+      } catch (error) {
+        setPhase('error');
+        navigation.navigate('Ship_Entry');
+      }
+    };
+
+    // const loadPackOrderData = async () => {
+    //   try {
+    //     const Packorderdata = await GetShippingPackOrderData(
+    //       orgCode,
+    //       selectedTransaction.deliveryId
+    //     );
+
+    //     if (Packorderdata?.pack_order_result?.length) {
+    //       setPackListOrders(
+    //         mapToPickOrderHeader(Packorderdata.pack_order_result[0])
+    //       );
+    //     } else {
+    //       setPackListOrders(null);
+    //     }
+
+    //     setPhase('success');
+    //   } catch (error) {
+    //     setPhase('error');
+    //     navigation.navigate('Ship_Entry');
+    //   }
+    // };
+
+    loadshippingdetailsData();
+    // loadPackOrderData();
+  }, [selectedTransaction?.deliveryId]);
 
   const deliveryNumberText = useMemo(() => {
     return String(selectedTransaction?.deliveryId ?? selectedTransaction?.deliveryNumber ?? '-') || '-';
@@ -156,9 +240,9 @@ function Ship_ConfirmShippment({ navigation }) {
   };
 
   const handleCancelAction = () => {
-    navigation.navigate('ShipDashboard', { 
+    navigation.navigate('ShipDashboard', {
       status: 'All',
-      refresh: true 
+      refresh: true
     });
   };
 
@@ -294,17 +378,17 @@ function Ship_ConfirmShippment({ navigation }) {
             <View style={styles.topRow}>
               <View style={styles.topItem}>
                 <Text style={styles.label}>Delivery Number</Text>
-                <Text style={styles.value}>{deliveryNumberText}</Text>
+                <Text style={styles.value}>{shippingdetails?.delivery_number ?? '-'}</Text>
               </View>
 
               <View style={styles.topItem}>
                 <Text style={styles.label}>Customer Name</Text>
-                <Text style={styles.value}>{customerNameText}</Text>
+                <Text style={styles.value}>{shippingdetails?.customer_name ?? '-'}</Text>
               </View>
 
               <View style={styles.topItem}>
                 <Text style={styles.label}>LPN</Text>
-                <Text style={styles.value}>{lpnText}</Text>
+                <Text style={styles.value}>{shippingdetails?.lpn ?? '-'}</Text>
               </View>
             </View>
 
@@ -315,7 +399,7 @@ function Ship_ConfirmShippment({ navigation }) {
                 </View>
                 <Text style={styles.shipToText}>
                   <LocationIcon width={16} height={16} style={styles.locationIcon} />
-                  {shipToText}
+                  {shippingdetails?.ship_to_address ?? '-'}
                 </Text>
               </View>
 
@@ -558,7 +642,7 @@ function Ship_ConfirmShippment({ navigation }) {
         visible={showConfirmPopup}
         onClose={() => setShowConfirmPopup(false)}
         onConfirm={handleConfirmShipping}
-        onNo={handleCancelAction} 
+        onNo={handleCancelAction}
         deliveryNumber={deliveryNumberText}
         customerName={customerNameText}
       />

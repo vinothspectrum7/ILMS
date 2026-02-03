@@ -68,6 +68,7 @@ export const API_ENDPOINTS = {
  GETFROMLOCATORSDATA: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Get-Locators?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
  GETINVENTORYLOCATORSDATA: (org_id,item_code,sub_inv) => `${BASE_URL}/inventory/Get-Lots?Org_code=${org_id}&Item_code=${item_code}&Sub_inv=${sub_inv}`,
  SUBMIT_SUBINVENTORY_TRANSFER: `${BASE_URL}/inventory/subinventory-transfer`,
- GET_SHIPPING_EBS_LPN_DETAILS_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/lpn-details?p_org_id=${org_id}&p_delivery_id=${delivery_id}`, 
+ GET_SHIPPING_EBS_LPN_DETAILS_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/lpn-details?p_org_id=${org_id}&p_delivery_id=${delivery_id}`,
+ GET_SHIPPING_EBS_DETAILS_DATA: (org_id,delivery_id) => `${BASE_URL}/shipment/picked-delivery-details?p_org_id=${org_id}&p_delivery_id=${delivery_id}`, 
  
 };
