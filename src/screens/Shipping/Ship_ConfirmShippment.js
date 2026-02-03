@@ -368,7 +368,7 @@ function Ship_ConfirmShippment({ navigation }) {
 
       <GlobalHeaderComponent
         screenTitle="Confirm Shipment"
-        organizationName="ENV"
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
         onBack={() => navigation.goBack()}
       />
 
@@ -397,10 +397,13 @@ function Ship_ConfirmShippment({ navigation }) {
                 <View style={styles.shipToRow}>
                   <Text style={styles.label}>Ship-To</Text>
                 </View>
-                <Text style={styles.shipToText}>
+                <View style={styles.shipToValue}>
                   <LocationIcon width={16} height={16} style={styles.locationIcon} />
+                  <Text style={styles.shipToText}>
                   {shippingdetails?.ship_to_address ?? '-'}
                 </Text>
+                </View>
+                
               </View>
 
               <TouchableOpacity
@@ -705,8 +708,8 @@ const styles = StyleSheet.create({
   },
 
   value: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '500',
     color: '#233E55',
     marginTop: 2,
   },
@@ -727,6 +730,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+  }, 
+
+  shipToValue: {
+    flex: 1,
+    flexDirection:'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
 
   locationIcon: {
@@ -736,6 +746,7 @@ const styles = StyleSheet.create({
 
   shipToText: {
     fontSize: 12,
+    fontWeight: '500',
     color: '#233E55',
     lineHeight: 16,
   },

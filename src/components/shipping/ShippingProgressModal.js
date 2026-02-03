@@ -11,12 +11,21 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
+import GlobalHeaderComponent from '../../components/GlobalHeaderComponent';
+import { useReceivingStore } from '../../store/receivingStore';
 
 const ShippingProgressModal = ({ visible, onClose }) => {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [progressPercent, setProgressPercent] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const navigation = useNavigation(); 
+
+  const { OrgData } = useReceivingStore();
+  
+    const getOrgCode = () => {
+      const val = useReceivingStore.getState()?.OrgData?.selectedOrg;
+      return parseInt(val, 10);
+    };
 
   useEffect(() => {
     if (visible) {
@@ -81,6 +90,11 @@ const ShippingProgressModal = ({ visible, onClose }) => {
       onRequestClose={onClose}
       statusBarTranslucent={true}
     >
+      <GlobalHeaderComponent
+        screenTitle="Confirm Shipment"
+        organizationName={OrgData?.selectedOrgCode || 'EnnVee'}
+        onBack={() => navigation.goBack()}
+      />
       <SafeAreaView style={styles.modalContainer}>
         <StatusBar backgroundColor="rgba(0,0,0,0.5)" barStyle="light-content" />
         <View style={styles.overlay}>
@@ -122,7 +136,7 @@ const ShippingProgressModal = ({ visible, onClose }) => {
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: '#FFFFFF',
   },
   overlay: {
     flex: 1,
@@ -132,11 +146,11 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: 372,
-    height: 739,
+    height: 400,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
