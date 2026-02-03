@@ -32,6 +32,9 @@ import PurpleOutlineTick from '../../assets/icons/CycleCount_Icons/PurpleOutline
 import DownloadIcon from '../../assets/icons/CycleCount_Icons/Download.svg';
 import ClipboardIcon from '../../assets/icons/CycleCount_Icons/ClipboardIcon.svg'
 import ShareIcon from '../../assets/icons/CycleCount_Icons/ShareIcon.svg';
+import RNPrint from 'react-native-print';
+import ItemInquiry_PrintComponent from '../../components/ItemInquiry/ItemInquiry_PrintComponent';
+import Clipboard from '@react-native-clipboard/clipboard'; 
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -133,6 +136,27 @@ const ItemInquiryScreen = () => {
     }
   };
 
+  const handlePrintPreview = async () => {
+    await ItemInquiry_PrintComponent.printItemInquiry(itemData, activeTab, selectedOrganization);
+  };
+
+  const handleCopyToClipboard = () => {
+    if (!itemData) {
+      Alert.alert('Error', 'No item data to copy');
+      return;
+    }
+
+    const clipboardText = `
+  Item: ${itemData.itemHeader.itemName}
+  Code: ${itemData.itemHeader.itemCode}
+  SKU: ${itemData.itemHeader.sku}
+  Status: ${itemData.itemHeader.status}
+  Active Tab: ${activeTab}
+    `.trim();
+
+    Clipboard.setString(clipboardText);
+    Alert.alert('Copied', 'Item information copied to clipboard');
+  };
 
   return (
     <View style={styles.container}>
@@ -452,8 +476,13 @@ const ItemInquiryScreen = () => {
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {
-                      console.log('View On-Hand by Location Clicked');
-                      // navigation.navigate('LocationStockScreen'); 
+                      if (itemData?.itemHeader?.itemCode) {
+                        navigation.navigate('ItemOnHandScreen', {
+                          itemCode: itemData.itemHeader.itemCode
+                        });
+                      } else {
+                        Alert.alert('Error', 'Item code not found');
+                      }
                     }}
                     style={styles.onHandBtnWrapper}
                   >
@@ -492,7 +521,7 @@ const ItemInquiryScreen = () => {
               <View style={styles.footerButtons}>
                 <TouchableOpacity
                   style={styles.footerButton}
-                  onPress={() => console.log('Download pressed')}
+                  onPress={handlePrintPreview}
                 >
                   <View style={styles.buttonCircle}>
                     <DownloadIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
@@ -510,7 +539,7 @@ const ItemInquiryScreen = () => {
 
                 <TouchableOpacity
                   style={styles.footerButton}
-                  onPress={() => console.log('Clipboard pressed')}
+                onPress={handleCopyToClipboard}
                 >
                   <View style={styles.buttonCircle}>
                     <ClipboardIcon width={ms(24)} height={ms(24)} fill="#FFFFFF" />
