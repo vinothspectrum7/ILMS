@@ -91,7 +91,7 @@ export default function Inv_HeaderComponent({
   cartCount = 0,
   onCartPress = () => { },
   onMenuSelect = () => { },
-  menuVersion = '26020307',
+  menuVersion = '26020407',
    navRowStyle, 
 }) {
   const title = `${org3(organizationName)} – ${screenTitle}${contextInfo ? `(${contextInfo})` : ''
