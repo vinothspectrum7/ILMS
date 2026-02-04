@@ -535,6 +535,7 @@ const handlePersistMainLine = () => {
     ? {
         serial_details: Array.isArray(backend?.serial)?
         backend?.serial:[],
+        lot_details:""
       }
     : backend?.controlType === 'Lot'? {
         lot_details: Array.isArray(backend?.lots)
@@ -543,6 +544,7 @@ const handlePersistMainLine = () => {
               lot_trans_quantity: l?.qty,
             }))
           : [],
+        serial_details:""
       }: backend?.controlType === 'Lot+Serial'? {
         lot_serial_details: Array.isArray(backend?.lots)?
         backend?.lots.map(l =>({
